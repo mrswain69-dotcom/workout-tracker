@@ -1,0 +1,1675 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+
+import {
+  isSupabaseReady,
+  getSession,
+  signIn,
+  signUp,
+  signOut,
+  getOrCreateFamily,
+  listProfiles,
+  addProfile,
+  renameProfile,
+  setProfileBodyweight,
+  archiveProfile,
+  getPlan,
+  upsertPlan,
+  getLog,
+  upsertLog,
+  listLogs,
+} from "./db";
+
+// -------- Utilities ----------
+function uid() {
+  return Math.random().toString(16).slice(2) + Date.now().toString(16);
+}
+function safeNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+function ymd(date) {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+function formatDate(dISO) {
+  const d = new Date(dISO + "T00:00:00");
+  return d.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+}
+function weekKey(ymdStr) {
+  const d = new Date(ymdStr + "T00:00:00");
+  const day = d.getDay(); // Sun=0
+  const diffToMon = (day + 6) % 7;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - diffToMon);
+  return ymd(mon);
+}
+function monthKey(ymdStr) {
+  const d = new Date(ymdStr + "T00:00:00");
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// -------- Sound (WebAudio) ----------
+function createAudio() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return null;
+  return new AudioCtx();
+}
+function playTone(ctx, { freq = 440, duration = 0.12, type = "sine", gain = 0.08, when = 0 }) {
+  if (!ctx) return;
+  const t0 = ctx.currentTime + when;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(gain, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+  osc.connect(g);
+  g.connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.02);
+}
+function playNoisePop(ctx, { gain = 0.05, when = 0, duration = 0.12 }) {
+  if (!ctx) return;
+  const t0 = ctx.currentTime + when;
+  const bufferSize = Math.floor(ctx.sampleRate * duration);
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  source.connect(g);
+  g.connect(ctx.destination);
+  source.start(t0);
+  source.stop(t0 + duration);
+}
+function playStartSound(ctx, theme = "classic") {
+  if (theme === "arcade") {
+    playTone(ctx, { freq: 523.25, duration: 0.07, type: "square", gain: 0.05, when: 0.0 });
+    playTone(ctx, { freq: 659.25, duration: 0.07, type: "square", gain: 0.05, when: 0.08 });
+    playTone(ctx, { freq: 783.99, duration: 0.08, type: "square", gain: 0.05, when: 0.16 });
+    return;
+  }
+  playTone(ctx, { freq: 440, duration: 0.08, type: "triangle", gain: 0.06, when: 0.0 });
+  playTone(ctx, { freq: 660, duration: 0.09, type: "triangle", gain: 0.06, when: 0.08 });
+  playTone(ctx, { freq: 880, duration: 0.10, type: "triangle", gain: 0.06, when: 0.17 });
+}
+function playWhoosh(ctx, combo = 1, theme = "classic") {
+  const c = clamp(combo, 1, 10);
+  const base = theme === "arcade" ? 320 : 240;
+  const t = theme === "arcade" ? "square" : "sawtooth";
+  playTone(ctx, { freq: base + c * 30, duration: 0.10, type: t, gain: 0.035, when: 0.0 });
+  playTone(ctx, { freq: base + c * 45, duration: 0.10, type: t, gain: 0.03, when: 0.03 });
+}
+function playBling(ctx, combo = 1, theme = "classic") {
+  const c = clamp(combo, 1, 10);
+  const mult = 1 + c * 0.04;
+  const type = theme === "arcade" ? "square" : "sine";
+  playTone(ctx, { freq: 1046.5 * mult, duration: 0.055, type, gain: 0.055, when: 0.0 });
+  playTone(ctx, { freq: 1318.5 * mult, duration: 0.065, type, gain: 0.05, when: 0.06 });
+  playTone(ctx, { freq: 1567.98 * mult, duration: 0.075, type, gain: 0.045, when: 0.13 });
+}
+function playLevelUp(ctx, theme = "classic") {
+  const t = theme === "arcade" ? "square" : "sawtooth";
+  playTone(ctx, { freq: 220, duration: 0.18, type: t, gain: 0.04, when: 0.0 });
+  playTone(ctx, { freq: 330, duration: 0.18, type: t, gain: 0.04, when: 0.02 });
+  playTone(ctx, { freq: 440, duration: 0.18, type: t, gain: 0.04, when: 0.04 });
+  playNoisePop(ctx, { gain: 0.035, when: 0.22, duration: 0.10 });
+  playTone(ctx, { freq: 880, duration: 0.06, type: "triangle", gain: 0.03, when: 0.24 });
+  playTone(ctx, { freq: 1320, duration: 0.06, type: "triangle", gain: 0.03, when: 0.30 });
+  playTone(ctx, { freq: 1760, duration: 0.06, type: "triangle", gain: 0.03, when: 0.36 });
+}
+
+// -------- Default plan (fully customisable) ----------
+const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// built-in activity types
+function builtInTypes() {
+  return [
+    { id: "strength", name: "Strength / HIIT (sets)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
+    { id: "box", name: "Boxercise (timed rounds)", kind: "time", movementsEnabled: true, sets: 3, fixedSeconds: 60, allowCount: true, countLabel: "hits" },
+    { id: "run", name: "Run (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
+    { id: "swim", name: "Swim (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
+    { id: "duration", name: "Duration only (minutes)", kind: "custom", movementsEnabled: false, fields: { durationMin: true } },
+  ];
+}
+
+function defaultPlanForFamily() {
+  const types = builtInTypes();
+  // Default weekly assignment (you can change anything in Plan tab)
+  const dayTypeByWeekday = {
+    Mon: "strength",
+    Tue: "run",
+    Wed: "strength",
+    Thu: "box",
+    Fri: "strength",
+    Sat: "duration",
+    Sun: "duration",
+  };
+
+  const movements = {
+    Mon: [
+      { id: uid(), name: "Push-ups", mode: "strength", allowWeight: false },
+      { id: uid(), name: "Bodyweight Squats", mode: "strength", allowWeight: false },
+      { id: uid(), name: "Plank", mode: "time", allowCount: false },
+    ],
+    Wed: [
+      { id: uid(), name: "Dumbbell Row", mode: "strength", allowWeight: true },
+      { id: uid(), name: "Shoulder Press", mode: "strength", allowWeight: true },
+      { id: uid(), name: "Hollow Hold", mode: "time", allowCount: false },
+    ],
+    Fri: [
+      { id: uid(), name: "Lunges", mode: "strength", allowWeight: false },
+      { id: uid(), name: "Goblet Squat", mode: "strength", allowWeight: true },
+      { id: uid(), name: "Jump Rope", mode: "time", allowCount: true, countLabel: "skips" },
+    ],
+    Thu: [
+      { id: uid(), name: "Cross-punch rally 1-2-3-4-5 (repeat)", mode: "time", fixedSeconds: 60, allowCount: true, countLabel: "hits" },
+      { id: uid(), name: "Sit-up + cross punches (repeat)", mode: "time", fixedSeconds: 60, allowCount: true, countLabel: "rounds" },
+      { id: uid(), name: "Cross, duck, cross combo (repeat)", mode: "time", fixedSeconds: 60, allowCount: true, countLabel: "rounds" },
+    ],
+  };
+
+  return {
+    version: 1,
+    activityTypes: types, // can add custom types
+    dayTypeByWeekday,
+    movementsByWeekday: movements, // only for days where movementsEnabled
+  };
+}
+
+// -------- Calculations ----------
+function setDidSomething(s) {
+  const reps = safeNumber(s.reps);
+  const time = safeNumber(s.timeSeconds);
+  const count = safeNumber(s.count);
+  const distanceKm = safeNumber(s.distanceKm);
+  const durationMin = safeNumber(s.durationMin);
+  return reps > 0 || time > 0 || count > 0 || distanceKm > 0 || durationMin > 0;
+}
+function setVolume(s) {
+  const reps = safeNumber(s.reps);
+  const w = safeNumber(s.weight);
+  return reps * w;
+}
+function calcComboMax(log) {
+  const entries = log?.entries || {};
+  let combo = 0;
+  let maxCombo = 0;
+  for (const sets of Object.values(entries)) {
+    for (const s of sets || []) {
+      if (setDidSomething(s)) {
+        combo += 1;
+        maxCombo = Math.max(maxCombo, combo);
+      } else combo = 0;
+    }
+  }
+  return maxCombo;
+}
+function isDayComplete(log, planDay) {
+  if (!log) return false;
+  if (planDay.kind === "cardio") {
+    return safeNumber(log.cardio?.distanceKm) > 0 && safeNumber(log.cardio?.durationMin) > 0;
+  }
+  if (planDay.kind === "custom") {
+    return safeNumber(log.custom?.durationMin) > 0;
+  }
+  if (!planDay.movementsEnabled) return false;
+  const ex = planDay.movements || [];
+  if (!ex.length) return false;
+  for (const e of ex) {
+    const sets = log.entries?.[e.id] || [];
+    if (sets.length < 3) return false;
+    for (let i = 0; i < 3; i++) if (!setDidSomething(sets[i] || {})) return false;
+  }
+  return true;
+}
+function awardXpForDay(log, planDay) {
+  const base = 10;
+  const completion = isDayComplete(log, planDay) ? 25 : 0;
+  const combo = clamp(log?.gamify?.comboMax || 0, 0, 30);
+  return base + completion + combo;
+}
+function estimateCalories({ kind, bodyWeightKg, log }) {
+  const bw = safeNumber(bodyWeightKg);
+  if (!bw) return null;
+  const met = kind === "cardio" ? 8.3 : kind === "time" ? 8.0 : kind === "strength" ? 6.0 : 3.0;
+  let minutes = 0;
+  if (kind === "cardio") minutes = safeNumber(log?.cardio?.durationMin);
+  else if (kind === "custom") minutes = safeNumber(log?.custom?.durationMin);
+  else {
+    const started = log?.startedAt ? new Date(log.startedAt) : null;
+    const finished = log?.finishedAt ? new Date(log.finishedAt) : null;
+    if (started && finished && finished > started) minutes = (finished - started) / 60000;
+    else minutes = (Object.values(log?.entries || {}).flat().filter(setDidSomething).length) * 1.5;
+  }
+  if (!minutes) return null;
+  const kcalPerMin = (met * 3.5 * bw) / 200;
+  return Math.round(kcalPerMin * minutes);
+}
+
+// -------- UI primitives ----------
+function Card({ children, className = "" }) {
+  return <div className={`card ${className}`}>{children}</div>;
+}
+function Pill({ children }) {
+  return <span className="pill">{children}</span>;
+}
+function PrimaryButton({ children, onClick, disabled }) {
+  return (
+    <button className={`btn btn-primary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  );
+}
+function SecondaryButton({ children, onClick, disabled }) {
+  return (
+    <button className={`btn btn-secondary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  );
+}
+function Input({ value, onChange, placeholder, type = "text", min, step, readOnly }) {
+  return (
+    <input
+      value={value}
+      onChange={(e) => onChange && onChange(e.target.value)}
+      placeholder={placeholder}
+      type={type}
+      min={min}
+      step={step}
+      readOnly={readOnly}
+      className="input"
+    />
+  );
+}
+function Select({ value, onChange, options }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className="input">
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+function SummaryStat({ label, value }) {
+  return (
+    <div className="stat">
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
+    </div>
+  );
+}
+function Challenge({ text, done }) {
+  return (
+    <div className="challenge">
+      <div>{text}</div>
+      <div className={`challenge-box ${done ? "done" : ""}`}>{done ? "✅" : "⬜"}</div>
+    </div>
+  );
+}
+function RewardItem({ title, desc, active, locked, onPick }) {
+  return (
+    <div className={`reward ${locked ? "locked" : ""}`}>
+      <div>
+        <div className="reward-title">
+          {title} {active ? "✅" : ""}
+        </div>
+        <div className="reward-desc">
+          {desc}
+          {locked ? " (locked)" : ""}
+        </div>
+      </div>
+      <SecondaryButton onClick={onPick} disabled={locked || active}>
+        Pick
+      </SecondaryButton>
+    </div>
+  );
+}
+
+// -------- Auth screen ----------
+function AuthScreen({ onAuthed }) {
+  const [mode, setMode] = useState("signin"); // signin | signup
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <div className="page">
+      <div className="wrap">
+        <Card className="pad authCard">
+          <div className="small">Workout Tracker • Online</div>
+          <h1 className="title">Parent login</h1>
+          {!isSupabaseReady() ? (
+            <div className="panel mt16">
+              <div className="h3">Supabase not configured</div>
+              <div className="muted mt8">
+                Add <b>VITE_SUPABASE_URL</b> and <b>VITE_SUPABASE_ANON_KEY</b> in <code>.env.local</code> (see <code>.env.example</code>).
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="tabs mt16">
+                <SecondaryButton onClick={() => setMode("signin")}>Sign in</SecondaryButton>
+                <SecondaryButton onClick={() => setMode("signup")}>Sign up</SecondaryButton>
+              </div>
+
+              <div className="stack mt16">
+                <div>
+                  <div className="label">Email</div>
+                  <Input value={email} onChange={setEmail} placeholder="parent@email.com" type="email" />
+                </div>
+                <div>
+                  <div className="label">Password</div>
+                  <Input value={pw} onChange={setPw} placeholder="••••••••" type="password" />
+                </div>
+                <PrimaryButton
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    setMsg("");
+                    try {
+                      const fn = mode === "signup" ? signUp : signIn;
+                      const { error } = await fn(email.trim(), pw);
+                      if (error) setMsg(error.message);
+                      else onAuthed();
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  {mode === "signup" ? "Create account" : "Sign in"}
+                </PrimaryButton>
+                {msg && <div className="muted">{msg}</div>}
+                <div className="muted">
+                  This is the <b>parent</b> login. Inside you can create profiles (Wilf, Xander, you, etc.).
+                </div>
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+      <StyleTag />
+    </div>
+  );
+}
+
+// -------- Main app ----------
+export default function App() {
+  const [tab, setTab] = useState("log"); // log | stats | plan | rewards | settings
+  const [sessionReady, setSessionReady] = useState(false);
+  const [authed, setAuthed] = useState(false);
+
+  const [family, setFamily] = useState(null);
+  const [profiles, setProfiles] = useState([]);
+  const [activeProfileId, setActiveProfileId] = useState("");
+  const [plan, setPlan] = useState(null);
+
+  const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
+  const [selectedWeekday, setSelectedWeekday] = useState(() => {
+    const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const today = labels[new Date().getDay()];
+    return weekdays.includes(today) ? today : "Mon";
+  });
+
+  const [logForDay, setLogForDay] = useState(null);
+  const [allLogs, setAllLogs] = useState([]); // for stats
+
+  const [soundOn, setSoundOn] = useState(true);
+  const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
+  const [xp, setXp] = useState(0);
+
+  const audioCtxRef = useRef(null);
+
+  // --- Boot: session ---
+  useEffect(() => {
+    (async () => {
+      if (!isSupabaseReady()) {
+        setSessionReady(true);
+        setAuthed(false);
+        return;
+      }
+      const { session } = await getSession();
+      setAuthed(!!session);
+      setSessionReady(true);
+    })();
+  }, []);
+
+  const ensureAudio = async () => {
+    if (!soundOn) return null;
+    if (!audioCtxRef.current) audioCtxRef.current = createAudio();
+    const ctx = audioCtxRef.current;
+    try {
+      if (ctx && ctx.state === "suspended") await ctx.resume();
+    } catch {}
+    return ctx;
+  };
+
+  // --- After auth: family + profiles + plan ---
+  async function refreshAll() {
+    const { family: fam, error } = await getOrCreateFamily("Swain Family");
+    if (error) throw error;
+    setFamily(fam);
+
+    const { data: profs } = await listProfiles(fam.id);
+    let profList = profs || [];
+
+    if (profList.length === 0) {
+      // auto-create Wilf + Xander
+      await addProfile(fam.id, "Wilf");
+      await addProfile(fam.id, "Xander");
+      const again = await listProfiles(fam.id);
+      profList = again.data || [];
+    }
+    setProfiles(profList);
+    setActiveProfileId((prev) => prev || profList[0]?.id || "");
+
+    const { data: planRow } = await getPlan(fam.id);
+    if (!planRow) {
+      const p = defaultPlanForFamily();
+      await upsertPlan(fam.id, p);
+      setPlan(p);
+    } else {
+      setPlan(planRow.plan_json);
+    }
+  }
+
+  useEffect(() => {
+    if (!authed) return;
+    refreshAll().catch(() => {});
+  }, [authed]);
+
+  // --- Load logs when profile changes ---
+  useEffect(() => {
+    if (!family?.id || !activeProfileId) return;
+    (async () => {
+      const { data } = await listLogs(family.id, activeProfileId, 2000);
+      setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
+    })().catch(() => {});
+  }, [family?.id, activeProfileId]);
+
+  // --- Load day log ---
+  useEffect(() => {
+    if (!family?.id || !activeProfileId) return;
+    (async () => {
+      const { data } = await getLog(family.id, activeProfileId, selectedDate);
+      setLogForDay(data?.log_json || null);
+    })().catch(() => setLogForDay(null));
+  }, [family?.id, activeProfileId, selectedDate]);
+
+  const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
+
+  const xpToNext = 100 - (xp % 100);
+  const level = 1 + Math.floor(xp / 100);
+  const unlocked = { arcade: level >= 3, chill: level >= 5 };
+  const canUseTheme = (t) => t === "classic" || (t === "arcade" && unlocked.arcade) || (t === "chill" && unlocked.chill);
+
+  const dayTypeId = plan?.dayTypeByWeekday?.[selectedWeekday] || "strength";
+  const activityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === dayTypeId) || builtInTypes()[0];
+  const movements = plan?.movementsByWeekday?.[selectedWeekday] || [];
+
+  const planDay = { ...activityType, movements };
+
+  async function savePlan(nextPlan) {
+    setPlan(nextPlan);
+    if (!family?.id) return;
+    await upsertPlan(family.id, nextPlan);
+  }
+
+  async function saveLog(nextLog) {
+    setLogForDay(nextLog);
+    if (!family?.id || !activeProfileId) return;
+    await upsertLog(family.id, activeProfileId, selectedDate, nextLog);
+    // refresh logs list for stats
+    const { data } = await listLogs(family.id, activeProfileId, 2000);
+    setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
+  }
+
+  function blankLogForDay() {
+    return {
+      startedAt: null,
+      finishedAt: null,
+      weekday: selectedWeekday,
+      typeId: dayTypeId,
+      entries: {},
+      cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
+      custom: { durationMin: "" },
+      gamify: { comboMax: 0 },
+    };
+  }
+
+  async function startSession() {
+    const ctx = await ensureAudio();
+    if (ctx) playStartSound(ctx, victoryTheme);
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    next.startedAt = next.startedAt || new Date().toISOString();
+    next.finishedAt = null;
+    await saveLog(next);
+  }
+
+  async function finishSession() {
+    const ctx = await ensureAudio();
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    next.finishedAt = new Date().toISOString();
+    next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
+
+    const earned = awardXpForDay(next, planDay);
+    setXp((prev) => prev + earned);
+
+    await saveLog(next);
+
+    if (ctx) playLevelUp(ctx, victoryTheme);
+  }
+
+  async function resetDay() {
+    await saveLog(null);
+    // wipe row by upserting empty? easiest: store null locally; for DB, overwrite with blank? We'll just store a blank with a reset marker.
+    const next = blankLogForDay();
+    next.reset = true;
+    await saveLog(next);
+    await saveLog(null);
+  }
+
+  async function addOrUpdateSet(exId, idx, patch) {
+    const ctx = await ensureAudio();
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const entries = { ...(next.entries || {}) };
+    const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
+    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "", ...(cur[i] || {}) }));
+    sets[idx] = { ...sets[idx], ...patch };
+    entries[exId] = sets;
+    next.entries = entries;
+    next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
+    await saveLog(next);
+
+    if (ctx) {
+      const combo = clamp((next.gamify?.comboMax || 1), 1, 10);
+      playWhoosh(ctx, combo, victoryTheme);
+      playBling(ctx, combo, victoryTheme);
+    }
+  }
+
+  async function updateCardio(patch) {
+    const ctx = await ensureAudio();
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const cardio = { ...(next.cardio || { distanceKm: "", durationMin: "", avgSpeedKmh: "" }), ...patch };
+    const dist = safeNumber(cardio.distanceKm);
+    const min = safeNumber(cardio.durationMin);
+    const avg = min > 0 ? dist / (min / 60) : 0;
+    cardio.avgSpeedKmh = avg ? avg.toFixed(2) : "";
+    next.cardio = cardio;
+    await saveLog(next);
+    if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+
+  async function updateCustom(patch) {
+    const ctx = await ensureAudio();
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    next.custom = { ...(next.custom || { durationMin: "" }), ...patch };
+    await saveLog(next);
+    if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+
+  // -------- Stats from allLogs ----------
+  const stats = useMemo(() => {
+    const bestByExercise = new Map();
+    let totalSessions = 0;
+    let totalStrengthVolume = 0;
+    let bestCardioSpeed = 0;
+    let bestCardioDistance = 0;
+
+    const weekly = new Map();
+    const monthToStrength = new Map();
+    const sessionDays = new Set();
+
+    for (const row of allLogs) {
+      const d = row.date_ymd;
+      const log = row.log;
+      if (!log) continue;
+
+      const typeId = log.typeId || "strength";
+      const at = (plan?.activityTypes || builtInTypes()).find((t) => t.id === typeId) || builtInTypes()[0];
+      const wk = weekKey(d);
+      const w = weekly.get(wk) || { sessions: 0, strengthVolume: 0, cardioKm: 0 };
+
+      let didAnything = false;
+
+      if (at.kind === "cardio") {
+        const km = safeNumber(log.cardio?.distanceKm);
+        const min = safeNumber(log.cardio?.durationMin);
+        const spd = min > 0 ? km / (min / 60) : 0;
+        if (km > 0 && min > 0) {
+          didAnything = true;
+          bestCardioSpeed = Math.max(bestCardioSpeed, spd);
+          bestCardioDistance = Math.max(bestCardioDistance, km);
+          w.cardioKm += km;
+        }
+      } else if (at.kind === "custom") {
+        const min = safeNumber(log.custom?.durationMin);
+        if (min > 0) didAnything = true;
+      } else {
+        const entries = log.entries || {};
+        let dayStrength = 0;
+        for (const [exId, sets] of Object.entries(entries)) {
+          for (const s of sets || []) {
+            if (!setDidSomething(s)) continue;
+            didAnything = true;
+            const reps = safeNumber(s.reps);
+            const vol = (safeNumber(s.weight) > 0 ? reps * safeNumber(s.weight) : reps * 1);
+            // For PBs, keep volume as reps*weight if weight exists else reps
+            const setVol = safeNumber(s.weight) > 0 ? reps * safeNumber(s.weight) : reps;
+
+            dayStrength += setVol;
+            totalStrengthVolume += setVol;
+            w.strengthVolume += setVol;
+
+            const prev = bestByExercise.get(exId) || { bestSetVolume: 0, bestWeight: 0, bestReps: 0, bestTime: 0, bestCount: 0 };
+            bestByExercise.set(exId, {
+              bestSetVolume: Math.max(prev.bestSetVolume, setVol),
+              bestWeight: Math.max(prev.bestWeight, safeNumber(s.weight)),
+              bestReps: Math.max(prev.bestReps, reps),
+              bestTime: Math.max(prev.bestTime, safeNumber(s.timeSeconds)),
+              bestCount: Math.max(prev.bestCount, safeNumber(s.count)),
+            });
+          }
+        }
+        const mk = monthKey(d);
+        monthToStrength.set(mk, (monthToStrength.get(mk) || 0) + dayStrength);
+      }
+
+      if (didAnything) {
+        totalSessions += 1;
+        w.sessions += 1;
+        sessionDays.add(d);
+      }
+
+      weekly.set(wk, w);
+    }
+
+    // streak (consecutive training days tracked by simply last consecutive dates)
+    let streak = 0;
+    let cur = new Date();
+    for (let i = 0; i < 365; i++) {
+      const d = ymd(cur);
+      if (sessionDays.has(d)) streak += 1;
+      else break;
+      cur.setDate(cur.getDate() - 1);
+    }
+
+    const weeklyChart = Array.from(weekly.entries())
+      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+      .slice(-16)
+      .map(([wk, v]) => ({
+        week: wk,
+        strengthVolume: Math.round(v.strengthVolume),
+        cardioKm: Number((v.cardioKm || 0).toFixed(2)),
+        sessions: v.sessions,
+      }));
+
+    // top effort day (strength)
+    let topEffortDay = null;
+    let topEffortValue = 0;
+    for (const row of allLogs) {
+      const d = row.date_ymd;
+      const log = row.log;
+      if (!log) continue;
+      const typeId = log.typeId || "strength";
+      const at = (plan?.activityTypes || builtInTypes()).find((t) => t.id === typeId) || builtInTypes()[0];
+      if (at.kind === "cardio" || at.kind === "custom") continue;
+      const entries = log.entries || {};
+      let v = 0;
+      for (const sets of Object.values(entries)) for (const s of sets || []) v += (safeNumber(s.weight) > 0 ? safeNumber(s.reps) * safeNumber(s.weight) : safeNumber(s.reps));
+      if (v > topEffortValue) { topEffortValue = v; topEffortDay = d; }
+    }
+
+    // improved this month vs last (strength volume)
+    const now = new Date();
+    const thisMk = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const last = new Date(now);
+    last.setMonth(now.getMonth() - 1);
+    const lastMk = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}`;
+    const thisVol = monthToStrength.get(thisMk) || 0;
+    const lastVol = monthToStrength.get(lastMk) || 0;
+    const improved = lastVol > 0 ? Math.round(((thisVol - lastVol) / lastVol) * 100) : null;
+
+    return {
+      totalSessions,
+      totalStrengthVolume,
+      bestCardioSpeed,
+      bestCardioDistance,
+      weeklyChart,
+      streak,
+      improved,
+      topEffortDay,
+      topEffortValue,
+      bestByExercise,
+    };
+  }, [allLogs, plan]);
+
+  const exerciseOptions = useMemo(() => {
+    // collect movement ids + names from plan movements
+    const map = new Map();
+    const mv = plan?.movementsByWeekday || {};
+    Object.values(mv).flat().forEach((m) => map.set(m.id, m));
+    return Array.from(map.values());
+  }, [plan]);
+
+  const [selectedExerciseForChart, setSelectedExerciseForChart] = useState("");
+
+  useEffect(() => {
+    if (!selectedExerciseForChart && exerciseOptions.length) setSelectedExerciseForChart(exerciseOptions[0].id);
+  }, [exerciseOptions, selectedExerciseForChart]);
+
+  const exerciseProgress = useMemo(() => {
+    const exId = selectedExerciseForChart;
+    if (!exId) return [];
+    const pts = [];
+    for (const row of allLogs) {
+      const d = row.date_ymd;
+      const log = row.log;
+      const sets = log?.entries?.[exId] || [];
+      if (!sets.length) continue;
+      let bestVol = 0, bestReps = 0, bestTime = 0;
+      for (const s of sets) {
+        bestReps = Math.max(bestReps, safeNumber(s.reps));
+        bestTime = Math.max(bestTime, safeNumber(s.timeSeconds));
+        const vol = safeNumber(s.weight) > 0 ? safeNumber(s.reps) * safeNumber(s.weight) : safeNumber(s.reps);
+        bestVol = Math.max(bestVol, vol);
+      }
+      if (bestVol || bestReps || bestTime) pts.push({ date: d, bestVol: Math.round(bestVol), bestReps, bestTime });
+    }
+    return pts.slice(-60);
+  }, [allLogs, selectedExerciseForChart]);
+
+
+  const motivationMessages = useMemo(() => {
+    const name = activeProfile?.name || "You";
+    const msgs = [];
+
+    // 1) Streak + XP
+    if ((stats?.streak || 0) >= 3) {
+      msgs.push(`🔥 ${name}, ${stats.streak}-day streak — keep it alive today.`);
+    } else if ((stats?.streak || 0) === 2) {
+      msgs.push(`🔥 ${name}, 2-day streak — one more makes it a real run. Let’s go.`);
+    } else if ((stats?.streak || 0) === 1) {
+      msgs.push(`✅ Nice start, ${name}. Log today to make it a 2-day streak.`);
+    } else {
+      msgs.push(`🚀 ${name}, today’s a great day to start a streak. One session = momentum.`);
+    }
+
+    if (xpToNext <= 15) msgs.push(`⭐ Only ${xpToNext} XP to Level ${level + 1}. Finish today and you’ll likely level up.`);
+    else if (xpToNext <= 35) msgs.push(`⭐ ${xpToNext} XP to your next level. You’re close — finish strong.`);
+
+    // 2) Recent improvement (exercise or cardio)
+    const exName = exerciseOptions.find((e) => e.id === selectedExerciseForChart)?.name;
+    if ((exerciseProgress?.length || 0) >= 3) {
+      const last3 = exerciseProgress.slice(-3).map((p) => p.bestVol || p.bestReps || p.bestTime || 0);
+      const improvedAll = last3[0] > 0 && last3[1] >= last3[0] && last3[2] >= last3[1] && last3[2] > last3[0];
+      if (improvedAll && exName) {
+        msgs.push(`📈 ${name}, your ${exName} is trending up — you’ve improved across the last 3 sessions. Keep building.`);
+      }
+    }
+
+    if ((cardioProgress?.length || 0) >= 3) {
+      const last3s = cardioProgress.slice(-3).map((p) => p.speed || 0);
+      const up = last3s[0] > 0 && last3s[1] >= last3s[0] && last3s[2] >= last3s[1] && last3s[2] > last3s[0];
+      if (up) {
+        msgs.push(`🏃 Your average speed has improved across your last 3 cardio logs. Keep pushing your pace.`);
+      }
+    }
+
+    // 3) Today focus + micro-goal
+    const comboMax = logForDay?.gamify?.comboMax || 0;
+    if (comboMax >= 5) msgs.push(`💥 Combo beast: ${comboMax} sets in a row. Try to beat it today.`);
+    else msgs.push(`💥 Micro-goal: hit a 5-set combo streak today (log sets back-to-back).`);
+
+    // Ensure exactly 3
+    const unique = [];
+    for (const m of msgs) {
+      if (!unique.includes(m)) unique.push(m);
+      if (unique.length >= 3) break;
+    }
+    while (unique.length < 3) unique.push(`✅ Keep going, ${name}. Small wins stack up.`);
+    return unique;
+  }, [
+    activeProfile?.name,
+    stats?.streak,
+    xpToNext,
+    level,
+    exerciseProgress,
+    cardioProgress,
+    selectedExerciseForChart,
+    exerciseOptions,
+    logForDay?.gamify?.comboMax,
+  ]);
+
+  const cardioProgress = useMemo(() => {
+    const pts = [];
+    for (const row of allLogs) {
+      const d = row.date_ymd;
+      const log = row.log;
+      const km = safeNumber(log?.cardio?.distanceKm);
+      const min = safeNumber(log?.cardio?.durationMin);
+      if (km <= 0 || min <= 0) continue;
+      const spd = km / (min / 60);
+      pts.push({ date: d, km: Number(km.toFixed(2)), speed: Number(spd.toFixed(2)) });
+    }
+    return pts.slice(-60);
+  }, [allLogs]);
+
+  if (!sessionReady) return <div className="page"><div className="wrap"><div className="muted">Loading…</div></div><StyleTag/></div>;
+  if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />;
+
+  return (
+    <div className="page">
+      <div className="wrap">
+        <header className="header">
+          <div>
+            <div className="small">Workout Tracker • Online</div>
+            <h1 className="title">{activeProfile?.name || "Profile"}</h1>
+            <div className="pills">
+              <Pill>Parent login</Pill>
+              <Pill>Profiles</Pill>
+              <Pill>Custom plan</Pill>
+              <Pill>Charts</Pill>
+            </div>
+          </div>
+
+          <div className="header-right">
+            <div className="selectWide">
+              <Select value={activeProfileId} onChange={setActiveProfileId} options={profiles.map((p) => ({ value: p.id, label: p.name }))} />
+            </div>
+
+            <div className="tabs">
+              {["log", "stats", "plan", "rewards", "settings"].map((t) => (
+                <SecondaryButton key={t} onClick={() => setTab(t)}>
+                  {t[0].toUpperCase() + t.slice(1)}
+                </SecondaryButton>
+              ))}
+              <SecondaryButton onClick={async () => { await signOut(); setAuthed(false); }}>Sign out</SecondaryButton>
+            </div>
+          </div>
+        </header>
+
+
+        <Card className="pad motivator">
+          <div className="motGrid">
+            {motivationMessages.map((m, i) => (
+              <div key={i} className="motItem">{m}</div>
+            ))}
+          </div>
+        </Card>
+
+
+
+        {tab === "log" && (
+          <div className="gridLog">
+            <Card className="pad">
+              <div className="row">
+                <div className="rowLeft">
+                  <div className="field">
+                    <div className="label">Weekday</div>
+                    <Select value={selectedWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
+                  </div>
+                  <div className="field">
+                    <div className="label">Date</div>
+                    <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="input" />
+                  </div>
+                </div>
+
+                <div className="rowRight">
+                  <PrimaryButton onClick={startSession}>Start</PrimaryButton>
+                  <PrimaryButton onClick={finishSession}>Finish</PrimaryButton>
+                  <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
+                </div>
+              </div>
+
+              <div className="muted mt8">
+                {formatDate(selectedDate)} • <b>{planDay.name}</b> ({planDay.kind})
+              </div>
+
+              {planDay.kind === "cardio" ? (
+                <div className="panel mt16">
+                  <div className="h2">Cardio log</div>
+                  <div className="grid3 mt12">
+                    <div>
+                      <div className="label">Distance (km)</div>
+                      <Input type="number" min={0} step={0.01} value={logForDay?.cardio?.distanceKm ?? ""} onChange={(v) => updateCardio({ distanceKm: v })} placeholder="e.g. 2.50" />
+                    </div>
+                    <div>
+                      <div className="label">Time (minutes)</div>
+                      <Input type="number" min={0} step={0.1} value={logForDay?.cardio?.durationMin ?? ""} onChange={(v) => updateCardio({ durationMin: v })} placeholder="e.g. 14.5" />
+                    </div>
+                    <div>
+                      <div className="label">Avg speed (km/h)</div>
+                      <Input value={logForDay?.cardio?.avgSpeedKmh ?? ""} readOnly onChange={null} placeholder="auto" />
+                    </div>
+                  </div>
+                  <div className="muted mt8">Used for run/swim/etc.</div>
+                </div>
+              ) : planDay.kind === "custom" ? (
+                <div className="panel mt16">
+                  <div className="h2">Duration log</div>
+                  <div className="grid3 mt12">
+                    <div>
+                      <div className="label">Minutes</div>
+                      <Input type="number" min={0} step={0.5} value={logForDay?.custom?.durationMin ?? ""} onChange={(v) => updateCustom({ durationMin: v })} placeholder="e.g. 30" />
+                    </div>
+                  </div>
+                  <div className="muted mt8">Good for Pilates, yoga, mobility, etc.</div>
+                </div>
+              ) : (
+                <div className="stack mt16">
+                  {(planDay.movements || []).length === 0 ? (
+                    <div className="dashed">No movements for this day. Go to <b>Plan</b> and add movements.</div>
+                  ) : (
+                    (planDay.movements || []).map((ex) => {
+                      const sets = (logForDay?.entries?.[ex.id] || [{}, {}, {}]).map((s) => ({
+                        reps: "",
+                        weight: "",
+                        timeSeconds: ex.fixedSeconds ? String(ex.fixedSeconds) : "",
+                        count: "",
+                        notes: "",
+                        ...(s || {}),
+                      }));
+                      const isTime = ex.mode === "time";
+
+                      return (
+                        <div key={ex.id} className="panel">
+                          <div className="panelTop">
+                            <div>
+                              <div className="h2">{ex.name}</div>
+                              <div className="pills mt8">
+                                <Pill>{ex.mode}</Pill>
+                                <Pill>3 sets</Pill>
+                                {ex.fixedSeconds ? <Pill>{ex.fixedSeconds}s</Pill> : null}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="stack mt12">
+                            {[0, 1, 2].map((i) => {
+                              const s = sets[i] || {};
+                              return (
+                                <div key={i} className="setRow">
+                                  <div className="setLabel">Set {i + 1}</div>
+
+                                  {!isTime ? (
+                                    <>
+                                      <div>
+                                        <div className="label">Reps</div>
+                                        <Input type="number" min={0} step={1} value={s.reps ?? ""} onChange={(v) => addOrUpdateSet(ex.id, i, { reps: v })} placeholder="0" />
+                                      </div>
+                                      <div>
+                                        <div className="label">Weight (kg)</div>
+                                        <Input type="number" min={0} step={0.5} value={s.weight ?? ""} onChange={(v) => addOrUpdateSet(ex.id, i, { weight: v })} placeholder={ex.allowWeight ? "kg" : "(optional)"} />
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div>
+                                        <div className="label">Time (sec)</div>
+                                        <Input type="number" min={0} step={1} value={s.timeSeconds ?? (ex.fixedSeconds ? String(ex.fixedSeconds) : "")} onChange={(v) => addOrUpdateSet(ex.id, i, { timeSeconds: v })} placeholder={ex.fixedSeconds ? "" : "e.g. 60"} />
+                                      </div>
+                                      {ex.allowCount ? (
+                                        <div>
+                                          <div className="label">{ex.countLabel || "Count"}</div>
+                                          <Input type="number" min={0} step={1} value={s.count ?? ""} onChange={(v) => addOrUpdateSet(ex.id, i, { count: v })} placeholder="0" />
+                                        </div>
+                                      ) : (
+                                        <div />
+                                      )}
+                                    </>
+                                  )}
+
+                                  <div className="notes">
+                                    <div className="label">Notes (optional)</div>
+                                    <Input value={s.notes ?? ""} onChange={(v) => addOrUpdateSet(ex.id, i, { notes: v })} placeholder="How did it feel?" />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </Card>
+
+            <div className="stack">
+              <Card className="pad">
+                <div className="rowBetween">
+                  <div className="h3">Today summary</div>
+                  <Pill>Lvl {level} • XP {xp}</Pill>
+                </div>
+
+                <div className="grid2 mt12">
+                  <SummaryStat label="Started" value={logForDay?.startedAt ? new Date(logForDay.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Finished" value={logForDay?.finishedAt ? new Date(logForDay.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Sets logged" value={Object.values(logForDay?.entries || {}).flat().filter(setDidSomething).length} />
+                  <SummaryStat label="Cardio km" value={safeNumber(logForDay?.cardio?.distanceKm) ? Number(logForDay.cardio.distanceKm).toFixed(2) : "—"} />
+                </div>
+
+                <div className="mini mt12">
+                  <div className="label">Estimated calories</div>
+                  <div className="big">
+                    {(() => {
+                      const kcal = estimateCalories({ kind: planDay.kind, bodyWeightKg: activeProfile?.body_weight_kg, log: logForDay });
+                      return kcal === null ? "Add bodyweight in Settings" : `${kcal} kcal`;
+                    })()}
+                  </div>
+                  <div className="muted">Motivation estimate only.</div>
+                </div>
+              </Card>
+
+              <Card className="pad">
+                <div className="h3">Mini challenges</div>
+                <div className="stack mt12">
+                  <Challenge text="Complete today’s plan" done={isDayComplete(logForDay, planDay)} />
+                  <Challenge text="Hit a combo streak (5 sets in a row)" done={(logForDay?.gamify?.comboMax || 0) >= 5} />
+                  <Challenge text="XP to next level" done={xpToNext <= 25} />
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {tab === "stats" && (
+          <div className="grid2cols">
+            <Card className="pad">
+              <div className="h2">Highlights</div>
+              <div className="grid2 mt12">
+                <SummaryStat label="Sessions" value={stats.totalSessions} />
+                <SummaryStat label="Streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} />
+                <SummaryStat label="Top effort day" value={stats.topEffortDay || "—"} />
+                <SummaryStat label="Top effort volume" value={stats.topEffortDay ? Math.round(stats.topEffortValue).toLocaleString() : "—"} />
+                <SummaryStat label="Best cardio speed" value={stats.bestCardioSpeed ? `${stats.bestCardioSpeed.toFixed(2)} km/h` : "—"} />
+                <SummaryStat label="Best cardio distance" value={stats.bestCardioDistance ? `${stats.bestCardioDistance.toFixed(2)} km` : "—"} />
+              </div>
+
+              <div className="mt16">
+                <div className="h3">Most improved this month</div>
+                <div className="mt8">{stats.improved === null ? "Log sessions across two months to see improvement." : `${stats.improved}% vs last month (strength volume)`}</div>
+              </div>
+            </Card>
+
+            <Card className="pad">
+              <div className="h2">Weekly chart</div>
+              <div className="chart mt12">
+                {stats.weeklyChart.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={stats.weeklyChart} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="week" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="strengthVolume" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="cardioKm" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="muted">No chart data yet.</div>
+                )}
+              </div>
+
+              <div className="mt16 rowBetween">
+                <div className="h2">Exercise progress</div>
+                <div className="selectWide">
+                  <Select value={selectedExerciseForChart} onChange={setSelectedExerciseForChart} options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))} />
+                </div>
+              </div>
+
+              <div className="chart mt12">
+                {exerciseProgress.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={exerciseProgress} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="bestVol" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="bestReps" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="bestTime" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="muted">Log this exercise to see progress.</div>
+                )}
+              </div>
+
+              <div className="mt16">
+                <div className="h2">Cardio progress</div>
+                <div className="chart mt12">
+                  {cardioProgress.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={cardioProgress} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="km" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="speed" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="muted">Log a few cardio days to see the chart.</div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {tab === "plan" && (
+          <div className="gridPlan">
+            <Card className="pad">
+              <div className="rowBetween">
+                <div>
+                  <div className="h2">Weekly plan (fully custom)</div>
+                  <div className="muted">Assign an activity type to each day. Add custom types for other people (swim, pilates, etc.).</div>
+                </div>
+                <div className="selectWide">
+                  <Select value={selectedWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
+                </div>
+              </div>
+
+              <div className="panel mt16">
+                <div className="h3">Day activity type</div>
+                <div className="grid3 mt12">
+                  <div>
+                    <div className="label">Type</div>
+                    <Select
+                      value={dayTypeId}
+                      onChange={async (v) => {
+                        const next = { ...plan, dayTypeByWeekday: { ...(plan.dayTypeByWeekday || {}), [selectedWeekday]: v } };
+                        await savePlan(next);
+                      }}
+                      options={(plan?.activityTypes || builtInTypes()).map((t) => ({ value: t.id, label: t.name }))}
+                    />
+                  </div>
+                  <div className="mini">
+                    <div className="label">Kind</div>
+                    <div className="big">{activityType.kind}</div>
+                    <div className="muted">Controls which inputs appear.</div>
+                  </div>
+                  <div className="mini">
+                    <div className="label">Movements</div>
+                    <div className="big">{activityType.movementsEnabled ? "Enabled" : "None"}</div>
+                    <div className="muted">Strength / Timed rounds use movements.</div>
+                  </div>
+                </div>
+              </div>
+
+              {activityType.movementsEnabled ? (
+                <div className="stack mt16">
+                  {(movements || []).map((m) => (
+                    <div key={m.id} className="planRow">
+                      <div className="planLeft">
+                        <div className="planName">{m.name}</div>
+                        <div className="pills mt8">
+                          <Pill>{m.mode}</Pill>
+                          <Pill>3 sets</Pill>
+                          {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
+                          {m.allowWeight ? <Pill>weights</Pill> : null}
+                          {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
+                        </div>
+                      </div>
+                      <div className="planBtns">
+                        <SecondaryButton
+                          onClick={async () => {
+                            const name = prompt("Rename movement:", m.name);
+                            if (!name) return;
+                            const nextMov = (movements || []).map((x) => (x.id === m.id ? { ...x, name: name.trim() } : x));
+                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [selectedWeekday]: nextMov } };
+                            await savePlan(next);
+                          }}
+                        >
+                          Rename
+                        </SecondaryButton>
+                        <SecondaryButton
+                          onClick={async () => {
+                            const nextMov = (movements || []).filter((x) => x.id !== m.id);
+                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [selectedWeekday]: nextMov } };
+                            await savePlan(next);
+                          }}
+                        >
+                          Remove
+                        </SecondaryButton>
+                      </div>
+                    </div>
+                  ))}
+
+                  {(movements || []).length < 3 && (
+                    <Card className="pad">
+                      <div className="h3">Add movement</div>
+                      <div className="muted">Limit 3 movements per day (keeps it clean).</div>
+                      <AddMovement
+                        defaultKind={activityType.kind}
+                        onAdd={async (m) => {
+                          const arr = [...(movements || [])];
+                          if (arr.length >= 3) return alert("Max 3 movements per day.");
+                          arr.push({ ...m, id: uid() });
+                          const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [selectedWeekday]: arr } };
+                          await savePlan(next);
+                        }}
+                      />
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <div className="dashed mt16">This activity type doesn’t use movements (just log distance/time or minutes).</div>
+              )}
+
+              <div className="panel mt16">
+                <div className="h3">Custom activity types</div>
+                <div className="muted mt8">Create a new day type for other people (e.g. “Pilates”, “Cycling”, “Yoga”, “Rowing”).</div>
+                <AddType
+                  existing={(plan?.activityTypes || builtInTypes())}
+                  onAdd={async (t) => {
+                    const next = { ...plan, activityTypes: [...(plan?.activityTypes || builtInTypes()), t] };
+                    await savePlan(next);
+                  }}
+                />
+              </div>
+            </Card>
+
+            <Card className="pad">
+              <div className="h2">How types work</div>
+              <div className="stack mt12">
+                <div className="mini"><b>Strength</b>: movements with reps/weight or time.</div>
+                <div className="mini"><b>Time</b>: movements with fixed seconds (box rounds etc.).</div>
+                <div className="mini"><b>Cardio</b>: distance + time (+ avg speed).</div>
+                <div className="mini"><b>Custom</b>: duration only (minutes).</div>
+              </div>
+              <div className="mini mt16">
+                Tip: You can set any weekday to any type, so your dad can do “Swim” on Tue, “Pilates” on Thu, etc.
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {tab === "rewards" && (
+          <div className="grid2cols">
+            <Card className="pad">
+              <div className="h2">Level + XP</div>
+              <div className="grid2 mt12">
+                <SummaryStat label="Level" value={level} />
+                <SummaryStat label="XP" value={xp} />
+                <SummaryStat label="XP to next" value={xpToNext} />
+                <SummaryStat label="Unlocked" value={`${unlocked.arcade ? "Arcade " : ""}${unlocked.chill ? "Chill" : ""}`.trim() || "—"} />
+              </div>
+
+              <div className="mt16">
+                <div className="h3">Rewards shop</div>
+                <div className="muted">Pick a victory sound theme. Unlock more as you level up.</div>
+                <div className="stack mt12">
+                  <RewardItem title="Classic" desc="Default sounds" active={victoryTheme === "classic"} locked={false} onPick={() => setVictoryTheme("classic")} />
+                  <RewardItem title="Arcade" desc="8-bit vibes" active={victoryTheme === "arcade"} locked={!unlocked.arcade} onPick={() => unlocked.arcade && setVictoryTheme("arcade")} />
+                  <RewardItem title="Chill" desc="Softer sounds" active={victoryTheme === "chill"} locked={!unlocked.chill} onPick={() => unlocked.chill && setVictoryTheme("chill")} />
+                </div>
+                <div className="mini mt12">Unlock rules: Level 3 = Arcade, Level 5 = Chill. (100 XP per level)</div>
+              </div>
+            </Card>
+
+            <Card className="pad">
+              <div className="h2">Settings</div>
+              <div className="panel mt12">
+                <div className="rowBetween">
+                  <div>
+                    <div className="h3">Sounds</div>
+                    <div className="muted">Whoosh + combo + level-up</div>
+                  </div>
+                  <label className="check">
+                    <input type="checkbox" checked={soundOn} onChange={(e) => setSoundOn(e.target.checked)} />
+                    On
+                  </label>
+                </div>
+              </div>
+              <div className="panel mt12">
+                <div className="h3">Theme</div>
+                <Select
+                  value={victoryTheme}
+                  onChange={(v) => canUseTheme(v) && setVictoryTheme(v)}
+                  options={[
+                    { value: "classic", label: "Classic" },
+                    { value: "arcade", label: unlocked.arcade ? "Arcade" : "Arcade (locked)" },
+                    { value: "chill", label: unlocked.chill ? "Chill" : "Chill (locked)" },
+                  ]}
+                />
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {tab === "settings" && (
+          <div className="grid2cols">
+            <Card className="pad">
+              <div className="h2">Profiles (Wilf, Xander, you, etc.)</div>
+              <div className="stack mt12">
+                {profiles.map((p) => (
+                  <div key={p.id} className="panel">
+                    <div className="rowBetween">
+                      <div className="h3">{p.name}</div>
+                      <div className="tabs">
+                        <SecondaryButton
+                          onClick={async () => {
+                            const name = prompt("Rename profile:", p.name);
+                            if (!name) return;
+                            await renameProfile(p.id, name.trim());
+                            await refreshAll();
+                          }}
+                        >
+                          Rename
+                        </SecondaryButton>
+                        <SecondaryButton
+                          disabled={profiles.length <= 1}
+                          onClick={async () => {
+                            if (!confirm("Remove (archive) this profile?")) return;
+                            await archiveProfile(p.id);
+                            await refreshAll();
+                          }}
+                        >
+                          Remove
+                        </SecondaryButton>
+                      </div>
+                    </div>
+
+                    <div className="mt12">
+                      <div className="label">Bodyweight (kg) for calorie estimates</div>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        value={p.body_weight_kg ?? ""}
+                        onChange={async (v) => {
+                          await setProfileBodyweight(p.id, v === "" ? null : Number(v));
+                          await refreshAll();
+                        }}
+                        placeholder="optional"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mini mt12">
+                <div className="h3">Add profile</div>
+                <SecondaryButton
+                  onClick={async () => {
+                    const name = prompt("Profile name?");
+                    if (!name) return;
+                    await addProfile(family.id, name.trim());
+                    await refreshAll();
+                  }}
+                >
+                  Add
+                </SecondaryButton>
+              </div>
+            </Card>
+
+            <Card className="pad">
+              <div className="h2">Data notes</div>
+              <div className="mini mt12">
+                - This is a <b>single parent account</b> with multiple profiles.<br/>
+                - All profiles are private under the parent login (Row Level Security).<br/>
+                - Plan + logs sync across devices automatically.<br/>
+              </div>
+
+              <div className="panel mt16">
+                <div className="h3">Export/Import</div>
+                <div className="muted">For now, export/import can be added later (cloud is your backup).</div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        <footer className="footer">Online build: Parent login + Profiles • fully custom weekly plan • charts • rewards.</footer>
+      </div>
+
+      <StyleTag />
+    </div>
+  );
+}
+
+function AddMovement({ onAdd, defaultKind }) {
+  const [name, setName] = useState("");
+  const [mode, setMode] = useState(defaultKind === "time" ? "time" : "strength");
+  const [allowWeight, setAllowWeight] = useState(defaultKind !== "time");
+  const [fixedSeconds, setFixedSeconds] = useState(defaultKind === "time" ? "60" : "");
+  const [allowCount, setAllowCount] = useState(defaultKind === "time");
+  const [countLabel, setCountLabel] = useState(defaultKind === "time" ? "hits" : "count");
+
+  useEffect(() => {
+    setMode(defaultKind === "time" ? "time" : "strength");
+    setAllowWeight(defaultKind !== "time");
+    setFixedSeconds(defaultKind === "time" ? "60" : "");
+    setAllowCount(defaultKind === "time");
+    setCountLabel(defaultKind === "time" ? "hits" : "count");
+  }, [defaultKind]);
+
+  return (
+    <div className="stack mt12">
+      <div>
+        <div className="label">Name</div>
+        <Input value={name} onChange={setName} placeholder="e.g. Pull-ups" />
+      </div>
+
+      <div className="grid2">
+        <div>
+          <div className="label">Mode</div>
+          <Select value={mode} onChange={setMode} options={[{ value: "strength", label: "Reps (+ optional weight)" }, { value: "time", label: "Time (seconds)" }]} />
+        </div>
+        <div className="box">
+          <label className="check">
+            <input type="checkbox" checked={allowWeight} onChange={(e) => setAllowWeight(e.target.checked)} disabled={mode !== "strength"} />
+            Allow weight
+          </label>
+          <div className="muted">For dumbbells etc.</div>
+        </div>
+      </div>
+
+      {mode === "time" && (
+        <div className="grid2">
+          <div>
+            <div className="label">Fixed seconds (optional)</div>
+            <Input value={fixedSeconds} onChange={setFixedSeconds} type="number" min={0} step={1} placeholder="e.g. 60" />
+          </div>
+          <div className="box">
+            <label className="check">
+              <input type="checkbox" checked={allowCount} onChange={(e) => setAllowCount(e.target.checked)} />
+              Allow count
+            </label>
+            <div className="muted">Hits/rounds etc.</div>
+          </div>
+          {allowCount && (
+            <div>
+              <div className="label">Count label</div>
+              <Input value={countLabel} onChange={setCountLabel} placeholder="hits" />
+            </div>
+          )}
+        </div>
+      )}
+
+      <PrimaryButton
+        onClick={() => {
+          if (!name.trim()) return;
+          onAdd({
+            name: name.trim(),
+            mode,
+            allowWeight: mode === "strength" ? allowWeight : false,
+            fixedSeconds: mode === "time" && safeNumber(fixedSeconds) > 0 ? safeNumber(fixedSeconds) : undefined,
+            allowCount: mode === "time" ? allowCount : false,
+            countLabel: mode === "time" && allowCount ? countLabel.trim() : undefined,
+          });
+          setName("");
+        }}
+      >
+        Add movement
+      </PrimaryButton>
+    </div>
+  );
+}
+
+function AddType({ existing, onAdd }) {
+  const [name, setName] = useState("");
+  const [kind, setKind] = useState("custom"); // strength | time | cardio | custom
+  const [movementsEnabled, setMovementsEnabled] = useState(false);
+
+  useEffect(() => {
+    setMovementsEnabled(kind === "strength" || kind === "time");
+  }, [kind]);
+
+  return (
+    <div className="stack mt12">
+      <div className="grid2">
+        <div>
+          <div className="label">Type name</div>
+          <Input value={name} onChange={setName} placeholder="e.g. Pilates" />
+        </div>
+        <div>
+          <div className="label">Kind</div>
+          <Select
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: "strength", label: "Strength (movements + reps/weight)" },
+              { value: "time", label: "Time (movements + seconds)" },
+              { value: "cardio", label: "Cardio (distance + time)" },
+              { value: "custom", label: "Custom (duration only)" },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div className="mini">
+        Movements enabled: <b>{movementsEnabled ? "Yes" : "No"}</b>
+      </div>
+
+      <SecondaryButton
+        onClick={() => {
+          const nm = name.trim();
+          if (!nm) return;
+          const id = nm.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24) + "-" + uid().slice(0, 4);
+          if (existing.some((t) => t.id === id)) return alert("Type id clash, try again.");
+          const t = {
+            id,
+            name: nm,
+            kind,
+            movementsEnabled,
+            ...(kind === "time" ? { fixedSeconds: 60, allowCount: true, countLabel: "hits" } : {}),
+          };
+          onAdd(t);
+          setName("");
+        }}
+      >
+        Add type
+      </SecondaryButton>
+    </div>
+  );
+}
+
+function StyleTag() {
+  return (
+    <style>{`
+      .page{min-height:100vh;background:#f8fafc}
+      .wrap{max-width:1200px;margin:0 auto;padding:16px}
+      .header{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+      @media(min-width:900px){.header{flex-direction:row;align-items:flex-end;justify-content:space-between;margin-bottom:18px}}
+      .small{font-weight:700;color:#475569;font-size:12px}
+      .title{margin:0;font-size:28px;letter-spacing:-0.02em}
+      .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+      .pill{display:inline-flex;align-items:center;border:1px solid #e2e8f0;background:#f1f5f9;border-radius:999px;padding:6px 10px;font-size:12px;color:#334155}
+      .header-right{display:flex;flex-direction:column;gap:10px}
+      @media(min-width:900px){.header-right{flex-direction:row;align-items:center}}
+      .tabs{display:flex;flex-wrap:wrap;gap:8px}
+      .selectWide{min-width:220px}
+      .card{border:1px solid #e2e8f0;background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.06)}
+      .pad{padding:16px}
+      .btn{border-radius:14px;padding:10px 14px;font-weight:800;border:1px solid #e2e8f0;background:#fff;color:#0f172a}
+      .btn-primary{background:#0f172a;color:#fff;border-color:#0f172a}
+      .btn-secondary{background:#fff}
+      .btn:hover{filter:brightness(0.98)}
+      .btn:active{transform:scale(0.99)}
+      .btn-disabled{opacity:.55}
+      .input{width:100%;border-radius:14px;border:1px solid #e2e8f0;padding:10px 12px;font-size:14px;outline:none}
+      .input:focus{border-color:#94a3b8}
+      .label{font-size:12px;font-weight:800;color:#475569;margin-bottom:6px}
+      .muted{color:#64748b;font-size:14px}
+      .h2{font-size:18px;font-weight:900}
+      .h3{font-size:14px;font-weight:900}
+      .mt8{margin-top:8px}
+      .mt12{margin-top:12px}
+      .mt16{margin-top:16px}
+      .stack{display:flex;flex-direction:column;gap:12px}
+      .row{display:flex;flex-direction:column;gap:10px}
+      @media(min-width:900px){.row{flex-direction:row;align-items:flex-end;justify-content:space-between}}
+      .rowLeft{display:grid;grid-template-columns:1fr;gap:10px}
+      @media(min-width:600px){.rowLeft{grid-template-columns:180px 260px}}
+      .rowRight{display:flex;flex-wrap:wrap;gap:10px}
+      .rowBetween{display:flex;align-items:center;justify-content:space-between;gap:10px}
+      .field{min-width:180px}
+      .gridLog{display:grid;gap:12px}
+      @media(min-width:1100px){.gridLog{grid-template-columns:1.25fr .75fr}}
+      .grid2cols{display:grid;gap:12px}
+      @media(min-width:1000px){.grid2cols{grid-template-columns:1fr 1fr}}
+      .gridPlan{display:grid;gap:12px}
+      @media(min-width:1000px){.gridPlan{grid-template-columns:1fr .9fr}}
+      .panel{border:1px solid #e2e8f0;background:#f1f5f9;border-radius:18px;padding:14px}
+      .panelTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+      .setRow{display:grid;grid-template-columns:1fr;gap:10px;border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:12px}
+      @media(min-width:900px){.setRow{grid-template-columns:120px 1fr 1fr}}
+      .setLabel{font-weight:900;color:#475569}
+      .notes{grid-column:1/-1}
+      .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .grid3{display:grid;grid-template-columns:1fr;gap:10px}
+      @media(min-width:900px){.grid3{grid-template-columns:1fr 1fr 1fr}}
+      .stat{border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:12px}
+      .stat-label{font-size:12px;font-weight:900;color:#475569}
+      .stat-value{font-size:18px;font-weight:900;color:#0f172a;margin-top:4px}
+      .mini{border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:12px}
+      .big{font-size:18px;font-weight:900;margin-top:6px}
+      .challenge{display:flex;align-items:center;justify-content:space-between;border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:10px 12px}
+      .challenge-box{font-weight:900;color:#94a3b8}
+      .challenge-box.done{color:#0f172a}
+      .chart{height:220px}
+      .planRow{display:flex;flex-direction:column;gap:10px;border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:14px}
+      @media(min-width:900px){.planRow{flex-direction:row;align-items:center;justify-content:space-between}}
+      .planLeft{flex:1}
+      .planName{font-weight:900}
+      .planBtns{display:flex;gap:10px;flex-wrap:wrap}
+      .reward{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:14px}
+      .reward.locked{opacity:.6}
+      .reward-title{font-weight:900}
+      .reward-desc{color:#64748b;font-size:13px;margin-top:2px}
+      .box{border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:12px}
+      .check{display:flex;align-items:center;gap:10px;font-weight:900}
+      .dashed{border:2px dashed #cbd5e1;border-radius:18px;padding:16px;text-align:center;color:#475569;background:#fff}
+      .authCard{max-width:520px;margin:60px auto}
+      .footer{margin:18px 0 30px;text-align:center;color:#94a3b8;font-size:12px}
+      .motivator{margin-bottom:12px;background:linear-gradient(135deg,#ffffff 0%,#f1f5f9 100%)}
+      .motGrid{display:grid;grid-template-columns:1fr;gap:10px}
+      @media(min-width:900px){.motGrid{grid-template-columns:1fr 1fr 1fr}}
+      .motItem{border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:10px 12px;font-weight:800;color:#0f172a;font-size:13px}
+
+    `}</style>
+  );
+}
