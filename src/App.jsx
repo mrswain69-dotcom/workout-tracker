@@ -1555,6 +1555,7 @@ export default function App() {
                     Delete selected
                   </SecondaryButton>
                 </div>
+              </div>  
               <div className="panel mt16">
                 <div className="h3">Day activity type</div>
                 <div className="grid3 mt12">
