@@ -2018,7 +2018,7 @@ function presetPlans() {
       desc: "More duration days (mobility, yoga, easy cardio).",
       plan: {
         ...base,
-        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration",
+        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
       },
     },
   ];
