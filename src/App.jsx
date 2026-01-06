@@ -190,6 +190,7 @@ function defaultPlanForFamily() {
     activityTypes: types, // can add custom types
     dayTypeByWeekday,
     movementsByWeekday: movements, // only for days where movementsEnabled
+    cardioTargetByWeekday: {}, // optional "session focus" text for cardio days
   };
 }
 
@@ -246,6 +247,9 @@ function suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup }) {
   const repCeil = 12;
 
   if (!lastSets || !lastSets.some(setDidSomething)) {
+    if (initialTarget?.text) {
+      return { text: initialTarget.text };
+    }
     if (initialTarget?.reps || initialTarget?.weight) {
       const r = initialTarget?.reps ? Number(initialTarget.reps) : null;
       const w = initialTarget?.weight ? Number(initialTarget.weight) : null;
@@ -350,7 +354,14 @@ function estimateCalories({ kind, bodyWeightKg, log }) {
 function Card({ children, className = "" }) {
   return <div className={`card ${className}`}>{children}</div>;
 }
-function Pill({ children }) {
+function Pill({ children, onClick }) {
+  if (onClick) {
+    return (
+      <button type="button" className="pill pillBtn" onClick={onClick}>
+        {children}
+      </button>
+    );
+  }
   return <span className="pill">{children}</span>;
 }
 function PrimaryButton({ children, onClick, disabled }) {
@@ -458,7 +469,7 @@ function AuthScreen({ onAuthed }) {
               <div className="stack mt16">
                 <div>
                   <div className="label">Email</div>
-                  <Input value={email} onChange={setEmail} placeholder="parent@email.com" type="email" />
+                  <Input value={email} onChange={setEmail} placeholder="you@email.com" type="email" />
                 </div>
                 <div>
                   <div className="label">Password</div>
@@ -483,7 +494,7 @@ function AuthScreen({ onAuthed }) {
                 </PrimaryButton>
                 {msg && <div className="muted">{msg}</div>}
                 <div className="muted">
-                  This is the <b>parent</b> login. Inside you can create profiles (Wilf, Xander, you, etc.).
+                  Sign in to manage your people, plan, logs and rewards.
                 </div>
               </div>
             </>
@@ -497,7 +508,23 @@ function AuthScreen({ onAuthed }) {
 
 // -------- Main app ----------
 export default function App() {
-  const [tab, setTab] = useState("log"); // log | stats | plan | rewards | settings
+  const [tab, setTab] = useState("log");
+  const accountRef = useRef(null);
+  const peopleRef = useRef(null);
+  const planRef = useRef(null);
+  const chartsRef = useRef(null);
+
+  const jumpTo = (nextTab, ref) => {
+    setTab(nextTab);
+    setTimeout(() => {
+      try {
+        if (ref?.current) ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        else window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (e) {
+        try { window.scrollTo(0, 0); } catch (e2) {}
+      }
+    }, 50);
+  }; // log | stats | plan | rewards | settings
   const [sessionReady, setSessionReady] = useState(false);
   const [authed, setAuthed] = useState(false);
 
@@ -972,10 +999,10 @@ export default function App() {
             <div className="small">Workout Tracker • Online</div>
             <h1 className="title">{activeProfile?.name || "Profile"}</h1>
             <div className="pills">
-              <Pill>Account</Pill>
-              <Pill>People</Pill>
-              <Pill>Plan</Pill>
-              <Pill>Charts</Pill>
+              <Pill onClick={() => jumpTo("settings", accountRef)}>Account</Pill>
+              <Pill onClick={() => jumpTo("settings", peopleRef)}>People</Pill>
+              <Pill onClick={() => jumpTo("plan", planRef)}>Plan</Pill>
+              <Pill onClick={() => jumpTo("stats", chartsRef)}>Charts</Pill>
             </div>
           </div>
 
@@ -1035,6 +1062,9 @@ export default function App() {
               {planDay.kind === "cardio" ? (
                 <div className="panel mt16">
                   <div className="h2">Cardio log</div>
+                  {(plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text) ? (
+                    <div className="muted mt8"><b>Today’s focus:</b> {plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text}</div>
+                  ) : null}
                   <div className="grid3 mt12">
                     <div>
                       <div className="label">Distance (km)</div>
@@ -1092,7 +1122,7 @@ export default function App() {
                                 {(() => {
                                   const lastSets = findLastMovementSets(allLogs, ex.id, ymd(selectedDate));
                                   const lastTxt = summarizeStrengthSets(lastSets);
-                                  const initialTarget = { reps: ex.targetReps || null, weight: ex.targetWeight || null };
+                                  const initialTarget = { text: ex.targetText || null, reps: ex.targetReps || null, weight: ex.targetWeight || null };
                                   const t = suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup: activeProfile?.age_group || "under16" });
                                   return (
                                     <div>
@@ -1189,7 +1219,7 @@ export default function App() {
                     (planDay.movements || []).map((ex) => {
                       const lastSets = findLastMovementSets(allLogs, ex.id, ymd(selectedDate));
                       const lastTxt = summarizeStrengthSets(lastSets);
-                      const initialTarget = { reps: ex.targetReps || null, weight: ex.targetWeight || null };
+                      const initialTarget = { text: ex.targetText || null, reps: ex.targetReps || null, weight: ex.targetWeight || null };
                       const t = suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup: activeProfile?.age_group || "under16" });
                       return (
                         <div key={ex.id} className="mini">
@@ -1204,7 +1234,7 @@ export default function App() {
                       const last = findLastCardio(allLogs, ymd(selectedDate));
                       const lastTxt = summarizeCardio(last);
                       const t = suggestCardioTarget({ lastCardio: last });
-                      const intervalHint = plan?.runSettings?.[selectedWeekday]?.text || "";
+                      const intervalHint = plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text || "";
                       return (
                         <div className="mini">
                           <div className="label">Cardio</div>
@@ -1252,6 +1282,7 @@ export default function App() {
             </Card>
 
             <Card className="pad">
+              <div ref={chartsRef} />
               <div className="h2">Weekly chart</div>
               <div className="chart mt12">
                 {stats.weeklyChart.length ? (
@@ -1320,6 +1351,7 @@ export default function App() {
 
         {tab === "plan" && (
           <div className="gridPlan">
+            <div ref={planRef} />
             <Card className="pad">
               <div className="rowBetween">
                 <div>
@@ -1384,6 +1416,30 @@ export default function App() {
                 </div>
               </div>
 
+              {activityType.kind === "cardio" ? (
+                <div className="panel mt16">
+                  <div className="h3">Cardio target (optional)</div>
+                  <div className="muted mt8">
+                    Examples: <b>2.5 km</b> • <b>15 min</b> • <b>6×(1 min fast / 1 min easy)</b> • <b>Tempo: hard but controlled</b>
+                    <br/>
+                    Leave blank to use last time → auto targets.
+                  </div>
+                  <div className="mt12">
+                    <Input
+                      value={(plan?.cardioTargetByWeekday?.[selectedWeekday]) || ""}
+                      onChange={async (v) => {
+                        const next = {
+                          ...plan,
+                          cardioTargetByWeekday: { ...(plan.cardioTargetByWeekday || {}), [selectedWeekday]: v },
+                        };
+                        await savePlan(next);
+                      }}
+                      placeholder='e.g. 6×(1 min fast / 1 min easy)'
+                    />
+                  </div>
+                </div>
+              ) : null}
+
               {activityType.movementsEnabled ? (
                 <div className="stack mt16">
                   {(movements || []).map((m) => (
@@ -1396,33 +1452,54 @@ export default function App() {
                           {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
                           {m.allowWeight ? <Pill>weights</Pill> : null}
                           {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
-                        {m.targetReps != null || m.targetWeight != null ? <Pill>target {m.targetReps != null ? `${m.targetReps}r` : ""}{m.targetWeight != null ? `@${m.targetWeight}kg` : ""}</Pill> : null}
+                        {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
                           </div>
                       </div>
                       <div className="planBtns">
                         
                         <SecondaryButton
                           onClick={async () => {
-                            // Optional initial targets for first-time guidance
-                            const repsStr = prompt(
-                              `Optional target reps per set for "${m.name}" (leave blank for none):`,
-                              m.targetReps != null ? String(m.targetReps) : ""
-                            );
-                            if (repsStr === null) return;
-                            const repsVal = repsStr.trim() === "" ? null : Math.max(0, Math.round(Number(repsStr)));
-                            let weightVal = m.targetWeight ?? null;
-                            if (m.allowWeight) {
-                              const wStr = prompt(
-                                `Optional target weight (kg) for "${m.name}" (leave blank for none):`,
-                                m.targetWeight != null ? String(m.targetWeight) : ""
-                              );
-                              if (wStr === null) return;
-                              weightVal = wStr.trim() === "" ? null : Math.max(0, Number(wStr));
-                              if (!Number.isFinite(weightVal)) weightVal = null;
+                            // Optional targets (copy/examples only — stored as text, numeric parsed when obvious)
+                            const examples =
+                              m.mode === "strength"
+                                ? 'Examples:\n• 10\n• 10 @ 20kg\n• 8–12 reps'
+                                : m.mode === "time"
+                                  ? 'Examples:\n• 60s\n• 1 min\n• 3 × 1 min rounds'
+                                  : m.mode === "custom"
+                                    ? 'Examples:\n• 20 min\n• 30 min easy'
+                                    : 'Examples:\n• 10';
+
+                            const promptText = `Optional target for "${m.name}" (leave blank for none):\n${examples}\n\nTip: You can type anything — it’s just a reminder.`;
+                            const prevDefault =
+                              (m.targetText != null && String(m.targetText)) ||
+                              (m.targetReps != null ? String(m.targetReps) : "");
+                            const raw = prompt(promptText, prevDefault);
+                            if (raw === null) return;
+
+                            const txt = raw.trim();
+                            let targetText = txt === "" ? null : txt;
+
+                            // Try to parse simple strength formats into numbers (optional)
+                            let targetReps = null;
+                            let targetWeight = null;
+
+                            if (m.mode === "strength" && targetText) {
+                              // "10", "10@20", "10 @ 20kg", "10 at 20"
+                              const m1 = targetText.match(/^\s*(\d+)\s*(?:@|at)?\s*(\d+(?:\.\d+)?)?\s*(?:kg)?\s*$/i);
+                              if (m1) {
+                                targetReps = Number(m1[1]);
+                                if (m1[2] != null && m.allowWeight) targetWeight = Number(m1[2]);
+                              } else {
+                                // If it's just a number inside text, use it as reps
+                                const m2 = targetText.match(/^\s*(\d+)\s*$/);
+                                if (m2) targetReps = Number(m2[1]);
+                              }
+                              if (!Number.isFinite(targetReps)) targetReps = null;
+                              if (!Number.isFinite(targetWeight)) targetWeight = null;
                             }
 
                             const nextMov = (movements || []).map((x) =>
-                              x.id === m.id ? { ...x, targetReps: repsVal, targetWeight: weightVal } : x
+                              x.id === m.id ? { ...x, targetText, targetReps, targetWeight } : x
                             );
                             const next = {
                               ...plan,
@@ -1563,7 +1640,8 @@ export default function App() {
         {tab === "settings" && (
           <div className="grid2cols">
             <Card className="pad">
-              <div className="h2">Profiles (Wilf, Xander, you, etc.)</div>
+              <div ref={peopleRef} />
+              <div className="h2">People on this account</div>
               <div className="stack mt12">
                 {profiles.map((p) => (
                   <div key={p.id} className="panel">
@@ -1643,10 +1721,11 @@ export default function App() {
             </Card>
 
             <Card className="pad">
+              <div ref={accountRef} />
               <div className="h2">Data notes</div>
               <div className="mini mt12">
-                - This is a <b>single parent account</b> with multiple profiles.<br/>
-                - All profiles are private under the parent login (Row Level Security).<br/>
+                - This is a <b>single account</b> with multiple people.<br/>
+                - Each person’s stats are private to this account.<br/>
                 - Plan + logs sync across devices automatically.<br/>
               </div>
 
@@ -1814,6 +1893,8 @@ function StyleTag() {
       .title{margin:0;font-size:28px;letter-spacing:-0.02em}
       .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
       .pill{display:inline-flex;align-items:center;border:1px solid #e2e8f0;background:#f1f5f9;border-radius:999px;padding:6px 10px;font-size:12px;color:#334155}
+      .pillBtn{cursor:pointer;background:#f1f5f9}
+      .pillBtn:hover{background:#e2e8f0}
       .header-right{display:flex;flex-direction:column;gap:10px}
       @media(min-width:900px){.header-right{flex-direction:row;align-items:center}}
       .tabs{display:flex;flex-wrap:wrap;gap:8px}
@@ -1892,11 +1973,9 @@ function StyleTag() {
   const base = defaultPlanForFamily();
   const withRunIntervals = (p) => ({
     ...p,
-    runSettings: {
-      ...(p.runSettings || {}),
-      Tue: {
-        mode: "intervals",
-        text: "Intervals: 5 min warm-up • 6×(1 min fast / 1 min easy) • 5 min cool-down",
+    cardioTargetByWeekday: {
+      ...(p.cardioTargetByWeekday || {}),
+      Tue: "Intervals: 5 min warm-up • 6×(1 min fast / 1 min easy) • 5 min cool-down",
       },
     },
   });
@@ -1938,7 +2017,7 @@ function StyleTag() {
       desc: "More duration days (mobility, yoga, easy cardio).",
       plan: {
         ...base,
-        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
+        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration",
       },
     },
   ];
