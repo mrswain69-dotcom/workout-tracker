@@ -92,6 +92,18 @@ export async function setProfileBodyweight(profileId, body_weight_kg) {
   return { data, error };
 }
 
+
+export async function updateAgeGroup(profileId, ageGroup) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ age_group: ageGroup })
+    .eq("id", profileId)
+    .select("*")
+    .single();
+  return { data, error };
+}
+
+
 export async function archiveProfile(profileId) {
   const { data, error } = await supabase
     .from("profiles")
