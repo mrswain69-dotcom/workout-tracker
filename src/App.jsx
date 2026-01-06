@@ -440,7 +440,7 @@ function AuthScreen({ onAuthed }) {
       <div className="wrap">
         <Card className="pad authCard">
           <div className="small">Workout Tracker • Online</div>
-          <h1 className="title">Parent login</h1>
+          <h1 className="title">Account</h1>
           {!isSupabaseReady() ? (
             <div className="panel mt16">
               <div className="h3">Supabase not configured</div>
@@ -1396,10 +1396,45 @@ export default function App() {
                           {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
                           {m.allowWeight ? <Pill>weights</Pill> : null}
                           {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
-                        </div>
+                        {m.targetReps != null || m.targetWeight != null ? <Pill>target {m.targetReps != null ? `${m.targetReps}r` : ""}{m.targetWeight != null ? `@${m.targetWeight}kg` : ""}</Pill> : null}
+                          </div>
                       </div>
                       <div className="planBtns">
+                        
                         <SecondaryButton
+                          onClick={async () => {
+                            // Optional initial targets for first-time guidance
+                            const repsStr = prompt(
+                              `Optional target reps per set for "${m.name}" (leave blank for none):`,
+                              m.targetReps != null ? String(m.targetReps) : ""
+                            );
+                            if (repsStr === null) return;
+                            const repsVal = repsStr.trim() === "" ? null : Math.max(0, Math.round(Number(repsStr)));
+                            let weightVal = m.targetWeight ?? null;
+                            if (m.allowWeight) {
+                              const wStr = prompt(
+                                `Optional target weight (kg) for "${m.name}" (leave blank for none):`,
+                                m.targetWeight != null ? String(m.targetWeight) : ""
+                              );
+                              if (wStr === null) return;
+                              weightVal = wStr.trim() === "" ? null : Math.max(0, Number(wStr));
+                              if (!Number.isFinite(weightVal)) weightVal = null;
+                            }
+
+                            const nextMov = (movements || []).map((x) =>
+                              x.id === m.id ? { ...x, targetReps: repsVal, targetWeight: weightVal } : x
+                            );
+                            const next = {
+                              ...plan,
+                              movementsByWeekday: { ...(plan.movementsByWeekday || {}), [selectedWeekday]: nextMov },
+                            };
+                            await savePlan(next);
+                          }}
+                        >
+                          Targets
+                        </SecondaryButton>
+
+<SecondaryButton
                           onClick={async () => {
                             const name = prompt("Rename movement:", m.name);
                             if (!name) return;
@@ -1623,7 +1658,7 @@ export default function App() {
           </div>
         )}
 
-        <footer className="footer">Online build: Parent login + Profiles • fully custom weekly plan • charts • rewards.</footer>
+        <footer className="footer">Online build: Account + Profiles • fully custom weekly plan • charts • rewards.</footer>
       </div>
 
       <StyleTag />
