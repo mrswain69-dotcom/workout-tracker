@@ -799,6 +799,20 @@ export default function App() {
   }, [allLogs, selectedExerciseForChart]);
 
 
+  const cardioProgress = useMemo(() => {
+    const pts = [];
+    for (const row of allLogs) {
+      const d = row.date_ymd;
+      const log = row.log;
+      const km = safeNumber(log?.cardio?.distanceKm);
+      const min = safeNumber(log?.cardio?.durationMin);
+      if (km <= 0 || min <= 0) continue;
+      const spd = km / (min / 60);
+      pts.push({ date: d, km: Number(km.toFixed(2)), speed: Number(spd.toFixed(2)) });
+    }
+    return pts.slice(-60);
+  }, [allLogs]);
+
   const motivationMessages = useMemo(() => {
     const name = activeProfile?.name || "You";
     const msgs = [];
@@ -860,19 +874,8 @@ export default function App() {
     logForDay?.gamify?.comboMax,
   ]);
 
-  const cardioProgress = useMemo(() => {
-    const pts = [];
-    for (const row of allLogs) {
-      const d = row.date_ymd;
-      const log = row.log;
-      const km = safeNumber(log?.cardio?.distanceKm);
-      const min = safeNumber(log?.cardio?.durationMin);
-      if (km <= 0 || min <= 0) continue;
-      const spd = km / (min / 60);
-      pts.push({ date: d, km: Number(km.toFixed(2)), speed: Number(spd.toFixed(2)) });
-    }
-    return pts.slice(-60);
-  }, [allLogs]);
+  
+
 
   if (!sessionReady) return <div className="page"><div className="wrap"><div className="muted">Loading…</div></div><StyleTag/></div>;
   if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />;
