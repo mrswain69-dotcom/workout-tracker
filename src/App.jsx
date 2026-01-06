@@ -1555,7 +1555,8 @@ export default function App() {
                     Delete selected
                   </SecondaryButton>
                 </div>
-              </div>  
+              </div>
+
               <div className="panel mt16">
                 <div className="h3">Day activity type</div>
                 <div className="grid3 mt12">
@@ -1619,7 +1620,7 @@ export default function App() {
                           {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
                           {m.allowWeight ? <Pill>weights</Pill> : null}
                           {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
-                          {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
+                        {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
                           </div>
                       </div>
                       <div className="planBtns">

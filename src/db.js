@@ -167,3 +167,59 @@ export async function listLogs(familyId, profileId, limit = 500) {
 
   return { data: data || [], error };
 }
+
+
+// -------- Plan templates (saved weeks) --------
+export async function listPlanTemplates(familyId) {
+  const { data, error } = await supabase
+    .from("plan_templates")
+    .select("*")
+    .eq("family_id", familyId)
+    .order("updated_at", { ascending: false });
+  return { data: data || [], error };
+}
+
+export async function createPlanTemplate(familyId, name, planJson) {
+  const { data, error } = await supabase
+    .from("plan_templates")
+    .insert({ family_id: familyId, name, plan_json: planJson })
+    .select("*")
+    .single();
+  return { data, error };
+}
+
+export async function updatePlanTemplate(templateId, name, planJson) {
+  const { data, error } = await supabase
+    .from("plan_templates")
+    .update({ name, plan_json: planJson })
+    .eq("id", templateId)
+    .select("*")
+    .single();
+  return { data, error };
+}
+
+export async function deletePlanTemplate(templateId) {
+  const { error } = await supabase.from("plan_templates").delete().eq("id", templateId);
+  return { error };
+}
+
+// -------- Parent lock (PIN) stored on family --------
+export async function setFamilyPinHash(familyId, pinHash) {
+  const { data, error } = await supabase
+    .from("families")
+    .update({ pin_hash: pinHash, pin_updated_at: new Date().toISOString() })
+    .eq("id", familyId)
+    .select("*")
+    .single();
+  return { data, error };
+}
+
+export async function clearFamilyPin(familyId) {
+  const { data, error } = await supabase
+    .from("families")
+    .update({ pin_hash: null, pin_updated_at: new Date().toISOString() })
+    .eq("id", familyId)
+    .select("*")
+    .single();
+  return { data, error };
+}
