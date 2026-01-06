@@ -20,6 +20,7 @@ import {
   addProfile,
   renameProfile,
   setProfileBodyweight,
+  updateAgeGroup,
   archiveProfile,
   getPlan,
   upsertPlan,
@@ -220,6 +221,89 @@ function calcComboMax(log) {
   }
   return maxCombo;
 }
+function findLastMovementSets(allLogs, movementId, beforeYmd) {
+  if (!Array.isArray(allLogs)) return null;
+  for (let i = allLogs.length - 1; i >= 0; i--) {
+    const row = allLogs[i];
+    if (!row?.date_ymd || row.date_ymd >= beforeYmd) continue;
+    const sets = row?.log?.entries?.[movementId] || null;
+    if (Array.isArray(sets) && sets.some(setDidSomething)) return sets;
+  }
+  return null;
+}
+function summarizeStrengthSets(sets) {
+  if (!Array.isArray(sets) || !sets.length) return "—";
+  const reps = sets.map((s) => (Number.isFinite(Number(s?.reps)) ? Number(s.reps) : 0)).filter((x) => x > 0);
+  const w = sets.map((s) => (Number.isFinite(Number(s?.weight)) ? Number(s.weight) : 0));
+  const maxW = Math.max(...w, 0);
+  const repStr = reps.length ? reps.join(",") : "—";
+  if (maxW > 0) return `${repStr} reps @ ${maxW}kg`;
+  return repStr ? `${repStr} reps` : "—";
+}
+function suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup }) {
+  const step = ageGroup === "adult" ? 2.5 : 1.0;
+  const repFloor = 8;
+  const repCeil = 12;
+
+  if (!lastSets || !lastSets.some(setDidSomething)) {
+    if (initialTarget?.reps || initialTarget?.weight) {
+      const r = initialTarget?.reps ? Number(initialTarget.reps) : null;
+      const w = initialTarget?.weight ? Number(initialTarget.weight) : null;
+      if (w && ex.allowWeight) return { text: `${r || repFloor} reps @ ${w}kg` };
+      if (r) return { text: `${r} reps` };
+    }
+    return { text: "Log once to generate targets." };
+  }
+
+  const reps = lastSets.map((s) => (Number.isFinite(Number(s?.reps)) ? Number(s.reps) : 0)).filter((x) => x > 0);
+  const w = lastSets.map((s) => (Number.isFinite(Number(s?.weight)) ? Number(s.weight) : 0)).filter((x) => x > 0);
+  const minReps = reps.length ? Math.min(...reps) : 0;
+  const maxW = w.length ? Math.max(...w) : 0;
+
+  if (ex.allowWeight && maxW > 0) {
+    if (minReps >= repCeil) {
+      const nextW = Math.round((maxW + step) * 10) / 10;
+      return { text: `${repFloor}-${repCeil} reps @ ${nextW}kg` };
+    }
+    const nextReps = Math.min(repCeil, Math.max(repFloor, minReps + 1));
+    return { text: `${nextReps} reps @ ${maxW}kg` };
+  }
+
+  const nextReps = minReps ? minReps + 1 : repFloor;
+  return { text: `${nextReps} reps` };
+}
+function findLastCardio(allLogs, beforeYmd) {
+  if (!Array.isArray(allLogs)) return null;
+  for (let i = allLogs.length - 1; i >= 0; i--) {
+    const row = allLogs[i];
+    if (!row?.date_ymd || row.date_ymd >= beforeYmd) continue;
+    const c = row?.log?.cardio;
+    if (c && (Number(c?.distanceKm) || Number(c?.durationMin))) return c;
+  }
+  return null;
+}
+function summarizeCardio(c) {
+  if (!c) return "—";
+  const d = Number(c.distanceKm || 0);
+  const t = Number(c.durationMin || 0);
+  const s = Number(c.avgSpeedKmh || 0);
+  const bits = [];
+  if (d) bits.push(`${d}km`);
+  if (t) bits.push(`${t}min`);
+  if (s) bits.push(`${s.toFixed(1)}km/h`);
+  return bits.join(" • ") || "—";
+}
+function suggestCardioTarget({ lastCardio }) {
+  if (!lastCardio) return { text: "Log once to generate targets." };
+  const d = Number(lastCardio.distanceKm || 0);
+  const t = Number(lastCardio.durationMin || 0);
+  const s = Number(lastCardio.avgSpeedKmh || 0);
+  if (s) return { text: `Try +0.2 km/h avg speed (≈ ${(s + 0.2).toFixed(1)} km/h)` };
+  if (d) return { text: `Try +0.1 km distance (≈ ${(d + 0.1).toFixed(1)} km)` };
+  if (t) return { text: `Try +1 min duration (≈ ${t + 1} min)` };
+  return { text: "Aim to beat last time." };
+}
+
 function isDayComplete(log, planDay) {
   if (!log) return false;
   if (planDay.kind === "cardio") {
@@ -888,9 +972,9 @@ export default function App() {
             <div className="small">Workout Tracker • Online</div>
             <h1 className="title">{activeProfile?.name || "Profile"}</h1>
             <div className="pills">
-              <Pill>Parent login</Pill>
-              <Pill>Profiles</Pill>
-              <Pill>Custom plan</Pill>
+              <Pill>Account</Pill>
+              <Pill>People</Pill>
+              <Pill>Plan</Pill>
               <Pill>Charts</Pill>
             </div>
           </div>
@@ -1004,6 +1088,20 @@ export default function App() {
                                 <Pill>3 sets</Pill>
                                 {ex.fixedSeconds ? <Pill>{ex.fixedSeconds}s</Pill> : null}
                               </div>
+                              <div className="muted mt8">
+                                {(() => {
+                                  const lastSets = findLastMovementSets(allLogs, ex.id, ymd(selectedDate));
+                                  const lastTxt = summarizeStrengthSets(lastSets);
+                                  const initialTarget = { reps: ex.targetReps || null, weight: ex.targetWeight || null };
+                                  const t = suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup: activeProfile?.age_group || "under16" });
+                                  return (
+                                    <div>
+                                      <div><b>Last time:</b> {lastTxt}</div>
+                                      <div><b>Target today:</b> {t.text}</div>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
 
@@ -1084,7 +1182,45 @@ export default function App() {
                 </div>
               </Card>
 
-              <Card className="pad">
+                            <Card className="pad">
+                <div className="h3">Today’s mission</div>
+                <div className="stack mt12">
+                  {planDay.kind === "strength" || planDay.kind === "time" ? (
+                    (planDay.movements || []).map((ex) => {
+                      const lastSets = findLastMovementSets(allLogs, ex.id, ymd(selectedDate));
+                      const lastTxt = summarizeStrengthSets(lastSets);
+                      const initialTarget = { reps: ex.targetReps || null, weight: ex.targetWeight || null };
+                      const t = suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup: activeProfile?.age_group || "under16" });
+                      return (
+                        <div key={ex.id} className="mini">
+                          <div className="label">{ex.name}</div>
+                          <div className="muted">Last: {lastTxt}</div>
+                          <div><b>Target:</b> {t.text}</div>
+                        </div>
+                      );
+                    })
+                  ) : planDay.kind === "cardio" ? (
+                    (() => {
+                      const last = findLastCardio(allLogs, ymd(selectedDate));
+                      const lastTxt = summarizeCardio(last);
+                      const t = suggestCardioTarget({ lastCardio: last });
+                      const intervalHint = plan?.runSettings?.[selectedWeekday]?.text || "";
+                      return (
+                        <div className="mini">
+                          <div className="label">Cardio</div>
+                          <div className="muted">Last: {lastTxt}</div>
+                          <div><b>Target:</b> {t.text}</div>
+                          {intervalHint ? <div className="muted mt8">{intervalHint}</div> : null}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="muted">Log your session and keep your streak alive.</div>
+                  )}
+                </div>
+              </Card>
+
+<Card className="pad">
                 <div className="h3">Mini challenges</div>
                 <div className="stack mt12">
                   <Challenge text="Complete today’s plan" done={isDayComplete(logForDay, planDay)} />
@@ -1192,6 +1328,32 @@ export default function App() {
                 </div>
                 <div className="selectWide">
                   <Select value={selectedWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
+                </div>
+              </div>
+
+              <div className="panel mt16">
+                <div className="h3">Preset plans</div>
+                <div className="muted mt8">Pick a goal, apply a starter week, then customise it.</div>
+                <div className="row mt12">
+                  <div style={{ flex: 1 }}>
+                    <Select
+                      value={plan?.presetId || ""}
+                      onChange={(v) => {
+                        const preset = presetPlans().find((x) => x.id === v);
+                        if (!preset) return;
+                        savePlan({ ...preset.plan, presetId: preset.id });
+                      }}
+                      options={[
+                        { value: "", label: "Choose a preset…" },
+                        ...presetPlans().map((p) => ({ value: p.id, label: p.name })),
+                      ]}
+                    />
+                    {plan?.presetId ? (
+                      <div className="muted mt8">
+                        {presetPlans().find((p) => p.id === plan.presetId)?.desc || ""}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
@@ -1409,6 +1571,22 @@ export default function App() {
                         }}
                         placeholder="optional"
                       />
+                    <div className="mt12">
+                      <div className="label">Age mode (no DOB stored)</div>
+                      <Select
+                        value={activeProfile?.age_group || "under16"}
+                        onChange={async (v) => {
+                          if (!activeProfile?.id) return;
+                          const { data } = await updateAgeGroup(activeProfile.id, v);
+                          if (data) setProfiles((prev) => prev.map((p) => (p.id === data.id ? data : p)));
+                        }}
+                        options={[
+                          { value: "under16", label: "Under 16 (safer targets)" },
+                          { value: "adult", label: "Adult (standard targets)" },
+                        ]}
+                      />
+                      <div className="muted mt8">Used only to scale suggested progress steps.</div>
+                    </div>
                     </div>
                   </div>
                 ))}
@@ -1675,4 +1853,61 @@ function StyleTag() {
 
     `}</style>
   );
+}function presetPlans() {
+  const base = defaultPlanForFamily();
+  const withRunIntervals = (p) => ({
+    ...p,
+    runSettings: {
+      ...(p.runSettings || {}),
+      Tue: {
+        mode: "intervals",
+        text: "Intervals: 5 min warm-up • 6×(1 min fast / 1 min easy) • 5 min cool-down",
+      },
+    },
+  });
+
+  return [
+    {
+      id: "football_engine",
+      name: "Football Speed & Engine (5 days)",
+      desc: "Intervals + conditioning + strength base. Great for players.",
+      plan: withRunIntervals(base),
+    },
+    {
+      id: "general_strength",
+      name: "General Strength + Fitness",
+      desc: "Simple weekly structure you can customise.",
+      plan: base,
+    },
+    {
+      id: "upper_body",
+      name: "Upper Body Strength",
+      desc: "Focus your strength days on upper movements.",
+      plan: base,
+    },
+    {
+      id: "legs_power",
+      name: "Leg Strength + Power",
+      desc: "Focus your strength days on legs + jumps.",
+      plan: base,
+    },
+    {
+      id: "tone_conditioning",
+      name: "Muscular Conditioning / Tone",
+      desc: "Higher reps, less rest, more cardio bias.",
+      plan: withRunIntervals(base),
+    },
+    {
+      id: "recovery_mobility",
+      name: "Recovery & Mobility",
+      desc: "More duration days (mobility, yoga, easy cardio).",
+      plan: {
+        ...base,
+        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
+      },
+    },
+  ];
 }
+
+
+
