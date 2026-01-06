@@ -1687,11 +1687,10 @@ export default function App() {
                     <div className="mt12">
                       <div className="label">Age mode (no DOB stored)</div>
                       <Select
-                        value={activeProfile?.age_group || "under16"}
+                        value={p.age_group || "under16"}
                         onChange={async (v) => {
-                          if (!activeProfile?.id) return;
-                          const { data } = await updateAgeGroup(activeProfile.id, v);
-                          if (data) setProfiles((prev) => prev.map((p) => (p.id === data.id ? data : p)));
+                          const { data } = await updateAgeGroup(p.id, v);
+                          if (data) setProfiles((prev) => prev.map((pp) => (pp.id === data.id ? data : pp)));
                         }}
                         options={[
                           { value: "under16", label: "Under 16 (safer targets)" },
@@ -1969,16 +1968,18 @@ function StyleTag() {
 
     `}</style>
   );
-}function presetPlans() {
+}
+
+function presetPlans() {
   const base = defaultPlanForFamily();
   const withRunIntervals = (p) => ({
     ...p,
     cardioTargetByWeekday: {
       ...(p.cardioTargetByWeekday || {}),
       Tue: "Intervals: 5 min warm-up • 6×(1 min fast / 1 min easy) • 5 min cool-down",
-      },
     },
   });
+
 
   return [
     {
@@ -2022,6 +2023,5 @@ function StyleTag() {
     },
   ];
 }
-
 
 
