@@ -27,6 +27,12 @@ import {
   getLog,
   upsertLog,
   listLogs,
+  listPlanTemplates,
+  createPlanTemplate,
+  updatePlanTemplate,
+  deletePlanTemplate,
+  setFamilyPinHash,
+  clearFamilyPin,
 } from "./db";
 
 // -------- Utilities ----------
@@ -59,6 +65,13 @@ function weekKey(ymdStr) {
 function monthKey(ymdStr) {
   const d = new Date(ymdStr + "T00:00:00");
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+async function sha256Hex(input) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest("SHA-256", enc.encode(input));
+  const arr = Array.from(new Uint8Array(buf));
+  return arr.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 // -------- Sound (WebAudio) ----------
@@ -514,6 +527,13 @@ export default function App() {
   const planRef = useRef(null);
   const chartsRef = useRef(null);
 
+  const [pinUnlockedUntil, setPinUnlockedUntil] = useState(0);
+  const [selectedPresetId, setSelectedPresetId] = useState("");
+  const [planTemplates, setPlanTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [undoPlan, setUndoPlan] = useState(null);
+  const [undoLabel, setUndoLabel] = useState("");
+
   const jumpTo = (nextTab, ref) => {
     setTab(nextTab);
     setTimeout(() => {
@@ -579,6 +599,9 @@ export default function App() {
     if (error) throw error;
     setFamily(fam);
 
+    const { data: templs } = await listPlanTemplates(fam.id);
+    setPlanTemplates(templs || []);
+
     const { data: profs } = await listProfiles(fam.id);
     let profList = profs || [];
 
@@ -638,7 +661,45 @@ export default function App() {
 
   const planDay = { ...activityType, movements };
 
+  async function ensureUnlocked(actionLabel = "save changes") {
+    if (!family?.id) return false;
+    if (!family?.pin_hash) return true;
+    if (Date.now() < pinUnlockedUntil) return true;
+
+    const pin = window.prompt(`Enter PIN to ${actionLabel}:`);
+    if (pin === null) return false;
+
+    const h = await sha256Hex(`${pin}:${family.id}`);
+    if (h === family.pin_hash) {
+      setPinUnlockedUntil(Date.now() + 10 * 60 * 1000); // 10 minutes
+      return true;
+    }
+    window.alert("Incorrect PIN.");
+    return false;
+  }
+
+  async function applyPlan(nextPlan, label = "Plan applied") {
+    if (!(await ensureUnlocked("apply changes"))) return;
+    setUndoPlan(plan || null);
+    setUndoLabel(label);
+    setPlan(nextPlan);
+    if (!family?.id) return;
+    await upsertPlan(family.id, nextPlan);
+  }
+
+  async function undoLastPlan() {
+    if (!undoPlan) return;
+    if (!(await ensureUnlocked("undo changes"))) return;
+    const prev = undoPlan;
+    setUndoPlan(null);
+    setUndoLabel("");
+    setPlan(prev);
+    if (!family?.id) return;
+    await upsertPlan(family.id, prev);
+  }
+
   async function savePlan(nextPlan) {
+    if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
     await upsertPlan(family.id, nextPlan);
@@ -1351,8 +1412,7 @@ export default function App() {
 
         {tab === "plan" && (
           <div className="gridPlan">
-            <div ref={planRef} />
-            <Card className="pad">
+            <Card className="pad planMain">
               <div className="rowBetween">
                 <div>
                   <div className="h2">Weekly plan (fully custom)</div>
@@ -1363,34 +1423,140 @@ export default function App() {
                 </div>
               </div>
 
+              
               <div className="panel mt16">
                 <div className="h3">Preset plans</div>
-                <div className="muted mt8">Pick a goal, apply a starter week, then customise it.</div>
+                <div className="muted mt8">Pick a goal, then apply it (this can overwrite your current week).</div>
                 <div className="row mt12">
                   <div style={{ flex: 1 }}>
                     <Select
-                      value={plan?.presetId || ""}
-                      onChange={(v) => {
-                        const preset = presetPlans().find((x) => x.id === v);
-                        if (!preset) return;
-                        savePlan({ ...preset.plan, presetId: preset.id });
-                      }}
+                      value={selectedPresetId}
+                      onChange={setSelectedPresetId}
                       options={[
                         { value: "", label: "Choose a preset…" },
                         ...presetPlans().map((p) => ({ value: p.id, label: p.name })),
                       ]}
                     />
-                    {plan?.presetId ? (
+                    {selectedPresetId ? (
                       <div className="muted mt8">
-                        {presetPlans().find((p) => p.id === plan.presetId)?.desc || ""}
+                        {presetPlans().find((p) => p.id === selectedPresetId)?.note || ""}
                       </div>
                     ) : null}
                   </div>
+                  <div style={{ width: 12 }} />
+                  <PrimaryButton
+                    disabled={!selectedPresetId}
+                    onClick={async () => {
+                      const preset = presetPlans().find((p) => p.id === selectedPresetId);
+                      if (!preset) return;
+                      const ok = window.confirm(
+                        `Apply preset "${preset.name}"?\n\nThis will overwrite your current weekly plan. You can undo right after applying.`
+                      );
+                      if (!ok) return;
+                      await applyPlan({ ...preset.plan, presetId: preset.id }, `Preset applied: ${preset.name}`);
+                      // refresh templates list isn't needed here
+                    }}
+                  >
+                    Apply preset
+                  </PrimaryButton>
                 </div>
+                {undoPlan ? (
+                  <div className="rowBetween mt12">
+                    <div className="mini">Undo available: <b>{undoLabel || "Recent change"}</b></div>
+                    <SecondaryButton onClick={undoLastPlan}>Undo</SecondaryButton>
+                  </div>
+                ) : null}
               </div>
 
               <div className="panel mt16">
-                <div className="h3">Day activity type</div>
+                <div className="rowBetween">
+                  <div>
+                    <div className="h3">Saved weekly plans</div>
+                    <div className="muted mt8">Save multiple weeks (templates) and switch between them.</div>
+                  </div>
+                </div>
+
+                <div className="row mt12">
+                  <div style={{ flex: 1 }}>
+                    <Select
+                      value={selectedTemplateId}
+                      onChange={setSelectedTemplateId}
+                      options={[
+                        { value: "", label: "Choose a saved plan…" },
+                        ...planTemplates.map((t) => ({ value: t.id, label: t.name })),
+                      ]}
+                    />
+                  </div>
+                  <div style={{ width: 12 }} />
+                  <PrimaryButton
+                    disabled={!selectedTemplateId}
+                    onClick={async () => {
+                      const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
+                      if (!tpl) return;
+                      const ok = window.confirm(
+                        `Load saved plan "${tpl.name}"?\n\nThis will overwrite your current weekly plan. You can undo right after applying.`
+                      );
+                      if (!ok) return;
+                      await applyPlan({ ...(tpl.plan_json || {}), templateId: tpl.id }, `Loaded saved plan: ${tpl.name}`);
+                    }}
+                  >
+                    Load
+                  </PrimaryButton>
+                </div>
+
+                <div className="row mt12">
+                  <PrimaryButton
+                    onClick={async () => {
+                      const name = window.prompt("Name this saved weekly plan:");
+                      if (!name) return;
+                      if (!family?.id) return;
+                      if (!(await ensureUnlocked("save a template"))) return;
+                      const { error } = await createPlanTemplate(family.id, name, plan || {});
+                      if (error) window.alert(error.message || String(error));
+                      const { data } = await listPlanTemplates(family.id);
+                      setPlanTemplates(data || []);
+                    }}
+                  >
+                    Save current as new
+                  </PrimaryButton>
+                  <div style={{ width: 10 }} />
+                  <SecondaryButton
+                    disabled={!selectedTemplateId}
+                    onClick={async () => {
+                      const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
+                      if (!tpl) return;
+                      const ok = window.confirm(`Update "${tpl.name}" with your current plan?`);
+                      if (!ok) return;
+                      if (!(await ensureUnlocked("update a template"))) return;
+                      const { error } = await updatePlanTemplate(tpl.id, tpl.name, plan || {});
+                      if (error) window.alert(error.message || String(error));
+                      const { data } = await listPlanTemplates(family.id);
+                      setPlanTemplates(data || []);
+                    }}
+                  >
+                    Update selected
+                  </SecondaryButton>
+                  <div style={{ width: 10 }} />
+                  <SecondaryButton
+                    disabled={!selectedTemplateId}
+                    onClick={async () => {
+                      const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
+                      if (!tpl) return;
+                      const ok = window.confirm(`Delete saved plan "${tpl.name}"?`);
+                      if (!ok) return;
+                      if (!(await ensureUnlocked("delete a template"))) return;
+                      const { error } = await deletePlanTemplate(tpl.id);
+                      if (error) window.alert(error.message || String(error));
+                      const { data } = await listPlanTemplates(family.id);
+                      setPlanTemplates(data || []);
+                      setSelectedTemplateId("");
+                    }}
+                  >
+                    Delete selected
+                  </SecondaryButton>
+                </div>
+              </div>
+<div className="h3">Day activity type</div>
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Type</div>
@@ -1569,7 +1735,7 @@ export default function App() {
               </div>
             </Card>
 
-            <Card className="pad">
+            <Card className="pad planSide">
               <div className="h2">How types work</div>
               <div className="stack mt12">
                 <div className="mini"><b>Strength</b>: movements with reps/weight or time.</div>
@@ -1652,6 +1818,7 @@ export default function App() {
                           onClick={async () => {
                             const name = prompt("Rename profile:", p.name);
                             if (!name) return;
+                            if (!(await ensureUnlocked("rename a profile"))) return;
                             await renameProfile(p.id, name.trim());
                             await refreshAll();
                           }}
@@ -1662,6 +1829,7 @@ export default function App() {
                           disabled={profiles.length <= 1}
                           onClick={async () => {
                             if (!confirm("Remove (archive) this profile?")) return;
+                            if (!(await ensureUnlocked("remove a profile"))) return;
                             await archiveProfile(p.id);
                             await refreshAll();
                           }}
@@ -1679,6 +1847,7 @@ export default function App() {
                         step={0.1}
                         value={p.body_weight_kg ?? ""}
                         onChange={async (v) => {
+                          if (!(await ensureUnlocked("change bodyweight"))) return;
                           await setProfileBodyweight(p.id, v === "" ? null : Number(v));
                           await refreshAll();
                         }}
@@ -1689,6 +1858,7 @@ export default function App() {
                       <Select
                         value={p.age_group || "under16"}
                         onChange={async (v) => {
+                          if (!(await ensureUnlocked("change age mode"))) return;
                           const { data } = await updateAgeGroup(p.id, v);
                           if (data) setProfiles((prev) => prev.map((pp) => (pp.id === data.id ? data : pp)));
                         }}
@@ -1710,6 +1880,7 @@ export default function App() {
                   onClick={async () => {
                     const name = prompt("Profile name?");
                     if (!name) return;
+                    if (!(await ensureUnlocked("add a profile"))) return;
                     await addProfile(family.id, name.trim());
                     await refreshAll();
                   }}
@@ -1726,6 +1897,66 @@ export default function App() {
                 - This is a <b>single account</b> with multiple people.<br/>
                 - Each person’s stats are private to this account.<br/>
                 - Plan + logs sync across devices automatically.<br/>
+              </div>
+
+              <div className="panel mt16">
+                <div className="h3">Parent Lock (PIN)</div>
+                <div className="muted mt8">Optional. If set, you’ll be asked for the PIN when saving/applying changes in People / Plan / Settings.</div>
+                <div className="mini mt8">
+                  Status: {family?.pin_hash ? <b>ON</b> : <b>OFF</b>} {family?.pin_hash ? (Date.now() < pinUnlockedUntil ? <span className="muted">(unlocked temporarily)</span> : <span className="muted">(locked)</span>) : null}
+                </div>
+                <div className="row mt12">
+                  <PrimaryButton
+                    onClick={async () => {
+                      if (!family?.id) return;
+                      const current = family?.pin_hash ? window.prompt("Enter current PIN:") : null;
+                      if (family?.pin_hash) {
+                        if (current === null) return;
+                        const h = await sha256Hex(`${current}:${family.id}`);
+                        if (h !== family.pin_hash) {
+                          window.alert("Incorrect current PIN.");
+                          return;
+                        }
+                      }
+                      const next = window.prompt("Set a new 4-digit PIN:");
+                      if (!next) return;
+                      if (!/^\d{4}$/.test(next)) {
+                        window.alert("Please use exactly 4 digits (e.g. 1234).");
+                        return;
+                      }
+                      const pinHash = await sha256Hex(`${next}:${family.id}`);
+                      const { data, error } = await setFamilyPinHash(family.id, pinHash);
+                      if (error) return window.alert(error.message || String(error));
+                      setFamily(data);
+                      setPinUnlockedUntil(0);
+                      window.alert("PIN set.");
+                    }}
+                  >
+                    {family?.pin_hash ? "Change PIN" : "Set PIN"}
+                  </PrimaryButton>
+                  <div style={{ width: 10 }} />
+                  <SecondaryButton
+                    disabled={!family?.pin_hash}
+                    onClick={async () => {
+                      if (!family?.id) return;
+                      const ok = window.confirm("Remove the PIN lock?");
+                      if (!ok) return;
+                      const { data, error } = await clearFamilyPin(family.id);
+                      if (error) return window.alert(error.message || String(error));
+                      setFamily(data);
+                      setPinUnlockedUntil(0);
+                    }}
+                  >
+                    Remove PIN
+                  </SecondaryButton>
+                  <div style={{ width: 10 }} />
+                  <SecondaryButton
+                    disabled={!family?.pin_hash}
+                    onClick={() => setPinUnlockedUntil(0)}
+                  >
+                    Lock now
+                  </SecondaryButton>
+                </div>
               </div>
 
               <div className="panel mt16">
