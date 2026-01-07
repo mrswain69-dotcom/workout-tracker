@@ -4,10 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- PWA / Branding -->
+    <title>Workout Tracker</title>
+    <meta name="description" content="Build Strength. Build Habits." />
+    <meta name="theme-color" content="#ff7a18" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
     <!-- Early globals to prevent blank-screen crashes if old cached bundles reference them -->
     <script>
       (function () {
-        // No-op toast fallback (swUpdate.js can replace with a nicer toast when loaded)
         window.showSwToast = window.showSwToast || function (onRefresh) {
           try {
             var ok = window.confirm("New version available. Refresh now?");
@@ -15,22 +22,16 @@
           } catch (e) {}
         };
 
-        // Global SW apply function (some older cached bundles call this)
         window.applySwUpdate = window.applySwUpdate || function () {
           try {
             if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
-              navigator.serviceWorker
-                .getRegistration()
-                .then(function (reg) {
-                  try {
-                    if (reg && reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
-                  } catch (e) {}
-                })
-                .finally(function () {
-                  setTimeout(function () {
-                    window.location.reload();
-                  }, 150);
-                });
+              navigator.serviceWorker.getRegistration().then(function (reg) {
+                try {
+                  if (reg && reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+                } catch (e) {}
+              }).finally(function () {
+                setTimeout(function(){ window.location.reload(); }, 150);
+              });
             } else {
               window.location.reload();
             }
@@ -40,8 +41,6 @@
         };
       })();
     </script>
-
-    <title>Workout Tracker</title>
   </head>
   <body>
     <div id="root"></div>
