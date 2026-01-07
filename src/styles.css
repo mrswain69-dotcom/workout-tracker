@@ -11,3 +11,25 @@ button, input, select {
   font: inherit;
 }
 a { color: inherit; }
+
+
+/* Plan layout */
+.gridPlan{
+  display:grid;
+  grid-template-columns: 360px 1fr;
+  gap:16px;
+  align-items:start;
+}
+.planMain{ grid-column: 2; }
+.planSide{ grid-column: 1; }
+@media (max-width: 900px){
+  .gridPlan{ grid-template-columns: 1fr; }
+  .planMain{ grid-column: auto; }
+  .planSide{ grid-column: auto; }
+}
+
+
+/* Service worker update toast */
+.swToast{position:sticky;top:10px;z-index:50;display:flex;gap:10px;align-items:center;justify-content:space-between;background:#0f172a;color:#fff;border-radius:14px;padding:10px 12px;margin:10px 0;box-shadow:0 10px 20px rgba(0,0,0,.15)}
+.swToastText{font-weight:800;font-size:13px;line-height:1.2}
+.swToastActions{display:flex;gap:8px;align-items:center}

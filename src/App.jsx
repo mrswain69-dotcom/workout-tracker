@@ -462,6 +462,17 @@ function AuthScreen({ onAuthed }) {
   return (
     <div className="page">
       <div className="wrap">
+
+      {showSwToast ? (
+        <div className="swToast" role="status">
+          <div className="swToastText">✨ Update available. Refresh to get the latest version.</div>
+          <div className="swToastActions">
+            <button className="btn" onClick={() => setShowSwToast(false)}>Later</button>
+            <button className="btn primary" onClick={applySwUpdate}>Refresh</button>
+          </div>
+        </div>
+      ) : null}
+
         <Card className="pad authCard">
           <div className="small">Workout Tracker • Online</div>
           <h1 className="title">Account</h1>
@@ -522,6 +533,42 @@ function AuthScreen({ onAuthed }) {
 // -------- Main app ----------
 export default function App() {
   const [tab, setTab] = useState("log");
+
+  // --- Service worker update toast (prevents stale PWA UI after deploys) ---
+  const [swUpdateReg, setSwUpdateReg] = useState(null);
+  const [showSwToast, setShowSwToast] = useState(false);
+
+  useEffect(() => {
+    const onUpdate = (e) => {
+      const reg = e?.detail?.registration;
+      if (reg) {
+        setSwUpdateReg(reg);
+        setShowSwToast(true);
+      }
+    };
+    window.addEventListener('kwt-sw-update', onUpdate);
+    return () => window.removeEventListener('kwt-sw-update', onUpdate);
+  }, []);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const onControllerChange = () => window.location.reload();
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+  }, []);
+
+  const applySwUpdate = async () => {
+    try {
+      const reg = swUpdateReg;
+      if (reg?.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        window.location.reload();
+      }
+    } catch {
+      window.location.reload();
+    }
+  };
   const accountRef = useRef(null);
   const peopleRef = useRef(null);
   const planRef = useRef(null);
@@ -1069,12 +1116,7 @@ export default function App() {
 
           <div className="header-right">
             <div className="selectWide">
-              <Select value={activeProfileId} onChange={async (v) => {
-                if (v === activeProfileId) return;
-                const ok = await ensureUnlocked("Switch person");
-                if (!ok) return; // snaps back automatically because Select is controlled
-                setActiveProfileId(v);
-              }} options={profiles.map((p) => ({ value: p.id, label: p.name }))} />
+              <Select value={activeProfileId} onChange={setActiveProfileId} options={profiles.map((p) => ({ value: p.id, label: p.name }))} />
             </div>
 
             <div className="tabs">
