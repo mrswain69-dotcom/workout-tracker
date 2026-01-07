@@ -4,16 +4,44 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Early globals to prevent blank-screen crashes if old cached bundles reference them -->
+    <script>
+      (function () {
+        // No-op toast fallback (swUpdate.js can replace with a nicer toast when loaded)
+        window.showSwToast = window.showSwToast || function (onRefresh) {
+          try {
+            var ok = window.confirm("New version available. Refresh now?");
+            if (ok && typeof onRefresh === "function") onRefresh();
+          } catch (e) {}
+        };
+
+        // Global SW apply function (some older cached bundles call this)
+        window.applySwUpdate = window.applySwUpdate || function () {
+          try {
+            if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+              navigator.serviceWorker
+                .getRegistration()
+                .then(function (reg) {
+                  try {
+                    if (reg && reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+                  } catch (e) {}
+                })
+                .finally(function () {
+                  setTimeout(function () {
+                    window.location.reload();
+                  }, 150);
+                });
+            } else {
+              window.location.reload();
+            }
+          } catch (e) {
+            window.location.reload();
+          }
+        };
+      })();
+    </script>
+
     <title>Workout Tracker</title>
-    <meta name="description" content="Workout Tracker — Build strength. Build habits." />
-
-    <!-- PWA -->
-    <meta name="theme-color" content="#F59E0B" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-
-    <!-- Icons -->
-    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   </head>
   <body>
     <div id="root"></div>
