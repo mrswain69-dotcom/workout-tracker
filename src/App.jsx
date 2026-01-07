@@ -1104,7 +1104,13 @@ export default function App() {
       <div className="wrap">
         <header className="header">
           <div>
-            <div className="small">Workout Tracker • Online</div>
+            <div className="brandLockup">
+             <img className="brandMark" src="/icons/icon-192.png" alt="Workout Tracker" />
+             <div className="brandText">
+               <div className="brandTitle">Workout Tracker</div>
+               <div className="brandTag">Build Strength. Build Habits.</div>
+             </div>
+            </div>
             <h1 className="title">{activeProfile?.name || "Profile"}</h1>
             <div className="pills">
               <Pill onClick={() => jumpTo("settings", accountRef)}>Account</Pill>
