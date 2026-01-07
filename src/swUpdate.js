@@ -1,12 +1,10 @@
 // src/swUpdate.js
-// Compatibility layer for SW update UX.
-// Ensures globals used by older bundles are defined:
-//   - window.showSwToast
-//   - window.applySwUpdate
-//
-// Exports both:
-//   - registerServiceWorkerUpdates (legacy import used by src/main.jsx)
-//   - registerServiceWorker (preferred)
+// Keeps compatibility with older imports + globals, but ensures the toast disappears after refresh.
+
+function removeToast() {
+  const t = document.getElementById("sw-update-toast");
+  if (t) t.remove();
+}
 
 function ensureToastGlobal() {
   window.showSwToast = window.showSwToast || function (onRefresh) {
@@ -23,23 +21,35 @@ function ensureToastGlobal() {
     `;
     document.body.appendChild(toast);
 
-    document.getElementById("sw-refresh").onclick = () => onRefresh?.();
-    document.getElementById("sw-dismiss").onclick = () => toast.remove();
+    document.getElementById("sw-refresh").onclick = () => {
+      removeToast();
+      onRefresh?.();
+    };
+    document.getElementById("sw-dismiss").onclick = () => removeToast();
   };
 }
 
-function ensureApplyGlobal(regOrWorker) {
-  // Define a global function that activates the waiting SW (if any) then reloads.
+function ensureApplyGlobal() {
   window.applySwUpdate = window.applySwUpdate || function () {
-    try {
-      // If we have a specific worker, tell it to skip waiting.
-      const w = regOrWorker?.waiting || regOrWorker;
-      if (w && w.postMessage) {
-        w.postMessage({ type: "SKIP_WAITING" });
-      }
-    } finally {
-      // Give the SW a moment, then reload.
-      setTimeout(() => window.location.reload(), 150);
+    let reloaded = false;
+    const reloadOnce = () => {
+      if (reloaded) return;
+      reloaded = true;
+      removeToast();
+      window.location.reload();
+    };
+
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener("controllerchange", reloadOnce, { once: true });
+
+      navigator.serviceWorker.getRegistration?.().then((reg) => {
+        if (reg?.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        else reloadOnce();
+      }).catch(reloadOnce);
+
+      setTimeout(reloadOnce, 1200);
+    } else {
+      reloadOnce();
     }
   };
 }
@@ -48,36 +58,23 @@ export function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   ensureToastGlobal();
+  ensureApplyGlobal();
 
   navigator.serviceWorker.register("/sw.js").then((reg) => {
-    ensureApplyGlobal(reg);
-
-    // If there's already a waiting SW, offer refresh immediately.
     if (reg.waiting && navigator.serviceWorker.controller) {
       window.showSwToast(() => window.applySwUpdate());
     }
 
     reg.addEventListener("updatefound", () => {
-      const newWorker = reg.installing;
-      if (!newWorker) return;
-
-      newWorker.addEventListener("statechange", () => {
-        if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-          // Update ready
-          ensureApplyGlobal({ waiting: newWorker });
+      const w = reg.installing;
+      if (!w) return;
+      w.addEventListener("statechange", () => {
+        if (w.state === "installed" && navigator.serviceWorker.controller) {
           window.showSwToast(() => window.applySwUpdate());
         }
       });
     });
   });
-
-  // Also listen for SW messages
-  navigator.serviceWorker.addEventListener("message", (event) => {
-    if (event.data?.type === "SW_UPDATE_AVAILABLE") {
-      window.showSwToast(() => window.applySwUpdate());
-    }
-  });
 }
 
-// Legacy export name used by your src/main.jsx
 export const registerServiceWorkerUpdates = registerServiceWorker;
