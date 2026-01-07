@@ -1069,7 +1069,12 @@ export default function App() {
 
           <div className="header-right">
             <div className="selectWide">
-              <Select value={activeProfileId} onChange={setActiveProfileId} options={profiles.map((p) => ({ value: p.id, label: p.name }))} />
+              <Select value={activeProfileId} onChange={async (v) => {
+                if (v === activeProfileId) return;
+                const ok = await ensureUnlocked("Switch person");
+                if (!ok) return; // snaps back automatically because Select is controlled
+                setActiveProfileId(v);
+              }} options={profiles.map((p) => ({ value: p.id, label: p.name }))} />
             </div>
 
             <div className="tabs">
