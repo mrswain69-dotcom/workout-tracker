@@ -1,10 +1,10 @@
-/* Kids Workout Tracker – Service Worker
+/* Workout Tracker – Service Worker
    Goal: fast loads + reliable updates.
    Strategy:
    - Navigations (index.html): network-first (so new deployments show up)
    - Static assets: cache-first
 */
-const CACHE_NAME = 'kwt-cache-v2';
+const CACHE_NAME = 'kwt-cache-v3';
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -13,6 +13,11 @@ self.addEventListener('install', (event) => {
       '/',
       '/index.html',
       '/manifest.webmanifest',
+      // Icons (so home-screen install looks right even briefly offline)
+      '/icons/icon-192.png',
+      '/icons/icon-512.png',
+      '/icons/icon-maskable.png',
+      '/icons/apple-touch-icon.png',
     ]);
     self.skipWaiting();
   })());
