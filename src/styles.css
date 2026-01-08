@@ -100,3 +100,66 @@ a, .link { color: var(--brand); }
   border-color: var(--brand-dark);
 }
 
+/* === Workout Tracker brand accents (append to end of src/styles.css) === */
+
+:root {
+  --brand: #ff7a18;        /* orange */
+  --brand-2: #ff9a4d;      /* lighter orange */
+  --brand-ink: #1b1b1b;
+  --focus-ring: rgba(255, 122, 24, 0.35);
+}
+
+/* Links */
+a { color: var(--brand); }
+a:hover { color: var(--brand-2); }
+
+/* Focus rings */
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  border-color: rgba(255, 122, 24, 0.55);
+}
+
+/* Primary buttons */
+.btn-primary,
+.btn.primary,
+button.btn.primary {
+  background: var(--brand);
+  border: 1px solid rgba(255, 122, 24, 0.85);
+  color: #fff;
+}
+.btn-primary:hover,
+.btn.primary:hover,
+button.btn.primary:hover {
+  background: var(--brand-2);
+}
+
+/* Secondary buttons get a subtle orange hover */
+.btn-secondary:hover {
+  border-color: rgba(255, 122, 24, 0.55);
+}
+
+/* Little “pill” badges / chips */
+.pill {
+  border-color: rgba(255, 122, 24, 0.35);
+}
+
+/* Toast accent */
+.swToast {
+  border: 1px solid rgba(255, 122, 24, 0.35);
+}
+.swToastText::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 10px;
+  border-radius: 999px;
+  background: var(--brand);
+  vertical-align: middle;
+}
+
+/* Top header title accent (subtle underline) */
+header .title, header h1, header h2 {
+  text-decoration-color: rgba(255, 122, 24, 0.65);
+}
