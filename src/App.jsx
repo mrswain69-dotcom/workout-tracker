@@ -74,35 +74,6 @@ async function sha256Hex(input) {
   return arr.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-
-// -------- Local plan cache (prevents "plan vanished" if DB write fails) ----------
-function planCacheKey(familyId) {
-  return familyId ? `wt_plan_cache_${familyId}` : null;
-}
-function readPlanCache(familyId) {
-  try {
-    const k = planCacheKey(familyId);
-    if (!k) return null;
-    const raw = localStorage.getItem(k);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-function writePlanCache(familyId, plan) {
-  try {
-    const k = planCacheKey(familyId);
-    if (!k) return;
-    localStorage.setItem(k, JSON.stringify({ plan, savedAt: Date.now() }));
-  } catch {
-    // ignore
-  }
-}
-
-
 // -------- Sound (WebAudio) ----------
 function createAudio() {
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -352,14 +323,14 @@ function suggestCardioTarget({ lastCardio }) {
 
 function isDayComplete(log, planDay) {
   if (!log) return false;
-  if (effectiveDay.kind === "cardio") {
+  if (planDay.kind === "cardio") {
     return safeNumber(log.cardio?.distanceKm) > 0 && safeNumber(log.cardio?.durationMin) > 0;
   }
-  if (effectiveDay.kind === "custom") {
+  if (planDay.kind === "custom") {
     return safeNumber(log.custom?.durationMin) > 0;
   }
-  if (!effectiveDay.movementsEnabled) return false;
-  const ex = effectiveDay.movements || [];
+  if (!planDay.movementsEnabled) return false;
+  const ex = planDay.movements || [];
   if (!ex.length) return false;
   for (const e of ex) {
     const sets = log.entries?.[e.id] || [];
@@ -692,29 +663,12 @@ export default function App() {
     setActiveProfileId((prev) => prev || profList[0]?.id || "");
 
     const { data: planRow } = await getPlan(fam.id);
-
-    // Prefer any newer locally cached plan (prevents "edits vanished" scenarios).
-    const cached = readPlanCache(fam.id);
-    const cachedPlan = cached?.plan;
-    const cachedAt = cached?.savedAt || 0;
-
     if (!planRow) {
-      const p = cachedPlan || defaultPlanForFamily();
+      const p = defaultPlanForFamily();
       await upsertPlan(fam.id, p);
       setPlan(p);
-      writePlanCache(fam.id, p);
     } else {
-      const dbPlan = planRow.plan_json;
-      // If we have a cache, use it immediately and try to sync it up.
-      if (cachedPlan && cachedAt && cachedAt > Date.now() - 1000 * 60 * 60 * 24 * 14) {
-        // use cache first (best effort)
-        setPlan(cachedPlan);
-        // Try to upsert cache in background (no PIN here; this is just restoring).
-        try { await upsertPlan(fam.id, cachedPlan); } catch {}
-      } else {
-        setPlan(dbPlan);
-        writePlanCache(fam.id, dbPlan);
-      }
+      setPlan(planRow.plan_json);
     }
   }
 
@@ -754,18 +708,6 @@ export default function App() {
 
   const planDay = { ...activityType, movements };
 
-  // If a log exists for the selected date, prefer its snapshot so old logs still render
-  // even if the weekly plan changes later.
-  const effectiveDay = logForDay?.meta?.kind
-    ? {
-        id: logForDay.meta.typeId || planDay.id,
-        name: logForDay.meta.name || effectiveDay.name,
-        kind: logForDay.meta.kind || effectiveDay.kind,
-        movements: Array.isArray(logForDay.meta.movements) ? logForDay.meta.movements : effectiveDay.movements,
-      }
-    : planDay;
-
-
   async function ensureUnlocked(actionLabel = "save changes") {
     if (!family?.id) return false;
     if (!family?.pin_hash) return true;
@@ -804,40 +746,16 @@ export default function App() {
   }
 
   async function savePlan(nextPlan) {
-    // Keep a local cache so plan edits never "vanish" even if a DB write fails or the user refreshes.
-    if (family?.id) writePlanCache(family.id, nextPlan);
-
-    if (!(await ensureUnlocked("save changes"))) {
-      toast("🔒 PIN needed to save plan changes.");
-      return;
-    }
-
+    if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
-
-    try {
-      await upsertPlan(family.id, nextPlan);
-      toast("✅ Plan saved");
-    } catch (e) {
-      console.error(e);
-      toast("⚠️ Couldn’t save plan (check connection). Your changes are cached on this device.");
-    }
+    await upsertPlan(family.id, nextPlan);
   }
 
   async function saveLog(nextLog) {
-    // Attach a snapshot of the day type + movements so logs still render correctly
-    // even if the weekly plan is edited later.
-    const snapshot = {
-      typeId: effectiveDay.id,
-      kind: effectiveDay.kind,
-      name: effectiveDay.name,
-      movements: Array.isArray(effectiveDay.movements) ? effectiveDay.movements : [],
-    };
-    const withMeta = { ...nextLog, meta: snapshot };
-
-    setLogForDay(withMeta);
+    setLogForDay(nextLog);
     if (!family?.id || !activeProfileId) return;
-    await upsertLog(family.id, activeProfileId, selectedDate, withMeta);
+    await upsertLog(family.id, activeProfileId, selectedDate, nextLog);
     // refresh logs list for stats
     const { data } = await listLogs(family.id, activeProfileId, 2000);
     setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
@@ -1252,10 +1170,10 @@ export default function App() {
               </div>
 
               <div className="muted mt8">
-                {formatDate(selectedDate)} • <b>{effectiveDay.name}</b> ({effectiveDay.kind})
+                {formatDate(selectedDate)} • <b>{planDay.name}</b> ({planDay.kind})
               </div>
 
-              {effectiveDay.kind === "cardio" ? (
+              {planDay.kind === "cardio" ? (
                 <div className="panel mt16">
                   <div className="h2">Cardio log</div>
                   {(plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text) ? (
@@ -1277,7 +1195,7 @@ export default function App() {
                   </div>
                   <div className="muted mt8">Used for run/swim/etc.</div>
                 </div>
-              ) : effectiveDay.kind === "custom" ? (
+              ) : planDay.kind === "custom" ? (
                 <div className="panel mt16">
                   <div className="h2">Duration log</div>
                   <div className="grid3 mt12">
@@ -1290,10 +1208,10 @@ export default function App() {
                 </div>
               ) : (
                 <div className="stack mt16">
-                  {(effectiveDay.movements || []).length === 0 ? (
+                  {(planDay.movements || []).length === 0 ? (
                     <div className="dashed">No movements for this day. Go to <b>Plan</b> and add movements.</div>
                   ) : (
-                    (effectiveDay.movements || []).map((ex) => {
+                    (planDay.movements || []).map((ex) => {
                       const sets = (logForDay?.entries?.[ex.id] || [{}, {}, {}]).map((s) => ({
                         reps: "",
                         weight: "",
@@ -1400,7 +1318,7 @@ export default function App() {
                   <div className="label">Estimated calories</div>
                   <div className="big">
                     {(() => {
-                      const kcal = estimateCalories({ kind: effectiveDay.kind, bodyWeightKg: activeProfile?.body_weight_kg, log: logForDay });
+                      const kcal = estimateCalories({ kind: planDay.kind, bodyWeightKg: activeProfile?.body_weight_kg, log: logForDay });
                       return kcal === null ? "Add bodyweight in Settings" : `${kcal} kcal`;
                     })()}
                   </div>
@@ -1411,8 +1329,8 @@ export default function App() {
                             <Card className="pad">
                 <div className="h3">Today’s mission</div>
                 <div className="stack mt12">
-                  {effectiveDay.kind === "strength" || effectiveDay.kind === "time" ? (
-                    (effectiveDay.movements || []).map((ex) => {
+                  {planDay.kind === "strength" || planDay.kind === "time" ? (
+                    (planDay.movements || []).map((ex) => {
                       const lastSets = findLastMovementSets(allLogs, ex.id, ymd(selectedDate));
                       const lastTxt = summarizeStrengthSets(lastSets);
                       const initialTarget = { text: ex.targetText || null, reps: ex.targetReps || null, weight: ex.targetWeight || null };
@@ -1425,7 +1343,7 @@ export default function App() {
                         </div>
                       );
                     })
-                  ) : effectiveDay.kind === "cardio" ? (
+                  ) : planDay.kind === "cardio" ? (
                     (() => {
                       const last = findLastCardio(allLogs, ymd(selectedDate));
                       const lastTxt = summarizeCardio(last);
