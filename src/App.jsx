@@ -472,19 +472,6 @@ function AuthScreen({ onAuthed }) {
   return (
     <div className="page">
       <div className="wrap">
-
-      {showSwToast ? (
-        <div className="swToast" role="status">
-          <div className="swToastText">✨ Update available. Refresh to get the latest version.</div>
-          <div className="swToastActions">
-            <button className={`btn ${className}`}
-      onClick={() => setShowSwToast(false)}>Later</button>
-            <button className={`btn primary ${className}`}
-      onClick={applySwUpdate}>Refresh</button>
-          </div>
-        </div>
-      ) : null}
-
         <Card className="pad authCard">
           <div className="small">Workout Tracker • Online</div>
           <h1 className="title">Account</h1>
