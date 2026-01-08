@@ -50,71 +50,20 @@ function ymd(date) {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
+
+function weekdayFromYmd(dateYmd) {
+  // dateYmd: "YYYY-MM-DD"
+  const [y, m, d] = (dateYmd || "").split("-").map((v) => parseInt(v, 10));
+  if (!y || !m || !d) return "Mon";
+  const dt = new Date(y, m - 1, d);
+  const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return labels[dt.getDay()] || "Mon";
+}
+
 function formatDate(dISO) {
   const d = new Date(dISO + "T00:00:00");
   return d.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 }
-
-function weekdayFromYmd(date_ymd) {
-  // date_ymd: YYYY-MM-DD
-  const d = new Date(date_ymd + "T00:00:00");
-  const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  return labels[d.getDay()];
-}
-
-function normalizeLog(raw, fallbackTypeId = null) {
-  if (!raw) return null;
-  // New shape
-  if (raw.sessions && Array.isArray(raw.sessions)) return raw;
-
-  // Back-compat: wrap legacy single-session logs into sessions[0]
-  const legacy = raw || {};
-  return {
-    v: 2,
-    typeId: legacy.typeId ?? legacy.type_id ?? fallbackTypeId,
-    gamify: legacy.gamify || { comboMax: 0 },
-    sessions: [
-      {
-        id: "s1",
-        startedAt: legacy.startedAt ?? null,
-        finishedAt: legacy.finishedAt ?? null,
-        manualMinutes: legacy.manualMinutes ?? null,
-        entries: legacy.entries || {},
-        cardio: legacy.cardio || { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
-        custom: legacy.custom || { durationMin: "" },
-      },
-    ],
-  };
-}
-
-function getSession0(log, fallbackTypeId = null) {
-  const n = normalizeLog(log, fallbackTypeId);
-  if (!n) return null;
-  if (!n.sessions || n.sessions.length === 0) n.sessions = [{ id: "s1" }];
-  if (!n.sessions[0].id) n.sessions[0].id = "s1";
-  return n.sessions[0];
-}
-
-function calcSessionMinutes(session) {
-  if (!session) return 0;
-  const manual = safeNumber(session.manualMinutes);
-  if (manual > 0) return manual;
-
-  const started = session.startedAt ? new Date(session.startedAt).getTime() : 0;
-  const finished = session.finishedAt ? new Date(session.finishedAt).getTime() : 0;
-  if (started && finished && finished > started) {
-    return Math.round((finished - started) / 60000);
-  }
-
-  const cardioMin = safeNumber(session.cardio?.durationMin);
-  if (cardioMin > 0) return cardioMin;
-
-  const customMin = safeNumber(session.custom?.durationMin);
-  if (customMin > 0) return customMin;
-
-  return 0;
-}
-
 function weekKey(ymdStr) {
   const d = new Date(ymdStr + "T00:00:00");
   const day = d.getDay(); // Sun=0
@@ -283,8 +232,7 @@ function setVolume(s) {
   return reps * w;
 }
 function calcComboMax(log) {
-  const n = normalizeLog(log);
-  const entries = (n?.sessions?.[0]?.entries) || {};
+  const entries = log?.entries || {};
   let combo = 0;
   let maxCombo = 0;
   for (const sets of Object.values(entries)) {
@@ -439,14 +387,14 @@ function Pill({ children, onClick }) {
   }
   return <span className="pill">{children}</span>;
 }
-function PrimaryButton({ children, onClick, disabled }) {
+function PrimaryButton({ children, onClick, disabled, className = "" }) {
   return (
     <button className={`btn btn-primary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );
 }
-function SecondaryButton({ children, onClick, disabled }) {
+function SecondaryButton({ children, onClick, disabled, className = "" }) {
   return (
     <button className={`btn btn-secondary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
       {children}
@@ -529,8 +477,10 @@ function AuthScreen({ onAuthed }) {
         <div className="swToast" role="status">
           <div className="swToastText">✨ Update available. Refresh to get the latest version.</div>
           <div className="swToastActions">
-            <button className="btn" onClick={() => setShowSwToast(false)}>Later</button>
-            <button className="btn primary" onClick={applySwUpdate}>Refresh</button>
+            <button className={`btn ${className}`}
+      onClick={() => setShowSwToast(false)}>Later</button>
+            <button className={`btn primary ${className}`}
+      onClick={applySwUpdate}>Refresh</button>
           </div>
         </div>
       ) : null}
@@ -663,19 +613,9 @@ export default function App() {
   const [plan, setPlan] = useState(null);
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
-  const [selectedWeekday, setSelectedWeekday] = useState(() => {
-    const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const today = labels[new Date().getDay()];
-    return weekdays.includes(today) ? today : "Mon";
-  });
-
-  const derivedWeekday = weekdayFromYmd(selectedDate);
-  // On the Log page we auto-follow the date (no separate weekday selector).
-  useEffect(() => {
-    if (selectedWeekday !== derivedWeekday) setSelectedWeekday(derivedWeekday);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [derivedWeekday]);
-
+  const [selectedWeekday, setSelectedWeekday] = useState("Mon");
+  const logWeekday = useMemo(() => weekdayFromYmd(selectedDate), [selectedDate]);
+  useEffect(() => { setSelectedWeekday(logWeekday); }, [logWeekday]);
   const [logForDay, setLogForDay] = useState(null);
   const [allLogs, setAllLogs] = useState([]); // for stats
 
@@ -760,7 +700,7 @@ export default function App() {
     if (!family?.id || !activeProfileId) return;
     (async () => {
       const { data } = await getLog(family.id, activeProfileId, selectedDate);
-      setLogForDay(normalizeLog(data?.log_json));
+      setLogForDay(data?.log_json || null);
     })().catch(() => setLogForDay(null));
   }, [family?.id, activeProfileId, selectedDate]);
 
@@ -771,10 +711,9 @@ export default function App() {
   const unlocked = { arcade: level >= 3, chill: level >= 5 };
   const canUseTheme = (t) => t === "classic" || (t === "arcade" && unlocked.arcade) || (t === "chill" && unlocked.chill);
 
-  const dayTypeId = plan?.dayTypeByWeekday?.[derivedWeekday] || "strength";
-  const session0 = getSession0(logForDay, dayTypeId) || {};
+  const dayTypeId = plan?.dayTypeByWeekday?.[logWeekday] || "strength";
   const activityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === dayTypeId) || builtInTypes()[0];
-  const movements = plan?.movementsByWeekday?.[selectedWeekday] || [];
+  const movements = plan?.movementsByWeekday?.[logWeekday] || [];
 
   const planDay = { ...activityType, movements };
 
@@ -823,89 +762,69 @@ export default function App() {
   }
 
   async function saveLog(nextLog) {
-    // Allow UI-only clears without touching DB
-    if (nextLog === null) {
-      setLogForDay(null);
-      return;
-    }
-
-    const normalized = normalizeLog(nextLog, dayTypeId);
-    setLogForDay(normalized);
+    setLogForDay(nextLog);
     if (!family?.id || !activeProfileId) return;
-    await upsertLog(family.id, activeProfileId, selectedDate, normalized);
+    await upsertLog(family.id, activeProfileId, selectedDate, nextLog);
+    // refresh logs list for stats
+    const { data } = await listLogs(family.id, activeProfileId, 2000);
+    setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
   }
 
   function blankLogForDay() {
     return {
-      v: 2,
+      startedAt: null,
+      finishedAt: null,
+      weekday: logWeekday,
       typeId: dayTypeId,
+      entries: {},
+      cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
+      custom: { durationMin: "" },
       gamify: { comboMax: 0 },
-      sessions: [
-        {
-          id: "s1",
-          startedAt: null,
-          finishedAt: null,
-          manualMinutes: null,
-          entries: {},
-          cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
-          custom: { durationMin: "" },
-        },
-      ],
     };
   }
 
   async function startSession() {
     const ctx = await ensureAudio();
     if (ctx) playStartSound(ctx, victoryTheme);
-
-    const next = normalizeLog(logForDay || blankLogForDay(), dayTypeId);
-    const s0 = next.sessions[0] || (next.sessions[0] = { id: "s1" });
-
-    s0.startedAt = s0.startedAt || new Date().toISOString();
-    s0.finishedAt = null;
-
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    next.startedAt = next.startedAt || new Date().toISOString();
+    next.finishedAt = null;
     await saveLog(next);
   }
 
   async function finishSession() {
     const ctx = await ensureAudio();
-    if (ctx) playFinishSound(ctx, victoryTheme);
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    next.finishedAt = new Date().toISOString();
+    next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
-    const next = normalizeLog(logForDay || blankLogForDay(), dayTypeId);
-    const s0 = next.sessions[0] || (next.sessions[0] = { id: "s1" });
-
-    s0.finishedAt = new Date().toISOString();
+    const earned = awardXpForDay(next, planDay);
+    setXp((prev) => prev + earned);
 
     await saveLog(next);
+
+    if (ctx) playLevelUp(ctx, victoryTheme);
   }
 
   async function resetDay() {
-    // Clear UI then replace with a fresh blank log for the day
-    await saveLog(blankLogForDay());
+    await saveLog(null);
+    // wipe row by upserting empty? easiest: store null locally; for DB, overwrite with blank? We'll just store a blank with a reset marker.
+    const next = blankLogForDay();
+    next.reset = true;
+    await saveLog(next);
+    await saveLog(null);
   }
 
   async function addOrUpdateSet(exId, idx, patch) {
     const ctx = await ensureAudio();
-
-    const next = normalizeLog(logForDay || blankLogForDay(), dayTypeId);
-    const s0 = next.sessions[0] || (next.sessions[0] = { id: "s1" });
-
-    const entries = { ...(s0.entries || {}) };
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const entries = { ...(next.entries || {}) };
     const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
-    const sets = [0, 1, 2].map((i) => ({
-      reps: "",
-      weight: "",
-      timeSeconds: "",
-      count: "",
-      notes: "",
-      ...(cur[i] || {}),
-    }));
+    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "", ...(cur[i] || {}) }));
     sets[idx] = { ...sets[idx], ...patch };
     entries[exId] = sets;
-
-    s0.entries = entries;
+    next.entries = entries;
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
-
     await saveLog(next);
 
     if (ctx) {
@@ -913,33 +832,30 @@ export default function App() {
       playWhoosh(ctx, combo, victoryTheme);
       playBling(ctx, combo, victoryTheme);
     }
-  }async function updateCardio(patch) {
+  }
+
+  async function updateCardio(patch) {
     const ctx = await ensureAudio();
-
-    const next = normalizeLog(logForDay || blankLogForDay(), dayTypeId);
-    const s0 = next.sessions[0] || (next.sessions[0] = { id: "s1" });
-
-    const cardio = { ...(s0.cardio || { distanceKm: "", durationMin: "", avgSpeedKmh: "" }), ...patch };
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const cardio = { ...(next.cardio || { distanceKm: "", durationMin: "", avgSpeedKmh: "" }), ...patch };
     const dist = safeNumber(cardio.distanceKm);
     const min = safeNumber(cardio.durationMin);
     const avg = min > 0 ? dist / (min / 60) : 0;
     cardio.avgSpeedKmh = avg ? avg.toFixed(2) : "";
-
-    s0.cardio = cardio;
+    next.cardio = cardio;
     await saveLog(next);
-
     if (ctx) playBling(ctx, 1, victoryTheme);
-  }async function updateCustom(patch) {
+  }
+
+  async function updateCustom(patch) {
     const ctx = await ensureAudio();
-
-    const next = normalizeLog(logForDay || blankLogForDay(), dayTypeId);
-    const s0 = next.sessions[0] || (next.sessions[0] = { id: "s1" });
-
-    s0.custom = { ...(s0.custom || { durationMin: "" }), ...patch };
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    next.custom = { ...(next.custom || { durationMin: "" }), ...patch };
     await saveLog(next);
-
     if (ctx) playBling(ctx, 1, victoryTheme);
-  }// -------- Stats from allLogs ----------
+  }
+
+  // -------- Stats from allLogs ----------
   const stats = useMemo(() => {
     const bestByExercise = new Map();
     let totalSessions = 0;
@@ -1247,7 +1163,7 @@ export default function App() {
                 <div className="rowLeft">
                   <div className="field">
                     <div className="label">Weekday</div>
-                    <Select value={selectedWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
+                    <div className="pill">{logWeekday}</div>
                   </div>
                   <div className="field">
                     <div className="label">Date</div>
@@ -1255,26 +1171,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="rowRight">
-                  <PrimaryButton onClick={startSession}>Start</PrimaryButton>
-                  <PrimaryButton onClick={finishSession}>Finish</PrimaryButton>
-                  <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
-                  <div className="manualMinutes">
-                    <div className="smallLabel">Total minutes (optional)</div>
-                    <input
-                      className="input"
-                      inputMode="decimal"
-                      placeholder="e.g. 35"
-                      value={session0.manualMinutes ?? ""}
-                      onChange={(e) => {
-                        const next = normalizeLog(logForDay || blankLogForDay(), dayTypeId);
-                        next.sessions[0] = next.sessions[0] || { id: "s1" };
-                        next.sessions[0].manualMinutes = e.target.value;
-                        saveLog(next);
-                      }}
-                    />
-                  </div>
-                </div>
+                
               </div>
 
               <div className="muted mt8">
@@ -1284,21 +1181,21 @@ export default function App() {
               {planDay.kind === "cardio" ? (
                 <div className="panel mt16">
                   <div className="h2">Cardio log</div>
-                  {(plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text) ? (
-                    <div className="muted mt8"><b>Today’s focus:</b> {plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text}</div>
+                  {(plan?.cardioTargetByWeekday?.[logWeekday] || plan?.runSettings?.[logWeekday]?.text) ? (
+                    <div className="muted mt8"><b>Today’s focus:</b> {plan?.cardioTargetByWeekday?.[logWeekday] || plan?.runSettings?.[logWeekday]?.text}</div>
                   ) : null}
                   <div className="grid3 mt12">
                     <div>
                       <div className="label">Distance (km)</div>
-                      <Input type="number" min={0} step={0.01} value={session0.cardio?.distanceKm ?? ""} onChange={(v) => updateCardio({ distanceKm: v })} placeholder="e.g. 2.50" />
+                      <Input type="number" min={0} step={0.01} value={logForDay?.cardio?.distanceKm ?? ""} onChange={(v) => updateCardio({ distanceKm: v })} placeholder="e.g. 2.50" />
                     </div>
                     <div>
                       <div className="label">Time (minutes)</div>
-                      <Input type="number" min={0} step={0.1} value={session0.cardio?.durationMin ?? ""} onChange={(v) => updateCardio({ durationMin: v })} placeholder="e.g. 14.5" />
+                      <Input type="number" min={0} step={0.1} value={logForDay?.cardio?.durationMin ?? ""} onChange={(v) => updateCardio({ durationMin: v })} placeholder="e.g. 14.5" />
                     </div>
                     <div>
                       <div className="label">Avg speed (km/h)</div>
-                      <Input value={session0.cardio?.avgSpeedKmh ?? ""} readOnly onChange={null} placeholder="auto" />
+                      <Input value={logForDay?.cardio?.avgSpeedKmh ?? ""} readOnly onChange={null} placeholder="auto" />
                     </div>
                   </div>
                   <div className="muted mt8">Used for run/swim/etc.</div>
@@ -1309,7 +1206,7 @@ export default function App() {
                   <div className="grid3 mt12">
                     <div>
                       <div className="label">Minutes</div>
-                      <Input type="number" min={0} step={0.5} value={session0.custom?.durationMin ?? ""} onChange={(v) => updateCustom({ durationMin: v })} placeholder="e.g. 30" />
+                      <Input type="number" min={0} step={0.5} value={logForDay?.custom?.durationMin ?? ""} onChange={(v) => updateCustom({ durationMin: v })} placeholder="e.g. 30" />
                     </div>
                   </div>
                   <div className="muted mt8">Good for Pilates, yoga, mobility, etc.</div>
@@ -1320,7 +1217,7 @@ export default function App() {
                     <div className="dashed">No movements for this day. Go to <b>Plan</b> and add movements.</div>
                   ) : (
                     (planDay.movements || []).map((ex) => {
-                      const sets = (session0.entries?.[ex.id] || [{}, {}, {}]).map((s) => ({
+                      const sets = (logForDay?.entries?.[ex.id] || [{}, {}, {}]).map((s) => ({
                         reps: "",
                         weight: "",
                         timeSeconds: ex.fixedSeconds ? String(ex.fixedSeconds) : "",
@@ -1416,9 +1313,10 @@ export default function App() {
                 </div>
 
                 <div className="grid2 mt12">
-                  <SummaryStat label="Total minutes" value={calcSessionMinutes(session0) ? String(calcSessionMinutes(session0)) : "—"} />
-                  <SummaryStat label="Sets logged" value={Object.values(session0.entries || {}).flat().filter(setDidSomething).length} />
-                  <SummaryStat label="Cardio km" value={safeNumber(session0.cardio?.distanceKm) ? Number(session0.cardio.distanceKm).toFixed(2) : "—"} />
+                  <SummaryStat label="Started" value={logForDay?.startedAt ? new Date(logForDay.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Finished" value={logForDay?.finishedAt ? new Date(logForDay.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Sets logged" value={Object.values(logForDay?.entries || {}).flat().filter(setDidSomething).length} />
+                  <SummaryStat label="Cardio km" value={safeNumber(logForDay?.cardio?.distanceKm) ? Number(logForDay.cardio.distanceKm).toFixed(2) : "—"} />
                 </div>
 
                 <div className="mini mt12">
@@ -1455,7 +1353,7 @@ export default function App() {
                       const last = findLastCardio(allLogs, ymd(selectedDate));
                       const lastTxt = summarizeCardio(last);
                       const t = suggestCardioTarget({ lastCardio: last });
-                      const intervalHint = plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text || "";
+                      const intervalHint = plan?.cardioTargetByWeekday?.[logWeekday] || plan?.runSettings?.[logWeekday]?.text || "";
                       return (
                         <div className="mini">
                           <div className="label">Cardio</div>
@@ -1529,6 +1427,12 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="logControls">
+                <PrimaryButton className="btnSmall" onClick={startSession}>Start</PrimaryButton>
+                <PrimaryButton className="btnSmall" onClick={finishSession}>Finish</PrimaryButton>
+                <SecondaryButton className="btnSmall" onClick={resetDay}>Reset</SecondaryButton>
+              </div>
+
               <div className="chart mt12">
                 {exerciseProgress.length ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -1579,7 +1483,7 @@ export default function App() {
                   <div className="muted">Assign an activity type to each day. Add custom types for other people (swim, pilates, etc.).</div>
                 </div>
                 <div className="selectWide">
-                  <Select value={selectedWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
+                  <Select value={logWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
                 </div>
               </div>
 
@@ -1754,7 +1658,7 @@ export default function App() {
                   </div>
                   <div className="mt12">
                     <Input
-                      value={(plan?.cardioTargetByWeekday?.[selectedWeekday]) || ""}
+                      value={(plan?.cardioTargetByWeekday?.[logWeekday]) || ""}
                       onChange={async (v) => {
                         const next = {
                           ...plan,
