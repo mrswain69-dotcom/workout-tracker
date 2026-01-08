@@ -165,5 +165,6 @@ header .title, header h1, header h2 {
 }
 
 
-.manualMinutes{max-width:220px;}
-.manualMinutes .smallLabel{font-size:12px;opacity:.7;margin-bottom:6px;}
+.logControls{display:flex;gap:10px;align-items:center;margin-top:12px;}
+.btnSmall{padding:8px 12px;font-size:14px;border-radius:12px;}
+.pill{display:inline-flex;align-items:center;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid #e5e7eb;font-weight:600;min-height:42px;}
