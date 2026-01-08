@@ -163,3 +163,7 @@ button.btn.primary:hover {
 header .title, header h1, header h2 {
   text-decoration-color: rgba(255, 122, 24, 0.65);
 }
+
+
+.manualMinutes{max-width:220px;}
+.manualMinutes .smallLabel{font-size:12px;opacity:.7;margin-bottom:6px;}
