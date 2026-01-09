@@ -834,9 +834,9 @@ export default function App() {
     await saveLog(next);
   }
 
-function resetDay() {
+  async function resetDay() {
+    // Clear today's entries and persist a reset marker so the UI + DB stay in sync.
     await saveLog(null);
-    // wipe row by upserting empty? easiest: store null locally; for DB, overwrite with blank? We'll just store a blank with a reset marker.
     const next = blankLogForDay();
     next.reset = true;
     await saveLog(next);
