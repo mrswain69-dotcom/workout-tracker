@@ -10,6 +10,31 @@ import {
 } from "recharts";
 
 import {
+
+const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function weekdayFromYMD(ymd) {
+  try {
+    const d = new Date(`${ymd}T00:00:00`);
+    return WEEKDAYS[d.getDay()] || "";
+  } catch {
+    return "";
+  }
+}
+
+function calcTotalMinutes(log) {
+  if (!log) return "";
+  const manual = log.totalMinutes ?? log.manualTotalMinutes ?? log.total_minutes;
+  if (manual !== undefined && manual !== null && String(manual).trim() !== "") return manual;
+  if (log.startedAt && log.finishedAt) {
+    const a = new Date(log.startedAt).getTime();
+    const b = new Date(log.finishedAt).getTime();
+    if (Number.isFinite(a) && Number.isFinite(b) && b > a) return Math.round((b - a) / 60000);
+  }
+  const cardioTime = log.cardio?.durationMin ?? log.cardio?.timeMin ?? log.cardio?.time_minutes;
+  if (cardioTime !== undefined && cardioTime !== null && String(cardioTime).trim() !== "") return cardioTime;
+  return "";
+}
+
   isSupabaseReady,
   getSession,
   signIn,
@@ -150,15 +175,6 @@ function playLevelUp(ctx, theme = "classic") {
 
 // -------- Default plan (fully customisable) ----------
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-
-function weekdayFromYmd(ymd) {
-  try {
-    const d = new Date(`${ymd}T00:00:00`);
-    const arr = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-    return arr[d.getDay()] || "";
-  } catch { return ""; }
-}
 
 // built-in activity types
 function builtInTypes() {
@@ -386,24 +402,16 @@ function Pill({ children, onClick }) {
   }
   return <span className="pill">{children}</span>;
 }
-function PrimaryButton({ children, onClick, disabled, small = false, className = "" }) {
+function PrimaryButton({ children, onClick, disabled }) {
   return (
-    <button
-      className={`btn btn-primary ${small ? "btn-small" : ""} ${disabled ? "btn-disabled" : ""} ${className}`}
-      onClick={onClick}
-      disabled={disabled}
-    >
+    <button className={`btn btn-primary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );
 }
-function SecondaryButton({ children, onClick, disabled, small = false, className = "" }) {
+function SecondaryButton({ children, onClick, disabled }) {
   return (
-    <button
-      className={`btn btn-secondary ${small ? "btn-small" : ""} ${disabled ? "btn-disabled" : ""} ${className}`}
-      onClick={onClick}
-      disabled={disabled}
-    >
+    <button className={`btn btn-secondary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );
@@ -618,7 +626,9 @@ export default function App() {
   const [plan, setPlan] = useState(null);
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
-  const [selectedWeekday, setSelectedWeekday] = useState(() => {
+  const selectedWeekday = weekdayFromYMD(selectedDate);
+  const [restSecDefault, setRestSecDefault] = useState(60);
+  const [sessionsCount, setSessionsCount] = useState(1);
     const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const today = labels[new Date().getDay()];
     return weekdays.includes(today) ? today : "Mon";
@@ -778,65 +788,47 @@ export default function App() {
     setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
   }
 
-  function emptySession() {
-    return {
-      id: crypto?.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2),
-      startedAt: null,
-      finishedAt: null,
-      manualMinutes: null,
-    };
-  }
-
   function blankLogForDay() {
     return {
-      sessions: [emptySession()], // time tracking sessions for the day
-      manualTotalMinutes: null,   // optional manual override for whole day
-      rest_actual_seconds: {},    // { movementKey: seconds }
-      notes: "",
-      reset: false,
-      cardio: { distanceKm: "", timeMin: "", avgSpeedKmh: "" },
-      sets: {},
+      totalMinutes: "",
+      meta: { restSecDefault: 60, sessionsCount: 1 },
+      startedAt: null,
+      finishedAt: null,
+      weekday: selectedWeekday,
+      typeId: dayTypeId,
+      entries: {},
+      cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
+      custom: { durationMin: "" },
+      gamify: { comboMax: 0 },
     };
   }
 
-  async function startSession(sessionIndex = 0) {
+  async function startSession() {
     const ctx = await ensureAudio();
     if (ctx) playStartSound(ctx, victoryTheme);
     const next = logForDay ? { ...logForDay } : blankLogForDay();
-    next.sessions = Array.isArray(next.sessions) && next.sessions.length ? [...next.sessions] : [{ ...emptySession() }];
-
-    // ensure session exists
-    while (next.sessions.length <= sessionIndex) next.sessions.push({ ...emptySession() });
-
-    const s = { ...next.sessions[sessionIndex] };
-    s.startedAt = s.startedAt || new Date().toISOString();
-    s.finishedAt = null;
-    next.sessions[sessionIndex] = s;
-
+    next.startedAt = next.startedAt || new Date().toISOString();
+    next.finishedAt = null;
     await saveLog(next);
   }
 
-  async function finishSession(sessionIndex = 0) {
+  async function finishSession() {
     const ctx = await ensureAudio();
     const next = logForDay ? { ...logForDay } : blankLogForDay();
-    next.sessions = Array.isArray(next.sessions) && next.sessions.length ? [...next.sessions] : [{ ...emptySession() }];
+    next.finishedAt = new Date().toISOString();
+    next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
-    while (next.sessions.length <= sessionIndex) next.sessions.push({ ...emptySession() });
-
-    const s = { ...next.sessions[sessionIndex] };
-    const endedAt = new Date().toISOString();
-    s.finishedAt = endedAt;
-    next.sessions[sessionIndex] = s;
-
-    // play a sound on finish
-    if (ctx) playFinishSound(ctx, finishSound);
+    const earned = awardXpForDay(next, planDay);
+    setXp((prev) => prev + earned);
 
     await saveLog(next);
+
+    if (ctx) playLevelUp(ctx, victoryTheme);
   }
 
   async function resetDay() {
-    // Clear today's entries and persist a reset marker so the UI + DB stay in sync.
     await saveLog(null);
+    // wipe row by upserting empty? easiest: store null locally; for DB, overwrite with blank? We'll just store a blank with a reset marker.
     const next = blankLogForDay();
     next.reset = true;
     await saveLog(next);
@@ -848,7 +840,8 @@ export default function App() {
     const next = logForDay ? { ...logForDay } : blankLogForDay();
     const entries = { ...(next.entries || {}) };
     const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
-    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "", ...(cur[i] || {}) }));
+    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "",
+    meta: { restSecDefault: 60, sessionsCount: 1 }, ...(cur[i] || {}) }));
     sets[idx] = { ...sets[idx], ...patch };
     entries[exId] = sets;
     next.entries = entries;
@@ -1006,6 +999,7 @@ export default function App() {
     const improved = lastVol > 0 ? Math.round(((thisVol - lastVol) / lastVol) * 100) : null;
 
     return {
+    totalMinutes: "",
       totalSessions,
       totalStrengthVolume,
       bestCardioSpeed,
@@ -1190,121 +1184,14 @@ export default function App() {
               <div className="row">
                 <div className="rowLeft">
                   <div className="field">
-                <div className="label">Weekday</div>
-                <div className="pill">{weekdayFromYmd(selectedDate)}</div>
-              </div>
-              <div className="field">
-                <div className="label">Date</div>
+                    <div className="label">Date</div>
                     <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="input" />
                   </div>
                 </div>
 
-                </div>
-
-              <div className="sessionsCard">
-                <div className="sessionsHeader">
-                  <div>
-                    <div className="h3">Sessions</div>
-                    <div className="muted">Optional time blocks. Total minutes will use these unless you enter a manual total.</div>
-                  </div>
-                  <SecondaryButton
-                    onClick={async () => {
-                      const next = { ...(logForDay || blankLogForDay()) };
-                      const sessions = Array.isArray(next.sessions) ? [...next.sessions] : [];
-                      sessions.push(emptySession());
-                      next.sessions = sessions;
-                      setLogForDay(next);
-                      await saveLog(next);
-                    }}
-                  >
-                    + Add session
-                  </SecondaryButton>
-                </div>
-
-                <div className="sessionsGrid">
-                  {(Array.isArray(logForDay?.sessions) ? logForDay.sessions : []).map((s, idx) => {
-                    const started = s?.startedAt ? new Date(s.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
-                    const finished = s?.finishedAt ? new Date(s.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
-                    return (
-                      <div key={s?.id || idx} className="sessionBlock">
-                        <div className="sessionTop">
-                          <div className="sessionTitle">Session {idx + 1}</div>
-                          <div className="sessionTimes">{started} → {finished}</div>
-                        </div>
-
-                        <div className="sessionActions">
-                          <PrimaryButton small onClick={() => startSession(idx)}>Start</PrimaryButton>
-                          <PrimaryButton small onClick={() => finishSession(idx)}>Finish</PrimaryButton>
-                          <SecondaryButton
-                            small
-                            onClick={async () => {
-                              const next = { ...(logForDay || blankLogForDay()) };
-                              const sessions = Array.isArray(next.sessions) ? [...next.sessions] : [];
-                              if (!sessions[idx]) return;
-                              sessions[idx] = { ...sessions[idx], startedAt: null, finishedAt: null };
-                              next.sessions = sessions;
-                              setLogForDay(next);
-                              await saveLog(next);
-                            }}
-                          >
-                            Clear
-                          </SecondaryButton>
-
-                          <div className="sessionManual">
-                            <div className="label">Minutes</div>
-                            <input
-                              className="input"
-                              type="number"
-                              min="0"
-                              step="1"
-                              placeholder="e.g. 35"
-                              value={s?.manualMinutes ?? ""}
-                              onChange={async (e) => {
-                                const val = e.target.value === "" ? null : Number(e.target.value);
-                                const next = { ...(logForDay || blankLogForDay()) };
-                                const sessions = Array.isArray(next.sessions) ? [...next.sessions] : [];
-                                sessions[idx] = { ...(sessions[idx] || emptySession()), manualMinutes: val };
-                                next.sessions = sessions;
-                                setLogForDay(next);
-                                await saveLog(next);
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="manualTotalRow">
-                  <div>
-                    <div className="label">Total minutes override (optional)</div>
-                    <div className="muted">Leave blank to use session timers / manual session minutes.</div>
-                  </div>
-                  <input
-                    className="input"
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="e.g. 45"
-                    value={logForDay?.manualTotalMinutes ?? ""}
-                    onChange={async (e) => {
-                      const val = e.target.value === "" ? null : Number(e.target.value);
-                      const next = { ...(logForDay || blankLogForDay()) };
-                      next.manualTotalMinutes = val;
-                      setLogForDay(next);
-                      await saveLog(next);
-                    }}
-                  />
-                  <SecondaryButton small onClick={async () => {
-                    const next = { ...(logForDay || blankLogForDay()) };
-                    next.manualTotalMinutes = null;
-                    setLogForDay(next);
-                    await saveLog(next);
-                  }}>Clear</SecondaryButton>
-                </div>
-
-                <div className="resetRow">
+                <div className="rowRight">
+                  <PrimaryButton onClick={startSession}>Start</PrimaryButton>
+                  <PrimaryButton onClick={finishSession}>Finish</PrimaryButton>
                   <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
                 </div>
               </div>
@@ -1358,6 +1245,7 @@ export default function App() {
                         timeSeconds: ex.fixedSeconds ? String(ex.fixedSeconds) : "",
                         count: "",
                         notes: "",
+    meta: { restSecDefault: 60, sessionsCount: 1 },
                         ...(s || {}),
                       }));
                       const isTime = ex.mode === "time";
@@ -1448,8 +1336,8 @@ export default function App() {
                 </div>
 
                 <div className="grid2 mt12">
-                  <SummaryStat label="Started" value={logForDay?.startedAt ? new Date(logForDay.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
-                  <SummaryStat label="Finished" value={logForDay?.finishedAt ? new Date(logForDay.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Total minutes" value={logForDay?.startedAt ? new Date(logForDay.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Sessions" value={logForDay?.finishedAt ? new Date(logForDay.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
                   <SummaryStat label="Sets logged" value={Object.values(logForDay?.entries || {}).flat().filter(setDidSomething).length} />
                   <SummaryStat label="Cardio km" value={safeNumber(logForDay?.cardio?.distanceKm) ? Number(logForDay.cardio.distanceKm).toFixed(2) : "—"} />
                 </div>
@@ -1521,7 +1409,7 @@ export default function App() {
             <Card className="pad">
               <div className="h2">Highlights</div>
               <div className="grid2 mt12">
-                <SummaryStat label="Sessions" value={stats.totalSessions} />
+                <SummaryStat label="Sessions" value={(logForDay?.meta?.sessionsCount ?? sessionsCount ?? 0) || "—"} />
                 <SummaryStat label="Streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} />
                 <SummaryStat label="Top effort day" value={stats.topEffortDay || "—"} />
                 <SummaryStat label="Top effort volume" value={stats.topEffortDay ? Math.round(stats.topEffortValue).toLocaleString() : "—"} />
@@ -1612,7 +1500,6 @@ export default function App() {
                   <div className="muted">Assign an activity type to each day. Add custom types for other people (swim, pilates, etc.).</div>
                 </div>
                 <div className="selectWide">
-                  <Select value={selectedWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
                 </div>
               </div>
 
@@ -2449,5 +2336,3 @@ function presetPlans() {
     },
   ];
 }
-
-
