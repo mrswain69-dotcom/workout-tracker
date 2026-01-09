@@ -1268,8 +1268,9 @@ export default function App() {
               <div className="row">
                 <div className="rowLeft">
                   <div className="field">
-                  <div className="label">Weekday</div>
-                  <div className="pill" title="Set automatically from the date">{selectedWeekday}</div>
+                    <div className="label">Weekday</div>
+                    <div className="pill" title="Set automatically from the date">{selectedWeekday}</div>
+                  </div>
                 </div>
 
                 <div className="rowRight">
@@ -2584,5 +2585,4 @@ function presetPlans() {
     },
   ];
 }
-
 
