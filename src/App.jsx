@@ -798,17 +798,7 @@ export default function App() {
       sets: {},
     };
   }
-, // { movementKey: seconds }
-        // existing shapes below
-        notes: "",
-        reset: false,
-        cardio: { distanceKm: "", timeMin: "", avgSpeedKmh: "" },
-        sets: {},
-      },
-    };
-  }
 
-  async 
   async function startSession(sessionIndex = 0) {
     const ctx = await ensureAudio();
     if (ctx) playStartSound(ctx, victoryTheme);
