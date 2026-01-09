@@ -1262,6 +1262,7 @@ export default function App() {
 
 
         {tab === "log" && (
+          <>
           <div className="gridLog">
             <Card className="pad">
               <div className="row">
@@ -1497,6 +1498,7 @@ export default function App() {
               </Card>
             </div>
           </div>
+          </>
         )}
 
         {tab === "stats" && (
