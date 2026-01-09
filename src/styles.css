@@ -165,6 +165,64 @@ header .title, header h1, header h2 {
 }
 
 
-.logControls{display:flex;gap:10px;align-items:center;margin-top:12px;}
-.btnSmall{padding:8px 12px;font-size:14px;border-radius:12px;}
-.pill{display:inline-flex;align-items:center;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid #e5e7eb;font-weight:600;min-height:42px;}
+.manualMinutes{max-width:220px;}
+.manualMinutes .smallLabel{font-size:12px;opacity:.7;margin-bottom:6px;}
+
+
+/* Phase 2A: small buttons + segmented control + tables */
+.btn-sm {
+  padding: 10px 14px;
+  font-size: 14px;
+  border-radius: 12px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  font-weight: 600;
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+.segBtn {
+  padding: 10px 12px;
+  font-weight: 600;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.segBtnActive {
+  background: rgba(255, 122, 0, 0.12);
+}
+
+.tableWrap {
+  overflow: auto;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 16px;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+.table th, .table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  text-align: left;
+  white-space: nowrap;
+}
+.table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(0,0,0,0.6);
+}
