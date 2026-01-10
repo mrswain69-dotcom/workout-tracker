@@ -66,17 +66,6 @@ function monthKey(ymdStr) {
   const d = new Date(ymdStr + "T00:00:00");
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
-const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-function weekdayFromYMD(ymdStr) {
-  try {
-    const d = new Date(ymdStr + "T00:00:00");
-    const w = WEEKDAYS[d.getDay()] || "Mon";
-    return w;
-  } catch {
-    return "Mon";
-  }
-}
-
 
 async function sha256Hex(input) {
   const enc = new TextEncoder();
@@ -612,12 +601,11 @@ export default function App() {
   const [plan, setPlan] = useState(null);
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
-  const [selectedWeekday, setSelectedWeekday] = useState("Mon");
-
-  useEffect(() => {
-    const wd = weekdayFromYMD(selectedDate);
-    setSelectedWeekday(wd);
-  }, [selectedDate]);
+  const [selectedWeekday, setSelectedWeekday] = useState(() => {
+    const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const today = labels[new Date().getDay()];
+    return weekdays.includes(today) ? today : "Mon";
+  });
 
   const [logForDay, setLogForDay] = useState(null);
   const [allLogs, setAllLogs] = useState([]); // for stats
@@ -2321,3 +2309,5 @@ function presetPlans() {
     },
   ];
 }
+
+
