@@ -50,6 +50,20 @@ function ymd(date) {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
+
+const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function weekdayFromYMD(ymdStr) {
+  try {
+    const [y, m, d] = (ymdStr || "").split("-").map((n) => parseInt(n, 10));
+    if (!y || !m || !d) return "Mon";
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return WEEKDAYS[dt.getUTCDay()] || "Mon";
+  } catch {
+    return "Mon";
+  }
+}
+
+
 function formatDate(dISO) {
   const d = new Date(dISO + "T00:00:00");
   return d.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
@@ -607,7 +621,11 @@ export default function App() {
     return weekdays.includes(today) ? today : "Mon";
   });
 
-  const [logForDay, setLogForDay] = useState(null);
+  
+  useEffect(() => {
+    setSelectedWeekday(weekdayFromYMD(selectedDate));
+  }, [selectedDate]);
+const [logForDay, setLogForDay] = useState(null);
   const [allLogs, setAllLogs] = useState([]); // for stats
 
   const [soundOn, setSoundOn] = useState(true);
