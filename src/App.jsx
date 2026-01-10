@@ -10,31 +10,6 @@ import {
 } from "recharts";
 
 import {
-
-const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-function weekdayFromYMD(ymd) {
-  try {
-    const d = new Date(`${ymd}T00:00:00`);
-    return WEEKDAYS[d.getDay()] || "";
-  } catch {
-    return "";
-  }
-}
-
-function calcTotalMinutes(log) {
-  if (!log) return "";
-  const manual = log.totalMinutes ?? log.manualTotalMinutes ?? log.total_minutes;
-  if (manual !== undefined && manual !== null && String(manual).trim() !== "") return manual;
-  if (log.startedAt && log.finishedAt) {
-    const a = new Date(log.startedAt).getTime();
-    const b = new Date(log.finishedAt).getTime();
-    if (Number.isFinite(a) && Number.isFinite(b) && b > a) return Math.round((b - a) / 60000);
-  }
-  const cardioTime = log.cardio?.durationMin ?? log.cardio?.timeMin ?? log.cardio?.time_minutes;
-  if (cardioTime !== undefined && cardioTime !== null && String(cardioTime).trim() !== "") return cardioTime;
-  return "";
-}
-
   isSupabaseReady,
   getSession,
   signIn,
@@ -59,6 +34,18 @@ function calcTotalMinutes(log) {
   setFamilyPinHash,
   clearFamilyPin,
 } from "./db";
+
+// -------- Utilities ----------
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function weekdayFromYMD(ymd) {
+  try {
+    const d = new Date(`${ymd}T00:00:00`);
+    return WEEKDAYS[d.getDay()] || "";
+  } catch {
+    return "";
+  }
+}
+
 
 // -------- Utilities ----------
 function uid() {
