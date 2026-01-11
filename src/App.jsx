@@ -616,10 +616,6 @@ export default function App() {
   const selectedWeekday = weekdayFromYMD(selectedDate);
   const [restSecDefault, setRestSecDefault] = useState(60);
   const [sessionsCount, setSessionsCount] = useState(1);
-    const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const today = labels[new Date().getDay()];
-    return weekdays.includes(today) ? today : "Mon";
-  });
 
   const [logForDay, setLogForDay] = useState(null);
   const [allLogs, setAllLogs] = useState([]); // for stats
