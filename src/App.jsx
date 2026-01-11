@@ -36,6 +36,18 @@ import {
 } from "./db";
 
 // -------- Utilities ----------
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function weekdayFromYMD(ymd) {
+  try {
+    const d = new Date(`${ymd}T00:00:00`);
+    return WEEKDAYS[d.getDay()] || "";
+  } catch {
+    return "";
+  }
+}
+
+
+// -------- Utilities ----------
 function uid() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
@@ -50,20 +62,6 @@ function ymd(date) {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
-
-const WEEKDAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-function weekdayFromYMD(ymdStr) {
-  try {
-    const [y, m, d] = (ymdStr || "").split("-").map((n) => parseInt(n, 10));
-    if (!y || !m || !d) return "Mon";
-    const dt = new Date(Date.UTC(y, m - 1, d));
-    return WEEKDAYS[dt.getUTCDay()] || "Mon";
-  } catch {
-    return "Mon";
-  }
-}
-
-
 function formatDate(dISO) {
   const d = new Date(dISO + "T00:00:00");
   return d.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
@@ -615,17 +613,15 @@ export default function App() {
   const [plan, setPlan] = useState(null);
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
-  const [selectedWeekday, setSelectedWeekday] = useState(() => {
+  const selectedWeekday = weekdayFromYMD(selectedDate);
+  const [restSecDefault, setRestSecDefault] = useState(60);
+  const [sessionsCount, setSessionsCount] = useState(1);
     const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const today = labels[new Date().getDay()];
     return weekdays.includes(today) ? today : "Mon";
   });
 
-  
-  useEffect(() => {
-    setSelectedWeekday(weekdayFromYMD(selectedDate));
-  }, [selectedDate]);
-const [logForDay, setLogForDay] = useState(null);
+  const [logForDay, setLogForDay] = useState(null);
   const [allLogs, setAllLogs] = useState([]); // for stats
 
   const [soundOn, setSoundOn] = useState(true);
@@ -781,6 +777,8 @@ const [logForDay, setLogForDay] = useState(null);
 
   function blankLogForDay() {
     return {
+      totalMinutes: "",
+      meta: { restSecDefault: 60, sessionsCount: 1 },
       startedAt: null,
       finishedAt: null,
       weekday: selectedWeekday,
@@ -829,7 +827,8 @@ const [logForDay, setLogForDay] = useState(null);
     const next = logForDay ? { ...logForDay } : blankLogForDay();
     const entries = { ...(next.entries || {}) };
     const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
-    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "", ...(cur[i] || {}) }));
+    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "",
+    meta: { restSecDefault: 60, sessionsCount: 1 }, ...(cur[i] || {}) }));
     sets[idx] = { ...sets[idx], ...patch };
     entries[exId] = sets;
     next.entries = entries;
@@ -987,6 +986,7 @@ const [logForDay, setLogForDay] = useState(null);
     const improved = lastVol > 0 ? Math.round(((thisVol - lastVol) / lastVol) * 100) : null;
 
     return {
+    totalMinutes: "",
       totalSessions,
       totalStrengthVolume,
       bestCardioSpeed,
@@ -1171,10 +1171,6 @@ const [logForDay, setLogForDay] = useState(null);
               <div className="row">
                 <div className="rowLeft">
                   <div className="field">
-                    <div className="label">Weekday</div>
-                    <Select value={selectedWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
-                  </div>
-                  <div className="field">
                     <div className="label">Date</div>
                     <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="input" />
                   </div>
@@ -1236,6 +1232,7 @@ const [logForDay, setLogForDay] = useState(null);
                         timeSeconds: ex.fixedSeconds ? String(ex.fixedSeconds) : "",
                         count: "",
                         notes: "",
+    meta: { restSecDefault: 60, sessionsCount: 1 },
                         ...(s || {}),
                       }));
                       const isTime = ex.mode === "time";
@@ -1326,8 +1323,8 @@ const [logForDay, setLogForDay] = useState(null);
                 </div>
 
                 <div className="grid2 mt12">
-                  <SummaryStat label="Started" value={logForDay?.startedAt ? new Date(logForDay.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
-                  <SummaryStat label="Finished" value={logForDay?.finishedAt ? new Date(logForDay.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Total minutes" value={logForDay?.startedAt ? new Date(logForDay.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Sessions" value={logForDay?.finishedAt ? new Date(logForDay.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
                   <SummaryStat label="Sets logged" value={Object.values(logForDay?.entries || {}).flat().filter(setDidSomething).length} />
                   <SummaryStat label="Cardio km" value={safeNumber(logForDay?.cardio?.distanceKm) ? Number(logForDay.cardio.distanceKm).toFixed(2) : "—"} />
                 </div>
@@ -1399,7 +1396,7 @@ const [logForDay, setLogForDay] = useState(null);
             <Card className="pad">
               <div className="h2">Highlights</div>
               <div className="grid2 mt12">
-                <SummaryStat label="Sessions" value={stats.totalSessions} />
+                <SummaryStat label="Sessions" value={(logForDay?.meta?.sessionsCount ?? sessionsCount ?? 0) || "—"} />
                 <SummaryStat label="Streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} />
                 <SummaryStat label="Top effort day" value={stats.topEffortDay || "—"} />
                 <SummaryStat label="Top effort volume" value={stats.topEffortDay ? Math.round(stats.topEffortValue).toLocaleString() : "—"} />
@@ -1490,7 +1487,6 @@ const [logForDay, setLogForDay] = useState(null);
                   <div className="muted">Assign an activity type to each day. Add custom types for other people (swim, pilates, etc.).</div>
                 </div>
                 <div className="selectWide">
-                  <Select value={selectedWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
                 </div>
               </div>
 
@@ -2327,5 +2323,3 @@ function presetPlans() {
     },
   ];
 }
-
-
