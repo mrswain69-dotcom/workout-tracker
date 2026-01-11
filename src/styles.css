@@ -166,11 +166,8 @@ header .title, header h1, header h2 {
 
 
 /* Phase 2C tables */
-.tableWrap { width: 100%; overflow: auto; }
-.simpleTable { width: 100%; border-collapse: collapse; font-size: 14px; }
-.simpleTable th, .simpleTable td { padding: 10px 12px; border-bottom: 1px solid #e8eef5; text-align: left; white-space: nowrap; }
-.simpleTable thead th { position: sticky; top: 0; background: #fff; z-index: 1; }
-
-/* Log meta controls */
-.logMeta { display: flex; flex-direction: column; gap: 6px; }
-.logMeta input { height: 40px; border-radius: 12px; border: 1px solid #dbe7f3; padding: 0 12px; }
+.tableWrap{overflow:auto;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:#fff}
+.table{width:100%;border-collapse:separate;border-spacing:0;min-width:520px}
+.table th,.table td{padding:10px 12px;border-bottom:1px solid var(--border,#e5e7eb);text-align:left;font-size:14px;vertical-align:top}
+.table th{background:#f8fafc;font-weight:700;position:sticky;top:0;z-index:1}
+.table tr:last-child td{border-bottom:none}
