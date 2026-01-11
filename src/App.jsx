@@ -36,6 +36,18 @@ import {
 } from "./db";
 
 // -------- Utilities ----------
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+function weekdayFromYMD(ymd) {
+  try {
+    const d = new Date(`${ymd}T00:00:00`);
+    return WEEKDAYS[d.getDay()] || "";
+  } catch {
+    return "";
+  }
+}
+
+
+// -------- Utilities ----------
 function uid() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }
@@ -54,47 +66,6 @@ function formatDate(dISO) {
   const d = new Date(dISO + "T00:00:00");
   return d.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
 }
-function computeTotalMinutes(log) {
-  if (!log) return null;
-  const manual = (log.totalMinutesManual ?? "").toString().trim();
-  if (manual) {
-    const n = Number(manual);
-    return Number.isFinite(n) && n >= 0 ? n : null;
-  }
-  // If we have start/finish timestamps, use them.
-  if (log.startedAt && log.finishedAt) {
-    const a = new Date(log.startedAt).getTime();
-    const b = new Date(log.finishedAt).getTime();
-    if (Number.isFinite(a) && Number.isFinite(b) && b >= a) {
-      return Math.round((b - a) / 60000);
-    }
-  }
-  // If cardio has a time minutes field, use it.
-  if (log.cardio && log.cardio.timeMin) {
-    const n = Number(log.cardio.timeMin);
-    return Number.isFinite(n) && n >= 0 ? n : null;
-  }
-  // Fallback estimate: sets logged * 1 min + rest between sets.
-  try {
-    const perSetMin = 1;
-    const restSec = Number((log.restSecActual ?? "").toString().trim() || 0);
-    const restMin = Number.isFinite(restSec) ? restSec / 60 : 0;
-    const sets = Object.values(log).reduce((acc, v) => acc + (v && v.sets && Array.isArray(v.sets) ? v.sets.length : 0), 0);
-    if (sets > 0) return Math.round(sets * perSetMin + Math.max(0, sets - 1) * restMin);
-  } catch {}
-  return null;
-}
-
-function computeSessionCount(log) {
-  if (!log) return 0;
-  // Single-session model: if any data logged or manual minutes, count as 1.
-  const hasManual = (log.totalMinutesManual ?? "").toString().trim() !== "";
-  const hasCardio = !!(log.cardio && (log.cardio.distanceKm || log.cardio.timeMin));
-  const hasSets = Object.values(log).some(v => v && v.sets && Array.isArray(v.sets) && v.sets.some(s => s && (s.reps || s.weight || s.hits || s.timeSec)));
-  if (hasManual || hasCardio || hasSets || log.startedAt || log.finishedAt) return 1;
-  return 0;
-}
-
 function weekKey(ymdStr) {
   const d = new Date(ymdStr + "T00:00:00");
   const day = d.getDay(); // Sun=0
@@ -195,8 +166,8 @@ const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // built-in activity types
 function builtInTypes() {
   return [
-    { id: "strength", name: "Strength / HIIT (sets)", kind: "strength", movementsEnabled: true, sets: 3, restSec: 60, allowWeight: true },
-    { id: "box", name: "Boxercise (timed rounds)", kind: "time", movementsEnabled: true, sets: 3, fixedSeconds: 60, restSec: 60, allowCount: true, countLabel: "hits" },
+    { id: "strength", name: "Strength / HIIT (sets)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
+    { id: "box", name: "Boxercise (timed rounds)", kind: "time", movementsEnabled: true, sets: 3, fixedSeconds: 60, allowCount: true, countLabel: "hits" },
     { id: "run", name: "Run (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
     { id: "swim", name: "Swim (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
     { id: "duration", name: "Duration only (minutes)", kind: "custom", movementsEnabled: false, fields: { durationMin: true } },
@@ -643,6 +614,12 @@ export default function App() {
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
   const selectedWeekday = weekdayFromYMD(selectedDate);
+  const [restSecDefault, setRestSecDefault] = useState(60);
+  const [sessionsCount, setSessionsCount] = useState(1);
+    const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const today = labels[new Date().getDay()];
+    return weekdays.includes(today) ? today : "Mon";
+  });
 
   const [logForDay, setLogForDay] = useState(null);
   const [allLogs, setAllLogs] = useState([]); // for stats
@@ -800,10 +777,10 @@ export default function App() {
 
   function blankLogForDay() {
     return {
+      totalMinutes: "",
+      meta: { restSecDefault: 60, sessionsCount: 1 },
       startedAt: null,
       finishedAt: null,
-    totalMinutesManual: "",
-    restSecActual: "",
       weekday: selectedWeekday,
       typeId: dayTypeId,
       entries: {},
@@ -850,7 +827,8 @@ export default function App() {
     const next = logForDay ? { ...logForDay } : blankLogForDay();
     const entries = { ...(next.entries || {}) };
     const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
-    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "", ...(cur[i] || {}) }));
+    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "",
+    meta: { restSecDefault: 60, sessionsCount: 1 }, ...(cur[i] || {}) }));
     sets[idx] = { ...sets[idx], ...patch };
     entries[exId] = sets;
     next.entries = entries;
@@ -1008,6 +986,7 @@ export default function App() {
     const improved = lastVol > 0 ? Math.round(((thisVol - lastVol) / lastVol) * 100) : null;
 
     return {
+    totalMinutes: "",
       totalSessions,
       totalStrengthVolume,
       bestCardioSpeed,
@@ -1201,50 +1180,14 @@ export default function App() {
                   <PrimaryButton onClick={startSession}>Start</PrimaryButton>
                   <PrimaryButton onClick={finishSession}>Finish</PrimaryButton>
                   <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
-                
-<div className="mt8">
-  <div className="muted small">Total minutes (optional)</div>
-  <input
-    className="input"
-    style={{ maxWidth: 160 }}
-    placeholder="e.g. 35"
-    value={logForDay?.totalMinutesManual ?? ""}
-    onChange={(e) => {
-      const v = e.target.value;
-      setLogForDay((prev) => ({ ...(prev || blankLogForDay()), totalMinutesManual: v }));
-    }}
-  />
-</div>
                 </div>
               </div>
 
               <div className="muted mt8">
-                {formatDate(selectedDate)} • <b>{planDay.name}</b> ({planDay.kind})</div>
+                {formatDate(selectedDate)} • <b>{planDay.name}</b> ({planDay.kind})
+              </div>
 
-
-{(planDay?.sets ?? 0) > 0 ? (
-  <div className="panel mt12">
-    <div className="row spread center">
-      <div>
-        <div className="small muted">Rest interval between sets (seconds)</div>
-        <div className="small">Plan: <b>{planDay.restSec ?? 60}s</b></div>
-      </div>
-      <input
-        className="input"
-        style={{ maxWidth: 120 }}
-        placeholder={(planDay.restSec ?? 60).toString()}
-        value={logForDay?.restSecActual ?? ""}
-        onChange={(e) => {
-          const v = e.target.value;
-          setLogForDay((prev) => ({ ...(prev || blankLogForDay()), restSecActual: v }));
-        }}
-      />
-    </div>
-    <div className="muted small mt8">Leave blank to use the plan value.</div>
-  </div>
-) : null}
-
-{planDay.kind === "cardio" ? (
+              {planDay.kind === "cardio" ? (
                 <div className="panel mt16">
                   <div className="h2">Cardio log</div>
                   {(plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text) ? (
@@ -1289,6 +1232,7 @@ export default function App() {
                         timeSeconds: ex.fixedSeconds ? String(ex.fixedSeconds) : "",
                         count: "",
                         notes: "",
+    meta: { restSecDefault: 60, sessionsCount: 1 },
                         ...(s || {}),
                       }));
                       const isTime = ex.mode === "time";
@@ -1379,8 +1323,8 @@ export default function App() {
                 </div>
 
                 <div className="grid2 mt12">
-                  <SummaryStat label="Total minutes" value={computeTotalMinutes(logForDay) ?? "—"} />
-                  <SummaryStat label="Sessions" value={computeSessionCount(logForDay)} />
+                  <SummaryStat label="Total minutes" value={logForDay?.startedAt ? new Date(logForDay.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Sessions" value={logForDay?.finishedAt ? new Date(logForDay.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
                   <SummaryStat label="Sets logged" value={Object.values(logForDay?.entries || {}).flat().filter(setDidSomething).length} />
                   <SummaryStat label="Cardio km" value={safeNumber(logForDay?.cardio?.distanceKm) ? Number(logForDay.cardio.distanceKm).toFixed(2) : "—"} />
                 </div>
@@ -1393,87 +1337,7 @@ export default function App() {
                       return kcal === null ? "Add bodyweight in Settings" : `${kcal} kcal`;
                     })()}
                   </div>
-                  <div className="muted">Motivation estimate only.
-<div className="mt16">
-  <h3>Logs table</h3>
-  <div className="muted small">By day (latest first)</div>
-  <div className="tableWrap mt8">
-    <table className="table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Type</th>
-          <th>Sets</th>
-          <th>Total minutes</th>
-          <th>Cardio km</th>
-        </tr>
-      </thead>
-      <tbody>
-        {(allLogs || []).slice().sort((a,b)=> (b.date_ymd||"").localeCompare(a.date_ymd||"")).slice(0,60).map((r) => {
-          const lj = r.log_json || {};
-          const sets = Object.values(lj).reduce((acc, v) => acc + (v && Array.isArray(v.sets) ? v.sets.length : 0), 0);
-          const mins = computeTotalMinutes(lj);
-          const km = lj.cardio && lj.cardio.distanceKm ? Number(lj.cardio.distanceKm) : null;
-          return (
-            <tr key={r.id}>
-              <td>{r.date_ymd}</td>
-              <td>{lj.kind || "—"}</td>
-              <td>{sets || 0}</td>
-              <td>{mins ?? "—"}</td>
-              <td>{km ?? "—"}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  </div>
-
-  <h3 className="mt16">Exercise records</h3>
-  <div className="muted small">Best weight / best reps seen in your logs (strength)</div>
-  <div className="tableWrap mt8">
-    <table className="table">
-      <thead>
-        <tr>
-          <th>Exercise</th>
-          <th>Best weight (kg)</th>
-          <th>Best reps</th>
-          <th>Last logged</th>
-        </tr>
-      </thead>
-      <tbody>
-        {(() => {
-          const best = new Map(); // key -> {name,bestW,bestR,last}
-          for (const row of (allLogs || [])) {
-            const ymd = row.date_ymd;
-            const lj = row.log_json || {};
-            for (const [k, v] of Object.entries(lj)) {
-              if (!v || !Array.isArray(v.sets)) continue;
-              for (const s of v.sets) {
-                const w = s && s.weight != null && s.weight !== "" ? Number(s.weight) : null;
-                const r = s && s.reps != null && s.reps !== "" ? Number(s.reps) : null;
-                if (w == null && r == null) continue;
-                const cur = best.get(k) || { key: k, name: v.name || k, bestW: null, bestR: null, last: null };
-                if (w != null && Number.isFinite(w)) cur.bestW = cur.bestW == null ? w : Math.max(cur.bestW, w);
-                if (r != null && Number.isFinite(r)) cur.bestR = cur.bestR == null ? r : Math.max(cur.bestR, r);
-                if (!cur.last || (ymd && ymd > cur.last)) cur.last = ymd;
-                best.set(k, cur);
-              }
-            }
-          }
-          return Array.from(best.values()).sort((a,b)=> (b.last||"").localeCompare(a.last||"")).map((x)=>(
-            <tr key={x.key}>
-              <td>{x.name}</td>
-              <td>{x.bestW ?? "—"}</td>
-              <td>{x.bestR ?? "—"}</td>
-              <td>{x.last ?? "—"}</td>
-            </tr>
-          ));
-        })()}
-      </tbody>
-    </table>
-  </div>
-</div>
-</div>
+                  <div className="muted">Motivation estimate only.</div>
                 </div>
               </Card>
 
@@ -1532,7 +1396,7 @@ export default function App() {
             <Card className="pad">
               <div className="h2">Highlights</div>
               <div className="grid2 mt12">
-                <SummaryStat label="Sessions" value={stats.totalSessions} />
+                <SummaryStat label="Sessions" value={(logForDay?.meta?.sessionsCount ?? sessionsCount ?? 0) || "—"} />
                 <SummaryStat label="Streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} />
                 <SummaryStat label="Top effort day" value={stats.topEffortDay || "—"} />
                 <SummaryStat label="Top effort volume" value={stats.topEffortDay ? Math.round(stats.topEffortValue).toLocaleString() : "—"} />
@@ -1623,7 +1487,6 @@ export default function App() {
                   <div className="muted">Assign an activity type to each day. Add custom types for other people (swim, pilates, etc.).</div>
                 </div>
                 <div className="selectWide">
-                  <Select value={selectedWeekday} onChange={setSelectedWeekday} options={weekdays.map((d) => ({ value: d, label: d }))} />
                 </div>
               </div>
 
@@ -2460,5 +2323,3 @@ function presetPlans() {
     },
   ];
 }
-
-
