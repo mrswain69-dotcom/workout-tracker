@@ -529,7 +529,7 @@ function AuthScreen({ onAuthed }) {
                     } finally {
                       setBusy(false);
                     }
-                  }}
+                  }}>
                   {mode === "signup" ? "Create account" : "Sign in"}
                 </PrimaryButton>
                 {msg && <div className="muted">{msg}</div>}
