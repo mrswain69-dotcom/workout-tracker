@@ -484,7 +484,7 @@ function AuthScreen({ onAuthed }) {
         <div className="swToast" role="status">
           <div className="swToastText">✨ Update available. Refresh to get the latest version.</div>
           <div className="swToastActions">
-            <button className="btn" onClick={() => { try { sessionStorage.setItem('kwt_sw_toast_dismissed','1'); } catch (e) {} setShowSwToast(false); }}>Later</button>
+            <button className="btn" onClick={() => { try { localStorage.setItem('kwt_sw_toast_dismissed_at', String(Date.now())); } catch (e) {} setShowSwToast(false); }}>Later</button>
             <button className="btn primary" onClick={applySwUpdate}>Refresh</button>
           </div>
         </div>
@@ -558,10 +558,11 @@ export default function App() {
   useEffect(() => {
     const onUpdate = (e) => {
       try {
-        if (sessionStorage.getItem('kwt_sw_toast_dismissed') === '1') return;
+        const dismissedAt = Number(localStorage.getItem('kwt_sw_toast_dismissed_at') || '0');
+        if (dismissedAt && Date.now() - dismissedAt < 2 * 60 * 60 * 1000) return;
       } catch (err) {}
       const reg = e?.detail?.registration;
-      if (reg) {
+      if (reg && reg.waiting) {
         setSwUpdateReg(reg);
         setShowSwToast(true);
       }
@@ -578,7 +579,7 @@ export default function App() {
   }, []);
 
   const applySwUpdate = async () => {
-    try { sessionStorage.removeItem('kwt_sw_toast_dismissed'); } catch (e) {}
+    try { localStorage.removeItem('kwt_sw_toast_dismissed_at'); } catch (e) {}
     try {
       const reg = swUpdateReg;
       if (reg?.waiting) {
@@ -681,10 +682,10 @@ export default function App() {
     setProfiles(profList);
     setActiveProfileId((prev) => prev || profList[0]?.id || "");
 
-    const { data: planRow } = await getPlan(fam.id);
+    const { data: planRow } = await getPlan(fam.id, profId);
     if (!planRow) {
       const p = defaultPlanForFamily();
-      await upsertPlan(fam.id, p);
+      await upsertPlan(fam.id, profId, p);
       setPlan(p);
     } else {
       setPlan(planRow.plan_json);
@@ -704,6 +705,23 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
+
+  // --- Load plan when profile changes (plans are per-person) ---
+  useEffect(() => {
+    if (!family?.id || !activeProfileId) return;
+    (async () => {
+      const { data: planRow } = await getPlan(family.id, activeProfileId);
+      if (!planRow) {
+        const p = defaultPlanForFamily();
+        await upsertPlan(family.id, activeProfileId, p);
+        setPlan(p);
+      } else {
+        setPlan(planRow.plan_json);
+      }
+    })().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [family?.id, activeProfileId]);
+
   // --- Load logs when profile changes ---
   useEffect(() => {
     if (!family?.id || !activeProfileId) return;
@@ -712,6 +730,19 @@ export default function App() {
       setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
     })().catch(() => {});
   }, [family?.id, activeProfileId]);
+
+  // --- XP is derived from logs (persisted on each log as dayXp) ---
+  useEffect(() => {
+    if (!activeProfileId) return;
+    const total = (allLogs || []).reduce((sum, row) => {
+      const l = row?.log_json || row?.log || row; // defensive
+      const dayXp = safeNumber(l?.gamify?.dayXp) ?? 0;
+      return sum + dayXp;
+    }, 0);
+    setXp(total);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProfileId, allLogs]);
+
 
   // --- Load day log ---
   useEffect(() => {
@@ -764,7 +795,7 @@ export default function App() {
     setUndoLabel(label);
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    await upsertPlan(family.id, activeProfileId, nextPlan);
   }
 
   async function undoLastPlan() {
@@ -775,14 +806,14 @@ export default function App() {
     setUndoLabel("");
     setPlan(prev);
     if (!family?.id) return;
-    await upsertPlan(family.id, prev);
+    await upsertPlan(family.id, activeProfileId, prev);
   }
 
   async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    await upsertPlan(family.id, activeProfileId, nextPlan);
   }
 
   async function saveLog(nextLog) {
@@ -795,7 +826,7 @@ export default function App() {
   }
 
   function blankLogForDay() {
-    const restFromPlan = safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
+    const restFromPlan = safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) ?? 60;
     return {
       // Timing/session meta lives in meta.
       meta: {
@@ -851,8 +882,13 @@ export default function App() {
     next.meta = meta;
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
-    const earned = awardXpForDay(next, planDay);
-    setXp((prev) => prev + earned);
+    // Award XP once per day (stored on the log so it persists across reloads)
+    const alreadyAwarded = !!next?.gamify?.dayAwardedAt;
+    if (!alreadyAwarded) {
+      const earned = awardXpForDay(next, planDay);
+      next.gamify = { ...(next.gamify || {}), dayAwardedAt: new Date().toISOString(), dayXp: earned };
+      setXp((prev) => prev + earned);
+    }
 
     await saveLog(next);
     if (ctx) playLevelUp(ctx, victoryTheme);
@@ -1306,7 +1342,7 @@ export default function App() {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) ?? 60} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
@@ -1535,7 +1571,7 @@ export default function App() {
             <Card className="pad">
               <div className="h2">Highlights</div>
               <div className="grid2 mt12">
-                <SummaryStat label="Sessions" value={(stats.totalSessions ?? 0) || "—"} />
+                <SummaryStat label="Sessions" value={stats.totalSessions ?? 0} />
                 <SummaryStat label="Streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} />
                 <SummaryStat label="Top effort day" value={stats.topEffortDay || "—"} />
                 <SummaryStat label="Top effort volume" value={stats.topEffortDay ? Math.round(stats.topEffortValue).toLocaleString() : "—"} />
