@@ -676,21 +676,34 @@ export default function App() {
     }
     setProfiles(profList);
     setActiveProfileId((prev) => prev || profList[0]?.id || "");
-
-    const { data: planRow } = await getPlan(fam.id);
-    if (!planRow) {
-      const p = defaultPlanForFamily();
-      await upsertPlan(fam.id, p);
-      setPlan(p);
-    } else {
-      setPlan(planRow.plan_json);
-    }
+    // Plan is loaded per-profile in a dedicated effect (family + active profile)
+    setPlan(null);
   }
 
   useEffect(() => {
     if (!authed) return;
     refreshAll().catch(() => {});
   }, [authed]);
+
+  // --- Load plan per active profile ---
+  useEffect(() => {
+    if (!family?.id || !activeProfileId) return;
+    (async () => {
+      const { data: row } = await getPlan(family.id, activeProfileId);
+      const planJson = row?.plan_json || null;
+      if (!planJson) {
+        const p = defaultPlanForFamily();
+        await upsertPlan(family.id, activeProfileId, p);
+        setPlan(p);
+      } else {
+        setPlan(planJson);
+      }
+    })().catch(() => {
+      // Fallback to a local default if DB is missing the column or temporarily unavailable
+      setPlan(defaultPlanForFamily());
+    });
+  }, [family?.id, activeProfileId]);
+
 
   // When entering the Plan tab, default the plan editor to the same weekday
   // as the currently selected log date (nice UX, but then independent).
@@ -719,6 +732,29 @@ export default function App() {
   }, [family?.id, activeProfileId, selectedDate]);
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
+
+  // --- XP is derived from this profile's logs (persistent across reloads) ---
+  useEffect(() => {
+    if (!plan) {
+      setXp(0);
+      return;
+    }
+    const types = plan?.activityTypes || builtInTypes();
+    const total = (allLogs || []).reduce((sum, row) => {
+      const lg = row?.log;
+      if (!lg) return sum;
+      const stored = safeNumber(lg?.gamify?.xpEarned);
+      if (stored) return sum + stored;
+      const wd = weekdayFromYMD(row?.date_ymd);
+      const typeId = plan?.dayTypeByWeekday?.[wd] || "strength";
+      const t = types.find((x) => x.id === typeId) || builtInTypes()[0];
+      const mov = plan?.movementsByWeekday?.[wd] || [];
+      const planDayTmp = { ...t, movements: mov };
+      return sum + awardXpForDay(lg, planDayTmp);
+    }, 0);
+    setXp(total);
+  }, [allLogs, plan, activeProfileId]);
+
 
   const xpToNext = 100 - (xp % 100);
   const level = 1 + Math.floor(xp / 100);
@@ -760,7 +796,7 @@ export default function App() {
     setUndoLabel(label);
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    await upsertPlan(family.id, activeProfileId, nextPlan);
   }
 
   async function undoLastPlan() {
@@ -771,14 +807,14 @@ export default function App() {
     setUndoLabel("");
     setPlan(prev);
     if (!family?.id) return;
-    await upsertPlan(family.id, prev);
+    await upsertPlan(family.id, activeProfileId, prev);
   }
 
   async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    await upsertPlan(family.id, activeProfileId, nextPlan);
   }
 
   async function saveLog(nextLog) {
@@ -848,6 +884,7 @@ export default function App() {
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
     const earned = awardXpForDay(next, planDay);
+    next.gamify = { ...(next.gamify || {}), xpEarned: earned };
     setXp((prev) => prev + earned);
 
     await saveLog(next);

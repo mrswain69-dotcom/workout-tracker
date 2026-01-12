@@ -114,23 +114,30 @@ export async function archiveProfile(profileId) {
   return { data, error };
 }
 
-export async function getPlan(familyId) {
+export async function getPlan(familyId, profileId) {
+  // Plans are stored per-profile on the profiles table (plan_json column)
   const { data, error } = await supabase
-    .from("plans")
-    .select("*")
+    .from("profiles")
+    .select("id, plan_json")
     .eq("family_id", familyId)
+    .eq("id", profileId)
     .maybeSingle();
   return { data, error };
 }
 
-export async function upsertPlan(familyId, plan) {
+
+export async function upsertPlan(familyId, profileId, plan) {
+  // Plans are stored per-profile on the profiles table (plan_json column)
   const { data, error } = await supabase
-    .from("plans")
-    .upsert({ family_id: familyId, plan_json: plan }, { onConflict: "family_id" })
-    .select("*")
+    .from("profiles")
+    .update({ plan_json: plan })
+    .eq("family_id", familyId)
+    .eq("id", profileId)
+    .select("id, plan_json")
     .single();
   return { data, error };
 }
+
 
 export async function getLog(familyId, profileId, date_ymd) {
   const { data, error } = await supabase
