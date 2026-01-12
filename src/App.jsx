@@ -1627,7 +1627,7 @@ export default function App() {
               <div className="mt16 rowBetween">
                 <div className="h2">Exercise progress</div>
                 <div className="selectWide">
-                  <Select value={selectedExerciseForChart} onChange={setSelectedExerciseForChart} options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))} /
+                  <Select value={selectedExerciseForChart} onChange={setSelectedExerciseForChart} options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))} />
               <div className="mt16">
                 <div className="h3">Exercise records</div>
                 <div className="muted mt6">Most recent first (only this user’s logs).</div>
