@@ -114,29 +114,46 @@ export async function archiveProfile(profileId) {
   return { data, error };
 }
 
-export async function getPlan(familyId, profileId = null) {
-  // Backward-compatible: if profileId is not provided, fall back to legacy family-wide plan
-  let q = supabase.from("plans").select("*").eq("family_id", familyId);
-  if (profileId) q = q.eq("profile_id", profileId);
-  const { data, error } = await q.maybeSingle();
+export async function getPlan(familyId) {
+  const { data, error } = await supabase
+    .from("plans")
+    .select("*")
+    .eq("family_id", familyId)
+    .maybeSingle();
   return { data, error };
 }
 
-export async function upsertPlan(familyId, profileId, plan) {
-  // Backward-compatible: if profileId is falsy, write legacy family-wide plan row
-  const row = profileId
-    ? { family_id: familyId, profile_id: profileId, plan_json: plan }
-    : { family_id: familyId, plan_json: plan };
-
-  const onConflict = profileId ? "family_id,profile_id" : "family_id";
-
+export async function upsertPlan(familyId, plan) {
   const { data, error } = await supabase
     .from("plans")
-    .upsert(row, { onConflict })
+    .upsert({ family_id: familyId, plan_json: plan }, { onConflict: "family_id" })
     .select("*")
     .single();
   return { data, error };
 }
+
+// --- Per-profile weekly plan (each person has their own plan) ---
+export async function getProfilePlan(profileId) {
+  if (!profileId) return { data: null, error: new Error("Missing profileId") };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, plan_json")
+    .eq("id", profileId)
+    .maybeSingle();
+  return { data, error };
+}
+
+export async function upsertProfilePlan(profileId, plan) {
+  if (!profileId) return { data: null, error: new Error("Missing profileId") };
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ plan_json: plan })
+    .eq("id", profileId)
+    .select("id, plan_json")
+    .single();
+  return { data, error };
+}
+
 
 export async function getLog(familyId, profileId, date_ymd) {
   const { data, error } = await supabase
