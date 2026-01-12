@@ -484,7 +484,7 @@ function AuthScreen({ onAuthed }) {
         <div className="swToast" role="status">
           <div className="swToastText">✨ Update available. Refresh to get the latest version.</div>
           <div className="swToastActions">
-            <button className="btn" onClick={() => setShowSwToast(false)}>Later</button>
+            <button className="btn" onClick={() => { try { sessionStorage.setItem('kwt_sw_toast_dismissed','1'); } catch (e) {} setShowSwToast(false); }}>Later</button>
             <button className="btn primary" onClick={applySwUpdate}>Refresh</button>
           </div>
         </div>
@@ -529,7 +529,8 @@ function AuthScreen({ onAuthed }) {
                     } finally {
                       setBusy(false);
                     }
-                  }}>
+                  }}
+                >
                   {mode === "signup" ? "Create account" : "Sign in"}
                 </PrimaryButton>
                 {msg && <div className="muted">{msg}</div>}
@@ -556,6 +557,9 @@ export default function App() {
 
   useEffect(() => {
     const onUpdate = (e) => {
+      try {
+        if (sessionStorage.getItem('kwt_sw_toast_dismissed') === '1') return;
+      } catch (err) {}
       const reg = e?.detail?.registration;
       if (reg) {
         setSwUpdateReg(reg);
@@ -574,6 +578,7 @@ export default function App() {
   }, []);
 
   const applySwUpdate = async () => {
+    try { sessionStorage.removeItem('kwt_sw_toast_dismissed'); } catch (e) {}
     try {
       const reg = swUpdateReg;
       if (reg?.waiting) {
@@ -675,31 +680,21 @@ export default function App() {
     }
     setProfiles(profList);
     setActiveProfileId((prev) => prev || profList[0]?.id || "");
+
+    const { data: planRow } = await getPlan(fam.id);
+    if (!planRow) {
+      const p = defaultPlanForFamily();
+      await upsertPlan(fam.id, p);
+      setPlan(p);
+    } else {
+      setPlan(planRow.plan_json);
+    }
   }
 
   useEffect(() => {
     if (!authed) return;
     refreshAll().catch(() => {});
   }, [authed]);
-
-  // --- Load plan for the active profile (plans are per-profile) ---
-  useEffect(() => {
-    if (!family?.id || !activeProfileId) return;
-    (async () => {
-      try {
-        const { data: planJson } = await getPlan(activeProfileId);
-        if (!planJson) {
-          const p = defaultPlanForFamily();
-          await upsertPlan(activeProfileId, p);
-          setPlan(p);
-        } else {
-          setPlan(planJson);
-        }
-      } catch (e) {
-        // keep existing plan state
-      }
-    })();
-  }, [family?.id, activeProfileId]);
 
   // When entering the Plan tab, default the plan editor to the same weekday
   // as the currently selected log date (nice UX, but then independent).
@@ -717,19 +712,6 @@ export default function App() {
       setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
     })().catch(() => {});
   }, [family?.id, activeProfileId]);
-
-  // --- XP is derived from this profile’s logs (persisted per day) ---
-  useEffect(() => {
-    const total = (allLogs || []).reduce((sum, r) => sum + (safeNumber(r?.log?.gamify?.xpEarned) || 0), 0);
-    setXp(total);
-  }, [activeProfileId, allLogs]);
-
-
-  // --- XP is derived from this profile’s logs (persisted per day) ---
-  useEffect(() => {
-    const total = (allLogs || []).reduce((sum, r) => sum + (safeNumber(r?.log?.gamify?.xpEarned) || 0), 0);
-    setXp(total);
-  }, [activeProfileId, allLogs]);
 
   // --- Load day log ---
   useEffect(() => {
@@ -781,8 +763,8 @@ export default function App() {
     setUndoPlan(plan || null);
     setUndoLabel(label);
     setPlan(nextPlan);
-    if (!activeProfileId) return;
-    await upsertPlan(activeProfileId, nextPlan);
+    if (!family?.id) return;
+    await upsertPlan(family.id, nextPlan);
   }
 
   async function undoLastPlan() {
@@ -792,15 +774,15 @@ export default function App() {
     setUndoPlan(null);
     setUndoLabel("");
     setPlan(prev);
-    if (!activeProfileId) return;
-    await upsertPlan(activeProfileId, prev);
+    if (!family?.id) return;
+    await upsertPlan(family.id, prev);
   }
 
   async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
-    if (!activeProfileId) return;
-    await upsertPlan(activeProfileId, nextPlan);
+    if (!family?.id) return;
+    await upsertPlan(family.id, nextPlan);
   }
 
   async function saveLog(nextLog) {
@@ -867,10 +849,9 @@ export default function App() {
     );
     meta.sessions = sessions;
     next.meta = meta;
-    /* gamify updated below with xpEarned + comboMax */
+    next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
     const earned = awardXpForDay(next, planDay);
-    next.gamify = { ...(next.gamify || {}), xpEarned: earned, comboMax: calcComboMax(next) };
     setXp((prev) => prev + earned);
 
     await saveLog(next);
@@ -1325,7 +1306,7 @@ export default function App() {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60)} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
@@ -2478,54 +2459,145 @@ function StyleTag() {
 
 function presetPlans() {
   const base = defaultPlanForFamily();
-  const withRunIntervals = (p) => ({
+
+  // Helpers
+  const deepClone = (x) => JSON.parse(JSON.stringify(x));
+  const strength = (names, allowWeight = true) =>
+    names.map((n) => ({ id: uid(), name: n, mode: "strength", allowWeight }));
+  const custom = (names) =>
+    names.map((n) => ({ id: uid(), name: n, mode: "custom", allowWeight: false }));
+
+  const setWeek = (p, patch) => ({
     ...p,
-    cardioTargetByWeekday: {
-      ...(p.cardioTargetByWeekday || {}),
-      Tue: "Intervals: 5 min warm-up • 6×(1 min fast / 1 min easy) • 5 min cool-down",
-    },
+    dayTypeByWeekday: { ...p.dayTypeByWeekday, ...(patch.dayTypeByWeekday || {}) },
+    movementsByWeekday: { ...p.movementsByWeekday, ...(patch.movementsByWeekday || {}) },
+    restSecByWeekday: { ...p.restSecByWeekday, ...(patch.restSecByWeekday || {}) },
+    cardioTargetByWeekday: { ...(p.cardioTargetByWeekday || {}), ...(patch.cardioTargetByWeekday || {}) },
   });
 
-
+  // Built for kids: bodyweight / light weights by default.
   return [
     {
       id: "football_engine",
       name: "Football Speed & Engine (5 days)",
-      desc: "Intervals + conditioning + strength base. Great for players.",
-      plan: withRunIntervals(base),
+      desc: "Match fitness: speed mechanics + intervals + strength base.",
+      note: "Sprint days: full effort, long rest. Strength: keep form perfect.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "duration", Thu: "strength", Fri: "box", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(["Squat (goblet or bodyweight)", "Split squat", "Hip hinge (RDL pattern)", "Calf raises", "Plank"], true),
+          Thu: strength(["Push-ups", "Row (band/dumbbell)", "Shoulder press", "Dead bug / hollow hold"], true),
+          Fri: custom(["Sprints: 6×20m (walk-back rest)", "Shuttles: 5×(10-20-10)", "Feet quickness: 8 mins", "Core finisher: 6 mins"]),
+        },
+        restSecByWeekday: { Mon: 90, Thu: 75, Fri: 75 },
+        cardioTargetByWeekday: {
+          Tue: "Intervals: 8 min warm-up • 8×(30s fast / 90s easy) • 6 min cool-down",
+          Wed: "Zone 2: easy jog/cycle 20–30 mins (you can talk while doing it)",
+          Sat: "Tempo: 5 min easy • 10–15 min steady • 5 min easy",
+        },
+      }),
     },
+
     {
-      id: "general_strength",
-      name: "General Strength + Fitness",
-      desc: "Simple weekly structure you can customise.",
-      plan: base,
+      id: "speed_agility",
+      name: "Speed & Agility (4–5 days)",
+      desc: "Sprint mechanics + agility focus. Strength stays explosive/light.",
+      note: "Quality > volume. Stop if speed drops.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "strength", Thu: "duration", Fri: "box", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Wed: strength(["Jump squats (low reps)", "Step-ups", "Push-ups", "Band rows", "Side plank"], false),
+          Fri: custom(["Sprint starts: 8×10m", "Flying 20s: 5 reps", "Cone cuts: 6 mins", "Reaction drill: 6 mins"]),
+        },
+        restSecByWeekday: { Wed: 75, Fri: 90 },
+        cardioTargetByWeekday: { Tue: "Speed endurance: 6 min warm-up • 6×(45s hard / 75s easy) • 6 min cool-down" },
+      }),
     },
+
+    {
+      id: "general_strength_fitness",
+      name: "General Strength + Fitness",
+      desc: "Balanced habits: 3 strength days + 2 cardio days.",
+      note: "Aim +1 rep each week or a tiny weight increase when ready.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(["Squat", "Push-ups", "Row", "Plank"], true),
+          Wed: strength(["Split squat", "Shoulder press", "Hip hinge", "Dead bug"], true),
+          Fri: strength(["Lunge", "Row", "Dips (bench)", "Farmer carry"], true),
+        },
+        restSecByWeekday: { Mon: 90, Wed: 75, Fri: 75 },
+        cardioTargetByWeekday: { Tue: "Easy run 15–25 mins", Sat: "Any cardio 20–40 mins" },
+      }),
+    },
+
     {
       id: "upper_body",
       name: "Upper Body Strength",
-      desc: "Focus your strength days on upper movements.",
-      plan: base,
+      desc: "Upper focus 3×/week. Legs are maintenance.",
+      note: "Track reps/weight. Keep shoulders healthy with rows/band pulls.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "duration", Fri: "strength", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(["Push-ups / Bench", "Row", "Shoulder press", "Biceps curl", "Plank"], true),
+          Wed: strength(["Dips (bench)", "Pull (band) / row", "Incline push-ups", "Triceps", "Hollow hold"], true),
+          Fri: strength(["Push-ups", "Single-arm row", "Overhead press", "Face pulls (band)", "Side plank"], true),
+        },
+        restSecByWeekday: { Mon: 90, Wed: 75, Fri: 75 },
+        cardioTargetByWeekday: { Tue: "Easy run/cycle 15–25 mins" },
+      }),
     },
+
     {
       id: "legs_power",
       name: "Leg Strength + Power",
-      desc: "Focus your strength days on legs + jumps.",
-      plan: base,
+      desc: "Lower-body strength + sprint power. Upper is maintenance.",
+      note: "Explosive reps: stop before you grind. Rest longer on leg sets.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "duration", Thu: "strength", Fri: "box", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(["Squat (goblet/backpack)", "Split squat", "RDL/hip hinge", "Calf raises", "Plank"], true),
+          Thu: strength(["Lunge", "Step-ups", "Glute bridge / hip thrust", "Hamstring curl (towel)", "Dead bug"], true),
+          Fri: custom(["Sprints: 8×15–20m", "Jumps: 5×3 broad jumps", "Shuttles: 6 mins"]),
+        },
+        restSecByWeekday: { Mon: 105, Thu: 90, Fri: 90 },
+        cardioTargetByWeekday: { Tue: "Hill repeats: 6×20–30s hard / walk down" },
+      }),
     },
+
     {
-      id: "tone_conditioning",
+      id: "conditioning_tone",
       name: "Muscular Conditioning / Tone",
-      desc: "Higher reps, less rest, more cardio bias.",
-      plan: withRunIntervals(base),
+      desc: "Higher reps, short rest, more sweat. Great for conditioning.",
+      note: "Use lighter loads. Keep moving. Consistent effort wins.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "box", Thu: "strength", Fri: "strength", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(["Squat", "Push-ups", "Row", "Mountain climbers"], false),
+          Thu: strength(["Lunge", "Shoulder press", "Hip hinge", "Plank"], false),
+          Fri: strength(["Burpees (low reps)", "Hinge (light swings/backpack)", "Dips (bench)", "Russian twists"], false),
+        },
+        restSecByWeekday: { Mon: 45, Thu: 45, Fri: 45 },
+        cardioTargetByWeekday: { Tue: "Intervals: 5 min easy • 10×(20s hard / 40s easy) • 5 min easy" },
+      }),
     },
+
     {
       id: "recovery_mobility",
       name: "Recovery & Mobility",
-      desc: "More duration days (mobility, yoga, easy cardio).",
-      plan: {
-        ...base,
-        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
-      },
+      desc: "Reset week: mobility + easy cardio every day.",
+      note: "Keep it easy and consistent. Great after a hard week.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "duration", Tue: "duration", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: custom(["Mobility flow 15 mins", "Easy walk 15–30 mins"]),
+          Tue: custom(["Yoga/mobility 15–25 mins"]),
+          Wed: custom(["Easy cycle 15–30 mins"]),
+          Thu: custom(["Stretch + core 15 mins"]),
+          Fri: custom(["Easy walk 20–40 mins"]),
+        },
+        restSecByWeekday: { Mon: 30, Tue: 30, Wed: 30, Thu: 30, Fri: 30, Sat: 30, Sun: 30 },
+      }),
     },
   ];
 }
