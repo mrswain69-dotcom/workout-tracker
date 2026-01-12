@@ -764,7 +764,7 @@ export default function App() {
     setUndoLabel(label);
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    await upsertPlan(activeProfileId, nextPlan);
   }
 
   async function undoLastPlan() {
@@ -775,14 +775,14 @@ export default function App() {
     setUndoLabel("");
     setPlan(prev);
     if (!family?.id) return;
-    await upsertPlan(family.id, prev);
+    await upsertPlan(activeProfileId, prev);
   }
 
   async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    await upsertPlan(activeProfileId, nextPlan);
   }
 
   async function saveLog(nextLog) {
@@ -852,6 +852,7 @@ export default function App() {
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
     const earned = awardXpForDay(next, planDay);
+    next.gamify = { ...(next.gamify || {}), xpEarned: earned, comboMax: calcComboMax(next) };
     setXp((prev) => prev + earned);
 
     await saveLog(next);
@@ -948,6 +949,31 @@ export default function App() {
     const est = setsLogged * workPerSetMin + Math.max(0, setsLogged - 1) * (restSec / 60);
     return Math.round(est * 10) / 10;
   }
+
+// Sync XP from logs (per profile) so Rewards/Levels persist and switch correctly.
+useEffect(() => {
+  try {
+    let total = 0;
+    for (const row of allLogs || []) {
+      const log = row?.log;
+      if (!log) continue;
+      const earned = safeNumber(log?.gamify?.xpEarned);
+      if (earned > 0) total += earned;
+      else {
+        // Backfill for older logs (no xpEarned saved)
+        const weekday = weekdayFromYmd(row.date_ymd);
+        const dayTypeId = plan?.dayTypeByWeekday?.[weekday] || "strength";
+        const activityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === dayTypeId) || builtInTypes()[0];
+        const movements = plan?.movementsByWeekday?.[weekday] || [];
+        const planDayLocal = { ...activityType, movements };
+        total += Math.max(0, awardXpForDay(log, planDayLocal));
+      }
+    }
+    setXp(total);
+  } catch {
+    // ignore
+  }
+}, [activeProfileId, allLogs, plan]);
 
   // -------- Stats from allLogs ----------
   const stats = useMemo(() => {
@@ -1361,7 +1387,7 @@ export default function App() {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60)} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
@@ -1627,7 +1653,7 @@ export default function App() {
               <div className="mt16 rowBetween">
                 <div className="h2">Exercise progress</div>
                 <div className="selectWide">
-                  <Select value={selectedExerciseForChart} onChange={setSelectedExerciseForChart} options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))} />
+                  <Select value={selectedExerciseForChart} onChange={setSelectedExerciseForChart} options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))} /
               <div className="mt16">
                 <div className="h3">Exercise records</div>
                 <div className="muted mt6">Most recent first (only this user’s logs).</div>
@@ -2548,54 +2574,175 @@ function StyleTag() {
 
 function presetPlans() {
   const base = defaultPlanForFamily();
-  const withRunIntervals = (p) => ({
+
+  const makeStrengthDay = (names, restSec = 75, allowWeights = true) =>
+    names.map((n) => ({ id: uid(), name: n, mode: "strength", allowWeight: allowWeights }));
+
+  const makeAgilityDay = (names) =>
+    names.map((n) => ({ id: uid(), name: n, mode: "custom", allowWeight: false }));
+
+  const cloneBase = () => JSON.parse(JSON.stringify(base));
+
+  const setWeek = (p, { dayTypeByWeekday, movementsByWeekday, restSecByWeekday, cardioTargetByWeekday }) => ({
     ...p,
-    cardioTargetByWeekday: {
-      ...(p.cardioTargetByWeekday || {}),
-      Tue: "Intervals: 5 min warm-up • 6×(1 min fast / 1 min easy) • 5 min cool-down",
-    },
+    dayTypeByWeekday: { ...p.dayTypeByWeekday, ...(dayTypeByWeekday || {}) },
+    movementsByWeekday: { ...p.movementsByWeekday, ...(movementsByWeekday || {}) },
+    restSecByWeekday: { ...p.restSecByWeekday, ...(restSecByWeekday || {}) },
+    cardioTargetByWeekday: { ...(p.cardioTargetByWeekday || {}), ...(cardioTargetByWeekday || {}) },
   });
 
+  const presets = [];
 
-  return [
-    {
+  // 1) Football: speed + engine (5 days)
+  {
+    const p = cloneBase();
+    presets.push({
       id: "football_engine",
       name: "Football Speed & Engine (5 days)",
-      desc: "Intervals + conditioning + strength base. Great for players.",
-      plan: withRunIntervals(base),
-    },
-    {
-      id: "general_strength",
+      desc: "2 speed/agility days + 2 strength days + 1 intervals/tempo run. Built for match fitness.",
+      coach: "Keep reps crisp. Stop sets when form drops. Sprint days = full effort, long rest.",
+      plan: setWeek(p, {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "duration", Thu: "strength", Fri: "box", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: makeStrengthDay(["Squat (goblet or bodyweight)", "Split squat", "Hip hinge (RDL pattern)", "Calf raises", "Plank"], 90),
+          Thu: makeStrengthDay(["Push-ups", "Row (band/dumbbell)", "Shoulder press", "Hollow hold / dead bug"], 75),
+          Fri: makeAgilityDay(["Sprints: 6×20m (walk back rest)", "Shuttles: 5×(10-20-10)", "Ladder/feet quickness 8 mins", "Core finisher 6 mins"]),
+        },
+        restSecByWeekday: { Mon: 90, Thu: 75, Fri: 60 },
+        cardioTargetByWeekday: {
+          Tue: "Intervals: 8 min warm-up • 8×(30s fast / 90s easy) • 6 min cool-down",
+          Wed: "Zone 2: easy jog/cycle 20–30 mins (you can talk while doing it)",
+          Sat: "Tempo: 5 min easy • 10–15 min steady (comfortably hard) • 5 min easy",
+        },
+      }),
+    });
+  }
+
+  // 2) Speed & Agility (4–5 days)
+  {
+    const p = cloneBase();
+    presets.push({
+      id: "speed_agility",
+      name: "Speed & Agility (4–5 days)",
+      desc: "More sprint mechanics + agility. Strength stays light and explosive.",
+      coach: "Quality over quantity. Full recovery between sprints.",
+      plan: setWeek(p, {
+        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "strength", Thu: "duration", Fri: "box", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Wed: makeStrengthDay(["Jump squats (low reps)", "Step-ups", "Push-ups", "Band rows", "Side plank"], 75, false),
+          Fri: makeAgilityDay(["Sprint starts: 8×10m", "Flying 20s: 5 reps", "Cone cuts: 6 mins", "Reaction drill: 6 mins"]),
+        },
+        restSecByWeekday: { Wed: 75, Fri: 75 },
+        cardioTargetByWeekday: { Tue: "Speed endurance: 6 min warm-up • 6×(45s hard / 75s easy) • 6 min cool-down" },
+      }),
+    });
+  }
+
+  // 3) General Strength + Fitness
+  {
+    const p = cloneBase();
+    presets.push({
+      id: "general_strength_fitness",
       name: "General Strength + Fitness",
-      desc: "Simple weekly structure you can customise.",
-      plan: base,
-    },
-    {
+      desc: "3 strength days + 2 cardio days. Balanced week for building habits.",
+      coach: "Add weight only when you can complete all sets with perfect form.",
+      plan: setWeek(p, {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: makeStrengthDay(["Squat", "Push-ups", "Row", "Plank"], 90),
+          Wed: makeStrengthDay(["Split squat", "Shoulder press", "Hip hinge", "Dead bug"], 75),
+          Fri: makeStrengthDay(["Lunge", "Pull (band) / row", "Dips (bench)", "Farmer carry"], 75),
+        },
+        restSecByWeekday: { Mon: 90, Wed: 75, Fri: 75 },
+        cardioTargetByWeekday: { Tue: "Easy run 15–25 mins", Sat: "Any cardio 20–40 mins" },
+      }),
+    });
+  }
+
+  // 4) Upper Body Strength
+  {
+    const p = cloneBase();
+    presets.push({
       id: "upper_body",
       name: "Upper Body Strength",
-      desc: "Focus your strength days on upper movements.",
-      plan: base,
-    },
-    {
+      desc: "Upper focus 3×/week, legs light maintenance.",
+      coach: "Track reps/weight each week. Aim +1 rep or +1–2kg when ready.",
+      plan: setWeek(p, {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "duration", Fri: "strength", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: makeStrengthDay(["Push-ups / Bench", "Row", "Shoulder press", "Biceps curl", "Plank"], 90),
+          Wed: makeStrengthDay(["Dips", "Pull (band) / row", "Incline push-ups", "Triceps", "Hollow hold"], 75),
+          Fri: makeStrengthDay(["Bench/push-ups", "Single-arm row", "Overhead press", "Face pulls (band)", "Side plank"], 75),
+        },
+        restSecByWeekday: { Mon: 90, Wed: 75, Fri: 75 },
+        cardioTargetByWeekday: { Tue: "Easy run/cycle 15–25 mins" },
+      }),
+    });
+  }
+
+  // 5) Leg Strength + Power
+  {
+    const p = cloneBase();
+    presets.push({
       id: "legs_power",
       name: "Leg Strength + Power",
-      desc: "Focus your strength days on legs + jumps.",
-      plan: base,
-    },
-    {
-      id: "tone_conditioning",
+      desc: "Lower-body strength + sprint power. Upper is maintenance.",
+      coach: "Explosive reps: stop before you grind. Rest longer on heavy leg sets.",
+      plan: setWeek(p, {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "duration", Thu: "strength", Fri: "box", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: makeStrengthDay(["Squat (goblet/backpack)", "Split squat", "RDL/hip hinge", "Calf raises", "Plank"], 105),
+          Thu: makeStrengthDay(["Lunge", "Step-ups", "Hip thrust / glute bridge", "Hamstring curl (ball/towel)", "Dead bug"], 90),
+          Fri: makeAgilityDay(["Sprints: 8×15–20m", "Jumps: 5×3 broad jumps", "Shuttles 6 mins"]),
+        },
+        restSecByWeekday: { Mon: 105, Thu: 90, Fri: 90 },
+        cardioTargetByWeekday: { Tue: "Hill or incline repeats: 6×20–30s hard / walk down" },
+      }),
+    });
+  }
+
+  // 6) Muscular Conditioning / Tone
+  {
+    const p = cloneBase();
+    presets.push({
+      id: "conditioning_tone",
       name: "Muscular Conditioning / Tone",
-      desc: "Higher reps, less rest, more cardio bias.",
-      plan: withRunIntervals(base),
-    },
-    {
+      desc: "Higher reps, shorter rest, more sweat. Great for conditioning.",
+      coach: "Keep moving. Use lighter loads. Aim consistent effort.",
+      plan: setWeek(p, {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "box", Thu: "strength", Fri: "strength", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: makeStrengthDay(["Squat", "Push-ups", "Row", "Mountain climbers"], 45),
+          Thu: makeStrengthDay(["Lunge", "Shoulder press", "RDL", "Plank"], 45),
+          Fri: makeStrengthDay(["Burpees (low reps)", "Dumbbell swings / hinge", "Dips", "Russian twists"], 45),
+        },
+        restSecByWeekday: { Mon: 45, Thu: 45, Fri: 45 },
+        cardioTargetByWeekday: { Tue: "Intervals: 5 min easy • 10×(20s hard / 40s easy) • 5 min easy" },
+      }),
+    });
+  }
+
+  // 7) Recovery & Mobility
+  {
+    const p = cloneBase();
+    presets.push({
       id: "recovery_mobility",
       name: "Recovery & Mobility",
-      desc: "More duration days (mobility, yoga, easy cardio).",
-      plan: {
-        ...base,
-        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
-      },
-    },
-  ];
+      desc: "Light movement daily: mobility + easy cardio + posture work.",
+      coach: "This is a reset week. Keep it easy and consistent.",
+      plan: setWeek(p, {
+        dayTypeByWeekday: { Mon: "duration", Tue: "duration", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: makeAgilityDay(["Mobility flow 15 mins", "Easy walk 15–30 mins"]),
+          Tue: makeAgilityDay(["Yoga/mobility 15–25 mins"]),
+          Wed: makeAgilityDay(["Easy cycle 15–30 mins"]),
+          Thu: makeAgilityDay(["Stretch + core 15 mins"]),
+          Fri: makeAgilityDay(["Easy walk 20–40 mins"]),
+        },
+        restSecByWeekday: { Mon: 30, Tue: 30, Wed: 30, Thu: 30, Fri: 30, Sat: 30, Sun: 30 },
+      }),
+    });
+  }
+
+  return presets;
 }

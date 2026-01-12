@@ -114,7 +114,27 @@ export async function archiveProfile(profileId) {
   return { data, error };
 }
 
-export async function getPlan(familyId) {
+export async function getPlan(profileId) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, plan_json")
+    .eq("id", profileId)
+    .single();
+  return { data: data?.plan_json || null, error };
+}
+
+export async function upsertPlan(profileId, plan) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ plan_json: plan })
+    .eq("id", profileId)
+    .select("id, plan_json")
+    .single();
+  return { data: data?.plan_json || null, error };
+}
+
+// Legacy signatures kept for compatibility (no-op wrappers)
+export async function getFamilyPlan(familyId) {
   const { data, error } = await supabase
     .from("plans")
     .select("*")
@@ -123,7 +143,16 @@ export async function getPlan(familyId) {
   return { data, error };
 }
 
-export async function upsertPlan(familyId, plan) {
+export async function upsertFamilyPlan(familyId, plan) {
+  const { data, error } = await supabase
+    .from("plans")
+    .upsert({ family_id: familyId, plan_json: plan }, { onConflict: "family_id" })
+    .select("*")
+    .single();
+  return { data, error };
+}
+
+export async function upsertPlan(profileId, plan) {
   const { data, error } = await supabase
     .from("plans")
     .upsert({ family_id: familyId, plan_json: plan }, { onConflict: "family_id" })
