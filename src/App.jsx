@@ -516,20 +516,18 @@ function AuthScreen({ onAuthed }) {
                   <div className="label">Password</div>
                   <Input value={pw} onChange={setPw} placeholder="••••••••" type="password" />
                 </div>
-                <PrimaryButton
-                  disabled={busy}
-                  onClick={async () => {
+                <PrimaryButton disabled={busy} onClick={async () => {
                     setBusy(true);
-                    setMsg("");
-                    try {
-                      const fn = mode === "signup" ? signUp : signIn;
-                      const { error } = await fn(email.trim(), pw);
-                      if (error) setMsg(error.message);
-                      else onAuthed();
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
+                                        setMsg("");
+                                        try {
+                                          const fn = mode === "signup" ? signUp : signIn;
+                                          const { error } = await fn(email.trim(), pw);
+                                          if (error) setMsg(error.message);
+                                          else onAuthed();
+                                        } finally {
+                                          setBusy(false);
+                                        }
+                  }}>
                   {mode === "signup" ? "Create account" : "Sign in"}
                 </PrimaryButton>
                 {msg && <div className="muted">{msg}</div>}
@@ -1360,7 +1358,7 @@ export default function App() {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60)} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
@@ -1623,52 +1621,48 @@ export default function App() {
                 )}
               </div>
 
-              
-<div className="mt16 rowBetween">
-  <div className="h2">Exercise progress</div>
-  <div className="selectWide">
-    <Select
-      value={selectedExerciseForChart}
-      onChange={setSelectedExerciseForChart}
-      options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))}
-    />
-  </div>
-</div>
+              <div className="mt16 rowBetween">
+                <div className="h2">Exercise progress</div>
+                <div className="selectWide">
+                  <Select value={selectedExerciseForChart} onChange={setSelectedExerciseForChart} options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))} /
+              <div className="mt16">
+                <div className="h3">Exercise records</div>
+                <div className="muted mt6">Most recent first (only this user’s logs).</div>
+                {exerciseRecords.length ? (
+                  <div className="tableWrap mt10">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: 120 }}>Date</th>
+                          <th>Best reps</th>
+                          <th>Best weight</th>
+                          <th>Best time</th>
+                          <th>Best volume</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {exerciseRecords.map((r) => (
+                          <tr key={r.date}>
+                            <td>{r.date}</td>
+                            <td>{r.bestReps || "—"}</td>
+                            <td>{r.bestWeight ? `${r.bestWeight}` : "—"}</td>
+                            <td>{r.bestTime ? `${r.bestTime}s` : "—"}</td>
+                            <td>{r.bestVol || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="muted mt10">No logs yet for this exercise.</div>
+                )}
+              </div>
 
-<div className="mt16">
-  <div className="h3">Exercise records</div>
-  <div className="muted mt6">Most recent first (only this user’s logs).</div>
-  {exerciseRecords.length ? (
-    <div className="tableWrap mt10">
-      <table className="table">
-        <thead>
-          <tr>
-            <th style={{ width: 120 }}>Date</th>
-            <th>Best reps</th>
-            <th>Best weight</th>
-            <th>Best time</th>
-            <th>Best volume</th>
-          </tr>
-        </thead>
-        <tbody>
-          {exerciseRecords.map((r) => (
-            <tr key={r.date}>
-              <td>{r.date}</td>
-              <td>{r.bestReps || "—"}</td>
-              <td>{r.bestWeight ? `${r.bestWeight}` : "—"}</td>
-              <td>{r.bestTime ? `${r.bestTime}s` : "—"}</td>
-              <td>{r.bestVol || "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  ) : (
-    <div className="muted mt10">No logs yet for this exercise.</div>
-  )}
-</div>
+>
+                </div>
+              </div>
 
-<div className="chart mt12">
+              <div className="chart mt12">
                 {exerciseProgress.length ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={exerciseProgress} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
@@ -1764,6 +1758,7 @@ export default function App() {
                       const next = { ...plan, activityTypes: [...(plan?.activityTypes || builtInTypes()), nextType] };
                       await savePlan(next);
                     }}
+                  >
                     + Add type
                   </PrimaryButton>
                 </div>
@@ -1813,6 +1808,7 @@ export default function App() {
                       await applyPlan({ ...preset.plan, presetId: preset.id }, `Preset applied: ${preset.name}`);
                       // refresh templates list isn't needed here
                     }}
+                  >
                     Apply preset
                   </PrimaryButton>
                 </div>
@@ -1855,6 +1851,7 @@ export default function App() {
                       if (!ok) return;
                       await applyPlan({ ...(tpl.plan_json || {}), templateId: tpl.id }, `Loaded saved plan: ${tpl.name}`);
                     }}
+                  >
                     Load
                   </PrimaryButton>
                 </div>
@@ -1871,6 +1868,7 @@ export default function App() {
                       const { data } = await listPlanTemplates(family.id);
                       setPlanTemplates(data || []);
                     }}
+                  >
                     Save current as new
                   </PrimaryButton>
                   <div style={{ width: 10 }} />
@@ -1887,6 +1885,7 @@ export default function App() {
                       const { data } = await listPlanTemplates(family.id);
                       setPlanTemplates(data || []);
                     }}
+                  >
                     Update selected
                   </SecondaryButton>
                   <div style={{ width: 10 }} />
@@ -1904,6 +1903,7 @@ export default function App() {
                       setPlanTemplates(data || []);
                       setSelectedTemplateId("");
                     }}
+                  >
                     Delete selected
                   </SecondaryButton>
                 </div>
@@ -2027,6 +2027,7 @@ export default function App() {
                             };
                             await savePlan(next);
                           }}
+                        >
                           Targets
                         </SecondaryButton>
 
@@ -2038,6 +2039,7 @@ export default function App() {
                             const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov } };
                             await savePlan(next);
                           }}
+                        >
                           Rename
                         </SecondaryButton>
                         <SecondaryButton
@@ -2046,6 +2048,7 @@ export default function App() {
                             const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov } };
                             await savePlan(next);
                           }}
+                        >
                           Remove
                         </SecondaryButton>
                       </div>
@@ -2161,6 +2164,7 @@ export default function App() {
                             await renameProfile(p.id, name.trim());
                             await refreshAll();
                           }}
+                        >
                           Rename
                         </SecondaryButton>
                         <SecondaryButton
@@ -2171,6 +2175,7 @@ export default function App() {
                             await archiveProfile(p.id);
                             await refreshAll();
                           }}
+                        >
                           Remove
                         </SecondaryButton>
                       </div>
@@ -2221,6 +2226,7 @@ export default function App() {
                     await addProfile(family.id, name.trim());
                     await refreshAll();
                   }}
+                >
                   Add
                 </SecondaryButton>
               </div>
@@ -2267,6 +2273,7 @@ export default function App() {
                       setPinUnlockedUntil(0);
                       window.alert("PIN set.");
                     }}
+                  >
                     {family?.pin_hash ? "Change PIN" : "Set PIN"}
                   </PrimaryButton>
                   <div style={{ width: 10 }} />
@@ -2281,12 +2288,14 @@ export default function App() {
                       setFamily(data);
                       setPinUnlockedUntil(0);
                     }}
+                  >
                     Remove PIN
                   </SecondaryButton>
                   <div style={{ width: 10 }} />
                   <SecondaryButton
                     disabled={!family?.pin_hash}
                     onClick={() => setPinUnlockedUntil(0)}
+                  >
                     Lock now
                   </SecondaryButton>
                 </div>
@@ -2380,6 +2389,7 @@ function AddMovement({ onAdd, defaultKind }) {
           });
           setName("");
         }}
+      >
         Add movement
       </PrimaryButton>
     </div>
@@ -2437,6 +2447,7 @@ function AddType({ existing, onAdd }) {
           onAdd(t);
           setName("");
         }}
+      >
         Add type
       </SecondaryButton>
     </div>
