@@ -480,7 +480,7 @@ function AuthScreen({ onAuthed }) {
     <div className="page">
       <div className="wrap">
 
-      {authed && showSwToast ? (
+      {showSwToast ? (
         <div className="swToast" role="status">
           <div className="swToastText">✨ Update available. Refresh to get the latest version.</div>
           <div className="swToastActions">
@@ -554,15 +554,9 @@ export default function App() {
   // --- Service worker update toast (prevents stale PWA UI after deploys) ---
   const [swUpdateReg, setSwUpdateReg] = useState(null);
   const [showSwToast, setShowSwToast] = useState(false);
-  const swToastDismissedRef = useRef(false);
-  useEffect(() => {
-    try { swToastDismissedRef.current = sessionStorage.getItem('kwt_sw_toast_dismissed') === '1'; } catch (e) {}
-  }, []);
 
   useEffect(() => {
     const onUpdate = (e) => {
-      if (!authed) return;
-      if (swToastDismissedRef.current) return;
       const reg = e?.detail?.registration;
       if (reg) {
         setSwUpdateReg(reg);
@@ -683,33 +677,15 @@ export default function App() {
     setProfiles(profList);
     setActiveProfileId((prev) => prev || profList[0]?.id || "");
 
-    // Plan is loaded per profile (see effect below). Set a default immediately so UI is usable.
-setPlan((prev) => prev || defaultPlanForFamily());
-  }
-
-async function loadPlanForProfile(profileId) {
-  if (!profileId) return;
-  try {
-    const { data: planJson } = await getPlan(profileId);
-    if (!planJson) {
+    const { data: planRow } = await getPlan(fam.id);
+    if (!planRow) {
       const p = defaultPlanForFamily();
-      await upsertPlan(profileId, p);
+      await upsertPlan(fam.id, p);
       setPlan(p);
     } else {
-      setPlan(planJson);
+      setPlan(planRow.plan_json);
     }
-  } catch {
-    setPlan((prev) => prev || defaultPlanForFamily());
   }
-}
-
-// Load plan whenever the active person changes (plans are per-profile)
-useEffect(() => {
-  if (!authed) return;
-  if (!family?.id) return;
-  if (!activeProfileId) return;
-  loadPlanForProfile(activeProfileId);
-}, [authed, family?.id, activeProfileId]);
 
   useEffect(() => {
     if (!authed) return;
@@ -736,13 +712,9 @@ useEffect(() => {
   // --- Load day log ---
   useEffect(() => {
     if (!family?.id || !activeProfileId) return;
-    // Clear immediately so UI doesn't momentarily show blank/stale state.
-    setLogForDay(null);
     (async () => {
       const { data } = await getLog(family.id, activeProfileId, selectedDate);
-      // Clone to guarantee a new reference (avoids rare "no re-render" cases).
-      const next = data?.log_json ? JSON.parse(JSON.stringify(data.log_json)) : null;
-      setLogForDay(next);
+      setLogForDay(data?.log_json || null);
     })().catch(() => setLogForDay(null));
   }, [family?.id, activeProfileId, selectedDate]);
 
@@ -788,7 +760,7 @@ useEffect(() => {
     setUndoLabel(label);
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(activeProfileId, nextPlan);
+    await upsertPlan(family.id, nextPlan);
   }
 
   async function undoLastPlan() {
@@ -806,7 +778,7 @@ useEffect(() => {
     if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(activeProfileId, nextPlan);
+    await upsertPlan(family.id, nextPlan);
   }
 
   async function saveLog(nextLog) {
@@ -1112,28 +1084,12 @@ useEffect(() => {
   }, [allLogs, plan]);
 
   const exerciseOptions = useMemo(() => {
-    // Limit dropdown to exercises this user has actually logged.
-    const nameById = new Map();
-
-    // First: take names from current plan (nice labels)
+    // collect movement ids + names from plan movements
+    const map = new Map();
     const mv = plan?.movementsByWeekday || {};
-    Object.values(mv).flat().forEach((m) => {
-      if (m?.id) nameById.set(m.id, m.name || m.id);
-    });
-
-    // Then: only include IDs that appear in logs with at least one meaningful set.
-    const used = new Set();
-    for (const row of allLogs || []) {
-      const entries = row?.log?.entries || {};
-      for (const [movementId, sets] of Object.entries(entries)) {
-        if (Array.isArray(sets) && sets.some(setDidSomething)) used.add(movementId);
-      }
-    }
-
-    const out = Array.from(used).map((id) => ({ id, name: nameById.get(id) || "Exercise" }));
-    out.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-    return out;
-  }, [plan, allLogs]);
+    Object.values(mv).flat().forEach((m) => map.set(m.id, m));
+    return Array.from(map.values());
+  }, [plan]);
 
   const [selectedExerciseForChart, setSelectedExerciseForChart] = useState("");
 
@@ -1161,45 +1117,6 @@ useEffect(() => {
     }
     return pts.slice(-60);
   }, [allLogs, selectedExerciseForChart]);
-
-  const exerciseRecords = useMemo(() => {
-    const exId = selectedExerciseForChart;
-    if (!exId) return [];
-    const rows = [];
-    for (let i = allLogs.length - 1; i >= 0; i--) {
-      const row = allLogs[i];
-      const d = row?.date_ymd;
-      const sets = row?.log?.entries?.[exId] || null;
-      if (!Array.isArray(sets) || !sets.some(setDidSomething)) continue;
-
-      let bestReps = 0;
-      let bestWeight = 0;
-      let bestTime = 0;
-      let bestVol = 0;
-
-      for (const s of sets) {
-        if (!setDidSomething(s)) continue;
-        const reps = safeNumber(s.reps);
-        const w = safeNumber(s.weight);
-        const t = safeNumber(s.timeSeconds);
-        bestReps = Math.max(bestReps, reps);
-        bestWeight = Math.max(bestWeight, w);
-        bestTime = Math.max(bestTime, t);
-        const vol = w > 0 ? reps * w : reps;
-        bestVol = Math.max(bestVol, vol);
-      }
-
-      rows.push({
-        date: d,
-        bestReps,
-        bestWeight,
-        bestTime,
-        bestVol: Math.round(bestVol),
-      });
-    }
-    return rows;
-  }, [allLogs, selectedExerciseForChart]);
-
 
 
   const cardioProgress = useMemo(() => {
@@ -1385,7 +1302,7 @@ useEffect(() => {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60)} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
@@ -1651,41 +1568,7 @@ useEffect(() => {
               <div className="mt16 rowBetween">
                 <div className="h2">Exercise progress</div>
                 <div className="selectWide">
-                  <Select value={selectedExerciseForChart} onChange={setSelectedExerciseForChart} options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))} /
-              <div className="mt16">
-                <div className="h3">Exercise records</div>
-                <div className="muted mt6">Most recent first (only this user’s logs).</div>
-                {exerciseRecords.length ? (
-                  <div className="tableWrap mt10">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th style={{ width: 120 }}>Date</th>
-                          <th>Best reps</th>
-                          <th>Best weight</th>
-                          <th>Best time</th>
-                          <th>Best volume</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {exerciseRecords.map((r) => (
-                          <tr key={r.date}>
-                            <td>{r.date}</td>
-                            <td>{r.bestReps || "—"}</td>
-                            <td>{r.bestWeight ? `${r.bestWeight}` : "—"}</td>
-                            <td>{r.bestTime ? `${r.bestTime}s` : "—"}</td>
-                            <td>{r.bestVol || "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="muted mt10">No logs yet for this exercise.</div>
-                )}
-              </div>
-
->
+                  <Select value={selectedExerciseForChart} onChange={setSelectedExerciseForChart} options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))} />
                 </div>
               </div>
 
