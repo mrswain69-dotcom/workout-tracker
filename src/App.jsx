@@ -1320,7 +1320,7 @@ export default function App() {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) ?? 60} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
