@@ -114,19 +114,25 @@ export async function archiveProfile(profileId) {
   return { data, error };
 }
 
-export async function getPlan(familyId) {
-  const { data, error } = await supabase
-    .from("plans")
-    .select("*")
-    .eq("family_id", familyId)
-    .maybeSingle();
+export async function getPlan(familyId, profileId = null) {
+  // Backward-compatible: if profileId is not provided, fall back to legacy family-wide plan
+  let q = supabase.from("plans").select("*").eq("family_id", familyId);
+  if (profileId) q = q.eq("profile_id", profileId);
+  const { data, error } = await q.maybeSingle();
   return { data, error };
 }
 
-export async function upsertPlan(familyId, plan) {
+export async function upsertPlan(familyId, profileId, plan) {
+  // Backward-compatible: if profileId is falsy, write legacy family-wide plan row
+  const row = profileId
+    ? { family_id: familyId, profile_id: profileId, plan_json: plan }
+    : { family_id: familyId, plan_json: plan };
+
+  const onConflict = profileId ? "family_id,profile_id" : "family_id";
+
   const { data, error } = await supabase
     .from("plans")
-    .upsert({ family_id: familyId, plan_json: plan }, { onConflict: "family_id" })
+    .upsert(row, { onConflict })
     .select("*")
     .single();
   return { data, error };
