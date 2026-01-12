@@ -133,33 +133,6 @@ export async function upsertPlan(profileId, plan) {
   return { data: data?.plan_json || null, error };
 }
 
-// Legacy signatures kept for compatibility (no-op wrappers)
-export async function getFamilyPlan(familyId) {
-  const { data, error } = await supabase
-    .from("plans")
-    .select("*")
-    .eq("family_id", familyId)
-    .maybeSingle();
-  return { data, error };
-}
-
-export async function upsertFamilyPlan(familyId, plan) {
-  const { data, error } = await supabase
-    .from("plans")
-    .upsert({ family_id: familyId, plan_json: plan }, { onConflict: "family_id" })
-    .select("*")
-    .single();
-  return { data, error };
-}
-
-export async function upsertPlan(profileId, plan) {
-  const { data, error } = await supabase
-    .from("plans")
-    .upsert({ family_id: familyId, plan_json: plan }, { onConflict: "family_id" })
-    .select("*")
-    .single();
-  return { data, error };
-}
 
 export async function getLog(familyId, profileId, date_ymd) {
   const { data, error } = await supabase
