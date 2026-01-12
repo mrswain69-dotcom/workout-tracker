@@ -132,29 +132,6 @@ export async function upsertPlan(familyId, plan) {
   return { data, error };
 }
 
-// --- Per-profile weekly plan (each person has their own plan) ---
-export async function getProfilePlan(profileId) {
-  if (!profileId) return { data: null, error: new Error("Missing profileId") };
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, plan_json")
-    .eq("id", profileId)
-    .maybeSingle();
-  return { data, error };
-}
-
-export async function upsertProfilePlan(profileId, plan) {
-  if (!profileId) return { data: null, error: new Error("Missing profileId") };
-  const { data, error } = await supabase
-    .from("profiles")
-    .update({ plan_json: plan })
-    .eq("id", profileId)
-    .select("id, plan_json")
-    .single();
-  return { data, error };
-}
-
-
 export async function getLog(familyId, profileId, date_ymd) {
   const { data, error } = await supabase
     .from("logs")
