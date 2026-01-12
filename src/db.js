@@ -114,52 +114,26 @@ export async function archiveProfile(profileId) {
   return { data, error };
 }
 
-export async function getPlan(familyId, profileId) {
-  // Plans are per-profile (so each person can have different weekly routines).
-  // Fallback: if profile-specific plan doesn't exist, try family-only plan.
-  let q = supabase.from("plans").select("*").eq("family_id", familyId);
-  if (profileId) q = q.eq("profile_id", profileId);
-
-  const { data, error } = await q.maybeSingle();
-  if (error) return { data: null, error };
-
-  if (data) return { data, error: null };
-
-  // fallback to older schema (family-only)
-  const { data: famOnly, error: fErr } = await supabase
-    .from("plans")
-    .select("*")
-    .eq("family_id", familyId)
-    .is("profile_id", null)
-    .maybeSingle();
-
-  return { data: famOnly || null, error: fErr || null };
-}
-
-export async function upsertPlan(familyId, profileId, plan) {
-  // Store per-profile plan. If table unique key is family_id+profile_id, this will upsert correctly.
-  const row = { family_id: familyId, plan_json: plan };
-  if (profileId) row.profile_id = profileId;
-
-  // Try the newer composite conflict key first; if that fails, fallback to family_id.
-  let { data, error } = await supabase
-    .from("plans")
-    .upsert(row, { onConflict: "family_id,profile_id" })
-    .select("*")
+// Plans are stored per profile on profiles.plan_json
+export async function getPlan(profileId) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, plan_json")
+    .eq("id", profileId)
     .single();
-
-  if (error && String(error.message || "").toLowerCase().includes("onconflict")) {
-    const res = await supabase
-      .from("plans")
-      .upsert(row, { onConflict: "family_id" })
-      .select("*")
-      .single();
-    data = res.data;
-    error = res.error;
-  }
-
-  return { data, error };
+  return { data: data?.plan_json || null, error };
 }
+
+export async function upsertPlan(profileId, plan) {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ plan_json: plan })
+    .eq("id", profileId)
+    .select("id, plan_json")
+    .single();
+  return { data: data?.plan_json || null, error };
+}
+
 
 export async function getLog(familyId, profileId, date_ymd) {
   const { data, error } = await supabase
