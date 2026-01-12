@@ -130,6 +130,7 @@ export async function upsertPlan(familyId, plan) {
     .select("*")
     .single();
   return { data, error };
+}
 
 // --- Per-profile weekly plan (each person has their own plan) ---
 export async function getProfilePlan(profileId) {
@@ -153,7 +154,6 @@ export async function upsertProfilePlan(profileId, plan) {
   return { data, error };
 }
 
-}
 
 export async function getLog(familyId, profileId, date_ymd) {
   const { data, error } = await supabase
