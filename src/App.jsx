@@ -516,18 +516,21 @@ function AuthScreen({ onAuthed }) {
                   <div className="label">Password</div>
                   <Input value={pw} onChange={setPw} placeholder="••••••••" type="password" />
                 </div>
-                <PrimaryButton disabled={busy} onClick={async () => {
+                <PrimaryButton
+                  disabled={busy}
+                  onClick={async () => {
                     setBusy(true);
-                                        setMsg("");
-                                        try {
-                                          const fn = mode === "signup" ? signUp : signIn;
-                                          const { error } = await fn(email.trim(), pw);
-                                          if (error) setMsg(error.message);
-                                          else onAuthed();
-                                        } finally {
-                                          setBusy(false);
-                                        }
-                  }}>
+                    setMsg("");
+                    try {
+                      const fn = mode === "signup" ? signUp : signIn;
+                      const { error } = await fn(email.trim(), pw);
+                      if (error) setMsg(error.message);
+                      else onAuthed();
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
                   {mode === "signup" ? "Create account" : "Sign in"}
                 </PrimaryButton>
                 {msg && <div className="muted">{msg}</div>}
@@ -1358,7 +1361,7 @@ export default function App() {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60)} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
