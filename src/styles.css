@@ -171,3 +171,23 @@ header .title, header h1, header h2 {
 .table th,.table td{padding:10px 12px;border-bottom:1px solid var(--border,#e5e7eb);text-align:left;font-size:14px;vertical-align:top}
 .table th{background:#f8fafc;font-weight:700;position:sticky;top:0;z-index:1}
 .table tr:last-child td{border-bottom:none}
+
+/* Weekday pills (Plan) */
+.weekPills{display:flex;gap:8px;flex-wrap:wrap;}
+.weekPill{border:1px solid var(--border);background:var(--card);color:var(--text);padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:700;}
+.weekPill.active{background:rgba(255,139,0,0.16);border-color:rgba(255,139,0,0.5);} 
+
+/* Sessions (Log) */
+.sessionList{display:flex;flex-direction:column;gap:10px;}
+.sessionBlock{border:1px solid var(--border);background:var(--card);border-radius:14px;padding:12px;}
+.sessionHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.sessionHeader b{font-size:14px;}
+.sessionMeta{display:flex;gap:10px;flex-wrap:wrap;align-items:end;}
+.sessionMeta .label{font-size:12px;}
+.sessionButtons{display:flex;gap:8px;flex-wrap:wrap;}
+.sessionButtons button{padding:8px 10px;border-radius:12px;font-size:14px;}
+
+/* Plan grid sanity */
+.gridPlan{display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start;}
+.planSide{grid-column:1;}
+.planMain{grid-column:2;}

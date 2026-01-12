@@ -214,6 +214,11 @@ function defaultPlanForFamily() {
     version: 1,
     activityTypes: types, // can add custom types
     dayTypeByWeekday,
+    // Rest interval (seconds) between sets/rounds for each weekday (editable)
+    restSecByWeekday: weekdays.reduce((acc, d) => {
+      acc[d] = 60;
+      return acc;
+    }, {}),
     movementsByWeekday: movements, // only for days where movementsEnabled
     cardioTargetByWeekday: {}, // optional "session focus" text for cardio days
   };
@@ -614,8 +619,8 @@ export default function App() {
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
   const selectedWeekday = weekdayFromYMD(selectedDate);
-  const [restSecDefault, setRestSecDefault] = useState(60);
-  const [sessionsCount, setSessionsCount] = useState(1);
+  // Plan editing should NOT depend on log date.
+  const [planWeekday, setPlanWeekday] = useState("Mon");
 
   const [logForDay, setLogForDay] = useState(null);
   const [allLogs, setAllLogs] = useState([]); // for stats
@@ -687,6 +692,14 @@ export default function App() {
     refreshAll().catch(() => {});
   }, [authed]);
 
+  // When entering the Plan tab, default the plan editor to the same weekday
+  // as the currently selected log date (nice UX, but then independent).
+  useEffect(() => {
+    if (tab !== "plan") return;
+    if (selectedWeekday) setPlanWeekday(selectedWeekday);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
   // --- Load logs when profile changes ---
   useEffect(() => {
     if (!family?.id || !activeProfileId) return;
@@ -717,6 +730,12 @@ export default function App() {
   const movements = plan?.movementsByWeekday?.[selectedWeekday] || [];
 
   const planDay = { ...activityType, movements };
+
+  // Plan editor uses its own weekday selector.
+  const planDayTypeId = plan?.dayTypeByWeekday?.[planWeekday] || "strength";
+  const planActivityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === planDayTypeId) || builtInTypes()[0];
+  const planMovements = plan?.movementsByWeekday?.[planWeekday] || [];
+  const planDayEditor = { ...planActivityType, movements: planMovements };
 
   async function ensureUnlocked(actionLabel = "save changes") {
     if (!family?.id) return false;
@@ -772,11 +791,14 @@ export default function App() {
   }
 
   function blankLogForDay() {
+    const restFromPlan = safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
     return {
-      totalMinutes: "",
-      meta: { restSecDefault: 60, sessionsCount: 1 },
-      startedAt: null,
-      finishedAt: null,
+      // Timing/session meta lives in meta.
+      meta: {
+        restSec: restFromPlan, // actual rest used (editable)
+        sessions: [{ id: uid(), startedAt: null, finishedAt: null, manualMin: "" }],
+        dayManualMin: "", // optional override for whole day
+      },
       weekday: selectedWeekday,
       typeId: dayTypeId,
       entries: {},
@@ -786,26 +808,49 @@ export default function App() {
     };
   }
 
-  async function startSession() {
-    const ctx = await ensureAudio();
-    if (ctx) playStartSound(ctx, victoryTheme);
+  // --- Sessions (timing blocks) ---
+  const getSessions = (l) => (l?.meta?.sessions && Array.isArray(l.meta.sessions) ? l.meta.sessions : []);
+
+  async function addSession() {
     const next = logForDay ? { ...logForDay } : blankLogForDay();
-    next.startedAt = next.startedAt || new Date().toISOString();
-    next.finishedAt = null;
+    const meta = { ...(next.meta || {}) };
+    const sessions = [...getSessions(next)];
+    sessions.push({ id: uid(), startedAt: null, finishedAt: null, manualMin: "" });
+    meta.sessions = sessions;
+    next.meta = meta;
     await saveLog(next);
   }
 
-  async function finishSession() {
+  async function updateSession(sessionId, patch) {
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const meta = { ...(next.meta || {}) };
+    const sessions = [...getSessions(next)].map((s) => (s.id === sessionId ? { ...s, ...patch } : s));
+    meta.sessions = sessions;
+    next.meta = meta;
+    await saveLog(next);
+  }
+
+  async function startSession(sessionId) {
+    const ctx = await ensureAudio();
+    if (ctx) playStartSound(ctx, victoryTheme);
+    await updateSession(sessionId, { startedAt: new Date().toISOString(), finishedAt: null });
+  }
+
+  async function finishSession(sessionId) {
     const ctx = await ensureAudio();
     const next = logForDay ? { ...logForDay } : blankLogForDay();
-    next.finishedAt = new Date().toISOString();
+    const meta = { ...(next.meta || {}) };
+    const sessions = [...getSessions(next)].map((s) =>
+      s.id === sessionId ? { ...s, finishedAt: new Date().toISOString() } : s
+    );
+    meta.sessions = sessions;
+    next.meta = meta;
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
     const earned = awardXpForDay(next, planDay);
     setXp((prev) => prev + earned);
 
     await saveLog(next);
-
     if (ctx) playLevelUp(ctx, victoryTheme);
   }
 
@@ -823,8 +868,7 @@ export default function App() {
     const next = logForDay ? { ...logForDay } : blankLogForDay();
     const entries = { ...(next.entries || {}) };
     const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
-    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "",
-    meta: { restSecDefault: 60, sessionsCount: 1 }, ...(cur[i] || {}) }));
+    const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "", ...(cur[i] || {}) }));
     sets[idx] = { ...sets[idx], ...patch };
     entries[exId] = sets;
     next.entries = entries;
@@ -857,6 +901,48 @@ export default function App() {
     next.custom = { ...(next.custom || { durationMin: "" }), ...patch };
     await saveLog(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+
+  function computeTotalMinutesForDay(log) {
+    if (!log) return null;
+    const manualDay = safeNumber(log?.meta?.dayManualMin);
+    if (manualDay > 0) return manualDay;
+
+    // Sum session times (manual overrides win, else start/end).
+    const sess = getSessions(log);
+    let hasAny = false;
+    let sum = 0;
+    for (const s of sess) {
+      const m = safeNumber(s?.manualMin);
+      if (m > 0) {
+        sum += m;
+        hasAny = true;
+        continue;
+      }
+      if (s?.startedAt && s?.finishedAt) {
+        const ms = new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime();
+        const mins = ms > 0 ? ms / 60000 : 0;
+        if (mins > 0) {
+          sum += mins;
+          hasAny = true;
+        }
+      }
+    }
+    if (hasAny) return Math.round(sum * 10) / 10;
+
+    // Fall back to cardio/custom explicit duration
+    const cardioMin = safeNumber(log?.cardio?.durationMin);
+    if (cardioMin > 0) return cardioMin;
+    const customMin = safeNumber(log?.custom?.durationMin);
+    if (customMin > 0) return customMin;
+
+    // Estimate from sets + rest interval (rough, motivation-only)
+    const restSec = safeNumber(log?.meta?.restSec) || safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
+    const setsLogged = Object.values(log?.entries || {}).flat().filter(setDidSomething).length;
+    if (setsLogged <= 0) return null;
+    const workPerSetMin = 0.5; // quick heuristic
+    const est = setsLogged * workPerSetMin + Math.max(0, setsLogged - 1) * (restSec / 60);
+    return Math.round(est * 10) / 10;
   }
 
   // -------- Stats from allLogs ----------
@@ -927,8 +1013,9 @@ export default function App() {
       }
 
       if (didAnything) {
-        totalSessions += 1;
-        w.sessions += 1;
+        const sc = Math.max(1, getSessions(log).length);
+        totalSessions += sc;
+        w.sessions += sc;
         sessionDays.add(d);
       }
 
@@ -1173,14 +1260,66 @@ export default function App() {
                 </div>
 
                 <div className="rowRight">
-                  <PrimaryButton onClick={startSession}>Start</PrimaryButton>
-                  <PrimaryButton onClick={finishSession}>Finish</PrimaryButton>
+                  <SecondaryButton onClick={addSession}>+ Session</SecondaryButton>
                   <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
                 </div>
               </div>
 
               <div className="muted mt8">
                 {formatDate(selectedDate)} • <b>{planDay.name}</b> ({planDay.kind})
+              </div>
+
+              {/* Sessions */}
+              <div className="panel mt12">
+                <div className="rowBetween">
+                  <div className="h3">Sessions</div>
+                  <div className="muted">Tap start/finish or enter minutes</div>
+                </div>
+                <div className="stack mt12">
+                  {getSessions(logForDay).length === 0 ? (
+                    <div className="muted">No sessions yet. Tap “+ Session”.</div>
+                  ) : (
+                    getSessions(logForDay).map((s, idx) => (
+                      <div key={s.id} className="sessionRow">
+                        <div className="sessionTitle">Session {idx + 1}</div>
+                        <div className="sessionBtns">
+                          <button className="btnSmall primary" onClick={() => startSession(s.id)}>Start</button>
+                          <button className="btnSmall primary" onClick={() => finishSession(s.id)}>Finish</button>
+                        </div>
+                        <div className="sessionTimes">
+                          <div className="mini"><span className="label">Start</span> {s.startedAt ? new Date(s.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</div>
+                          <div className="mini"><span className="label">Finish</span> {s.finishedAt ? new Date(s.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</div>
+                        </div>
+                        <div className="sessionManual">
+                          <div className="label">Minutes (manual)</div>
+                          <Input type="number" min={0} step={0.5} value={s.manualMin ?? ""} onChange={(v) => updateSession(s.id, { manualMin: v })} placeholder="e.g. 25" />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="grid3 mt12">
+                  <div>
+                    <div className="label">Rest between sets (sec)</div>
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
+                      const next = logForDay ? { ...logForDay } : blankLogForDay();
+                      next.meta = { ...(next.meta || {}), restSec: v };
+                      saveLog(next);
+                    }} />
+                  </div>
+                  <div>
+                    <div className="label">Total minutes (override)</div>
+                    <Input type="number" min={0} step={0.5} value={logForDay?.meta?.dayManualMin ?? ""} onChange={(v) => {
+                      const next = logForDay ? { ...logForDay } : blankLogForDay();
+                      next.meta = { ...(next.meta || {}), dayManualMin: v };
+                      saveLog(next);
+                    }} placeholder="leave blank" />
+                  </div>
+                  <div className="muted">
+                    If left blank, we’ll use session timers, cardio/custom time, or an estimate.
+                  </div>
+                </div>
               </div>
 
               {planDay.kind === "cardio" ? (
@@ -1319,8 +1458,8 @@ export default function App() {
                 </div>
 
                 <div className="grid2 mt12">
-                  <SummaryStat label="Total minutes" value={logForDay?.startedAt ? new Date(logForDay.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
-                  <SummaryStat label="Sessions" value={logForDay?.finishedAt ? new Date(logForDay.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"} />
+                  <SummaryStat label="Total minutes" value={computeTotalMinutesForDay(logForDay) ?? "—"} />
+                  <SummaryStat label="Sessions" value={Math.max(0, getSessions(logForDay).length) || "—"} />
                   <SummaryStat label="Sets logged" value={Object.values(logForDay?.entries || {}).flat().filter(setDidSomething).length} />
                   <SummaryStat label="Cardio km" value={safeNumber(logForDay?.cardio?.distanceKm) ? Number(logForDay.cardio.distanceKm).toFixed(2) : "—"} />
                 </div>
@@ -1392,7 +1531,7 @@ export default function App() {
             <Card className="pad">
               <div className="h2">Highlights</div>
               <div className="grid2 mt12">
-                <SummaryStat label="Sessions" value={(logForDay?.meta?.sessionsCount ?? sessionsCount ?? 0) || "—"} />
+                <SummaryStat label="Sessions" value={(stats.totalSessions ?? 0) || "—"} />
                 <SummaryStat label="Streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} />
                 <SummaryStat label="Top effort day" value={stats.topEffortDay || "—"} />
                 <SummaryStat label="Top effort volume" value={stats.topEffortDay ? Math.round(stats.topEffortValue).toLocaleString() : "—"} />
@@ -1476,6 +1615,66 @@ export default function App() {
 
         {tab === "plan" && (
           <div className="gridPlan">
+            <Card className="pad planSide">
+              <div className="h2">Edit day</div>
+              <div className="muted mt8">Choose a weekday, then set its activity type and default rest interval.</div>
+
+              <div className="weekPills mt12">
+                {weekdays.map((d) => (
+                  <button key={d} className={"weekPill " + (planWeekday === d ? "active" : "")} onClick={() => setPlanWeekday(d)}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt16">
+                <div className="label">Rest between sets (sec)</div>
+                <Input
+                  type="number"
+                  min={0}
+                  step={5}
+                  value={(plan?.restSecByWeekday?.[planWeekday] ?? 60)}
+                  onChange={async (v) => {
+                    const next = { ...plan, restSecByWeekday: { ...(plan?.restSecByWeekday || {}), [planWeekday]: Number(v) } };
+                    await savePlan(next);
+                  }}
+                />
+                <div className="muted mt8">Shown on the Log screen and used for time estimates if you don’t enter minutes.</div>
+              </div>
+
+              <div className="mt16">
+                <div className="h3">Activity types</div>
+                <div className="muted mt8">Add custom types (e.g. Swim, Pilates). Everyone can then use them in their weekly plan.</div>
+                <div className="stack mt12">
+                  {(plan?.activityTypes || builtInTypes()).map((t) => (
+                    <div key={t.id} className="mini rowBetween">
+                      <div>
+                        <b>{t.name}</b>
+                        <div className="muted">{t.kind}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="row mt12">
+                  <PrimaryButton
+                    onClick={async () => {
+                      const name = window.prompt("New activity type name (e.g. Swim, Pilates):");
+                      if (!name) return;
+                      const kind = window.prompt('Kind? Type one of: strength, cardio, time, custom', 'custom');
+                      const k = (kind || "custom").toLowerCase();
+                      const allowed = new Set(["strength", "cardio", "time", "custom"]);
+                      const finalKind = allowed.has(k) ? k : "custom";
+                      const nextType = { id: `custom_${uid()}`, name, kind: finalKind };
+                      const next = { ...plan, activityTypes: [...(plan?.activityTypes || builtInTypes()), nextType] };
+                      await savePlan(next);
+                    }}
+                  >
+                    + Add type
+                  </PrimaryButton>
+                </div>
+              </div>
+            </Card>
+
             <Card className="pad planMain">
               <div className="rowBetween">
                 <div>
@@ -1626,9 +1825,9 @@ export default function App() {
                   <div>
                     <div className="label">Type</div>
                     <Select
-                      value={dayTypeId}
+                      value={(plan?.dayTypeByWeekday?.[planWeekday] || "strength")}
                       onChange={async (v) => {
-                        const next = { ...plan, dayTypeByWeekday: { ...(plan.dayTypeByWeekday || {}), [selectedWeekday]: v } };
+                        const next = { ...plan, dayTypeByWeekday: { ...(plan.dayTypeByWeekday || {}), [planWeekday]: v } };
                         await savePlan(next);
                       }}
                       options={(plan?.activityTypes || builtInTypes()).map((t) => ({ value: t.id, label: t.name }))}
@@ -1636,18 +1835,18 @@ export default function App() {
                   </div>
                   <div className="mini">
                     <div className="label">Kind</div>
-                    <div className="big">{activityType.kind}</div>
+                    <div className="big">{planActivityType.kind}</div>
                     <div className="muted">Controls which inputs appear.</div>
                   </div>
                   <div className="mini">
                     <div className="label">Movements</div>
-                    <div className="big">{activityType.movementsEnabled ? "Enabled" : "None"}</div>
+                    <div className="big">{planActivityType.movementsEnabled ? "Enabled" : "None"}</div>
                     <div className="muted">Strength / Timed rounds use movements.</div>
                   </div>
                 </div>
               </div>
 
-              {activityType.kind === "cardio" ? (
+              {planActivityType.kind === "cardio" ? (
                 <div className="panel mt16">
                   <div className="h3">Cardio target (optional)</div>
                   <div className="muted mt8">
@@ -1657,11 +1856,11 @@ export default function App() {
                   </div>
                   <div className="mt12">
                     <Input
-                      value={(plan?.cardioTargetByWeekday?.[selectedWeekday]) || ""}
+                      value={(plan?.cardioTargetByWeekday?.[planWeekday]) || ""}
                       onChange={async (v) => {
                         const next = {
                           ...plan,
-                          cardioTargetByWeekday: { ...(plan.cardioTargetByWeekday || {}), [selectedWeekday]: v },
+                          cardioTargetByWeekday: { ...(plan.cardioTargetByWeekday || {}), [planWeekday]: v },
                         };
                         await savePlan(next);
                       }}
@@ -1671,9 +1870,9 @@ export default function App() {
                 </div>
               ) : null}
 
-              {activityType.movementsEnabled ? (
+              {planActivityType.movementsEnabled ? (
                 <div className="stack mt16">
-                  {(movements || []).map((m) => (
+                  {(planMovements || []).map((m) => (
                     <div key={m.id} className="planRow">
                       <div className="planLeft">
                         <div className="planName">{m.name}</div>
@@ -1729,12 +1928,12 @@ export default function App() {
                               if (!Number.isFinite(targetWeight)) targetWeight = null;
                             }
 
-                            const nextMov = (movements || []).map((x) =>
+                            const nextMov = (planMovements || []).map((x) =>
                               x.id === m.id ? { ...x, targetText, targetReps, targetWeight } : x
                             );
                             const next = {
                               ...plan,
-                              movementsByWeekday: { ...(plan.movementsByWeekday || {}), [selectedWeekday]: nextMov },
+                              movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
                             };
                             await savePlan(next);
                           }}
@@ -1746,8 +1945,8 @@ export default function App() {
                           onClick={async () => {
                             const name = prompt("Rename movement:", m.name);
                             if (!name) return;
-                            const nextMov = (movements || []).map((x) => (x.id === m.id ? { ...x, name: name.trim() } : x));
-                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [selectedWeekday]: nextMov } };
+                            const nextMov = (planMovements || []).map((x) => (x.id === m.id ? { ...x, name: name.trim() } : x));
+                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov } };
                             await savePlan(next);
                           }}
                         >
@@ -1755,8 +1954,8 @@ export default function App() {
                         </SecondaryButton>
                         <SecondaryButton
                           onClick={async () => {
-                            const nextMov = (movements || []).filter((x) => x.id !== m.id);
-                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [selectedWeekday]: nextMov } };
+                            const nextMov = (planMovements || []).filter((x) => x.id !== m.id);
+                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov } };
                             await savePlan(next);
                           }}
                         >
@@ -1766,17 +1965,17 @@ export default function App() {
                     </div>
                   ))}
 
-                  {(movements || []).length < 3 && (
+                  {(planMovements || []).length < 3 && (
                     <Card className="pad">
                       <div className="h3">Add movement</div>
                       <div className="muted">Limit 3 movements per day (keeps it clean).</div>
                       <AddMovement
-                        defaultKind={activityType.kind}
+                        defaultKind={planActivityType.kind}
                         onAdd={async (m) => {
-                          const arr = [...(movements || [])];
+                          const arr = [...(planMovements || [])];
                           if (arr.length >= 3) return alert("Max 3 movements per day.");
                           arr.push({ ...m, id: uid() });
-                          const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [selectedWeekday]: arr } };
+                          const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: arr } };
                           await savePlan(next);
                         }}
                       />
@@ -1800,18 +1999,6 @@ export default function App() {
               </div>
             </Card>
 
-            <Card className="pad planSide">
-              <div className="h2">How types work</div>
-              <div className="stack mt12">
-                <div className="mini"><b>Strength</b>: movements with reps/weight or time.</div>
-                <div className="mini"><b>Time</b>: movements with fixed seconds (box rounds etc.).</div>
-                <div className="mini"><b>Cardio</b>: distance + time (+ avg speed).</div>
-                <div className="mini"><b>Custom</b>: duration only (minutes).</div>
-              </div>
-              <div className="mini mt16">
-                Tip: You can set any weekday to any type, so your dad can do “Swim” on Tue, “Pilates” on Thu, etc.
-              </div>
-            </Card>
           </div>
         )}
 
