@@ -24,6 +24,8 @@ import {
   archiveProfile,
   getPlan,
   upsertPlan,
+  getProfilePlan,
+  upsertProfilePlan,
   getLog,
   upsertLog,
   listLogs,
@@ -480,16 +482,6 @@ function AuthScreen({ onAuthed }) {
     <div className="page">
       <div className="wrap">
 
-      {showSwToast ? (
-        <div className="swToast" role="status">
-          <div className="swToastText">✨ Update available. Refresh to get the latest version.</div>
-          <div className="swToastActions">
-            <button className="btn" onClick={() => setShowSwToast(false)}>Later</button>
-            <button className="btn primary" onClick={applySwUpdate}>Refresh</button>
-          </div>
-        </div>
-      ) : null}
-
         <Card className="pad authCard">
           <div className="small">Workout Tracker • Online</div>
           <h1 className="title">Account</h1>
@@ -554,18 +546,23 @@ export default function App() {
   // --- Service worker update toast (prevents stale PWA UI after deploys) ---
   const [swUpdateReg, setSwUpdateReg] = useState(null);
   const [showSwToast, setShowSwToast] = useState(false);
+  const [swToastDismissed, setSwToastDismissed] = useState(() => {
+    try { return sessionStorage.getItem("kwt_sw_toast_dismissed") === "1"; } catch { return false; }
+  });
 
   useEffect(() => {
     const onUpdate = (e) => {
       const reg = e?.detail?.registration;
-      if (reg) {
+      // Only show if we actually have a waiting worker (real update) and user hasn't dismissed it.
+      if (swToastDismissed) return;
+      if (reg?.waiting) {
         setSwUpdateReg(reg);
         setShowSwToast(true);
       }
     };
     window.addEventListener('kwt-sw-update', onUpdate);
     return () => window.removeEventListener('kwt-sw-update', onUpdate);
-  }, []);
+  }, [swToastDismissed]);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -586,6 +583,12 @@ export default function App() {
       window.location.reload();
     }
   };
+  const dismissSwToast = () => {
+    setShowSwToast(false);
+    setSwToastDismissed(true);
+    try { sessionStorage.setItem("kwt_sw_toast_dismissed", "1"); } catch {}
+  };
+
   const accountRef = useRef(null);
   const peopleRef = useRef(null);
   const planRef = useRef(null);
@@ -675,12 +678,13 @@ export default function App() {
       profList = again.data || [];
     }
     setProfiles(profList);
-    setActiveProfileId((prev) => prev || profList[0]?.id || "");
+    const nextProfileId = (activeProfileId || profList[0]?.id || "");
+    setActiveProfileId(nextProfileId);
 
-    const { data: planRow } = await getPlan(fam.id);
+    const { data: planRow } = await getProfilePlan(nextProfileId);
     if (!planRow) {
       const p = defaultPlanForFamily();
-      await upsertPlan(fam.id, p);
+      if (nextProfileId) await upsertProfilePlan(nextProfileId, p);
       setPlan(p);
     } else {
       setPlan(planRow.plan_json);
@@ -719,6 +723,21 @@ export default function App() {
   }, [family?.id, activeProfileId, selectedDate]);
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
+
+  // --- Load weekly plan for the selected profile ---
+  useEffect(() => {
+    if (!activeProfileId) return;
+    (async () => {
+      const { data } = await getProfilePlan(activeProfileId);
+      if (data?.plan_json) {
+        setPlan(data.plan_json);
+      } else {
+        const p = defaultPlanForFamily();
+        await upsertProfilePlan(activeProfileId, p);
+        setPlan(p);
+      }
+    })().catch(() => {});
+  }, [activeProfileId]);
 
   const xpToNext = 100 - (xp % 100);
   const level = 1 + Math.floor(xp / 100);
@@ -760,7 +779,7 @@ export default function App() {
     setUndoLabel(label);
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    await upsertProfilePlan(activeProfileId, nextPlan);
   }
 
   async function undoLastPlan() {
@@ -771,14 +790,14 @@ export default function App() {
     setUndoLabel("");
     setPlan(prev);
     if (!family?.id) return;
-    await upsertPlan(family.id, prev);
+    await upsertProfilePlan(activeProfileId, prev);
   }
 
   async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    await upsertProfilePlan(activeProfileId, nextPlan);
   }
 
   async function saveLog(nextLog) {
@@ -1197,7 +1216,20 @@ export default function App() {
   
 
 
-  if (!sessionReady) return <div className="page"><div className="wrap"><div className="muted">Loading…</div></div><StyleTag/></div>;
+  if (!sessionReady) return <div className="page"><div className="wrap">
+      {showSwToast && !swToastDismissed ? (
+        <div className="sw-toast" role="status">
+          <div className="sw-toast__inner">
+            <div className="sw-toast__text">✨ Update available. Refresh to get the latest version.</div>
+            <div className="sw-toast__actions">
+              <button className="sw-toast__btn" onClick={dismissSwToast}>Later</button>
+              <button className="sw-toast__btn sw-toast__btn--primary" onClick={applySwUpdate}>Refresh</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+<div className="muted">Loading…</div></div><StyleTag/></div>;
   if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />;
 
   return (
