@@ -685,15 +685,10 @@ export default function App() {
     setProfiles(profList);
     const nextProfileId = (activeProfileId || profList[0]?.id || "");
     setActiveProfileId(nextProfileId);
-
-    const { data: planRow } = await getProfilePlan(nextProfileId);
-    if (!planRow) {
-      const p = defaultPlanForFamily();
-      if (nextProfileId) await upsertProfilePlan(nextProfileId, p);
-      setPlan(p);
-    } else {
-      setPlan(planRow.plan_json);
-    }
+    // IMPORTANT:
+    // Weekly plans are per-profile (stored on the profile row or keyed per profile).
+    // Don't fetch/write a shared family plan here. Plan loading is handled by the
+    // per-profile effect below so switching profiles always shows the right plan.
   }
 
   useEffect(() => {
@@ -729,20 +724,35 @@ export default function App() {
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
+  function updateProfilePlanInState(profileId, nextPlan) {
+    setProfiles((prev) =>
+      (prev || []).map((p) => (p.id === profileId ? { ...p, plan_json: nextPlan } : p))
+    );
+  }
+
   // --- Load weekly plan for the selected profile ---
   useEffect(() => {
     if (!activeProfileId) return;
+    // Prefer the plan already present on the profile row (fast + avoids shared-plan bugs).
+    if (activeProfile?.plan_json) {
+      setPlan(activeProfile.plan_json);
+      return;
+    }
+
     (async () => {
+      // Fallback to DB helper (in case plan_json isn't included in listProfiles).
       const { data } = await getProfilePlan(activeProfileId);
       if (data?.plan_json) {
         setPlan(data.plan_json);
+        updateProfilePlanInState(activeProfileId, data.plan_json);
       } else {
         const p = defaultPlanForFamily();
         await upsertProfilePlan(activeProfileId, p);
         setPlan(p);
+        updateProfilePlanInState(activeProfileId, p);
       }
     })().catch(() => {});
-  }, [activeProfileId]);
+  }, [activeProfileId, activeProfile?.plan_json]);
 
   const xpToNext = 100 - (xp % 100);
   const level = 1 + Math.floor(xp / 100);
@@ -784,6 +794,7 @@ export default function App() {
     setUndoLabel(label);
     setPlan(nextPlan);
     if (!family?.id) return;
+    updateProfilePlanInState(activeProfileId, nextPlan);
     await upsertProfilePlan(activeProfileId, nextPlan);
   }
 
@@ -795,6 +806,7 @@ export default function App() {
     setUndoLabel("");
     setPlan(prev);
     if (!family?.id) return;
+    updateProfilePlanInState(activeProfileId, prev);
     await upsertProfilePlan(activeProfileId, prev);
   }
 
@@ -802,6 +814,7 @@ export default function App() {
     if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
+    updateProfilePlanInState(activeProfileId, nextPlan);
     await upsertProfilePlan(activeProfileId, nextPlan);
   }
 
