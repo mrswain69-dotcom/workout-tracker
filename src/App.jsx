@@ -2544,7 +2544,6 @@ const strengthDay = (names) =>
   });
 
 const boxRounds = (names) =>
- = (names) =>
     names.map((n) =>
       movement(n, "time", {
         fixedSeconds: 60,
