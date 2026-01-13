@@ -2652,17 +2652,6 @@ const boxRounds = (names) =>
       plan: recoveryMobility,
     },
   ];
-  "Burpees": "Drop down, jump back, stand up, absorb quietly, reset and repeat.",
-  "Jump Rope": "Small bounces, wrists turn the rope. Stay light on feet.",
-  "Mountain Climbers": "Hands under shoulders. Drive knees fast while keeping hips stable.",
-  "Burpees": "Smooth rhythm. Step back if needed; quality over speed.",
-  "1-2 (jab–cross) + move": "Snap punches, hands back to guard. Add a small step after.",
-  "Hook–cross + duck": "Turn hips for the hook. Duck under (small bend), back to guard.",
-  "Knees + teeps (shadow)": "Core tight. Knee up then extend for a light front kick. Control.",
-  "Core finisher (30s on / 30s off)": "Pick: plank, dead-bug, bicycle. Keep it tidy.",
-  "1-2-3-2 combo": "Jab–cross–hook–cross. Stay light, guard up.",
-  "Punch–slip–punch": "Slip = tiny head movement. Return fire fast, then reset.",
-  "Fast feet (shadow)": "Quick steps, light bounce. Hands up, breathe through nose if possible.",
 };
 
 
