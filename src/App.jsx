@@ -553,9 +553,8 @@ export default function App() {
   });
 
   useEffect(() => {
-    const onUpdate
     if (!ENABLE_SW_TOAST) return;
- = (e) => {
+    const onUpdate = (e) => {
       const reg = e?.detail?.registration;
       // Only show if we actually have a waiting worker (real update) and user hasn't dismissed it.
       if (swToastDismissed) return;

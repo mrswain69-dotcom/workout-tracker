@@ -114,44 +114,23 @@ export async function archiveProfile(profileId) {
   return { data, error };
 }
 
-export async function getPlan(familyId) {
-  const { data, error } = await supabase
-    .from("plans")
-    .select("*")
-    .eq("family_id", familyId)
-    .maybeSingle();
-  return { data, error };
-}
-
-export async function upsertPlan(familyId, plan) {
-  const { data, error } = await supabase
-    .from("plans")
-    .upsert({ family_id: familyId, plan_json: plan }, { onConflict: "family_id" })
-    .select("*")
-    .single();
-  return { data, error };
-}
-
-// --- Per-profile weekly plan (each person has their own plan) ---
-export async function getProfilePlan(profileId) {
-  if (!profileId) return { data: null, error: new Error("Missing profileId") };
+export async function getPlan(profileId) {
   const { data, error } = await supabase
     .from("profiles")
     .select("id, plan_json")
     .eq("id", profileId)
-    .maybeSingle();
-  return { data, error };
+    .single();
+  return { data: data?.plan_json || null, error };
 }
 
-export async function upsertProfilePlan(profileId, plan) {
-  if (!profileId) return { data: null, error: new Error("Missing profileId") };
+export async function upsertPlan(profileId, plan) {
   const { data, error } = await supabase
     .from("profiles")
     .update({ plan_json: plan })
     .eq("id", profileId)
     .select("id, plan_json")
     .single();
-  return { data, error };
+  return { data: data?.plan_json || null, error };
 }
 
 
