@@ -24,8 +24,6 @@ import {
   archiveProfile,
   getPlan,
   upsertPlan,
-  getProfilePlan,
-  upsertProfilePlan,
   getLog,
   upsertLog,
   listLogs,
@@ -39,6 +37,17 @@ import {
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Back-compat helper: some builds referenced weekdayFromDate().
+// Keep it as a thin wrapper to avoid runtime ReferenceError if cached bundles call it.
+function weekdayFromDate(d) {
+  try {
+    const dt = d instanceof Date ? d : new Date(d);
+    return WEEKDAYS[dt.getDay()] || "";
+  } catch {
+    return "";
+  }
+}
 function weekdayFromYMD(ymd) {
   try {
     const d = new Date(`${ymd}T00:00:00`);
@@ -482,14 +491,18 @@ function AuthScreen({ onAuthed }) {
     <div className="page">
       <div className="wrap">
 
-        <Card className="pad authCard">
-          <div className="brandLockup authBrand">
-            <img className="brandMark" src="/icons/icon-192.png" alt="Workout Tracker" />
-            <div className="brandText">
-              <div className="brandTitle">Workout Tracker</div>
-              <div className="brandTag">Build Strength. Build Habits.</div>
-            </div>
+      {showSwToast ? (
+        <div className="swToast" role="status">
+          <div className="swToastText">✨ Update available. Refresh to get the latest version.</div>
+          <div className="swToastActions">
+            <button className="btn" onClick={() => setShowSwToast(false)}>Later</button>
+            <button className="btn primary" onClick={applySwUpdate}>Refresh</button>
           </div>
+        </div>
+      ) : null}
+
+        <Card className="pad authCard">
+          <div className="small">Workout Tracker • Online</div>
           <h1 className="title">Account</h1>
           {!isSupabaseReady() ? (
             <div className="panel mt16">
@@ -547,36 +560,26 @@ function AuthScreen({ onAuthed }) {
 
 // -------- Main app ----------
 export default function App() {
-  const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
-
   const [tab, setTab] = useState("log");
 
   // --- Service worker update toast (prevents stale PWA UI after deploys) ---
   const [swUpdateReg, setSwUpdateReg] = useState(null);
   const [showSwToast, setShowSwToast] = useState(false);
-  const [swToastDismissed, setSwToastDismissed] = useState(() => {
-    try { return sessionStorage.getItem("kwt_sw_toast_dismissed") === "1"; } catch { return false; }
-  });
 
   useEffect(() => {
-    if (!ENABLE_SW_TOAST) return;
     const onUpdate = (e) => {
       const reg = e?.detail?.registration;
-      // Only show if we actually have a waiting worker (real update) and user hasn't dismissed it.
-      if (swToastDismissed) return;
-      if (reg?.waiting) {
+      if (reg) {
         setSwUpdateReg(reg);
         setShowSwToast(true);
       }
     };
     window.addEventListener('kwt-sw-update', onUpdate);
     return () => window.removeEventListener('kwt-sw-update', onUpdate);
-  }, [swToastDismissed]);
+  }, []);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
-    if (!ENABLE_SW_TOAST) return;
-
     const onControllerChange = () => window.location.reload();
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
     return () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
@@ -594,12 +597,6 @@ export default function App() {
       window.location.reload();
     }
   };
-  const dismissSwToast = () => {
-    setShowSwToast(false);
-    setSwToastDismissed(true);
-    try { sessionStorage.setItem("kwt_sw_toast_dismissed", "1"); } catch {}
-  };
-
   const accountRef = useRef(null);
   const peopleRef = useRef(null);
   const planRef = useRef(null);
@@ -642,7 +639,6 @@ export default function App() {
   const [soundOn, setSoundOn] = useState(true);
   const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
   const [xp, setXp] = useState(0);
-  const [bonusPop, setBonusPop] = useState(0);
 
   const audioCtxRef = useRef(null);
 
@@ -690,12 +686,16 @@ export default function App() {
       profList = again.data || [];
     }
     setProfiles(profList);
-    const nextProfileId = (activeProfileId || profList[0]?.id || "");
-    setActiveProfileId(nextProfileId);
-    // IMPORTANT:
-    // Weekly plans are per-profile (stored on the profile row or keyed per profile).
-    // Don't fetch/write a shared family plan here. Plan loading is handled by the
-    // per-profile effect below so switching profiles always shows the right plan.
+    setActiveProfileId((prev) => prev || profList[0]?.id || "");
+
+    const { data: planRow } = await getPlan(fam.id);
+    if (!planRow) {
+      const p = defaultPlanForFamily();
+      await upsertPlan(fam.id, p);
+      setPlan(p);
+    } else {
+      setPlan(planRow.plan_json);
+    }
   }
 
   useEffect(() => {
@@ -731,36 +731,6 @@ export default function App() {
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
-  function updateProfilePlanInState(profileId, nextPlan) {
-    setProfiles((prev) =>
-      (prev || []).map((p) => (p.id === profileId ? { ...p, plan_json: nextPlan } : p))
-    );
-  }
-
-  // --- Load weekly plan for the selected profile ---
-  useEffect(() => {
-    if (!activeProfileId) return;
-    // Prefer the plan already present on the profile row (fast + avoids shared-plan bugs).
-    if (activeProfile?.plan_json) {
-      setPlan(activeProfile.plan_json);
-      return;
-    }
-
-    (async () => {
-      // Fallback to DB helper (in case plan_json isn't included in listProfiles).
-      const { data } = await getProfilePlan(activeProfileId);
-      if (data?.plan_json) {
-        setPlan(data.plan_json);
-        updateProfilePlanInState(activeProfileId, data.plan_json);
-      } else {
-        const p = defaultPlanForFamily();
-        await upsertProfilePlan(activeProfileId, p);
-        setPlan(p);
-        updateProfilePlanInState(activeProfileId, p);
-      }
-    })().catch(() => {});
-  }, [activeProfileId, activeProfile?.plan_json]);
-
   const xpToNext = 100 - (xp % 100);
   const level = 1 + Math.floor(xp / 100);
   const unlocked = { arcade: level >= 3, chill: level >= 5 };
@@ -777,33 +747,6 @@ export default function App() {
   const planActivityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === planDayTypeId) || builtInTypes()[0];
   const planMovements = plan?.movementsByWeekday?.[planWeekday] || [];
   const planDayEditor = { ...planActivityType, movements: planMovements };
-
-const planDayForWeekday = (weekday) => {
-  const typeId = plan?.dayTypeByWeekday?.[weekday] || "strength";
-  const t = (plan?.activityTypes || builtInTypes()).find((x) => x.id === typeId) || builtInTypes()[0];
-  const movs = plan?.movementsByWeekday?.[weekday] || [];
-  return { ...t, movements: movs };
-};
-
-const computeXpFromLogs = (records) => {
-  if (!Array.isArray(records)) return 0;
-  let total = 0;
-  for (const r of records) {
-    const l = r?.log;
-    if (!l) continue;
-    const w = l.weekday || weekdayFromDate(r?.date_ymd);
-    const pd = planDayForWeekday(w);
-    total += awardXpForDay(l, pd);
-    if (l?.meta?.challengeClaimed) total += 15;
-  }
-  return total;
-};
-
-useEffect(() => {
-  setXp(computeXpFromLogs(allLogs));
-}, [allLogs, plan]);
-
-
 
   async function ensureUnlocked(actionLabel = "save changes") {
     if (!family?.id) return false;
@@ -828,8 +771,7 @@ useEffect(() => {
     setUndoLabel(label);
     setPlan(nextPlan);
     if (!family?.id) return;
-    updateProfilePlanInState(activeProfileId, nextPlan);
-    await upsertProfilePlan(activeProfileId, nextPlan);
+    await upsertPlan(family.id, nextPlan);
   }
 
   async function undoLastPlan() {
@@ -840,16 +782,14 @@ useEffect(() => {
     setUndoLabel("");
     setPlan(prev);
     if (!family?.id) return;
-    updateProfilePlanInState(activeProfileId, prev);
-    await upsertProfilePlan(activeProfileId, prev);
+    await upsertPlan(family.id, prev);
   }
 
   async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
-    updateProfilePlanInState(activeProfileId, nextPlan);
-    await upsertProfilePlan(activeProfileId, nextPlan);
+    await upsertPlan(family.id, nextPlan);
   }
 
   async function saveLog(nextLog) {
@@ -867,7 +807,7 @@ useEffect(() => {
       // Timing/session meta lives in meta.
       meta: {
         restSec: restFromPlan, // actual rest used (editable)
-        sessions: [],
+        sessions: [{ id: uid(), startedAt: null, finishedAt: null, manualMin: "" }],
         dayManualMin: "", // optional override for whole day
       },
       weekday: selectedWeekday,
@@ -900,16 +840,6 @@ useEffect(() => {
     next.meta = meta;
     await saveLog(next);
   }
-  async function removeSession(sessionId) {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = { ...(next.meta || {}) };
-    const sessions = [...getSessions(next)].filter((s) => s.id !== sessionId);
-    meta.sessions = sessions;
-    next.meta = meta;
-    await saveLog(next);
-  }
-
-
 
   async function startSession(sessionId) {
     const ctx = await ensureAudio();
@@ -928,29 +858,14 @@ useEffect(() => {
     next.meta = meta;
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
+    const earned = awardXpForDay(next, planDay);
+    setXp((prev) => prev + earned);
+
     await saveLog(next);
-    if (ctx) playBling(ctx, Math.max(1, next?.gamify?.comboMax || 1), victoryTheme);
+    if (ctx) playLevelUp(ctx, victoryTheme);
   }
 
-  
-async function claimDailyBonus() {
-  const qualifies = isDayComplete(logForDay, planDay);
-  if (!qualifies) {
-    window.alert("Finish logging today’s plan first (fill in your sets), then claim the bonus!");
-    return;
-  }
-  if (logForDay?.meta?.challengeClaimed) return;
-
-  const ctx = await ensureAudio();
-  const next = logForDay ? { ...logForDay } : blankLogForDay();
-  next.meta = { ...(next.meta || {}), challengeClaimed: true };
-  await saveLog(next);
-
-  setBonusPop(Date.now());
-  if (ctx) playBling(ctx, 6, victoryTheme);
-}
-
-async function resetDay() {
+  async function resetDay() {
     await saveLog(null);
     // wipe row by upserting empty? easiest: store null locally; for DB, overwrite with blank? We'll just store a blank with a reset marker.
     const next = blankLogForDay();
@@ -1293,20 +1208,7 @@ async function resetDay() {
   
 
 
-  if (!sessionReady) return <div className="page"><div className="wrap">
-      {ENABLE_SW_TOAST && showSwToast && !swToastDismissed ? (
-        <div className="sw-toast" role="status">
-          <div className="sw-toast__inner">
-            <div className="sw-toast__text">✨ Update available. Refresh to get the latest version.</div>
-            <div className="sw-toast__actions">
-              <button className="sw-toast__btn" onClick={dismissSwToast}>Later</button>
-              <button className="sw-toast__btn sw-toast__btn--primary" onClick={applySwUpdate}>Refresh</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-<div className="muted">Loading…</div></div><StyleTag/></div>;
+  if (!sessionReady) return <div className="page"><div className="wrap"><div className="muted">Loading…</div></div><StyleTag/></div>;
   if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />;
 
   return (
@@ -1392,26 +1294,8 @@ async function resetDay() {
                       <div key={s.id} className="sessionRow">
                         <div className="sessionTitle">Session {idx + 1}</div>
                         <div className="sessionBtns">
-                          <PrimaryButton
-                            className="btnSmall"
-                            disabled={!!s.startedAt}
-                            onClick={() => startSession(s.id)}
-                          >
-                            Start
-                          </PrimaryButton>
-                          <PrimaryButton
-                            className="btnSmall"
-                            disabled={!s.startedAt || !!s.finishedAt}
-                            onClick={() => finishSession(s.id)}
-                          >
-                            Finish
-                          </PrimaryButton>
-                          <SecondaryButton
-                            className="btnSmall"
-                            onClick={() => removeSession(s.id)}
-                          >
-                            Remove
-                          </SecondaryButton>
+                          <button className="btnSmall primary" onClick={() => startSession(s.id)}>Start</button>
+                          <button className="btnSmall primary" onClick={() => finishSession(s.id)}>Finish</button>
                         </div>
                         <div className="sessionTimes">
                           <div className="mini"><span className="label">Start</span> {s.startedAt ? new Date(s.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</div>
@@ -1429,7 +1313,7 @@ async function resetDay() {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60)} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
@@ -1504,7 +1388,7 @@ async function resetDay() {
                           <div className="panelTop">
                             <div>
                               <div className="h2">{ex.name}</div>
-                              {ex.note ? <div className="muted mt8">{ex.note}</div> : null}
+                              {ex.note ? <div className="muted mt6">{ex.note}</div> : null}
                               <div className="pills mt8">
                                 <Pill>{ex.mode}</Pill>
                                 <Pill>3 sets</Pill>
@@ -1647,23 +1531,7 @@ async function resetDay() {
                 <div className="stack mt12">
                   <Challenge text="Complete today’s plan" done={isDayComplete(logForDay, planDay)} />
                   <Challenge text="Hit a combo streak (5 sets in a row)" done={(logForDay?.gamify?.comboMax || 0) >= 5} />
-                  <div className="challenge">
-                    <div>
-                      Claim daily bonus <span className="muted">(15 XP)</span>
-                    </div>
-                    <div className="row">
-                      <label className="check">
-                        <input
-                          type="checkbox"
-                          checked={!!logForDay?.meta?.challengeClaimed}
-                          onChange={() => claimDailyBonus()}
-                        />
-                        Done
-                      </label>
-                    </div>
-                  </div>
                   <Challenge text="XP to next level" done={xpToNext <= 25} />
-                  {bonusPop ? <div key={bonusPop} className="confettiBurst" aria-hidden="true" /> : null}
                 </div>
               </Card>
             </div>
@@ -2020,7 +1888,7 @@ async function resetDay() {
                     <div key={m.id} className="planRow">
                       <div className="planLeft">
                         <div className="planName">{m.name}</div>
-                        {m.note ? <div className="muted mt4">{m.note}</div> : null}
+                        {m.note ? <div className="muted mt6">{m.note}</div> : null}
                         <div className="pills mt8">
                           <Pill>{m.mode}</Pill>
                           <Pill>3 sets</Pill>
@@ -2598,166 +2466,302 @@ function StyleTag() {
   );
 }
 
-const COACHING_NOTES = {
-  "Push-ups": "Strong plank body. Chest to just above the floor, then press up.",
-  "Bodyweight Squats": "Feet shoulder-width. Sit back, knees track over toes. Stand tall.",
-  "Goblet Squat": "Hold a dumbbell/kettlebell at chest. Keep chest up, squat deep with control.",
-  "Reverse Lunges": "Step back, drop back knee towards floor, push through front foot.",
-  "Lunges": "Long step, front knee over mid-foot, keep torso tall.",
-  "Step-ups": "Use a stable step/bench. Drive through the whole foot; control down.",
-  "Split Squat": "Stay in a split stance. Drop straight down and up (slow & controlled).",
-  "Hip Hinge (RDL)": "Soft knees, push hips back, feel hamstrings, keep back neutral.",
-  "Glute Bridge": "Heels close to bum. Squeeze glutes at the top for 1 second.",
-  "Calf Raises": "Full range: down slow, up strong. Keep balance with a wall if needed.",
-  "Dumbbell Row": "Flat back. Pull elbow to your pocket, squeeze shoulder blade.",
-  "Shoulder Press": "Brace core. Press overhead without leaning back.",
-  "Pull / Row variation": "Pick any row/pull movement and focus on smooth reps.",
-  "Plank": "Elbows under shoulders. Ribs down, squeeze glutes, breathe.",
-  "Side Plank": "Hips high, straight line head-to-heels. Hold steady, breathe.",
-  "Hollow Hold": "Lower back pressed down. Hold a tight banana shape.",
-  "Wall Sit": "Back flat to wall. Knees about 90°. Stay strong and breathe.",
-  "Squat Jumps": "Soft landings. Jump up, absorb quietly, reset and repeat.",
-  "Jump Rope": "Small bounces, wrists turn the rope. Stay light on feet.",
-  "Mountain Climbers": "Hands under shoulders. Drive knees fast while keeping hips stable.",
-  "Burpees": "Smooth rhythm. Step back if needed; quality over speed.",
-  "1-2 (jab–cross) + move": "Snap punches, hands back to guard. Add a small step after.",
-  "Hook–cross + duck": "Turn hips for the hook. Duck under (small bend), back to guard.",
-  "Knees + teeps (shadow)": "Core tight. Knee up then extend for a light front kick. Control.",
-  "Core finisher (30s on / 30s off)": "Pick: plank, dead-bug, bicycle. Keep it tidy.",
-  "1-2-3-2 combo": "Jab–cross–hook–cross. Stay light, guard up.",
-  "Punch–slip–punch": "Slip = tiny head movement. Return fire fast, then reset.",
-  "Fast feet (shadow)": "Quick steps, light bounce. Hands up, breathe through nose if possible.",
-};
-
 function presetPlans() {
-  // Build a fresh plan each call (new movement IDs) so presets don’t clash with older logs.
-  const noteFor = (name) => COACHING_NOTES[name] || "";
+  // Presets are intentionally DIFFERENT (day types, movements, rest, and cardio targets)
+  // so selecting one clearly changes the weekly plan.
+  const base = defaultPlanForFamily();
 
-  const movement = (name, mode, opts = {}) => ({
-    id: uid(),
-    name,
-    mode,
-    note: noteFor(name),
-    ...opts,
-  });
+  const deepClone = (x) => JSON.parse(JSON.stringify(x));
 
-  
-const strengthDay = (names) =>
-  names.map((n) => {
-    const noWeight = ["Push-ups", "Plank", "Side Plank", "Hollow Hold", "Burpees", "Jump Rope", "Mountain Climbers"];
-    const allowWeight = !noWeight.includes(n);
-    return movement(n, "strength", { allowWeight });
-  });
+  // Movement helpers (include short coaching notes so kids know what to do)
+  const strength = (items, allowWeight = true) =>
+    items.map((it) => ({
+      id: uid(),
+      name: it.name,
+      note: it.note || "",
+      mode: "strength",
+      allowWeight,
+    }));
 
-const boxRounds = (names) =>
-    names.map((n) =>
-      movement(n, "time", {
-        fixedSeconds: 60,
-        allowCount: true,
-        countLabel: "rounds",
-      })
-    );
+  const custom = (items) =>
+    items.map((it) => ({
+      id: uid(),
+      name: it.name,
+      note: it.note || "",
+      mode: "custom",
+      allowWeight: false,
+    }));
 
-  const baseTypes = builtInTypes();
-
-  const makePlan = ({ dayTypeByWeekday, movementsByWeekday, restSecByWeekday, cardioTargetByWeekday }) => ({
-    version: 1,
-    activityTypes: baseTypes,
-    dayTypeByWeekday: dayTypeByWeekday || defaultPlanForFamily().dayTypeByWeekday,
-    restSecByWeekday: restSecByWeekday || weekdays.reduce((acc, d) => ((acc[d] = 60), acc), {}),
-    movementsByWeekday: movementsByWeekday || {},
-    cardioTargetByWeekday: cardioTargetByWeekday || {},
-  });
-
-  // --- Presets ---
-  const footballEngine = makePlan({
-    dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "run", Sun: "duration" },
-    restSecByWeekday: { Mon: 75, Tue: 0, Wed: 75, Thu: 45, Fri: 75, Sat: 0, Sun: 0 },
-    movementsByWeekday: {
-      Mon: strengthDay(["Goblet Squat", "Push-ups", "Dumbbell Row", "Plank"]),
-      Wed: strengthDay(["Reverse Lunges", "Shoulder Press", "Hip Hinge (RDL)", "Side Plank"]),
-      Thu: boxRounds(["1-2 (jab–cross) + move", "Hook–cross + duck", "Knees + teeps (shadow)", "Core finisher (30s on / 30s off)"]),
-      Fri: strengthDay(["Step-ups", "Pull / Row variation", "Split Squat", "Hollow Hold"]),
-    },
-    cardioTargetByWeekday: {
-      Tue: "Intervals: 5 min easy • 6×(1 min fast / 1 min easy) • 5 min easy",
-      Sat: "Tempo: 10 min easy • 10–15 min steady (talk-test) • 5 min easy",
-      Sun: "Easy walk / light cycle 20–40 min (optional)",
-    },
-  });
-
-  const legsPower = makePlan({
-    dayTypeByWeekday: { Mon: "strength", Tue: "duration", Wed: "strength", Thu: "duration", Fri: "strength", Sat: "duration", Sun: "duration" },
-    restSecByWeekday: { Mon: 90, Tue: 0, Wed: 90, Thu: 0, Fri: 90, Sat: 0, Sun: 0 },
-    movementsByWeekday: {
-      Mon: strengthDay(["Goblet Squat", "Reverse Lunges", "Calf Raises", "Plank"]),
-      Wed: strengthDay(["Hip Hinge (RDL)", "Step-ups", "Glute Bridge", "Side Plank"]),
-      Fri: strengthDay(["Split Squat", "Squat Jumps", "Wall Sit", "Hollow Hold"]),
-    },
-    cardioTargetByWeekday: {
-      Tue: "Zone 2: 20–30 min easy (you can talk).",
-      Thu: "Mobility walk: 15–25 min + 5 min stretching.",
-      Sat: "Optional: hills (walk up / easy down) 15–20 min.",
-    },
-  });
-
-  const toneConditioning = makePlan({
-    dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "duration", Sun: "duration" },
-    restSecByWeekday: { Mon: 45, Tue: 0, Wed: 45, Thu: 30, Fri: 45, Sat: 0, Sun: 0 },
-    movementsByWeekday: {
-      Mon: strengthDay(["Push-ups", "Bodyweight Squats", "Mountain Climbers", "Plank"]),
-      Wed: strengthDay(["Lunges", "Shoulder Press", "Dumbbell Row", "Hollow Hold"]),
-      Thu: boxRounds(["1-2-3-2 combo", "Punch–slip–punch", "Fast feet (shadow)", "Core finisher (30s on / 30s off)"]),
-      Fri: strengthDay(["Goblet Squat", "Burpees", "Jump Rope", "Side Plank"]),
-    },
-    cardioTargetByWeekday: {
-      Tue: "Intervals: 5 min easy • 8×(30s fast / 60s easy) • 5 min easy",
-      Sat: "Easy steady: 20–40 min (walk/jog/cycle).",
-      Sun: "Recovery: 15–30 min easy movement + stretch.",
-    },
-  });
-
-  const recoveryMobility = makePlan({
-    dayTypeByWeekday: { Mon: "duration", Tue: "duration", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
-    restSecByWeekday: weekdays.reduce((acc, d) => ((acc[d] = 0), acc), {}),
-    movementsByWeekday: {},
-    cardioTargetByWeekday: {
-      Mon: "Mobility: 10–20 min stretching (hips/hamstrings/ankles).",
-      Tue: "Easy walk: 20–40 min (relaxed).",
-      Wed: "Core + posture: 10–15 min (light).",
-      Thu: "Easy cycle / swim / walk: 20–40 min.",
-      Fri: "Mobility: shoulders + back 10–20 min.",
-      Sat: "Optional: fun activity 20–60 min.",
-      Sun: "Rest: breathe + stretch 5–10 min.",
-    },
+  const setWeek = (p, patch) => ({
+    ...p,
+    dayTypeByWeekday: { ...p.dayTypeByWeekday, ...(patch.dayTypeByWeekday || {}) },
+    movementsByWeekday: { ...p.movementsByWeekday, ...(patch.movementsByWeekday || {}) },
+    restSecByWeekday: { ...p.restSecByWeekday, ...(patch.restSecByWeekday || {}) },
+    cardioTargetByWeekday: { ...(p.cardioTargetByWeekday || {}), ...(patch.cardioTargetByWeekday || {}) },
   });
 
   return [
+    // --- Football: speed + engine ---
     {
       id: "football_engine",
       name: "Football Speed & Engine (5 days)",
-      desc: "Intervals + conditioning + strength base. Great for players.",
-      plan: footballEngine,
+      desc: "Match fitness: speed mechanics + intervals + strength base.",
+      note: "Sprint work = full effort, long rest. Strength = perfect form.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "duration", Thu: "strength", Fri: "box", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(
+            [
+              { name: "Squat (goblet/backpack or bodyweight)", note: "3×8–12. Sit back, knees track toes." },
+              { name: "Split squat", note: "3×8–10/leg. Tall chest." },
+              { name: "Hip hinge (RDL pattern)", note: "3×8–12. Hips back, flat back." },
+              { name: "Calf raises", note: "3×12–20. Pause at the top." },
+              { name: "Plank", note: "3×30–45s. Straight line head→heels." },
+            ],
+            true
+          ),
+          Thu: strength(
+            [
+              { name: "Push-ups", note: "3×6–15. Full body tight." },
+              { name: "Row (band/dumbbell)", note: "3×8–12. Pull elbow to hip." },
+              { name: "Shoulder press", note: "3×8–12. Ribs down, don’t lean back." },
+              { name: "Dead bug / hollow hold", note: "3×8–12 or 20–30s. Slow + controlled." },
+            ],
+            true
+          ),
+          Fri: custom([
+            { name: "Sprints: 6×20m", note: "Walk back recovery. Stay tall, fast arms." },
+            { name: "Shuttles: 5×(10-20-10)", note: "Hard effort, full recovery." },
+            { name: "Feet quickness (ladder/lines)", note: "8 mins. Light feet, quick contacts." },
+            { name: "Core finisher", note: "6 mins: plank / side plank / dead bug." },
+          ]),
+        },
+        restSecByWeekday: { Mon: 90, Thu: 75, Fri: 90 },
+        cardioTargetByWeekday: {
+          Tue: "Intervals: 8 min warm-up • 8×(30s fast / 90s easy) • 6 min cool-down",
+          Wed: "Zone 2: easy jog/cycle 20–30 mins (you can talk while doing it)",
+          Sat: "Tempo: 5 min easy • 10–15 min steady • 5 min easy",
+        },
+      }),
     },
+
+    // --- Speed & Agility ---
+    {
+      id: "speed_agility",
+      name: "Speed & Agility (4–5 days)",
+      desc: "Sprint mechanics + agility focus. Strength stays explosive/light.",
+      note: "Quality > volume. Stop if speed drops.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "strength", Thu: "duration", Fri: "box", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Wed: strength(
+            [
+              { name: "Jump squats (low reps)", note: "5×3–5. Soft landings." },
+              { name: "Step-ups", note: "3×8/leg. Drive through the foot." },
+              { name: "Push-ups", note: "3×6–15. Clean reps." },
+              { name: "Band rows", note: "3×10–15. Squeeze shoulder blades." },
+              { name: "Side plank", note: "3×20–40s/side." },
+            ],
+            false
+          ),
+          Fri: custom([
+            { name: "Sprint starts: 8×10m", note: "Explode forward. Full rest." },
+            { name: "Flying 20s: 5 reps", note: "Build-up then fast 20m. Full rest." },
+            { name: "Cone cuts", note: "6 mins. Low hips, sharp plant." },
+            { name: "Reaction drill", note: "6 mins. Partner call / random direction." },
+          ]),
+        },
+        restSecByWeekday: { Wed: 75, Fri: 90 },
+        cardioTargetByWeekday: { Tue: "Speed endurance: 6 min warm-up • 6×(45s hard / 75s easy) • 6 min cool-down" },
+      }),
+    },
+
+    // --- Balanced strength + fitness ---
+    {
+      id: "general_strength_fitness",
+      name: "General Strength + Fitness",
+      desc: "Balanced habits: 3 strength days + 2 cardio days.",
+      note: "Aim +1 rep or tiny weight increase when form stays perfect.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(
+            [
+              { name: "Squat", note: "3×8–12. Sit back, control down." },
+              { name: "Push-ups", note: "3×6–15. Full body tight." },
+              { name: "Row", note: "3×8–12. Pull elbow to hip." },
+              { name: "Plank", note: "3×30–45s." },
+            ],
+            true
+          ),
+          Wed: strength(
+            [
+              { name: "Split squat", note: "3×8–10/leg." },
+              { name: "Shoulder press", note: "3×8–12." },
+              { name: "Hip hinge", note: "3×8–12. Flat back." },
+              { name: "Dead bug", note: "3×8–12 slow reps." },
+            ],
+            true
+          ),
+          Fri: strength(
+            [
+              { name: "Lunge", note: "3×8–10/leg. Step long." },
+              { name: "Row / pull", note: "3×8–12." },
+              { name: "Dips (bench)", note: "3×6–12. Shoulders down." },
+              { name: "Farmer carry", note: "3×20–40m. Tall posture." },
+            ],
+            true
+          ),
+        },
+        restSecByWeekday: { Mon: 90, Wed: 75, Fri: 75 },
+        cardioTargetByWeekday: { Tue: "Easy run 15–25 mins", Sat: "Any cardio 20–40 mins" },
+      }),
+    },
+
+    // --- Upper body strength ---
+    {
+      id: "upper_body",
+      name: "Upper Body Strength",
+      desc: "Upper focus 3×/week. Legs are maintenance.",
+      note: "Keep shoulders healthy: rows/face pulls every session.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "duration", Fri: "strength", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(
+            [
+              { name: "Push-ups / Bench", note: "3×6–12. Smooth reps." },
+              { name: "Row", note: "3×8–12. Squeeze back." },
+              { name: "Overhead press", note: "3×8–12. Ribs down." },
+              { name: "Biceps curl", note: "3×10–15. No swinging." },
+              { name: "Plank", note: "3×30–45s." },
+            ],
+            true
+          ),
+          Wed: strength(
+            [
+              { name: "Dips (bench)", note: "3×6–12. Control down." },
+              { name: "Pull (band) / row", note: "3×8–12." },
+              { name: "Incline push-ups", note: "3×8–15." },
+              { name: "Triceps", note: "3×10–15." },
+              { name: "Hollow hold", note: "3×20–30s." },
+            ],
+            true
+          ),
+          Fri: strength(
+            [
+              { name: "Push-ups", note: "3×6–15." },
+              { name: "Single-arm row", note: "3×8–12/side." },
+              { name: "Shoulder press", note: "3×8–12." },
+              { name: "Face pulls (band)", note: "3×12–20. Rear delts." },
+              { name: "Side plank", note: "3×20–40s/side." },
+            ],
+            true
+          ),
+        },
+        restSecByWeekday: { Mon: 90, Wed: 75, Fri: 75 },
+        cardioTargetByWeekday: { Tue: "Easy run/cycle 15–25 mins" },
+      }),
+    },
+
+    // --- Legs strength + power ---
     {
       id: "legs_power",
       name: "Leg Strength + Power",
-      desc: "Leg strength focus with plyometrics + easy conditioning.",
-      plan: legsPower,
+      desc: "Lower-body strength + sprint power. Upper is maintenance.",
+      note: "Explosive reps: stop before you grind. Rest longer on leg sets.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "duration", Thu: "strength", Fri: "box", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(
+            [
+              { name: "Squat (goblet/backpack)", note: "3×8–12. Control down." },
+              { name: "Split squat", note: "3×8–10/leg." },
+              { name: "Hip hinge (RDL)", note: "3×8–12. Flat back." },
+              { name: "Calf raises", note: "3×12–20. Pause top." },
+              { name: "Plank", note: "3×30–45s." },
+            ],
+            true
+          ),
+          Thu: strength(
+            [
+              { name: "Lunge", note: "3×8–10/leg." },
+              { name: "Step-ups", note: "3×8/leg. Drive knee up." },
+              { name: "Glute bridge / hip thrust", note: "3×10–15. Squeeze at top." },
+              { name: "Hamstring curl (towel)", note: "3×6–12. Slow." },
+              { name: "Dead bug", note: "3×8–12." },
+            ],
+            true
+          ),
+          Fri: custom([
+            { name: "Sprints: 8×15–20m", note: "Full rest. Fast arms." },
+            { name: "Broad jumps: 5×3", note: "Stick landing, soft knees." },
+            { name: "Shuttles", note: "6 mins hard effort." },
+          ]),
+        },
+        restSecByWeekday: { Mon: 105, Thu: 90, Fri: 90 },
+        cardioTargetByWeekday: { Tue: "Hill repeats: 6×20–30s hard / walk down" },
+      }),
     },
+
+    // --- Conditioning / tone ---
     {
-      id: "tone_conditioning",
+      id: "conditioning_tone",
       name: "Muscular Conditioning / Tone",
-      desc: "Higher reps, shorter rest, and cardio bias for fitness & tone.",
-      plan: toneConditioning,
+      desc: "Higher reps, short rest, more sweat. Great for conditioning.",
+      note: "Use lighter loads. Keep moving. Consistent effort wins.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "box", Thu: "strength", Fri: "strength", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: strength(
+            [
+              { name: "Squat", note: "3×12–20. Smooth tempo." },
+              { name: "Push-ups", note: "3×8–15. Clean reps." },
+              { name: "Row", note: "3×12–20. Squeeze." },
+              { name: "Mountain climbers", note: "3×30–45s. Fast but controlled." },
+            ],
+            false
+          ),
+          Thu: strength(
+            [
+              { name: "Lunge", note: "3×10–16/leg." },
+              { name: "Shoulder press", note: "3×10–15." },
+              { name: "Hip hinge", note: "3×12–20." },
+              { name: "Plank", note: "3×30–45s." },
+            ],
+            false
+          ),
+          Fri: strength(
+            [
+              { name: "Burpees (low reps)", note: "3×5–10. Keep form." },
+              { name: "Hinge (light swings/backpack)", note: "3×12–20." },
+              { name: "Dips (bench)", note: "3×8–15." },
+              { name: "Russian twists", note: "3×20–40 total." },
+            ],
+            false
+          ),
+        },
+        restSecByWeekday: { Mon: 45, Thu: 45, Fri: 45 },
+        cardioTargetByWeekday: { Tue: "Intervals: 5 min easy • 10×(20s hard / 40s easy) • 5 min easy" },
+      }),
     },
+
+    // --- Recovery / mobility ---
     {
       id: "recovery_mobility",
       name: "Recovery & Mobility",
-      desc: "Light movement + mobility every day to stay fresh.",
-      plan: recoveryMobility,
+      desc: "Reset week: mobility + easy cardio every day.",
+      note: "Keep it easy and consistent. Great after a hard week.",
+      plan: setWeek(deepClone(base), {
+        dayTypeByWeekday: { Mon: "duration", Tue: "duration", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
+        movementsByWeekday: {
+          Mon: custom([{ name: "Mobility flow", note: "15 mins: hips, ankles, thoracic." }, { name: "Easy walk", note: "15–30 mins." }]),
+          Tue: custom([{ name: "Yoga/mobility", note: "15–25 mins." }]),
+          Wed: custom([{ name: "Easy cycle", note: "15–30 mins." }]),
+          Thu: custom([{ name: "Stretch + core", note: "15 mins: plank/side plank/dead bug." }]),
+          Fri: custom([{ name: "Easy walk", note: "20–40 mins." }]),
+        },
+        restSecByWeekday: { Mon: 30, Tue: 30, Wed: 30, Thu: 30, Fri: 30, Sat: 30, Sun: 30 },
+      }),
     },
   ];
-};
-
-
+}
