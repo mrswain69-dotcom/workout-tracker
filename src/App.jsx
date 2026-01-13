@@ -541,6 +541,8 @@ function AuthScreen({ onAuthed }) {
 
 // -------- Main app ----------
 export default function App() {
+  const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
+
   const [tab, setTab] = useState("log");
 
   // --- Service worker update toast (prevents stale PWA UI after deploys) ---
@@ -551,7 +553,9 @@ export default function App() {
   });
 
   useEffect(() => {
-    const onUpdate = (e) => {
+    const onUpdate
+    if (!ENABLE_SW_TOAST) return;
+ = (e) => {
       const reg = e?.detail?.registration;
       // Only show if we actually have a waiting worker (real update) and user hasn't dismissed it.
       if (swToastDismissed) return;
@@ -566,6 +570,8 @@ export default function App() {
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
+    if (!ENABLE_SW_TOAST) return;
+
     const onControllerChange = () => window.location.reload();
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
     return () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
@@ -1217,7 +1223,7 @@ export default function App() {
 
 
   if (!sessionReady) return <div className="page"><div className="wrap">
-      {showSwToast && !swToastDismissed ? (
+      {ENABLE_SW_TOAST && showSwToast && !swToastDismissed ? (
         <div className="sw-toast" role="status">
           <div className="sw-toast__inner">
             <div className="sw-toast__text">✨ Update available. Refresh to get the latest version.</div>
@@ -1409,6 +1415,7 @@ export default function App() {
                           <div className="panelTop">
                             <div>
                               <div className="h2">{ex.name}</div>
+                              {ex.note ? <div className="muted mt8">{ex.note}</div> : null}
                               <div className="pills mt8">
                                 <Pill>{ex.mode}</Pill>
                                 <Pill>3 sets</Pill>
@@ -1908,6 +1915,7 @@ export default function App() {
                     <div key={m.id} className="planRow">
                       <div className="planLeft">
                         <div className="planName">{m.name}</div>
+                        {m.note ? <div className="muted mt4">{m.note}</div> : null}
                         <div className="pills mt8">
                           <Pill>{m.mode}</Pill>
                           <Pill>3 sets</Pill>
@@ -2485,56 +2493,178 @@ function StyleTag() {
   );
 }
 
+const COACHING_NOTES = {
+  "Push-ups": "Strong plank body. Chest to just above the floor, then press up.",
+  "Bodyweight Squats": "Feet shoulder-width. Sit back, knees track over toes. Stand tall.",
+  "Goblet Squat": "Hold a dumbbell/kettlebell at chest. Keep chest up, squat deep with control.",
+  "Reverse Lunges": "Step back, drop back knee towards floor, push through front foot.",
+  "Lunges": "Long step, front knee over mid-foot, keep torso tall.",
+  "Step-ups": "Use a stable step/bench. Drive through the whole foot; control down.",
+  "Split Squat": "Stay in a split stance. Drop straight down and up (slow & controlled).",
+  "Hip Hinge (RDL)": "Soft knees, push hips back, feel hamstrings, keep back neutral.",
+  "Glute Bridge": "Heels close to bum. Squeeze glutes at the top for 1 second.",
+  "Calf Raises": "Full range: down slow, up strong. Keep balance with a wall if needed.",
+  "Dumbbell Row": "Flat back. Pull elbow to your pocket, squeeze shoulder blade.",
+  "Shoulder Press": "Brace core. Press overhead without leaning back.",
+  "Pull / Row variation": "Pick any row/pull movement and focus on smooth reps.",
+  "Plank": "Elbows under shoulders. Ribs down, squeeze glutes, breathe.",
+  "Side Plank": "Hips high, straight line head-to-heels. Hold steady, breathe.",
+  "Hollow Hold": "Lower back pressed down. Hold a tight banana shape.",
+  "Wall Sit": "Back flat to wall. Knees about 90°. Stay strong and breathe.",
+  "Squat Jumps": "Soft landings. Jump up, absorb quietly, reset and repeat.",
+  "Jump Rope": "Small bounces, wrists turn the rope. Stay light on feet.",
+  "Mountain Climbers": "Hands under shoulders. Drive knees fast while keeping hips stable.",
+  "Burpees": "Smooth rhythm. Step back if needed; quality over speed.",
+  "1-2 (jab–cross) + move": "Snap punches, hands back to guard. Add a small step after.",
+  "Hook–cross + duck": "Turn hips for the hook. Duck under (small bend), back to guard.",
+  "Knees + teeps (shadow)": "Core tight. Knee up then extend for a light front kick. Control.",
+  "Core finisher (30s on / 30s off)": "Pick: plank, dead-bug, bicycle. Keep it tidy.",
+  "1-2-3-2 combo": "Jab–cross–hook–cross. Stay light, guard up.",
+  "Punch–slip–punch": "Slip = tiny head movement. Return fire fast, then reset.",
+  "Fast feet (shadow)": "Quick steps, light bounce. Hands up, breathe through nose if possible.",
+};
+
 function presetPlans() {
-  const base = defaultPlanForFamily();
-  const withRunIntervals = (p) => ({
-    ...p,
+  // Build a fresh plan each call (new movement IDs) so presets don’t clash with older logs.
+  const noteFor = (name) => COACHING_NOTES[name] || "";
+
+  const movement = (name, mode, opts = {}) => ({
+    id: uid(),
+    name,
+    mode,
+    note: noteFor(name),
+    ...opts,
+  });
+
+  
+const strengthDay = (names) =>
+  names.map((n) => {
+    const noWeight = ["Push-ups", "Plank", "Side Plank", "Hollow Hold", "Burpees", "Jump Rope", "Mountain Climbers"];
+    const allowWeight = !noWeight.includes(n);
+    return movement(n, "strength", { allowWeight });
+  });
+
+const boxRounds = (names) =>
+ = (names) =>
+    names.map((n) =>
+      movement(n, "time", {
+        fixedSeconds: 60,
+        allowCount: true,
+        countLabel: "rounds",
+      })
+    );
+
+  const baseTypes = builtInTypes();
+
+  const makePlan = ({ dayTypeByWeekday, movementsByWeekday, restSecByWeekday, cardioTargetByWeekday }) => ({
+    version: 1,
+    activityTypes: baseTypes,
+    dayTypeByWeekday: dayTypeByWeekday || defaultPlanForFamily().dayTypeByWeekday,
+    restSecByWeekday: restSecByWeekday || weekdays.reduce((acc, d) => ((acc[d] = 60), acc), {}),
+    movementsByWeekday: movementsByWeekday || {},
+    cardioTargetByWeekday: cardioTargetByWeekday || {},
+  });
+
+  // --- Presets ---
+  const footballEngine = makePlan({
+    dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "run", Sun: "duration" },
+    restSecByWeekday: { Mon: 75, Tue: 0, Wed: 75, Thu: 45, Fri: 75, Sat: 0, Sun: 0 },
+    movementsByWeekday: {
+      Mon: strengthDay(["Goblet Squat", "Push-ups", "Dumbbell Row", "Plank"]),
+      Wed: strengthDay(["Reverse Lunges", "Shoulder Press", "Hip Hinge (RDL)", "Side Plank"]),
+      Thu: boxRounds(["1-2 (jab–cross) + move", "Hook–cross + duck", "Knees + teeps (shadow)", "Core finisher (30s on / 30s off)"]),
+      Fri: strengthDay(["Step-ups", "Pull / Row variation", "Split Squat", "Hollow Hold"]),
+    },
     cardioTargetByWeekday: {
-      ...(p.cardioTargetByWeekday || {}),
-      Tue: "Intervals: 5 min warm-up • 6×(1 min fast / 1 min easy) • 5 min cool-down",
+      Tue: "Intervals: 5 min easy • 6×(1 min fast / 1 min easy) • 5 min easy",
+      Sat: "Tempo: 10 min easy • 10–15 min steady (talk-test) • 5 min easy",
+      Sun: "Easy walk / light cycle 20–40 min (optional)",
     },
   });
 
+  const legsPower = makePlan({
+    dayTypeByWeekday: { Mon: "strength", Tue: "duration", Wed: "strength", Thu: "duration", Fri: "strength", Sat: "duration", Sun: "duration" },
+    restSecByWeekday: { Mon: 90, Tue: 0, Wed: 90, Thu: 0, Fri: 90, Sat: 0, Sun: 0 },
+    movementsByWeekday: {
+      Mon: strengthDay(["Goblet Squat", "Reverse Lunges", "Calf Raises", "Plank"]),
+      Wed: strengthDay(["Hip Hinge (RDL)", "Step-ups", "Glute Bridge", "Side Plank"]),
+      Fri: strengthDay(["Split Squat", "Squat Jumps", "Wall Sit", "Hollow Hold"]),
+    },
+    cardioTargetByWeekday: {
+      Tue: "Zone 2: 20–30 min easy (you can talk).",
+      Thu: "Mobility walk: 15–25 min + 5 min stretching.",
+      Sat: "Optional: hills (walk up / easy down) 15–20 min.",
+    },
+  });
+
+  const toneConditioning = makePlan({
+    dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "duration", Sun: "duration" },
+    restSecByWeekday: { Mon: 45, Tue: 0, Wed: 45, Thu: 30, Fri: 45, Sat: 0, Sun: 0 },
+    movementsByWeekday: {
+      Mon: strengthDay(["Push-ups", "Bodyweight Squats", "Mountain Climbers", "Plank"]),
+      Wed: strengthDay(["Lunges", "Shoulder Press", "Dumbbell Row", "Hollow Hold"]),
+      Thu: boxRounds(["1-2-3-2 combo", "Punch–slip–punch", "Fast feet (shadow)", "Core finisher (30s on / 30s off)"]),
+      Fri: strengthDay(["Goblet Squat", "Burpees", "Jump Rope", "Side Plank"]),
+    },
+    cardioTargetByWeekday: {
+      Tue: "Intervals: 5 min easy • 8×(30s fast / 60s easy) • 5 min easy",
+      Sat: "Easy steady: 20–40 min (walk/jog/cycle).",
+      Sun: "Recovery: 15–30 min easy movement + stretch.",
+    },
+  });
+
+  const recoveryMobility = makePlan({
+    dayTypeByWeekday: { Mon: "duration", Tue: "duration", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
+    restSecByWeekday: weekdays.reduce((acc, d) => ((acc[d] = 0), acc), {}),
+    movementsByWeekday: {},
+    cardioTargetByWeekday: {
+      Mon: "Mobility: 10–20 min stretching (hips/hamstrings/ankles).",
+      Tue: "Easy walk: 20–40 min (relaxed).",
+      Wed: "Core + posture: 10–15 min (light).",
+      Thu: "Easy cycle / swim / walk: 20–40 min.",
+      Fri: "Mobility: shoulders + back 10–20 min.",
+      Sat: "Optional: fun activity 20–60 min.",
+      Sun: "Rest: breathe + stretch 5–10 min.",
+    },
+  });
 
   return [
     {
       id: "football_engine",
       name: "Football Speed & Engine (5 days)",
       desc: "Intervals + conditioning + strength base. Great for players.",
-      plan: withRunIntervals(base),
-    },
-    {
-      id: "general_strength",
-      name: "General Strength + Fitness",
-      desc: "Simple weekly structure you can customise.",
-      plan: base,
-    },
-    {
-      id: "upper_body",
-      name: "Upper Body Strength",
-      desc: "Focus your strength days on upper movements.",
-      plan: base,
+      plan: footballEngine,
     },
     {
       id: "legs_power",
       name: "Leg Strength + Power",
-      desc: "Focus your strength days on legs + jumps.",
-      plan: base,
+      desc: "Leg strength focus with plyometrics + easy conditioning.",
+      plan: legsPower,
     },
     {
       id: "tone_conditioning",
       name: "Muscular Conditioning / Tone",
-      desc: "Higher reps, less rest, more cardio bias.",
-      plan: withRunIntervals(base),
+      desc: "Higher reps, shorter rest, and cardio bias for fitness & tone.",
+      plan: toneConditioning,
     },
     {
       id: "recovery_mobility",
       name: "Recovery & Mobility",
-      desc: "More duration days (mobility, yoga, easy cardio).",
-      plan: {
-        ...base,
-        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
-      },
+      desc: "Light movement + mobility every day to stay fresh.",
+      plan: recoveryMobility,
     },
   ];
-}
+}up, absorb quietly, reset and repeat.",
+  "Jump Rope": "Small bounces, wrists turn the rope. Stay light on feet.",
+  "Mountain Climbers": "Hands under shoulders. Drive knees fast while keeping hips stable.",
+  "Burpees": "Smooth rhythm. Step back if needed; quality over speed.",
+  "1-2 (jab–cross) + move": "Snap punches, hands back to guard. Add a small step after.",
+  "Hook–cross + duck": "Turn hips for the hook. Duck under (small bend), back to guard.",
+  "Knees + teeps (shadow)": "Core tight. Knee up then extend for a light front kick. Control.",
+  "Core finisher (30s on / 30s off)": "Pick: plank, dead-bug, bicycle. Keep it tidy.",
+  "1-2-3-2 combo": "Jab–cross–hook–cross. Stay light, guard up.",
+  "Punch–slip–punch": "Slip = tiny head movement. Return fire fast, then reset.",
+  "Fast feet (shadow)": "Quick steps, light bounce. Hands up, breathe through nose if possible.",
+};
+
+
