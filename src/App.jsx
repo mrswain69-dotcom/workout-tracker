@@ -37,17 +37,6 @@ import {
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-// Back-compat helper: some builds referenced weekdayFromDate().
-// Keep it as a thin wrapper to avoid runtime ReferenceError if cached bundles call it.
-function weekdayFromDate(d) {
-  try {
-    const dt = d instanceof Date ? d : new Date(d);
-    return WEEKDAYS[dt.getDay()] || "";
-  } catch {
-    return "";
-  }
-}
 function weekdayFromYMD(ymd) {
   try {
     const d = new Date(`${ymd}T00:00:00`);
@@ -1313,7 +1302,7 @@ export default function App() {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={(logForDay?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60))} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
@@ -1388,7 +1377,6 @@ export default function App() {
                           <div className="panelTop">
                             <div>
                               <div className="h2">{ex.name}</div>
-                              {ex.note ? <div className="muted mt6">{ex.note}</div> : null}
                               <div className="pills mt8">
                                 <Pill>{ex.mode}</Pill>
                                 <Pill>3 sets</Pill>
@@ -1888,7 +1876,6 @@ export default function App() {
                     <div key={m.id} className="planRow">
                       <div className="planLeft">
                         <div className="planName">{m.name}</div>
-                        {m.note ? <div className="muted mt6">{m.note}</div> : null}
                         <div className="pills mt8">
                           <Pill>{m.mode}</Pill>
                           <Pill>3 sets</Pill>
@@ -2467,301 +2454,55 @@ function StyleTag() {
 }
 
 function presetPlans() {
-  // Presets are intentionally DIFFERENT (day types, movements, rest, and cardio targets)
-  // so selecting one clearly changes the weekly plan.
   const base = defaultPlanForFamily();
-
-  const deepClone = (x) => JSON.parse(JSON.stringify(x));
-
-  // Movement helpers (include short coaching notes so kids know what to do)
-  const strength = (items, allowWeight = true) =>
-    items.map((it) => ({
-      id: uid(),
-      name: it.name,
-      note: it.note || "",
-      mode: "strength",
-      allowWeight,
-    }));
-
-  const custom = (items) =>
-    items.map((it) => ({
-      id: uid(),
-      name: it.name,
-      note: it.note || "",
-      mode: "custom",
-      allowWeight: false,
-    }));
-
-  const setWeek = (p, patch) => ({
+  const withRunIntervals = (p) => ({
     ...p,
-    dayTypeByWeekday: { ...p.dayTypeByWeekday, ...(patch.dayTypeByWeekday || {}) },
-    movementsByWeekday: { ...p.movementsByWeekday, ...(patch.movementsByWeekday || {}) },
-    restSecByWeekday: { ...p.restSecByWeekday, ...(patch.restSecByWeekday || {}) },
-    cardioTargetByWeekday: { ...(p.cardioTargetByWeekday || {}), ...(patch.cardioTargetByWeekday || {}) },
+    cardioTargetByWeekday: {
+      ...(p.cardioTargetByWeekday || {}),
+      Tue: "Intervals: 5 min warm-up • 6×(1 min fast / 1 min easy) • 5 min cool-down",
+    },
   });
 
+
   return [
-    // --- Football: speed + engine ---
     {
       id: "football_engine",
       name: "Football Speed & Engine (5 days)",
-      desc: "Match fitness: speed mechanics + intervals + strength base.",
-      note: "Sprint work = full effort, long rest. Strength = perfect form.",
-      plan: setWeek(deepClone(base), {
-        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "duration", Thu: "strength", Fri: "box", Sat: "duration", Sun: "duration" },
-        movementsByWeekday: {
-          Mon: strength(
-            [
-              { name: "Squat (goblet/backpack or bodyweight)", note: "3×8–12. Sit back, knees track toes." },
-              { name: "Split squat", note: "3×8–10/leg. Tall chest." },
-              { name: "Hip hinge (RDL pattern)", note: "3×8–12. Hips back, flat back." },
-              { name: "Calf raises", note: "3×12–20. Pause at the top." },
-              { name: "Plank", note: "3×30–45s. Straight line head→heels." },
-            ],
-            true
-          ),
-          Thu: strength(
-            [
-              { name: "Push-ups", note: "3×6–15. Full body tight." },
-              { name: "Row (band/dumbbell)", note: "3×8–12. Pull elbow to hip." },
-              { name: "Shoulder press", note: "3×8–12. Ribs down, don’t lean back." },
-              { name: "Dead bug / hollow hold", note: "3×8–12 or 20–30s. Slow + controlled." },
-            ],
-            true
-          ),
-          Fri: custom([
-            { name: "Sprints: 6×20m", note: "Walk back recovery. Stay tall, fast arms." },
-            { name: "Shuttles: 5×(10-20-10)", note: "Hard effort, full recovery." },
-            { name: "Feet quickness (ladder/lines)", note: "8 mins. Light feet, quick contacts." },
-            { name: "Core finisher", note: "6 mins: plank / side plank / dead bug." },
-          ]),
-        },
-        restSecByWeekday: { Mon: 90, Thu: 75, Fri: 90 },
-        cardioTargetByWeekday: {
-          Tue: "Intervals: 8 min warm-up • 8×(30s fast / 90s easy) • 6 min cool-down",
-          Wed: "Zone 2: easy jog/cycle 20–30 mins (you can talk while doing it)",
-          Sat: "Tempo: 5 min easy • 10–15 min steady • 5 min easy",
-        },
-      }),
+      desc: "Intervals + conditioning + strength base. Great for players.",
+      plan: withRunIntervals(base),
     },
-
-    // --- Speed & Agility ---
     {
-      id: "speed_agility",
-      name: "Speed & Agility (4–5 days)",
-      desc: "Sprint mechanics + agility focus. Strength stays explosive/light.",
-      note: "Quality > volume. Stop if speed drops.",
-      plan: setWeek(deepClone(base), {
-        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "strength", Thu: "duration", Fri: "box", Sat: "duration", Sun: "duration" },
-        movementsByWeekday: {
-          Wed: strength(
-            [
-              { name: "Jump squats (low reps)", note: "5×3–5. Soft landings." },
-              { name: "Step-ups", note: "3×8/leg. Drive through the foot." },
-              { name: "Push-ups", note: "3×6–15. Clean reps." },
-              { name: "Band rows", note: "3×10–15. Squeeze shoulder blades." },
-              { name: "Side plank", note: "3×20–40s/side." },
-            ],
-            false
-          ),
-          Fri: custom([
-            { name: "Sprint starts: 8×10m", note: "Explode forward. Full rest." },
-            { name: "Flying 20s: 5 reps", note: "Build-up then fast 20m. Full rest." },
-            { name: "Cone cuts", note: "6 mins. Low hips, sharp plant." },
-            { name: "Reaction drill", note: "6 mins. Partner call / random direction." },
-          ]),
-        },
-        restSecByWeekday: { Wed: 75, Fri: 90 },
-        cardioTargetByWeekday: { Tue: "Speed endurance: 6 min warm-up • 6×(45s hard / 75s easy) • 6 min cool-down" },
-      }),
-    },
-
-    // --- Balanced strength + fitness ---
-    {
-      id: "general_strength_fitness",
+      id: "general_strength",
       name: "General Strength + Fitness",
-      desc: "Balanced habits: 3 strength days + 2 cardio days.",
-      note: "Aim +1 rep or tiny weight increase when form stays perfect.",
-      plan: setWeek(deepClone(base), {
-        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "duration", Sun: "duration" },
-        movementsByWeekday: {
-          Mon: strength(
-            [
-              { name: "Squat", note: "3×8–12. Sit back, control down." },
-              { name: "Push-ups", note: "3×6–15. Full body tight." },
-              { name: "Row", note: "3×8–12. Pull elbow to hip." },
-              { name: "Plank", note: "3×30–45s." },
-            ],
-            true
-          ),
-          Wed: strength(
-            [
-              { name: "Split squat", note: "3×8–10/leg." },
-              { name: "Shoulder press", note: "3×8–12." },
-              { name: "Hip hinge", note: "3×8–12. Flat back." },
-              { name: "Dead bug", note: "3×8–12 slow reps." },
-            ],
-            true
-          ),
-          Fri: strength(
-            [
-              { name: "Lunge", note: "3×8–10/leg. Step long." },
-              { name: "Row / pull", note: "3×8–12." },
-              { name: "Dips (bench)", note: "3×6–12. Shoulders down." },
-              { name: "Farmer carry", note: "3×20–40m. Tall posture." },
-            ],
-            true
-          ),
-        },
-        restSecByWeekday: { Mon: 90, Wed: 75, Fri: 75 },
-        cardioTargetByWeekday: { Tue: "Easy run 15–25 mins", Sat: "Any cardio 20–40 mins" },
-      }),
+      desc: "Simple weekly structure you can customise.",
+      plan: base,
     },
-
-    // --- Upper body strength ---
     {
       id: "upper_body",
       name: "Upper Body Strength",
-      desc: "Upper focus 3×/week. Legs are maintenance.",
-      note: "Keep shoulders healthy: rows/face pulls every session.",
-      plan: setWeek(deepClone(base), {
-        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "duration", Fri: "strength", Sat: "duration", Sun: "duration" },
-        movementsByWeekday: {
-          Mon: strength(
-            [
-              { name: "Push-ups / Bench", note: "3×6–12. Smooth reps." },
-              { name: "Row", note: "3×8–12. Squeeze back." },
-              { name: "Overhead press", note: "3×8–12. Ribs down." },
-              { name: "Biceps curl", note: "3×10–15. No swinging." },
-              { name: "Plank", note: "3×30–45s." },
-            ],
-            true
-          ),
-          Wed: strength(
-            [
-              { name: "Dips (bench)", note: "3×6–12. Control down." },
-              { name: "Pull (band) / row", note: "3×8–12." },
-              { name: "Incline push-ups", note: "3×8–15." },
-              { name: "Triceps", note: "3×10–15." },
-              { name: "Hollow hold", note: "3×20–30s." },
-            ],
-            true
-          ),
-          Fri: strength(
-            [
-              { name: "Push-ups", note: "3×6–15." },
-              { name: "Single-arm row", note: "3×8–12/side." },
-              { name: "Shoulder press", note: "3×8–12." },
-              { name: "Face pulls (band)", note: "3×12–20. Rear delts." },
-              { name: "Side plank", note: "3×20–40s/side." },
-            ],
-            true
-          ),
-        },
-        restSecByWeekday: { Mon: 90, Wed: 75, Fri: 75 },
-        cardioTargetByWeekday: { Tue: "Easy run/cycle 15–25 mins" },
-      }),
+      desc: "Focus your strength days on upper movements.",
+      plan: base,
     },
-
-    // --- Legs strength + power ---
     {
       id: "legs_power",
       name: "Leg Strength + Power",
-      desc: "Lower-body strength + sprint power. Upper is maintenance.",
-      note: "Explosive reps: stop before you grind. Rest longer on leg sets.",
-      plan: setWeek(deepClone(base), {
-        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "duration", Thu: "strength", Fri: "box", Sat: "duration", Sun: "duration" },
-        movementsByWeekday: {
-          Mon: strength(
-            [
-              { name: "Squat (goblet/backpack)", note: "3×8–12. Control down." },
-              { name: "Split squat", note: "3×8–10/leg." },
-              { name: "Hip hinge (RDL)", note: "3×8–12. Flat back." },
-              { name: "Calf raises", note: "3×12–20. Pause top." },
-              { name: "Plank", note: "3×30–45s." },
-            ],
-            true
-          ),
-          Thu: strength(
-            [
-              { name: "Lunge", note: "3×8–10/leg." },
-              { name: "Step-ups", note: "3×8/leg. Drive knee up." },
-              { name: "Glute bridge / hip thrust", note: "3×10–15. Squeeze at top." },
-              { name: "Hamstring curl (towel)", note: "3×6–12. Slow." },
-              { name: "Dead bug", note: "3×8–12." },
-            ],
-            true
-          ),
-          Fri: custom([
-            { name: "Sprints: 8×15–20m", note: "Full rest. Fast arms." },
-            { name: "Broad jumps: 5×3", note: "Stick landing, soft knees." },
-            { name: "Shuttles", note: "6 mins hard effort." },
-          ]),
-        },
-        restSecByWeekday: { Mon: 105, Thu: 90, Fri: 90 },
-        cardioTargetByWeekday: { Tue: "Hill repeats: 6×20–30s hard / walk down" },
-      }),
+      desc: "Focus your strength days on legs + jumps.",
+      plan: base,
     },
-
-    // --- Conditioning / tone ---
     {
-      id: "conditioning_tone",
+      id: "tone_conditioning",
       name: "Muscular Conditioning / Tone",
-      desc: "Higher reps, short rest, more sweat. Great for conditioning.",
-      note: "Use lighter loads. Keep moving. Consistent effort wins.",
-      plan: setWeek(deepClone(base), {
-        dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "box", Thu: "strength", Fri: "strength", Sat: "duration", Sun: "duration" },
-        movementsByWeekday: {
-          Mon: strength(
-            [
-              { name: "Squat", note: "3×12–20. Smooth tempo." },
-              { name: "Push-ups", note: "3×8–15. Clean reps." },
-              { name: "Row", note: "3×12–20. Squeeze." },
-              { name: "Mountain climbers", note: "3×30–45s. Fast but controlled." },
-            ],
-            false
-          ),
-          Thu: strength(
-            [
-              { name: "Lunge", note: "3×10–16/leg." },
-              { name: "Shoulder press", note: "3×10–15." },
-              { name: "Hip hinge", note: "3×12–20." },
-              { name: "Plank", note: "3×30–45s." },
-            ],
-            false
-          ),
-          Fri: strength(
-            [
-              { name: "Burpees (low reps)", note: "3×5–10. Keep form." },
-              { name: "Hinge (light swings/backpack)", note: "3×12–20." },
-              { name: "Dips (bench)", note: "3×8–15." },
-              { name: "Russian twists", note: "3×20–40 total." },
-            ],
-            false
-          ),
-        },
-        restSecByWeekday: { Mon: 45, Thu: 45, Fri: 45 },
-        cardioTargetByWeekday: { Tue: "Intervals: 5 min easy • 10×(20s hard / 40s easy) • 5 min easy" },
-      }),
+      desc: "Higher reps, less rest, more cardio bias.",
+      plan: withRunIntervals(base),
     },
-
-    // --- Recovery / mobility ---
     {
       id: "recovery_mobility",
       name: "Recovery & Mobility",
-      desc: "Reset week: mobility + easy cardio every day.",
-      note: "Keep it easy and consistent. Great after a hard week.",
-      plan: setWeek(deepClone(base), {
-        dayTypeByWeekday: { Mon: "duration", Tue: "duration", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
-        movementsByWeekday: {
-          Mon: custom([{ name: "Mobility flow", note: "15 mins: hips, ankles, thoracic." }, { name: "Easy walk", note: "15–30 mins." }]),
-          Tue: custom([{ name: "Yoga/mobility", note: "15–25 mins." }]),
-          Wed: custom([{ name: "Easy cycle", note: "15–30 mins." }]),
-          Thu: custom([{ name: "Stretch + core", note: "15 mins: plank/side plank/dead bug." }]),
-          Fri: custom([{ name: "Easy walk", note: "20–40 mins." }]),
-        },
-        restSecByWeekday: { Mon: 30, Tue: 30, Wed: 30, Thu: 30, Fri: 30, Sat: 30, Sun: 30 },
-      }),
+      desc: "More duration days (mobility, yoga, easy cardio).",
+      plan: {
+        ...base,
+        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
+      },
     },
   ];
 }
