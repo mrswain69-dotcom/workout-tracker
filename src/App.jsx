@@ -2652,7 +2652,7 @@ const boxRounds = (names) =>
       plan: recoveryMobility,
     },
   ];
-}up, absorb quietly, reset and repeat.",
+  "Burpees": "Drop down, jump back, stand up, absorb quietly, reset and repeat.",
   "Jump Rope": "Small bounces, wrists turn the rope. Stay light on feet.",
   "Mountain Climbers": "Hands under shoulders. Drive knees fast while keeping hips stable.",
   "Burpees": "Smooth rhythm. Step back if needed; quality over speed.",
