@@ -483,7 +483,13 @@ function AuthScreen({ onAuthed }) {
       <div className="wrap">
 
         <Card className="pad authCard">
-          <div className="small">Workout Tracker • Online</div>
+          <div className="brandLockup authBrand">
+            <img className="brandMark" src="/icons/icon-192.png" alt="Workout Tracker" />
+            <div className="brandText">
+              <div className="brandTitle">Workout Tracker</div>
+              <div className="brandTag">Build Strength. Build Habits.</div>
+            </div>
+          </div>
           <h1 className="title">Account</h1>
           {!isSupabaseReady() ? (
             <div className="panel mt16">
@@ -636,6 +642,7 @@ export default function App() {
   const [soundOn, setSoundOn] = useState(true);
   const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
   const [xp, setXp] = useState(0);
+  const [bonusPop, setBonusPop] = useState(0);
 
   const audioCtxRef = useRef(null);
 
@@ -771,6 +778,33 @@ export default function App() {
   const planMovements = plan?.movementsByWeekday?.[planWeekday] || [];
   const planDayEditor = { ...planActivityType, movements: planMovements };
 
+const planDayForWeekday = (weekday) => {
+  const typeId = plan?.dayTypeByWeekday?.[weekday] || "strength";
+  const t = (plan?.activityTypes || builtInTypes()).find((x) => x.id === typeId) || builtInTypes()[0];
+  const movs = plan?.movementsByWeekday?.[weekday] || [];
+  return { ...t, movements: movs };
+};
+
+const computeXpFromLogs = (records) => {
+  if (!Array.isArray(records)) return 0;
+  let total = 0;
+  for (const r of records) {
+    const l = r?.log;
+    if (!l) continue;
+    const w = l.weekday || weekdayFromDate(r?.date_ymd);
+    const pd = planDayForWeekday(w);
+    total += awardXpForDay(l, pd);
+    if (l?.meta?.challengeClaimed) total += 15;
+  }
+  return total;
+};
+
+useEffect(() => {
+  setXp(computeXpFromLogs(allLogs));
+}, [allLogs, plan]);
+
+
+
   async function ensureUnlocked(actionLabel = "save changes") {
     if (!family?.id) return false;
     if (!family?.pin_hash) return true;
@@ -833,7 +867,7 @@ export default function App() {
       // Timing/session meta lives in meta.
       meta: {
         restSec: restFromPlan, // actual rest used (editable)
-        sessions: [{ id: uid(), startedAt: null, finishedAt: null, manualMin: "" }],
+        sessions: [],
         dayManualMin: "", // optional override for whole day
       },
       weekday: selectedWeekday,
@@ -866,6 +900,16 @@ export default function App() {
     next.meta = meta;
     await saveLog(next);
   }
+  async function removeSession(sessionId) {
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const meta = { ...(next.meta || {}) };
+    const sessions = [...getSessions(next)].filter((s) => s.id !== sessionId);
+    meta.sessions = sessions;
+    next.meta = meta;
+    await saveLog(next);
+  }
+
+
 
   async function startSession(sessionId) {
     const ctx = await ensureAudio();
@@ -884,14 +928,29 @@ export default function App() {
     next.meta = meta;
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
-    const earned = awardXpForDay(next, planDay);
-    setXp((prev) => prev + earned);
-
     await saveLog(next);
-    if (ctx) playLevelUp(ctx, victoryTheme);
+    if (ctx) playBling(ctx, Math.max(1, next?.gamify?.comboMax || 1), victoryTheme);
   }
 
-  async function resetDay() {
+  
+async function claimDailyBonus() {
+  const qualifies = isDayComplete(logForDay, planDay);
+  if (!qualifies) {
+    window.alert("Finish logging today’s plan first (fill in your sets), then claim the bonus!");
+    return;
+  }
+  if (logForDay?.meta?.challengeClaimed) return;
+
+  const ctx = await ensureAudio();
+  const next = logForDay ? { ...logForDay } : blankLogForDay();
+  next.meta = { ...(next.meta || {}), challengeClaimed: true };
+  await saveLog(next);
+
+  setBonusPop(Date.now());
+  if (ctx) playBling(ctx, 6, victoryTheme);
+}
+
+async function resetDay() {
     await saveLog(null);
     // wipe row by upserting empty? easiest: store null locally; for DB, overwrite with blank? We'll just store a blank with a reset marker.
     const next = blankLogForDay();
@@ -1333,8 +1392,26 @@ export default function App() {
                       <div key={s.id} className="sessionRow">
                         <div className="sessionTitle">Session {idx + 1}</div>
                         <div className="sessionBtns">
-                          <button className="btnSmall primary" onClick={() => startSession(s.id)}>Start</button>
-                          <button className="btnSmall primary" onClick={() => finishSession(s.id)}>Finish</button>
+                          <PrimaryButton
+                            className="btnSmall"
+                            disabled={!!s.startedAt}
+                            onClick={() => startSession(s.id)}
+                          >
+                            Start
+                          </PrimaryButton>
+                          <PrimaryButton
+                            className="btnSmall"
+                            disabled={!s.startedAt || !!s.finishedAt}
+                            onClick={() => finishSession(s.id)}
+                          >
+                            Finish
+                          </PrimaryButton>
+                          <SecondaryButton
+                            className="btnSmall"
+                            onClick={() => removeSession(s.id)}
+                          >
+                            Remove
+                          </SecondaryButton>
                         </div>
                         <div className="sessionTimes">
                           <div className="mini"><span className="label">Start</span> {s.startedAt ? new Date(s.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</div>
@@ -1570,7 +1647,23 @@ export default function App() {
                 <div className="stack mt12">
                   <Challenge text="Complete today’s plan" done={isDayComplete(logForDay, planDay)} />
                   <Challenge text="Hit a combo streak (5 sets in a row)" done={(logForDay?.gamify?.comboMax || 0) >= 5} />
+                  <div className="challenge">
+                    <div>
+                      Claim daily bonus <span className="muted">(15 XP)</span>
+                    </div>
+                    <div className="row">
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={!!logForDay?.meta?.challengeClaimed}
+                          onChange={() => claimDailyBonus()}
+                        />
+                        Done
+                      </label>
+                    </div>
+                  </div>
                   <Challenge text="XP to next level" done={xpToNext <= 25} />
+                  {bonusPop ? <div key={bonusPop} className="confettiBurst" aria-hidden="true" /> : null}
                 </div>
               </Card>
             </div>
