@@ -791,7 +791,7 @@ const computeXpFromLogs = (records) => {
   for (const r of records) {
     const l = r?.log;
     if (!l) continue;
-    const w = l.weekday || weekdayFromDate(r?.date_ymd);
+    const w = l.weekday || weekdayFromYMD(r?.date_ymd  || r?.date);
     const pd = planDayForWeekday(w);
     total += awardXpForDay(l, pd);
     if (l?.meta?.challengeClaimed) total += 15;
