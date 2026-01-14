@@ -24,6 +24,8 @@ import {
   archiveProfile,
   getPlan,
   upsertPlan,
+  getProfilePlan,
+  upsertProfilePlan,
   getLog,
   upsertLog,
   listLogs,
@@ -173,16 +175,6 @@ function builtInTypes() {
     { id: "duration", name: "Duration only (minutes)", kind: "custom", movementsEnabled: false, fields: { durationMin: true } },
   ];
 }
-
-// Build a "planDay" object (activity type + movements) for a given weekday label (Mon..Sun)
-function buildPlanDay(plan, weekday) {
-  const types = Array.isArray(plan?.activityTypes) && plan.activityTypes.length ? plan.activityTypes : builtInTypes();
-  const dayTypeId = plan?.dayTypeByWeekday?.[weekday] || types[0]?.id;
-  const activityType = types.find((t) => t.id === dayTypeId) || types[0] || { id: "strength", kind: "strength", name: "Workout" };
-  const movements = plan?.movementsByWeekday?.[weekday] || [];
-  return { ...activityType, movements };
-}
-
 
 function defaultPlanForFamily() {
   const types = builtInTypes();
@@ -490,18 +482,14 @@ function AuthScreen({ onAuthed }) {
     <div className="page">
       <div className="wrap">
 
-      {showSwToast ? (
-        <div className="swToast" role="status">
-          <div className="swToastText">✨ Update available. Refresh to get the latest version.</div>
-          <div className="swToastActions">
-            <button className="btn" onClick={() => setShowSwToast(false)}>Later</button>
-            <button className="btn primary" onClick={applySwUpdate}>Refresh</button>
-          </div>
-        </div>
-      ) : null}
-
         <Card className="pad authCard">
-          <div className="small">Workout Tracker • Online</div>
+          <div className="brandLockup authBrand">
+            <img className="brandMark" src="/icons/icon-192.png" alt="Workout Tracker" />
+            <div className="brandText">
+              <div className="brandTitle">Workout Tracker</div>
+              <div className="brandTag">Build Strength. Build Habits.</div>
+            </div>
+          </div>
           <h1 className="title">Account</h1>
           {!isSupabaseReady() ? (
             <div className="panel mt16">
@@ -559,26 +547,36 @@ function AuthScreen({ onAuthed }) {
 
 // -------- Main app ----------
 export default function App() {
+  const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
+
   const [tab, setTab] = useState("log");
 
   // --- Service worker update toast (prevents stale PWA UI after deploys) ---
   const [swUpdateReg, setSwUpdateReg] = useState(null);
   const [showSwToast, setShowSwToast] = useState(false);
+  const [swToastDismissed, setSwToastDismissed] = useState(() => {
+    try { return sessionStorage.getItem("kwt_sw_toast_dismissed") === "1"; } catch { return false; }
+  });
 
   useEffect(() => {
+    if (!ENABLE_SW_TOAST) return;
     const onUpdate = (e) => {
       const reg = e?.detail?.registration;
-      if (reg) {
+      // Only show if we actually have a waiting worker (real update) and user hasn't dismissed it.
+      if (swToastDismissed) return;
+      if (reg?.waiting) {
         setSwUpdateReg(reg);
         setShowSwToast(true);
       }
     };
     window.addEventListener('kwt-sw-update', onUpdate);
     return () => window.removeEventListener('kwt-sw-update', onUpdate);
-  }, []);
+  }, [swToastDismissed]);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
+    if (!ENABLE_SW_TOAST) return;
+
     const onControllerChange = () => window.location.reload();
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
     return () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
@@ -596,6 +594,12 @@ export default function App() {
       window.location.reload();
     }
   };
+  const dismissSwToast = () => {
+    setShowSwToast(false);
+    setSwToastDismissed(true);
+    try { sessionStorage.setItem("kwt_sw_toast_dismissed", "1"); } catch {}
+  };
+
   const accountRef = useRef(null);
   const peopleRef = useRef(null);
   const planRef = useRef(null);
@@ -625,16 +629,17 @@ export default function App() {
   const [family, setFamily] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [activeProfileId, setActiveProfileId] = useState(() => {
-    try { return localStorage.getItem("kwt_active_profile") || ""; } catch (e) { return ""; }
+    try { return localStorage.getItem("wt_activeProfileId") || ""; } catch { return ""; }
   });
-  const [plan, setPlan] = useState(null);
 
-  // Persist active person selection across refreshes
+  // Persist selected profile across refreshes
   useEffect(() => {
-    if (!activeProfileId) return;
-    try { localStorage.setItem("kwt_active_profile", activeProfileId); } catch (e) {}
+    try {
+      if (activeProfileId) localStorage.setItem("wt_activeProfileId", activeProfileId);
+    } catch {}
   }, [activeProfileId]);
 
+  const [plan, setPlan] = useState(null);
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
   const selectedWeekday = weekdayFromYMD(selectedDate);
@@ -647,6 +652,7 @@ export default function App() {
   const [soundOn, setSoundOn] = useState(true);
   const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
   const [xp, setXp] = useState(0);
+  const [bonusPop, setBonusPop] = useState(0);
 
   const audioCtxRef = useRef(null);
 
@@ -694,24 +700,18 @@ export default function App() {
       profList = again.data || [];
     }
     setProfiles(profList);
-    // Restore last selected person if possible
-setActiveProfileId((prev) => {
-  let stored = "";
-  try { stored = localStorage.getItem("kwt_active_profile") || ""; } catch (e) {}
-  const hasStored = stored && profList.some((p) => p.id === stored);
-  if (prev && profList.some((p) => p.id === prev)) return prev;
-  if (hasStored) return stored;
-  return profList[0]?.id || "";
-});
-
-    const { data: planRow } = await getPlan(fam.id);
-    if (!planRow) {
-      const p = defaultPlanForFamily();
-      await upsertPlan(fam.id, p);
-      setPlan(p);
-    } else {
-      setPlan(planRow.plan_json);
-    }
+    const storedProfileId = (() => { try { return localStorage.getItem("wt_activeProfileId") || ""; } catch { return ""; } })();
+    const nextProfileId =
+      (storedProfileId && profList.some((p) => p.id === storedProfileId))
+        ? storedProfileId
+        : (activeProfileId && profList.some((p) => p.id === activeProfileId))
+          ? activeProfileId
+          : (profList[0]?.id || "");
+    setActiveProfileId(nextProfileId);
+    // IMPORTANT:
+    // Weekly plans are per-profile (stored on the profile row or keyed per profile).
+    // Don't fetch/write a shared family plan here. Plan loading is handled by the
+    // per-profile effect below so switching profiles always shows the right plan.
   }
 
   useEffect(() => {
@@ -734,26 +734,7 @@ setActiveProfileId((prev) => {
       const { data } = await listLogs(family.id, activeProfileId, 2000);
       setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
     })().catch(() => {});
-
-
-// Recompute total XP from this profile's logs (so Rewards always shows correct XP)
-useEffect(() => {
-  if (!Array.isArray(allLogs)) return;
-  let total = 0;
-  for (const row of allLogs) {
-    const l = row?.log;
-    if (!l) continue;
-    const stored = Number(l?.gamify?.xpEarned);
-    if (Number.isFinite(stored)) {
-      total += stored;
-      continue;
-    }
-    const w = weekdayFromYMD(row?.date_ymd);
-    const planDay = buildPlanDay(plan, w);
-    total += awardXpForDay(l, planDay);
-  }
-  setXp(total);
-}, [allLogs, plan]);
+  }, [family?.id, activeProfileId]);
 
   // --- Load day log ---
   useEffect(() => {
@@ -765,6 +746,36 @@ useEffect(() => {
   }, [family?.id, activeProfileId, selectedDate]);
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
+
+  function updateProfilePlanInState(profileId, nextPlan) {
+    setProfiles((prev) =>
+      (prev || []).map((p) => (p.id === profileId ? { ...p, plan_json: nextPlan } : p))
+    );
+  }
+
+  // --- Load weekly plan for the selected profile ---
+  useEffect(() => {
+    if (!activeProfileId) return;
+    // Prefer the plan already present on the profile row (fast + avoids shared-plan bugs).
+    if (activeProfile?.plan_json) {
+      setPlan(activeProfile.plan_json);
+      return;
+    }
+
+    (async () => {
+      // Fallback to DB helper (in case plan_json isn't included in listProfiles).
+      const { data } = await getProfilePlan(activeProfileId);
+      if (data?.plan_json) {
+        setPlan(data.plan_json);
+        updateProfilePlanInState(activeProfileId, data.plan_json);
+      } else {
+        const p = defaultPlanForFamily();
+        await upsertProfilePlan(activeProfileId, p);
+        setPlan(p);
+        updateProfilePlanInState(activeProfileId, p);
+      }
+    })().catch(() => {});
+  }, [activeProfileId, activeProfile?.plan_json]);
 
   const xpToNext = 100 - (xp % 100);
   const level = 1 + Math.floor(xp / 100);
@@ -782,6 +793,33 @@ useEffect(() => {
   const planActivityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === planDayTypeId) || builtInTypes()[0];
   const planMovements = plan?.movementsByWeekday?.[planWeekday] || [];
   const planDayEditor = { ...planActivityType, movements: planMovements };
+
+const planDayForWeekday = (weekday) => {
+  const typeId = plan?.dayTypeByWeekday?.[weekday] || "strength";
+  const t = (plan?.activityTypes || builtInTypes()).find((x) => x.id === typeId) || builtInTypes()[0];
+  const movs = plan?.movementsByWeekday?.[weekday] || [];
+  return { ...t, movements: movs };
+};
+
+const computeXpFromLogs = (records) => {
+  if (!Array.isArray(records)) return 0;
+  let total = 0;
+  for (const r of records) {
+    const l = r?.log;
+    if (!l) continue;
+    const w = l.weekday || weekdayFromYMD(r?.date_ymd  || r?.date);
+    const pd = planDayForWeekday(w);
+    total += awardXpForDay(l, pd);
+    if (l?.meta?.challengeClaimed) total += 15;
+  }
+  return total;
+};
+
+useEffect(() => {
+  setXp(computeXpFromLogs(allLogs));
+}, [allLogs, plan]);
+
+
 
   async function ensureUnlocked(actionLabel = "save changes") {
     if (!family?.id) return false;
@@ -806,7 +844,8 @@ useEffect(() => {
     setUndoLabel(label);
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    updateProfilePlanInState(activeProfileId, nextPlan);
+    await upsertProfilePlan(activeProfileId, nextPlan);
   }
 
   async function undoLastPlan() {
@@ -817,14 +856,16 @@ useEffect(() => {
     setUndoLabel("");
     setPlan(prev);
     if (!family?.id) return;
-    await upsertPlan(family.id, prev);
+    updateProfilePlanInState(activeProfileId, prev);
+    await upsertProfilePlan(activeProfileId, prev);
   }
 
   async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
     setPlan(nextPlan);
     if (!family?.id) return;
-    await upsertPlan(family.id, nextPlan);
+    updateProfilePlanInState(activeProfileId, nextPlan);
+    await upsertProfilePlan(activeProfileId, nextPlan);
   }
 
   async function saveLog(nextLog) {
@@ -842,7 +883,7 @@ useEffect(() => {
       // Timing/session meta lives in meta.
       meta: {
         restSec: restFromPlan, // actual rest used (editable)
-        sessions: [{ id: uid(), startedAt: null, finishedAt: null, manualMin: "" }],
+        sessions: [],
         dayManualMin: "", // optional override for whole day
       },
       weekday: selectedWeekday,
@@ -875,6 +916,16 @@ useEffect(() => {
     next.meta = meta;
     await saveLog(next);
   }
+  async function removeSession(sessionId) {
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const meta = { ...(next.meta || {}) };
+    const sessions = [...getSessions(next)].filter((s) => s.id !== sessionId);
+    meta.sessions = sessions;
+    next.meta = meta;
+    await saveLog(next);
+  }
+
+
 
   async function startSession(sessionId) {
     const ctx = await ensureAudio();
@@ -893,14 +944,29 @@ useEffect(() => {
     next.meta = meta;
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
 
-    const earned = awardXpForDay(next, planDay);
-    setXp((prev) => prev + earned);
-
     await saveLog(next);
-    if (ctx) playLevelUp(ctx, victoryTheme);
+    if (ctx) playBling(ctx, Math.max(1, next?.gamify?.comboMax || 1), victoryTheme);
   }
 
-  async function resetDay() {
+  
+async function claimDailyBonus() {
+  const qualifies = isDayComplete(logForDay, planDay);
+  if (!qualifies) {
+    window.alert("Finish logging today’s plan first (fill in your sets), then claim the bonus!");
+    return;
+  }
+  if (logForDay?.meta?.challengeClaimed) return;
+
+  const ctx = await ensureAudio();
+  const next = logForDay ? { ...logForDay } : blankLogForDay();
+  next.meta = { ...(next.meta || {}), challengeClaimed: true };
+  await saveLog(next);
+
+  setBonusPop(Date.now());
+  if (ctx) playBling(ctx, 6, victoryTheme);
+}
+
+async function resetDay() {
     await saveLog(null);
     // wipe row by upserting empty? easiest: store null locally; for DB, overwrite with blank? We'll just store a blank with a reset marker.
     const next = blankLogForDay();
@@ -1243,7 +1309,20 @@ useEffect(() => {
   
 
 
-  if (!sessionReady) return <div className="page"><div className="wrap"><div className="muted">Loading…</div></div><StyleTag/></div>;
+  if (!sessionReady) return <div className="page"><div className="wrap">
+      {ENABLE_SW_TOAST && showSwToast && !swToastDismissed ? (
+        <div className="sw-toast" role="status">
+          <div className="sw-toast__inner">
+            <div className="sw-toast__text">✨ Update available. Refresh to get the latest version.</div>
+            <div className="sw-toast__actions">
+              <button className="sw-toast__btn" onClick={dismissSwToast}>Later</button>
+              <button className="sw-toast__btn sw-toast__btn--primary" onClick={applySwUpdate}>Refresh</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+<div className="muted">Loading…</div></div><StyleTag/></div>;
   if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />;
 
   return (
@@ -1278,7 +1357,7 @@ useEffect(() => {
                   {t[0].toUpperCase() + t.slice(1)}
                 </SecondaryButton>
               ))}
-              <SecondaryButton onClick={async () => { await signOut(); setAuthed(false); }}>Sign out</SecondaryButton>
+              <SecondaryButton onClick={async () => { await signOut(); setAuthed(false); setActiveProfileId(""); try { localStorage.removeItem("wt_activeProfileId"); } catch {} }}>Sign out</SecondaryButton>
             </div>
           </div>
         </header>
@@ -1329,8 +1408,26 @@ useEffect(() => {
                       <div key={s.id} className="sessionRow">
                         <div className="sessionTitle">Session {idx + 1}</div>
                         <div className="sessionBtns">
-                          <button className="btnSmall primary" onClick={() => startSession(s.id)}>Start</button>
-                          <button className="btnSmall primary" onClick={() => finishSession(s.id)}>Finish</button>
+                          <PrimaryButton
+                            className="btnSmall"
+                            disabled={!!s.startedAt}
+                            onClick={() => startSession(s.id)}
+                          >
+                            Start
+                          </PrimaryButton>
+                          <PrimaryButton
+                            className="btnSmall"
+                            disabled={!s.startedAt || !!s.finishedAt}
+                            onClick={() => finishSession(s.id)}
+                          >
+                            Finish
+                          </PrimaryButton>
+                          <SecondaryButton
+                            className="btnSmall"
+                            onClick={() => removeSession(s.id)}
+                          >
+                            Remove
+                          </SecondaryButton>
                         </div>
                         <div className="sessionTimes">
                           <div className="mini"><span className="label">Start</span> {s.startedAt ? new Date(s.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</div>
@@ -1348,7 +1445,7 @@ useEffect(() => {
                 <div className="grid3 mt12">
                   <div>
                     <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60} onChange={(v) => {
+                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60)} onChange={(v) => {
                       const next = logForDay ? { ...logForDay } : blankLogForDay();
                       next.meta = { ...(next.meta || {}), restSec: v };
                       saveLog(next);
@@ -1423,6 +1520,7 @@ useEffect(() => {
                           <div className="panelTop">
                             <div>
                               <div className="h2">{ex.name}</div>
+                              {ex.note ? <div className="muted mt8">{ex.note}</div> : null}
                               <div className="pills mt8">
                                 <Pill>{ex.mode}</Pill>
                                 <Pill>3 sets</Pill>
@@ -1565,7 +1663,23 @@ useEffect(() => {
                 <div className="stack mt12">
                   <Challenge text="Complete today’s plan" done={isDayComplete(logForDay, planDay)} />
                   <Challenge text="Hit a combo streak (5 sets in a row)" done={(logForDay?.gamify?.comboMax || 0) >= 5} />
+                  <div className="challenge">
+                    <div>
+                      Claim daily bonus <span className="muted">(15 XP)</span>
+                    </div>
+                    <div className="row">
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={!!logForDay?.meta?.challengeClaimed}
+                          onChange={() => claimDailyBonus()}
+                        />
+                        Done
+                      </label>
+                    </div>
+                  </div>
                   <Challenge text="XP to next level" done={xpToNext <= 25} />
+                  {bonusPop ? <div key={bonusPop} className="confettiBurst" aria-hidden="true" /> : null}
                 </div>
               </Card>
             </div>
@@ -1922,6 +2036,7 @@ useEffect(() => {
                     <div key={m.id} className="planRow">
                       <div className="planLeft">
                         <div className="planName">{m.name}</div>
+                        {m.note ? <div className="muted mt4">{m.note}</div> : null}
                         <div className="pills mt8">
                           <Pill>{m.mode}</Pill>
                           <Pill>3 sets</Pill>
@@ -2499,56 +2614,166 @@ function StyleTag() {
   );
 }
 
+const COACHING_NOTES = {
+  "Push-ups": "Strong plank body. Chest to just above the floor, then press up.",
+  "Bodyweight Squats": "Feet shoulder-width. Sit back, knees track over toes. Stand tall.",
+  "Goblet Squat": "Hold a dumbbell/kettlebell at chest. Keep chest up, squat deep with control.",
+  "Reverse Lunges": "Step back, drop back knee towards floor, push through front foot.",
+  "Lunges": "Long step, front knee over mid-foot, keep torso tall.",
+  "Step-ups": "Use a stable step/bench. Drive through the whole foot; control down.",
+  "Split Squat": "Stay in a split stance. Drop straight down and up (slow & controlled).",
+  "Hip Hinge (RDL)": "Soft knees, push hips back, feel hamstrings, keep back neutral.",
+  "Glute Bridge": "Heels close to bum. Squeeze glutes at the top for 1 second.",
+  "Calf Raises": "Full range: down slow, up strong. Keep balance with a wall if needed.",
+  "Dumbbell Row": "Flat back. Pull elbow to your pocket, squeeze shoulder blade.",
+  "Shoulder Press": "Brace core. Press overhead without leaning back.",
+  "Pull / Row variation": "Pick any row/pull movement and focus on smooth reps.",
+  "Plank": "Elbows under shoulders. Ribs down, squeeze glutes, breathe.",
+  "Side Plank": "Hips high, straight line head-to-heels. Hold steady, breathe.",
+  "Hollow Hold": "Lower back pressed down. Hold a tight banana shape.",
+  "Wall Sit": "Back flat to wall. Knees about 90°. Stay strong and breathe.",
+  "Squat Jumps": "Soft landings. Jump up, absorb quietly, reset and repeat.",
+  "Jump Rope": "Small bounces, wrists turn the rope. Stay light on feet.",
+  "Mountain Climbers": "Hands under shoulders. Drive knees fast while keeping hips stable.",
+  "Burpees": "Smooth rhythm. Step back if needed; quality over speed.",
+  "1-2 (jab–cross) + move": "Snap punches, hands back to guard. Add a small step after.",
+  "Hook–cross + duck": "Turn hips for the hook. Duck under (small bend), back to guard.",
+  "Knees + teeps (shadow)": "Core tight. Knee up then extend for a light front kick. Control.",
+  "Core finisher (30s on / 30s off)": "Pick: plank, dead-bug, bicycle. Keep it tidy.",
+  "1-2-3-2 combo": "Jab–cross–hook–cross. Stay light, guard up.",
+  "Punch–slip–punch": "Slip = tiny head movement. Return fire fast, then reset.",
+  "Fast feet (shadow)": "Quick steps, light bounce. Hands up, breathe through nose if possible.",
+};
+
 function presetPlans() {
-  const base = defaultPlanForFamily();
-  const withRunIntervals = (p) => ({
-    ...p,
+  // Build a fresh plan each call (new movement IDs) so presets don’t clash with older logs.
+  const noteFor = (name) => COACHING_NOTES[name] || "";
+
+  const movement = (name, mode, opts = {}) => ({
+    id: uid(),
+    name,
+    mode,
+    note: noteFor(name),
+    ...opts,
+  });
+
+  
+const strengthDay = (names) =>
+  names.map((n) => {
+    const noWeight = ["Push-ups", "Plank", "Side Plank", "Hollow Hold", "Burpees", "Jump Rope", "Mountain Climbers"];
+    const allowWeight = !noWeight.includes(n);
+    return movement(n, "strength", { allowWeight });
+  });
+
+const boxRounds = (names) =>
+    names.map((n) =>
+      movement(n, "time", {
+        fixedSeconds: 60,
+        allowCount: true,
+        countLabel: "rounds",
+      })
+    );
+
+  const baseTypes = builtInTypes();
+
+  const makePlan = ({ dayTypeByWeekday, movementsByWeekday, restSecByWeekday, cardioTargetByWeekday }) => ({
+    version: 1,
+    activityTypes: baseTypes,
+    dayTypeByWeekday: dayTypeByWeekday || defaultPlanForFamily().dayTypeByWeekday,
+    restSecByWeekday: restSecByWeekday || weekdays.reduce((acc, d) => ((acc[d] = 60), acc), {}),
+    movementsByWeekday: movementsByWeekday || {},
+    cardioTargetByWeekday: cardioTargetByWeekday || {},
+  });
+
+  // --- Presets ---
+  const footballEngine = makePlan({
+    dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "run", Sun: "duration" },
+    restSecByWeekday: { Mon: 75, Tue: 0, Wed: 75, Thu: 45, Fri: 75, Sat: 0, Sun: 0 },
+    movementsByWeekday: {
+      Mon: strengthDay(["Goblet Squat", "Push-ups", "Dumbbell Row", "Plank"]),
+      Wed: strengthDay(["Reverse Lunges", "Shoulder Press", "Hip Hinge (RDL)", "Side Plank"]),
+      Thu: boxRounds(["1-2 (jab–cross) + move", "Hook–cross + duck", "Knees + teeps (shadow)", "Core finisher (30s on / 30s off)"]),
+      Fri: strengthDay(["Step-ups", "Pull / Row variation", "Split Squat", "Hollow Hold"]),
+    },
     cardioTargetByWeekday: {
-      ...(p.cardioTargetByWeekday || {}),
-      Tue: "Intervals: 5 min warm-up • 6×(1 min fast / 1 min easy) • 5 min cool-down",
+      Tue: "Intervals: 5 min easy • 6×(1 min fast / 1 min easy) • 5 min easy",
+      Sat: "Tempo: 10 min easy • 10–15 min steady (talk-test) • 5 min easy",
+      Sun: "Easy walk / light cycle 20–40 min (optional)",
     },
   });
 
+  const legsPower = makePlan({
+    dayTypeByWeekday: { Mon: "strength", Tue: "duration", Wed: "strength", Thu: "duration", Fri: "strength", Sat: "duration", Sun: "duration" },
+    restSecByWeekday: { Mon: 90, Tue: 0, Wed: 90, Thu: 0, Fri: 90, Sat: 0, Sun: 0 },
+    movementsByWeekday: {
+      Mon: strengthDay(["Goblet Squat", "Reverse Lunges", "Calf Raises", "Plank"]),
+      Wed: strengthDay(["Hip Hinge (RDL)", "Step-ups", "Glute Bridge", "Side Plank"]),
+      Fri: strengthDay(["Split Squat", "Squat Jumps", "Wall Sit", "Hollow Hold"]),
+    },
+    cardioTargetByWeekday: {
+      Tue: "Zone 2: 20–30 min easy (you can talk).",
+      Thu: "Mobility walk: 15–25 min + 5 min stretching.",
+      Sat: "Optional: hills (walk up / easy down) 15–20 min.",
+    },
+  });
+
+  const toneConditioning = makePlan({
+    dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "duration", Sun: "duration" },
+    restSecByWeekday: { Mon: 45, Tue: 0, Wed: 45, Thu: 30, Fri: 45, Sat: 0, Sun: 0 },
+    movementsByWeekday: {
+      Mon: strengthDay(["Push-ups", "Bodyweight Squats", "Mountain Climbers", "Plank"]),
+      Wed: strengthDay(["Lunges", "Shoulder Press", "Dumbbell Row", "Hollow Hold"]),
+      Thu: boxRounds(["1-2-3-2 combo", "Punch–slip–punch", "Fast feet (shadow)", "Core finisher (30s on / 30s off)"]),
+      Fri: strengthDay(["Goblet Squat", "Burpees", "Jump Rope", "Side Plank"]),
+    },
+    cardioTargetByWeekday: {
+      Tue: "Intervals: 5 min easy • 8×(30s fast / 60s easy) • 5 min easy",
+      Sat: "Easy steady: 20–40 min (walk/jog/cycle).",
+      Sun: "Recovery: 15–30 min easy movement + stretch.",
+    },
+  });
+
+  const recoveryMobility = makePlan({
+    dayTypeByWeekday: { Mon: "duration", Tue: "duration", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
+    restSecByWeekday: weekdays.reduce((acc, d) => ((acc[d] = 0), acc), {}),
+    movementsByWeekday: {},
+    cardioTargetByWeekday: {
+      Mon: "Mobility: 10–20 min stretching (hips/hamstrings/ankles).",
+      Tue: "Easy walk: 20–40 min (relaxed).",
+      Wed: "Core + posture: 10–15 min (light).",
+      Thu: "Easy cycle / swim / walk: 20–40 min.",
+      Fri: "Mobility: shoulders + back 10–20 min.",
+      Sat: "Optional: fun activity 20–60 min.",
+      Sun: "Rest: breathe + stretch 5–10 min.",
+    },
+  });
 
   return [
     {
       id: "football_engine",
       name: "Football Speed & Engine (5 days)",
       desc: "Intervals + conditioning + strength base. Great for players.",
-      plan: withRunIntervals(base),
-    },
-    {
-      id: "general_strength",
-      name: "General Strength + Fitness",
-      desc: "Simple weekly structure you can customise.",
-      plan: base,
-    },
-    {
-      id: "upper_body",
-      name: "Upper Body Strength",
-      desc: "Focus your strength days on upper movements.",
-      plan: base,
+      plan: footballEngine,
     },
     {
       id: "legs_power",
       name: "Leg Strength + Power",
-      desc: "Focus your strength days on legs + jumps.",
-      plan: base,
+      desc: "Leg strength focus with plyometrics + easy conditioning.",
+      plan: legsPower,
     },
     {
       id: "tone_conditioning",
       name: "Muscular Conditioning / Tone",
-      desc: "Higher reps, less rest, more cardio bias.",
-      plan: withRunIntervals(base),
+      desc: "Higher reps, shorter rest, and cardio bias for fitness & tone.",
+      plan: toneConditioning,
     },
     {
       id: "recovery_mobility",
       name: "Recovery & Mobility",
-      desc: "More duration days (mobility, yoga, easy cardio).",
-      plan: {
-        ...base,
-        dayTypeByWeekday: { Mon: "duration", Tue: "run", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
-      },
+      desc: "Light movement + mobility every day to stay fresh.",
+      plan: recoveryMobility,
     },
   ];
-}
+};
+
+
