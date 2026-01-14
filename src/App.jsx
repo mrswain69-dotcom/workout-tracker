@@ -680,6 +680,14 @@ export default function App() {
     return ctx;
   };
 
+
+  const doSignOut = async () => {
+    await signOut();
+    setAuthed(false);
+    setActiveProfileId("");
+    try { localStorage.removeItem("wt_activeProfileId"); } catch {}
+  };
+
   // --- After auth: family + profiles + plan ---
   async function refreshAll() {
     const { family: fam, error } = await getOrCreateFamily("Swain Family");
@@ -1338,12 +1346,6 @@ async function resetDay() {
              </div>
             </div>
             <h1 className="title">{activeProfile?.name || "Profile"}</h1>
-            <div className="pills">
-              <Pill onClick={() => jumpTo("settings", accountRef)}>Account</Pill>
-              <Pill onClick={() => jumpTo("settings", peopleRef)}>People</Pill>
-              <Pill onClick={() => jumpTo("plan", planRef)}>Plan</Pill>
-              <Pill onClick={() => jumpTo("stats", chartsRef)}>Charts</Pill>
-            </div>
           </div>
 
           <div className="header-right">
@@ -1351,13 +1353,26 @@ async function resetDay() {
               <Select value={activeProfileId} onChange={setActiveProfileId} options={profiles.map((p) => ({ value: p.id, label: p.name }))} />
             </div>
 
-            <div className="tabs">
-              {["log", "stats", "plan", "rewards", "settings"].map((t) => (
-                <SecondaryButton key={t} onClick={() => setTab(t)}>
-                  {t[0].toUpperCase() + t.slice(1)}
-                </SecondaryButton>
-              ))}
-              <SecondaryButton onClick={async () => { await signOut(); setAuthed(false); setActiveProfileId(""); try { localStorage.removeItem("wt_activeProfileId"); } catch {} }}>Sign out</SecondaryButton>
+            <div className="tabsRow">
+              <div className="tabs">
+                {["log", "stats", "plan", "rewards"].map((t) => (
+                  <SecondaryButton key={t} onClick={() => setTab(t)}>
+                    {t[0].toUpperCase() + t.slice(1)}
+                  </SecondaryButton>
+                ))}
+              </div>
+
+              <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Settings">
+                <span className="iconEmoji" aria-hidden="true">⚙️</span>
+              </button>
+
+              <button type="button" className="iconBtn" onClick={doSignOut} aria-label="Sign out">
+                <svg className="iconSvg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M3 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="m6 9-3 3 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
           </div>
         </header>
@@ -2376,6 +2391,14 @@ async function resetDay() {
                 <div className="h3">Export/Import</div>
                 <div className="muted">For now, export/import can be added later (cloud is your backup).</div>
               </div>
+
+              <div className="panel mt16">
+                <div className="h3">Sign out</div>
+                <div className="muted mt8">Use this on shared devices.</div>
+                <div className="row mt12">
+                  <SecondaryButton onClick={doSignOut}>Sign out</SecondaryButton>
+                </div>
+              </div>
             </Card>
           </div>
         )}
@@ -2541,6 +2564,13 @@ function StyleTag() {
       .header-right{display:flex;flex-direction:column;gap:10px}
       @media(min-width:900px){.header-right{flex-direction:row;align-items:center}}
       .tabs{display:flex;flex-wrap:wrap;gap:8px}
+
+      .tabsRow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
+      .iconBtn{width:44px;height:44px;border-radius:14px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;display:inline-flex;align-items:center;justify-content:center}
+      .iconBtn:hover{filter:brightness(0.98)}
+      .iconBtn:active{transform:scale(0.99)}
+      .iconSvg{width:20px;height:20px}
+      .iconEmoji{font-size:20px;line-height:1}
       .selectWide{min-width:220px}
       .card{border:1px solid #e2e8f0;background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.06)}
       .pad{padding:16px}
