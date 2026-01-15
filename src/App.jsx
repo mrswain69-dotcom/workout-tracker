@@ -2563,7 +2563,9 @@ function StyleTag() {
     <style>{`
       .page{min-height:100vh;background:#f8fafc}
       .wrap{max-width:1200px;margin:0 auto;padding:16px}
-      .header{display:flex;flex-direction:column;gap:12px;margin-bottom:12px;width:100%;align-items:stretch;}
+      .header{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+      .headerBottom{display:flex;flex-direction:column;gap:12px}
+      @media(min-width:900px){.headerBottom{flex-direction:row;align-items:flex-end;justify-content:space-between;gap:16px}}
       @media(min-width:900px){.header{flex-direction:row;align-items:flex-end;justify-content:space-between;margin-bottom:18px}}
       .small{font-weight:700;color:#475569;font-size:12px}
       .title{margin:0;font-size:28px;letter-spacing:-0.02em}
