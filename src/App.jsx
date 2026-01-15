@@ -1337,62 +1337,55 @@ async function resetDay() {
     <div className="page">
       <div className="wrap">
         <header className="header">
-          <div>
-            <div className="brandRow">
-  <div className="brandLockup">
-    <img className="brandMark" src="/icons/icon-192.png" alt="Workout Tracker" />
-    <div className="brandText">
-      <div className="brandTitle">Workout Tracker</div>
-      <div className="brandTag">Build Strength. Build Habits.</div>
+  <div className="brandRow">
+    <div className="brandLockup">
+      <img className="brandMark" src="/icons/icon-192.png" alt="Workout Tracker" />
+      <div className="brandText">
+        <div className="brandTitle">Workout Tracker</div>
+        <div className="brandTag">Build Strength. Build Habits.</div>
+      </div>
+    </div>
+
+    <div className="brandActions">
+      <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Settings">
+        <span className="iconEmoji">⚙️</span>
+      </button>
+
+      <button type="button" className="iconBtn" onClick={doSignOut} aria-label="Sign out">
+        <svg className="iconSvg" viewBox="0 0 24 24" fill="none">
+          <path d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M3 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="m6 9-3 3 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
     </div>
   </div>
 
-  <div className="brandActions">
-    <button
-      type="button"
-      className="iconBtn"
-      onClick={() => setTab("settings")}
-      aria-label="Settings"
-    >
-      <span className="iconEmoji">⚙️</span>
-    </button>
+  <div className="headerBottom">
+    <h1 className="title">{activeProfile?.name || "Profile"}</h1>
 
-    <button
-      type="button"
-      className="iconBtn"
-      onClick={doSignOut}
-      aria-label="Sign out"
-    >
-      <svg className="iconSvg" viewBox="0 0 24 24" fill="none">
-        <path d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <path d="M3 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <path d="m6 9-3 3 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
+    <div className="header-right">
+      <div className="selectWide">
+        <Select
+          value={activeProfileId}
+          onChange={setActiveProfileId}
+          options={profiles.map((p) => ({ value: p.id, label: p.name }))}
+        />
+      </div>
+
+      <div className="tabsRow">
+        <div className="tabs">
+          {["log", "stats", "plan", "rewards"].map((t) => (
+            <SecondaryButton key={t} onClick={() => setTab(t)}>
+              {t[0].toUpperCase() + t.slice(1)}
+            </SecondaryButton>
+          ))}
+        </div>
+      </div>
+    </div>
   </div>
-</div>
+</header>
 
-<h1 className="title">{activeProfile?.name || "Profile"}</h1>
-          </div>
-
-          <div className="header-right">
-            <div className="selectWide">
-              <Select value={activeProfileId} onChange={setActiveProfileId} options={profiles.map((p) => ({ value: p.id, label: p.name }))} />
-            </div>
-
-            <div className="tabsRow">
-              <div className="tabs">
-                {["log", "stats", "plan", "rewards"].map((t) => (
-                  <SecondaryButton key={t} onClick={() => setTab(t)}>
-                    {t[0].toUpperCase() + t.slice(1)}
-                  </SecondaryButton>
-                ))}
-              </div>
-
-              
-            </div>
-          </div>
-        </header>
 
 
         <Card className="pad motivator">
