@@ -424,18 +424,6 @@ function Input({ value, onChange, placeholder, type = "text", min, step, readOnl
     />
   );
 }
-function Textarea({ value, onChange, placeholder, rows = 3 }) {
-  return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange && onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      className="textarea"
-    />
-  );
-}
-
 function Select({ value, onChange, options }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} className="input">
@@ -1349,55 +1337,45 @@ async function resetDay() {
     <div className="page">
       <div className="wrap">
         <header className="header">
-  <div className="brandRow">
-    <div className="brandLockup">
-      <img className="brandMark" src="/icons/icon-192.png" alt="Workout Tracker" />
-      <div className="brandText">
-        <div className="brandTitle">Workout Tracker</div>
-        <div className="brandTag">Build Strength. Build Habits.</div>
-      </div>
-    </div>
+          <div>
+            <div className="brandLockup">
+             <img className="brandMark" src="/icons/icon-192.png" alt="Workout Tracker" />
+             <div className="brandText">
+               <div className="brandTitle">Workout Tracker</div>
+               <div className="brandTag">Build Strength. Build Habits.</div>
+             </div>
+            </div>
+            <h1 className="title">{activeProfile?.name || "Profile"}</h1>
+          </div>
 
-    <div className="brandActions">
-      <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Settings">
-        <span className="iconEmoji">⚙️</span>
-      </button>
+          <div className="header-right">
+            <div className="selectWide">
+              <Select value={activeProfileId} onChange={setActiveProfileId} options={profiles.map((p) => ({ value: p.id, label: p.name }))} />
+            </div>
 
-      <button type="button" className="iconBtn" onClick={doSignOut} aria-label="Sign out">
-        <svg className="iconSvg" viewBox="0 0 24 24" fill="none">
-          <path d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <path d="M3 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <path d="m6 9-3 3 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-    </div>
-  </div>
+            <div className="tabsRow">
+              <div className="tabs">
+                {["log", "stats", "plan", "rewards"].map((t) => (
+                  <SecondaryButton key={t} onClick={() => setTab(t)}>
+                    {t[0].toUpperCase() + t.slice(1)}
+                  </SecondaryButton>
+                ))}
+              </div>
 
-  <div className="headerBottom">
-    <h1 className="title">{activeProfile?.name || "Profile"}</h1>
+              <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Settings">
+                <span className="iconEmoji" aria-hidden="true">⚙️</span>
+              </button>
 
-    <div className="header-right">
-      <div className="selectWide">
-        <Select
-          value={activeProfileId}
-          onChange={setActiveProfileId}
-          options={profiles.map((p) => ({ value: p.id, label: p.name }))}
-        />
-      </div>
-
-      <div className="tabsRow">
-        <div className="tabs">
-          {["log", "stats", "plan", "rewards"].map((t) => (
-            <SecondaryButton key={t} onClick={() => setTab(t)}>
-              {t[0].toUpperCase() + t.slice(1)}
-            </SecondaryButton>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-</header>
-
+              <button type="button" className="iconBtn" onClick={doSignOut} aria-label="Sign out">
+                <svg className="iconSvg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="M3 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  <path d="m6 9-3 3 3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </header>
 
 
         <Card className="pad motivator">
@@ -2068,152 +2046,137 @@ async function resetDay() {
               ) : null}
 
               {planActivityType.movementsEnabled ? (
-  <div className="stack mt16">
-    {(planMovements || []).map((m) => (
-      <div key={m.id} className="planRow">
-        <div className="planMoveHead">
-          <div className="planLeft">
-            <div className="planName">{m.name}</div>
-            {m.note ? <div className="muted mt4">{m.note}</div> : null}
+                <div className="stack mt16">
+                  {(planMovements || []).map((m) => (
+                    <div key={m.id} className="planRow">
+                      <div className="planLeft">
+                        <div className="planName">{m.name}</div>
+                        {m.note ? <div className="muted mt4">{m.note}</div> : null}
+                        <div className="pills mt8">
+                          <Pill>{m.mode}</Pill>
+                          <Pill>3 sets</Pill>
+                          {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
+                          {m.allowWeight ? <Pill>weights</Pill> : null}
+                          {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
+                        {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
+                          </div>
+                      </div>
+                      <div className="planBtns">
+                        
+                        <SecondaryButton
+                          onClick={async () => {
+                            // Optional targets (copy/examples only — stored as text, numeric parsed when obvious)
+                            const examples =
+                              m.mode === "strength"
+                                ? 'Examples:\n• 10\n• 10 @ 20kg\n• 8–12 reps'
+                                : m.mode === "time"
+                                  ? 'Examples:\n• 60s\n• 1 min\n• 3 × 1 min rounds'
+                                  : m.mode === "custom"
+                                    ? 'Examples:\n• 20 min\n• 30 min easy'
+                                    : 'Examples:\n• 10';
 
-            <div className="pills mt8">
-              <Pill>{m.mode}</Pill>
-              <Pill>3 sets</Pill>
-              {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
-              {m.allowWeight ? <Pill>weights</Pill> : null}
-              {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
-              {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
-            </div>
+                            const promptText = `Optional target for "${m.name}" (leave blank for none):\n${examples}\n\nTip: You can type anything — it’s just a reminder.`;
+                            const prevDefault =
+                              (m.targetText != null && String(m.targetText)) ||
+                              (m.targetReps != null ? String(m.targetReps) : "");
+                            const raw = prompt(promptText, prevDefault);
+                            if (raw === null) return;
+
+                            const txt = raw.trim();
+                            let targetText = txt === "" ? null : txt;
+
+                            // Try to parse simple strength formats into numbers (optional)
+                            let targetReps = null;
+                            let targetWeight = null;
+
+                            if (m.mode === "strength" && targetText) {
+                              // "10", "10@20", "10 @ 20kg", "10 at 20"
+                              const m1 = targetText.match(/^\s*(\d+)\s*(?:@|at)?\s*(\d+(?:\.\d+)?)?\s*(?:kg)?\s*$/i);
+                              if (m1) {
+                                targetReps = Number(m1[1]);
+                                if (m1[2] != null && m.allowWeight) targetWeight = Number(m1[2]);
+                              } else {
+                                // If it's just a number inside text, use it as reps
+                                const m2 = targetText.match(/^\s*(\d+)\s*$/);
+                                if (m2) targetReps = Number(m2[1]);
+                              }
+                              if (!Number.isFinite(targetReps)) targetReps = null;
+                              if (!Number.isFinite(targetWeight)) targetWeight = null;
+                            }
+
+                            const nextMov = (planMovements || []).map((x) =>
+                              x.id === m.id ? { ...x, targetText, targetReps, targetWeight } : x
+                            );
+                            const next = {
+                              ...plan,
+                              movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
+                            };
+                            await savePlan(next);
+                          }}
+                        >
+                          Targets
+                        </SecondaryButton>
+
+<SecondaryButton
+                          onClick={async () => {
+                            const name = prompt("Rename movement:", m.name);
+                            if (!name) return;
+                            const nextMov = (planMovements || []).map((x) => (x.id === m.id ? { ...x, name: name.trim() } : x));
+                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov } };
+                            await savePlan(next);
+                          }}
+                        >
+                          Rename
+                        </SecondaryButton>
+                        <SecondaryButton
+                          onClick={async () => {
+                            const nextMov = (planMovements || []).filter((x) => x.id !== m.id);
+                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov } };
+                            await savePlan(next);
+                          }}
+                        >
+                          Remove
+                        </SecondaryButton>
+                      </div>
+                    </div>
+                  ))}
+
+                  {(planMovements || []).length < 3 && (
+                    <Card className="pad">
+                      <div className="h3">Add movement</div>
+                      <div className="muted">Limit 3 movements per day (keeps it clean).</div>
+                      <AddMovement
+                        defaultKind={planActivityType.kind}
+                        onAdd={async (m) => {
+                          const arr = [...(planMovements || [])];
+                          if (arr.length >= 3) return alert("Max 3 movements per day.");
+                          arr.push({ ...m, id: uid() });
+                          const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: arr } };
+                          await savePlan(next);
+                        }}
+                      />
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <div className="dashed mt16">This activity type doesn’t use movements (just log distance/time or minutes).</div>
+              )}
+
+              <div className="panel mt16">
+                <div className="h3">Custom activity types</div>
+                <div className="muted mt8">Create a new day type for other people (e.g. “Pilates”, “Cycling”, “Yoga”, “Rowing”).</div>
+                <AddType
+                  existing={(plan?.activityTypes || builtInTypes())}
+                  onAdd={async (t) => {
+                    const next = { ...plan, activityTypes: [...(plan?.activityTypes || builtInTypes()), t] };
+                    await savePlan(next);
+                  }}
+                />
+              </div>
+            </Card>
+
           </div>
-
-          <div className="planBtns">
-            <SecondaryButton
-              onClick={async () => {
-                const examples =
-                  m.mode === "strength"
-                    ? 'Examples:\n• 10\n• 10 @ 20kg\n• 8–12 reps'
-                    : m.mode === "time"
-                      ? 'Examples:\n• 60s\n• 1 min\n• 3 × 1 min rounds'
-                      : m.mode === "custom"
-                        ? 'Examples:\n• 20 min\n• 30 min easy'
-                        : 'Examples:\n• 10';
-
-                const promptText = `Optional target for "${m.name}" (leave blank for none):\n${examples}\n\nTip: You can type anything — it’s just a reminder.`;
-                const prevDefault =
-                  (m.targetText != null && String(m.targetText)) ||
-                  (m.targetReps != null ? String(m.targetReps) : "");
-                const raw = prompt(promptText, prevDefault);
-                if (raw === null) return;
-
-                const txt = raw.trim();
-                let targetText = txt === "" ? null : txt;
-
-                let targetReps = null;
-                let targetWeight = null;
-
-                if (m.mode === "strength" && targetText) {
-                  const m1 = targetText.match(/^\s*(\d+)\s*(?:@|at)?\s*(\d+(?:\.\d+)?)?\s*(?:kg)?\s*$/i);
-                  if (m1) {
-                    targetReps = Number(m1[1]);
-                    if (m1[2] != null && m.allowWeight) targetWeight = Number(m1[2]);
-                  } else {
-                    const m2 = targetText.match(/^\s*(\d+)\s*$/);
-                    if (m2) targetReps = Number(m2[1]);
-                  }
-                  if (!Number.isFinite(targetReps)) targetReps = null;
-                  if (!Number.isFinite(targetWeight)) targetWeight = null;
-                }
-
-                const nextMov = (planMovements || []).map((x) =>
-                  x.id === m.id ? { ...x, targetText, targetReps, targetWeight } : x
-                );
-                const next = {
-                  ...plan,
-                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-                };
-                await savePlan(next);
-              }}
-            >
-              Targets
-            </SecondaryButton>
-
-            <SecondaryButton
-              onClick={async () => {
-                const name = prompt("Rename movement:", m.name);
-                if (!name) return;
-                const nextMov = (planMovements || []).map((x) =>
-                  x.id === m.id ? { ...x, name: name.trim() } : x
-                );
-                const next = {
-                  ...plan,
-                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-                };
-                await savePlan(next);
-              }}
-            >
-              Rename
-            </SecondaryButton>
-
-            <SecondaryButton
-              onClick={async () => {
-                const prev = m.note || "";
-                const nextNote = prompt(`Coach note for "${m.name}" (optional):`, prev);
-                if (nextNote === null) return;
-                const nextMov = (planMovements || []).map((x) =>
-                  x.id === m.id ? { ...x, note: nextNote.trim() } : x
-                );
-                const next = {
-                  ...plan,
-                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-                };
-                await savePlan(next);
-              }}
-            >
-              Coach note
-            </SecondaryButton>
-
-            <SecondaryButton
-              onClick={async () => {
-                const nextMov = (planMovements || []).filter((x) => x.id !== m.id);
-                const next = {
-                  ...plan,
-                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-                };
-                await savePlan(next);
-              }}
-            >
-              Remove
-            </SecondaryButton>
-          </div>
-        </div>
-      </div>
-    ))}
-
-    <Card className="pad">
-  <div className="h3">Add movement</div>
-  <div className="muted">Add as many movements as you like for this day.</div>
-  <AddMovement
-    defaultKind={planActivityType.kind}
-    onAdd={async (m) => {
-      const arr = [...(planMovements || [])];
-      arr.push({ ...m, id: uid() });
-      const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: arr } };
-      await savePlan(next);
-    }}
-  />
-</Card>
-  </div>
-) : (
-  <div className="dashed mt16">
-    This activity type doesn’t use movements (just log distance/time or minutes).
-  </div>
-)}
-
-              </Card>
-            </div>
-          )}
-
-
+        )}
 
         {tab === "rewards" && (
           <div className="grid2cols">
@@ -2455,8 +2418,6 @@ function AddMovement({ onAdd, defaultKind }) {
   const [fixedSeconds, setFixedSeconds] = useState(defaultKind === "time" ? "60" : "");
   const [allowCount, setAllowCount] = useState(defaultKind === "time");
   const [countLabel, setCountLabel] = useState(defaultKind === "time" ? "hits" : "count");
-  const [note, setNote] = useState("");
-
 
   useEffect(() => {
     setMode(defaultKind === "time" ? "time" : "strength");
@@ -2472,17 +2433,6 @@ function AddMovement({ onAdd, defaultKind }) {
         <div className="label">Name</div>
         <Input value={name} onChange={setName} placeholder="e.g. Pull-ups" />
       </div>
-
-      <div>
-  <div className="label">Coach note (optional)</div>
-  <Textarea
-    value={note}
-    onChange={setNote}
-    placeholder="e.g. Keep elbows tucked. Control down. Strong core."
-    rows={3}
-  />
-</div>
-
 
       <div className="grid2">
         <div>
@@ -2525,7 +2475,6 @@ function AddMovement({ onAdd, defaultKind }) {
           if (!name.trim()) return;
           onAdd({
             name: name.trim(),
-            note: note.trim() || "",
             mode,
             allowWeight: mode === "strength" ? allowWeight : false,
             fixedSeconds: mode === "time" && safeNumber(fixedSeconds) > 0 ? safeNumber(fixedSeconds) : undefined,
@@ -2533,7 +2482,6 @@ function AddMovement({ onAdd, defaultKind }) {
             countLabel: mode === "time" && allowCount ? countLabel.trim() : undefined,
           });
           setName("");
-          setNote("");
         }}
       >
         Add movement
@@ -2606,8 +2554,7 @@ function StyleTag() {
       .page{min-height:100vh;background:#f8fafc}
       .wrap{max-width:1200px;margin:0 auto;padding:16px}
       .header{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
-      .headerBottom{display:flex;flex-direction:column;gap:12px}
-      @media(min-width:900px){.headerBottom{flex-direction:row;align-items:flex-end;justify-content:space-between;gap:16px}}
+      @media(min-width:900px){.header{flex-direction:row;align-items:flex-end;justify-content:space-between;margin-bottom:18px}}
       .small{font-weight:700;color:#475569;font-size:12px}
       .title{margin:0;font-size:28px;letter-spacing:-0.02em}
       .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
@@ -2654,8 +2601,13 @@ function StyleTag() {
       @media(min-width:1100px){.gridLog{grid-template-columns:1.25fr .75fr}}
       .grid2cols{display:grid;gap:12px}
       @media(min-width:1000px){.grid2cols{grid-template-columns:1fr 1fr}}
-      .gridPlan{display:grid;gap:12px}
-      @media(min-width:1000px){.gridPlan{grid-template-columns:1fr .9fr}}
+      /* Plan page layout: stack on mobile, 2-col on desktop */
+      .gridPlan{display:grid;gap:16px;grid-template-columns:1fr;align-items:start}
+      @media(min-width:900px){.gridPlan{grid-template-columns:360px minmax(0,1fr)}}
+
+      /* Make rowBetween sections stack nicely on small screens */
+      .rowBetween{display:flex;gap:12px;justify-content:space-between;align-items:flex-start}
+      @media(max-width:520px){.rowBetween{flex-direction:column;align-items:stretch}}
       .panel{border:1px solid #e2e8f0;background:#f1f5f9;border-radius:18px;padding:14px}
       .panelTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
       .setRow{display:grid;grid-template-columns:1fr;gap:10px;border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:12px}
@@ -2858,4 +2810,5 @@ const boxRounds = (names) =>
     },
   ];
 };
+
 
