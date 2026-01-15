@@ -2215,6 +2215,11 @@ async function resetDay() {
   </div>
 )}
 
+              </Card>
+            </div>
+          )}
+
+
 
         {tab === "rewards" && (
           <div className="grid2cols">
@@ -2859,5 +2864,4 @@ const boxRounds = (names) =>
     },
   ];
 };
-
 
