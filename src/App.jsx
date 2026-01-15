@@ -2068,122 +2068,129 @@ async function resetDay() {
               ) : null}
 
               {planActivityType.movementsEnabled ? (
-                <div className="stack mt16">
-                  {(planMovements || []).map((m) => (
-                    <div key={m.id} className="planRow">
-  <div className="planMoveHead">
-    <div className="planLeft">
-      <div className="planName">{m.name}</div>
-      {m.note ? <div className="muted mt4">{m.note}</div> : null}
-      <div className="pills mt8">
-        <Pill>{m.mode}</Pill>
-        <Pill>3 sets</Pill>
-        {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
-        {m.allowWeight ? <Pill>weights</Pill> : null}
-        {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
-        {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
+  <div className="stack mt16">
+    {(planMovements || []).map((m) => (
+      <div key={m.id} className="planRow">
+        <div className="planMoveHead">
+          <div className="planLeft">
+            <div className="planName">{m.name}</div>
+            {m.note ? <div className="muted mt4">{m.note}</div> : null}
+
+            <div className="pills mt8">
+              <Pill>{m.mode}</Pill>
+              <Pill>3 sets</Pill>
+              {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
+              {m.allowWeight ? <Pill>weights</Pill> : null}
+              {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
+              {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
+            </div>
+          </div>
+
+          <div className="planBtns">
+            <SecondaryButton
+              onClick={async () => {
+                const examples =
+                  m.mode === "strength"
+                    ? 'Examples:\n• 10\n• 10 @ 20kg\n• 8–12 reps'
+                    : m.mode === "time"
+                      ? 'Examples:\n• 60s\n• 1 min\n• 3 × 1 min rounds'
+                      : m.mode === "custom"
+                        ? 'Examples:\n• 20 min\n• 30 min easy'
+                        : 'Examples:\n• 10';
+
+                const promptText = `Optional target for "${m.name}" (leave blank for none):\n${examples}\n\nTip: You can type anything — it’s just a reminder.`;
+                const prevDefault =
+                  (m.targetText != null && String(m.targetText)) ||
+                  (m.targetReps != null ? String(m.targetReps) : "");
+                const raw = prompt(promptText, prevDefault);
+                if (raw === null) return;
+
+                const txt = raw.trim();
+                let targetText = txt === "" ? null : txt;
+
+                let targetReps = null;
+                let targetWeight = null;
+
+                if (m.mode === "strength" && targetText) {
+                  const m1 = targetText.match(/^\s*(\d+)\s*(?:@|at)?\s*(\d+(?:\.\d+)?)?\s*(?:kg)?\s*$/i);
+                  if (m1) {
+                    targetReps = Number(m1[1]);
+                    if (m1[2] != null && m.allowWeight) targetWeight = Number(m1[2]);
+                  } else {
+                    const m2 = targetText.match(/^\s*(\d+)\s*$/);
+                    if (m2) targetReps = Number(m2[1]);
+                  }
+                  if (!Number.isFinite(targetReps)) targetReps = null;
+                  if (!Number.isFinite(targetWeight)) targetWeight = null;
+                }
+
+                const nextMov = (planMovements || []).map((x) =>
+                  x.id === m.id ? { ...x, targetText, targetReps, targetWeight } : x
+                );
+                const next = {
+                  ...plan,
+                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
+                };
+                await savePlan(next);
+              }}
+            >
+              Targets
+            </SecondaryButton>
+
+            <SecondaryButton
+              onClick={async () => {
+                const name = prompt("Rename movement:", m.name);
+                if (!name) return;
+                const nextMov = (planMovements || []).map((x) =>
+                  x.id === m.id ? { ...x, name: name.trim() } : x
+                );
+                const next = {
+                  ...plan,
+                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
+                };
+                await savePlan(next);
+              }}
+            >
+              Rename
+            </SecondaryButton>
+
+            <SecondaryButton
+              onClick={async () => {
+                const prev = m.note || "";
+                const nextNote = prompt(`Coach note for "${m.name}" (optional):`, prev);
+                if (nextNote === null) return;
+                const nextMov = (planMovements || []).map((x) =>
+                  x.id === m.id ? { ...x, note: nextNote.trim() } : x
+                );
+                const next = {
+                  ...plan,
+                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
+                };
+                await savePlan(next);
+              }}
+            >
+              Coach note
+            </SecondaryButton>
+
+            <SecondaryButton
+              onClick={async () => {
+                const nextMov = (planMovements || []).filter((x) => x.id !== m.id);
+                const next = {
+                  ...plan,
+                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
+                };
+                await savePlan(next);
+              }}
+            >
+              Remove
+            </SecondaryButton>
+          </div>
+        </div>
       </div>
-    </div>
+    ))}
+  </div>
+) : null}
 
-    <div className="planMoveActions planBtns">
-                             
-                        <SecondaryButton
-                          onClick={async () => {
-                            // Optional targets (copy/examples only — stored as text, numeric parsed when obvious)
-                            const examples =
-                              m.mode === "strength"
-                                ? 'Examples:\n• 10\n• 10 @ 20kg\n• 8–12 reps'
-                                : m.mode === "time"
-                                  ? 'Examples:\n• 60s\n• 1 min\n• 3 × 1 min rounds'
-                                  : m.mode === "custom"
-                                    ? 'Examples:\n• 20 min\n• 30 min easy'
-                                    : 'Examples:\n• 10';
-
-                            const promptText = `Optional target for "${m.name}" (leave blank for none):\n${examples}\n\nTip: You can type anything — it’s just a reminder.`;
-                            const prevDefault =
-                              (m.targetText != null && String(m.targetText)) ||
-                              (m.targetReps != null ? String(m.targetReps) : "");
-                            const raw = prompt(promptText, prevDefault);
-                            if (raw === null) return;
-
-                            const txt = raw.trim();
-                            let targetText = txt === "" ? null : txt;
-
-                            // Try to parse simple strength formats into numbers (optional)
-                            let targetReps = null;
-                            let targetWeight = null;
-
-                            if (m.mode === "strength" && targetText) {
-                              // "10", "10@20", "10 @ 20kg", "10 at 20"
-                              const m1 = targetText.match(/^\s*(\d+)\s*(?:@|at)?\s*(\d+(?:\.\d+)?)?\s*(?:kg)?\s*$/i);
-                              if (m1) {
-                                targetReps = Number(m1[1]);
-                                if (m1[2] != null && m.allowWeight) targetWeight = Number(m1[2]);
-                              } else {
-                                // If it's just a number inside text, use it as reps
-                                const m2 = targetText.match(/^\s*(\d+)\s*$/);
-                                if (m2) targetReps = Number(m2[1]);
-                              }
-                              if (!Number.isFinite(targetReps)) targetReps = null;
-                              if (!Number.isFinite(targetWeight)) targetWeight = null;
-                            }
-
-                            const nextMov = (planMovements || []).map((x) =>
-                              x.id === m.id ? { ...x, targetText, targetReps, targetWeight } : x
-                            );
-                            const next = {
-                              ...plan,
-                              movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-                            };
-                            await savePlan(next);
-                          }}
-                        >
-                          Targets
-                        </SecondaryButton>
-
-<SecondaryButton
-                          onClick={async () => {
-                            const name = prompt("Rename movement:", m.name);
-                            if (!name) return;
-                            const nextMov = (planMovements || []).map((x) => (x.id === m.id ? { ...x, name: name.trim() } : x));
-                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov } };
-                            await savePlan(next);
-                          }}
-                        >
-                          Rename
-                        </SecondaryButton>
-                        <SecondaryButton
-  onClick={async () => {
-    const prev = m.note || "";
-    const nextNote = prompt(`Coach note for "${m.name}" (optional):`, prev);
-    if (nextNote === null) return;
-    const nextMov = (planMovements || []).map((x) =>
-      x.id === m.id ? { ...x, note: nextNote.trim() } : x
-    );
-    const next = {
-      ...plan,
-      movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-    };
-    await savePlan(next);
-  }}
->
-  Coach note
-</SecondaryButton>
-
-                        <SecondaryButton
-                          onClick={async () => {
-                            const nextMov = (planMovements || []).filter((x) => x.id !== m.id);
-                            const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov } };
-                            await savePlan(next);
-                          }}
-                        >
-                          Remove
-                        </SecondaryButton>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                  ))}
 
                   {(planMovements || []).length < 3 && (
                     <Card className="pad">
