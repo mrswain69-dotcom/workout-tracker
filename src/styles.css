@@ -271,3 +271,37 @@ header .brandRow{
 .iconBtn:active{transform:scale(0.99)}
 .iconSvg{width:20px;height:20px}
 .iconEmoji{font-size:20px;line-height:1}
+
+/* Plan movement header layout: title left, actions right */
+.planMoveHead{
+  display:grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap:12px;
+  align-items:start;
+}
+
+/* Keep the title readable */
+.planMoveTitle{
+  min-width:0;           /* allows wrapping properly */
+  word-break:break-word; /* prevents extreme squeezing */
+}
+
+/* Actions wrap nicely instead of stealing title width */
+.planMoveActions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  align-content:flex-start;
+}
+
+/* On narrow screens, stack actions below title */
+@media (max-width: 520px){
+  .planMoveHead{
+    grid-template-columns: 1fr;
+  }
+  .planMoveActions{
+    justify-content:flex-start;
+  }
+}
+
