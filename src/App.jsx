@@ -2188,46 +2188,33 @@ async function resetDay() {
         </div>
       </div>
     ))}
+
+    {(planMovements || []).length < 3 && (
+      <Card className="pad">
+        <div className="h3">Add movement</div>
+        <div className="muted">Limit 3 movements per day (keeps it clean).</div>
+        <AddMovement
+          defaultKind={planActivityType.kind}
+          onAdd={async (m) => {
+            const arr = [...(planMovements || [])];
+            if (arr.length >= 3) return alert("Max 3 movements per day.");
+            arr.push({ ...m, id: uid() });
+            const next = {
+              ...plan,
+              movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: arr },
+            };
+            await savePlan(next);
+          }}
+        />
+      </Card>
+    )}
   </div>
-) : null}
+) : (
+  <div className="dashed mt16">
+    This activity type doesn’t use movements (just log distance/time or minutes).
+  </div>
+)}
 
-
-                  {(planMovements || []).length < 3 && (
-                    <Card className="pad">
-                      <div className="h3">Add movement</div>
-                      <div className="muted">Limit 3 movements per day (keeps it clean).</div>
-                      <AddMovement
-                        defaultKind={planActivityType.kind}
-                        onAdd={async (m) => {
-                          const arr = [...(planMovements || [])];
-                          if (arr.length >= 3) return alert("Max 3 movements per day.");
-                          arr.push({ ...m, id: uid() });
-                          const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: arr } };
-                          await savePlan(next);
-                        }}
-                      />
-                    </Card>
-                  )}
-                </div>
-              ) : (
-                <div className="dashed mt16">This activity type doesn’t use movements (just log distance/time or minutes).</div>
-              )}
-
-              <div className="panel mt16">
-                <div className="h3">Custom activity types</div>
-                <div className="muted mt8">Create a new day type for other people (e.g. “Pilates”, “Cycling”, “Yoga”, “Rowing”).</div>
-                <AddType
-                  existing={(plan?.activityTypes || builtInTypes())}
-                  onAdd={async (t) => {
-                    const next = { ...plan, activityTypes: [...(plan?.activityTypes || builtInTypes()), t] };
-                    await savePlan(next);
-                  }}
-                />
-              </div>
-            </Card>
-
-          </div>
-        )}
 
         {tab === "rewards" && (
           <div className="grid2cols">
