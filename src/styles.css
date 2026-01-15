@@ -295,11 +295,22 @@ header .brandRow{
   align-content:flex-start;
 }
 
+.planLeft{ min-width:0; }
+
+.planBtns{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  align-content:flex-start;
+}
+
 /* On narrow screens, stack actions below title */
 @media (max-width: 520px){
   .planMoveHead{
     grid-template-columns: 1fr;
   }
+  .planBtns{ justify-content:flex-start; }
   .planMoveActions{
     justify-content:flex-start;
   }
