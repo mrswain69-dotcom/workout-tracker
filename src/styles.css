@@ -179,9 +179,6 @@ header .brandRow{
 /* Push brandActions to true right edge on desktop */
 .brandActions{
   margin-left: auto;
-}
-
-.brandActions{
   display:flex;
   gap:8px;
 }
