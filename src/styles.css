@@ -170,6 +170,16 @@ header .title, header h1, header h2 {
   gap:12px;
 }
 
+/* Allow header brand row to span full viewport width */
+header .brandRow{
+  width: 100%;
+}
+
+/* Push brandActions to true right edge on desktop */
+.brandActions{
+  margin-left: auto;
+}
+
 .brandActions{
   display:flex;
   gap:8px;
