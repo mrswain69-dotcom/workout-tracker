@@ -168,6 +168,7 @@ header .title, header h1, header h2 {
   align-items:center;
   justify-content:space-between;
   gap:12px;
+  width:100%;
 }
 
 /* Allow header brand row to span full viewport width */
