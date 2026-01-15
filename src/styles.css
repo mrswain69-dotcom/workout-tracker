@@ -275,7 +275,7 @@ header .brandRow{
 /* Plan movement header layout: title left, actions right */
 .planMoveHead{
   display:grid;
-  grid-template-columns: minmax(180px, 1fr) auto;
+  grid-template-columns: minmax(240px, 1fr) auto;
   gap:12px;
   align-items:start;
 }
