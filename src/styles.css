@@ -1,168 +1,70 @@
-/* Tiny tablet-friendly base styles (no Tailwind needed) */
-:root { color-scheme: light; }
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-  background: #f8fafc;
-  color: #0f172a;
-}
-button, input, select {
-  font: inherit;
-}
-a { color: inherit; }
+/* Workout Tracker — styles.css (cleaned)
+   Notes:
+   - Removed duplicate :root blocks and duplicate .gridPlan definitions
+   - Plan layout is now mobile-first (1 column by default, 2 columns on desktop)
+   - Kept both toast styles (.swToast legacy + .sw-toast newer) because both appear in code
+*/
 
-
-/* Plan layout */
-.gridPlan{
-  display:grid;
-  grid-template-columns: 360px 1fr;
-  gap:16px;
-  align-items:start;
-}
-.planMain{ grid-column: 2; }
-.planSide{ grid-column: 1; }
-@media (max-width: 900px){
-  .gridPlan{ grid-template-columns: 1fr; }
-  .planMain{ grid-column: auto; }
-  .planSide{ grid-column: auto; }
-}
-
-
-/* Service worker update toast */
-.swToast{position:sticky;top:10px;z-index:50;display:flex;gap:10px;align-items:center;justify-content:space-between;background:#0f172a;color:#fff;border-radius:14px;padding:10px 12px;margin:10px 0;box-shadow:0 10px 20px rgba(0,0,0,.15)}
-.swToastText{font-weight:800;font-size:13px;line-height:1.2}
-.swToastActions{display:flex;gap:8px;align-items:center}
-
-/* === Brand accents (append to your existing src/styles.css) === */
+/* === Base === */
 :root{
+  color-scheme: light;
+
+  /* Brand */
   --brand: #ff7a18;
   --brand-dark: #e7660b;
+  --brand-2: #ff9a4d;
   --brand-soft: rgba(255,122,24,.12);
+
+  /* UI */
+  --brand-ink: #1b1b1b;
+  --focus-ring: rgba(255, 122, 24, 0.35);
 }
 
-a, .link { color: var(--brand); }
+*{ box-sizing: border-box; }
 
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji","Segoe UI Emoji";
+  background:#f8fafc;
+  color:#0f172a;
+}
+
+button, input, select{ font: inherit; }
+a{ color: inherit; }
+a, .link{ color: var(--brand); }
+a:hover{ color: var(--brand-2); }
+
+/* Focus rings */
+input:focus, select:focus, textarea:focus, button:focus{
+  outline:none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  border-color: rgba(255, 122, 24, 0.55);
+}
+
+/* === Header / Brand === */
 .brandLockup{
   display:flex;
   align-items:center;
   gap:10px;
 }
+
 .brandMark{
   width:28px;
   height:28px;
   border-radius:8px;
   box-shadow: 0 6px 18px rgba(0,0,0,.08);
 }
+
 .brandText{ display:flex; flex-direction:column; line-height:1.1; }
 .brandTitle{ font-weight:800; letter-spacing:-0.02em; }
 .brandTag{ font-size:12px; opacity:.7; }
 
-/* Service worker update toast */
-.sw-toast{
-  position: fixed;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
-  z-index: 99999;
-  display: flex;
-  justify-content: center;
-}
-.sw-toast__inner{
-  width: min(720px, 100%);
-  background: white;
-  border: 1px solid rgba(0,0,0,.08);
-  border-radius: 18px;
-  padding: 12px 14px;
-  box-shadow: 0 16px 40px rgba(0,0,0,.16);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-}
-.sw-toast__text{ font-weight: 700; }
-.sw-toast__actions{ display:flex; gap:10px; align-items:center; }
-.sw-toast__btn{
-  border-radius: 14px;
-  padding: 8px 12px;
-  border: 1px solid rgba(0,0,0,.12);
-  background: white;
-  cursor: pointer;
-  font-weight: 600;
-}
-.sw-toast__btn--primary{
-  background: var(--brand);
-  border-color: var(--brand);
-  color: white;
-}
-.sw-toast__btn--primary:hover{
-  background: var(--brand-dark);
-  border-color: var(--brand-dark);
-}
-
-/* === Workout Tracker brand accents (append to end of src/styles.css) === */
-
-:root {
-  --brand: #ff7a18;        /* orange */
-  --brand-2: #ff9a4d;      /* lighter orange */
-  --brand-ink: #1b1b1b;
-  --focus-ring: rgba(255, 122, 24, 0.35);
-}
-
-/* Links */
-a { color: var(--brand); }
-a:hover { color: var(--brand-2); }
-
-/* Focus rings */
-input:focus, select:focus, textarea:focus, button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--focus-ring);
-  border-color: rgba(255, 122, 24, 0.55);
-}
-
-/* Primary buttons */
-.btn-primary,
-.btn.primary,
-button.btn.primary {
-  background: var(--brand);
-  border: 1px solid rgba(255, 122, 24, 0.85);
-  color: #fff;
-}
-.btn-primary:hover,
-.btn.primary:hover,
-button.btn.primary:hover {
-  background: var(--brand-2);
-}
-
-/* Secondary buttons get a subtle orange hover */
-.btn-secondary:hover {
-  border-color: rgba(255, 122, 24, 0.55);
-}
-
-/* Little “pill” badges / chips */
-.pill {
-  border-color: rgba(255, 122, 24, 0.35);
-}
-
-/* Toast accent */
-.swToast {
-  border: 1px solid rgba(255, 122, 24, 0.35);
-}
-.swToastText::before {
-  content: "";
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 10px;
-  border-radius: 999px;
-  background: var(--brand);
-  vertical-align: middle;
-}
-
-/* Top header title accent (subtle underline) */
-header .title, header h1, header h2 {
+/* Underline accent (subtle) */
+header .title, header h1, header h2{
   text-decoration-color: rgba(255, 122, 24, 0.65);
 }
+
 .brandRow{
   display:flex;
   align-items:center;
@@ -171,49 +73,229 @@ header .title, header h1, header h2 {
   width:100%;
 }
 
-/* Allow header brand row to span full viewport width */
-header .brandRow{
-  width: 100%;
-}
+header .brandRow{ width:100%; }
 
-/* Push brandActions to true right edge on desktop */
 .brandActions{
-  margin-left: auto;
+  margin-left:auto;
   display:flex;
   gap:8px;
 }
 
+/* Header icon buttons */
+.tabsRow{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; }
+.iconBtn{
+  width:44px;height:44px;
+  border-radius:14px;
+  border:1px solid #e2e8f0;
+  background:#fff;
+  color:#0f172a;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.iconBtn:hover{ filter:brightness(0.98); }
+.iconBtn:active{ transform:scale(0.99); }
+.iconSvg{ width:20px; height:20px; }
+.iconEmoji{ font-size:20px; line-height:1; }
 
-/* Phase 2C tables */
-.tableWrap{overflow:auto;border:1px solid var(--border,#e5e7eb);border-radius:12px;background:#fff}
-.table{width:100%;border-collapse:separate;border-spacing:0;min-width:520px}
-.table th,.table td{padding:10px 12px;border-bottom:1px solid var(--border,#e5e7eb);text-align:left;font-size:14px;vertical-align:top}
-.table th{background:#f8fafc;font-weight:700;position:sticky;top:0;z-index:1}
-.table tr:last-child td{border-bottom:none}
+/* === Buttons / Pills === */
+.btn-primary,
+.btn.primary,
+button.btn.primary{
+  background: var(--brand);
+  border: 1px solid rgba(255, 122, 24, 0.85);
+  color:#fff;
+}
+.btn-primary:hover,
+.btn.primary:hover,
+button.btn.primary:hover{
+  background: var(--brand-2);
+}
 
-/* Weekday pills (Plan) */
-.weekPills{display:flex;gap:8px;flex-wrap:wrap;}
-.weekPill{border:1px solid var(--border);background:var(--card);color:var(--text);padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:700;}
-.weekPill.active{background:rgba(255,139,0,0.16);border-color:rgba(255,139,0,0.5);} 
+.btn-secondary:hover{
+  border-color: rgba(255, 122, 24, 0.55);
+}
 
-/* Sessions (Log) */
-.sessionList{display:flex;flex-direction:column;gap:10px;}
-.sessionBlock{border:1px solid var(--border);background:var(--card);border-radius:14px;padding:12px;}
-.sessionHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;}
-.sessionHeader b{font-size:14px;}
-.sessionMeta{display:flex;gap:10px;flex-wrap:wrap;align-items:end;}
-.sessionMeta .label{font-size:12px;}
-.sessionButtons{display:flex;gap:8px;flex-wrap:wrap;}
-.sessionButtons button{padding:8px 10px;border-radius:12px;font-size:14px;}
+.pill{
+  border-color: rgba(255, 122, 24, 0.35);
+}
 
-/* Plan grid sanity */
-.gridPlan{display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start;}
-.planSide{grid-column:1;}
-.planMain{grid-column:2;}
+/* === Service worker toasts === */
+/* Legacy toast (if used anywhere) */
+.swToast{
+  position:sticky;
+  top:10px;
+  z-index:50;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:space-between;
+  background:#0f172a;
+  color:#fff;
+  border-radius:14px;
+  padding:10px 12px;
+  margin:10px 0;
+  box-shadow:0 10px 20px rgba(0,0,0,.15);
+  border: 1px solid rgba(255, 122, 24, 0.35);
+}
+.swToastText{ font-weight:800; font-size:13px; line-height:1.2; }
+.swToastActions{ display:flex; gap:8px; align-items:center; }
+.swToastText::before{
+  content:"";
+  display:inline-block;
+  width:10px;height:10px;
+  margin-right:10px;
+  border-radius:999px;
+  background: var(--brand);
+  vertical-align: middle;
+}
 
+/* Newer fixed toast */
+.sw-toast{
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 99999;
+  display:flex;
+  justify-content:center;
+}
+.sw-toast__inner{
+  width: min(720px, 100%);
+  background:#fff;
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:18px;
+  padding:12px 14px;
+  box-shadow:0 16px 40px rgba(0,0,0,.16);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.sw-toast__text{ font-weight:700; }
+.sw-toast__actions{ display:flex; gap:10px; align-items:center; }
+.sw-toast__btn{
+  border-radius:14px;
+  padding:8px 12px;
+  border:1px solid rgba(0,0,0,.12);
+  background:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
+.sw-toast__btn--primary{
+  background: var(--brand);
+  border-color: var(--brand);
+  color:#fff;
+}
+.sw-toast__btn--primary:hover{
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
+}
 
+/* === Tables === */
+.tableWrap{
+  overflow:auto;
+  border:1px solid var(--border,#e5e7eb);
+  border-radius:12px;
+  background:#fff;
+}
+.table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  min-width:520px;
+}
+.table th,.table td{
+  padding:10px 12px;
+  border-bottom:1px solid var(--border,#e5e7eb);
+  text-align:left;
+  font-size:14px;
+  vertical-align:top;
+}
+.table th{
+  background:#f8fafc;
+  font-weight:700;
+  position:sticky;
+  top:0;
+  z-index:1;
+}
+.table tr:last-child td{ border-bottom:none; }
 
-/* --- Sessions UI tweaks (brand-consistent) --- */
+/* === Plan === */
+/* Weekday pills */
+.weekPills{ display:flex; gap:8px; flex-wrap:wrap; }
+.weekPill{
+  border:1px solid var(--border);
+  background:var(--card);
+  color:var(--text);
+  padding:8px 12px;
+  border-radius:999px;
+  cursor:pointer;
+  font-weight:700;
+}
+.weekPill.active{
+  background:rgba(255,139,0,0.16);
+  border-color:rgba(255,139,0,0.5);
+}
+
+/* Plan layout — MOBILE FIRST */
+.gridPlan{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:16px;
+  align-items:start;
+}
+
+@media (min-width: 900px){
+  .gridPlan{ grid-template-columns: 360px minmax(0, 1fr); }
+}
+
+.planMain, .planSide{ min-width:0; }
+
+/* If you use rowBetween in plan headers, stack on small screens */
+@media (max-width: 520px){
+  .rowBetween{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:8px;
+  }
+}
+
+/* Plan movement header layout: title left, actions right */
+.planMoveHead{
+  display:grid;
+  grid-template-columns: minmax(240px, 1fr) auto;
+  gap:12px;
+  align-items:start;
+}
+.planLeft{ min-width:0; }
+.planBtns{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  align-content:flex-start;
+}
+@media (max-width: 520px){
+  .planMoveHead{ grid-template-columns: 1fr; }
+  .planBtns{ justify-content:flex-start; }
+}
+
+/* === Sessions (Log) === */
+.sessionList{ display:flex; flex-direction:column; gap:10px; }
+.sessionBlock{
+  border:1px solid var(--border);
+  background:var(--card);
+  border-radius:14px;
+  padding:12px;
+}
+.sessionHeader{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.sessionHeader b{ font-size:14px; }
+.sessionMeta{ display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+.sessionMeta .label{ font-size:12px; }
+.sessionButtons{ display:flex; gap:8px; flex-wrap:wrap; }
+.sessionButtons button{ padding:8px 10px; border-radius:12px; font-size:14px; }
+
 .sessionRow{
   display:flex;
   flex-direction:column;
@@ -223,15 +305,8 @@ header .brandRow{
   padding:12px;
   border-radius:14px;
 }
-.sessionTitle{
-  font-weight:800;
-  color:#0f172a;
-}
-.sessionBtns{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
+.sessionTitle{ font-weight:800; color:#0f172a; }
+.sessionBtns{ display:flex; gap:8px; flex-wrap:wrap; }
 .btnSmall{
   padding:8px 10px !important;
   border-radius:12px !important;
@@ -239,118 +314,22 @@ header .brandRow{
   line-height:1 !important;
 }
 
-/* Auth screen brand lockup spacing */
-.authBrand{ margin-bottom: 10px; }
+/* === Auth === */
+.authBrand{ margin-bottom:10px; }
 
-/* Simple confetti burst (lightweight) */
-.confettiBurst{
-  position:relative;
-  height:0;
-}
+/* === Simple confetti burst (lightweight) === */
+.confettiBurst{ position:relative; height:0; }
 .confettiBurst::before{
   content:"✨🎉✨";
   position:absolute;
-  left:0;
-  right:0;
+  left:0; right:0;
   top:-6px;
   text-align:center;
   font-size:20px;
   animation: confettiPop 900ms ease-out forwards;
 }
 @keyframes confettiPop{
-  0%{transform:translateY(6px) scale(0.8); opacity:0;}
-  20%{transform:translateY(0) scale(1.1); opacity:1;}
-  100%{transform:translateY(-14px) scale(1); opacity:0;}
-}
-
-
-/* Header icon buttons */
-.tabsRow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
-.iconBtn{width:44px;height:44px;border-radius:14px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;display:inline-flex;align-items:center;justify-content:center}
-.iconBtn:hover{filter:brightness(0.98)}
-.iconBtn:active{transform:scale(0.99)}
-.iconSvg{width:20px;height:20px}
-.iconEmoji{font-size:20px;line-height:1}
-
-/* Plan movement header layout: title left, actions right */
-.planMoveHead{
-  display:grid;
-  grid-template-columns: minmax(240px, 1fr) auto;
-  gap:12px;
-  align-items:start;
-}
-
-/* Keep the title readable */
-.planMoveTitle{
-  min-width:0;           /* allows wrapping properly */
-  word-break:break-word; /* prevents extreme squeezing */
-}
-
-/* Actions wrap nicely instead of stealing title width */
-.planMoveActions{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-  align-content:flex-start;
-}
-
-.planLeft{ min-width:0; }
-
-.planBtns{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-  align-content:flex-start;
-}
-
-/* On narrow screens, stack actions below title */
-@media (max-width: 520px){
-  .planMoveHead{
-    grid-template-columns: 1fr;
-  }
-  .planBtns{ justify-content:flex-start; }
-  .planMoveActions{
-    justify-content:flex-start;
-  }
-}
-
-
-
-
-/* =========================================
-   PLAN LAYOUT OVERRIDES (mobile-first)
-   Fixes: side-by-side columns on mobile/tablet,
-   horizontal scrolling, and header text crushing.
-   Paste-safe: can live at end of file.
-   ========================================= */
-
-.gridPlan{
-  display:grid;
-  grid-template-columns: 1fr;            /* stack by default */
-  gap:16px;
-  align-items:start;
-}
-
-@media (min-width: 900px){
-  .gridPlan{
-    grid-template-columns: 360px minmax(0, 1fr);
-  }
-}
-
-/* Prevent grid children from forcing overflow */
-.planMain,
-.planSide{
-  min-width:0;
-  grid-column:auto; /* safe when stacked */
-}
-
-/* If you use rowBetween in plan headers, stack on small screens */
-@media (max-width: 520px){
-  .rowBetween{
-    flex-direction:column;
-    align-items:flex-start;
-    gap:8px;
-  }
+  0%{ transform:translateY(6px) scale(0.8); opacity:0; }
+  20%{ transform:translateY(0) scale(1.1); opacity:1; }
+  100%{ transform:translateY(-14px) scale(1); opacity:0; }
 }
