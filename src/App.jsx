@@ -424,6 +424,18 @@ function Input({ value, onChange, placeholder, type = "text", min, step, readOnl
     />
   );
 }
+function Textarea({ value, onChange, placeholder, rows = 3 }) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange && onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+      className="textarea"
+    />
+  );
+}
+
 function Select({ value, onChange, options }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} className="input">
@@ -2139,6 +2151,24 @@ async function resetDay() {
                           Rename
                         </SecondaryButton>
                         <SecondaryButton
+  onClick={async () => {
+    const prev = m.note || "";
+    const nextNote = prompt(`Coach note for "${m.name}" (optional):`, prev);
+    if (nextNote === null) return;
+    const nextMov = (planMovements || []).map((x) =>
+      x.id === m.id ? { ...x, note: nextNote.trim() } : x
+    );
+    const next = {
+      ...plan,
+      movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
+    };
+    await savePlan(next);
+  }}
+>
+  Coach note
+</SecondaryButton>
+
+                        <SecondaryButton
                           onClick={async () => {
                             const nextMov = (planMovements || []).filter((x) => x.id !== m.id);
                             const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov } };
@@ -2428,6 +2458,8 @@ function AddMovement({ onAdd, defaultKind }) {
   const [fixedSeconds, setFixedSeconds] = useState(defaultKind === "time" ? "60" : "");
   const [allowCount, setAllowCount] = useState(defaultKind === "time");
   const [countLabel, setCountLabel] = useState(defaultKind === "time" ? "hits" : "count");
+  const [note, setNote] = useState("");
+
 
   useEffect(() => {
     setMode(defaultKind === "time" ? "time" : "strength");
@@ -2443,6 +2475,17 @@ function AddMovement({ onAdd, defaultKind }) {
         <div className="label">Name</div>
         <Input value={name} onChange={setName} placeholder="e.g. Pull-ups" />
       </div>
+
+      <div>
+  <div className="label">Coach note (optional)</div>
+  <Textarea
+    value={note}
+    onChange={setNote}
+    placeholder="e.g. Keep elbows tucked. Control down. Strong core."
+    rows={3}
+  />
+</div>
+
 
       <div className="grid2">
         <div>
@@ -2485,6 +2528,7 @@ function AddMovement({ onAdd, defaultKind }) {
           if (!name.trim()) return;
           onAdd({
             name: name.trim(),
+            note: note.trim() || "",
             mode,
             allowWeight: mode === "strength" ? allowWeight : false,
             fixedSeconds: mode === "time" && safeNumber(fixedSeconds) > 0 ? safeNumber(fixedSeconds) : undefined,
@@ -2492,6 +2536,7 @@ function AddMovement({ onAdd, defaultKind }) {
             countLabel: mode === "time" && allowCount ? countLabel.trim() : undefined,
           });
           setName("");
+          setNote("");
         }}
       >
         Add movement
