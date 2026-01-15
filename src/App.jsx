@@ -2189,25 +2189,19 @@ async function resetDay() {
       </div>
     ))}
 
-    {(planMovements || []).length < 3 && (
-      <Card className="pad">
-        <div className="h3">Add movement</div>
-        <div className="muted">Limit 3 movements per day (keeps it clean).</div>
-        <AddMovement
-          defaultKind={planActivityType.kind}
-          onAdd={async (m) => {
-            const arr = [...(planMovements || [])];
-            if (arr.length >= 3) return alert("Max 3 movements per day.");
-            arr.push({ ...m, id: uid() });
-            const next = {
-              ...plan,
-              movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: arr },
-            };
-            await savePlan(next);
-          }}
-        />
-      </Card>
-    )}
+    <Card className="pad">
+  <div className="h3">Add movement</div>
+  <div className="muted">Add as many movements as you like for this day.</div>
+  <AddMovement
+    defaultKind={planActivityType.kind}
+    onAdd={async (m) => {
+      const arr = [...(planMovements || [])];
+      arr.push({ ...m, id: uid() });
+      const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: arr } };
+      await savePlan(next);
+    }}
+  />
+</Card>
   </div>
 ) : (
   <div className="dashed mt16">
