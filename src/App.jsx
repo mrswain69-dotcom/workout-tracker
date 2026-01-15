@@ -2071,20 +2071,22 @@ async function resetDay() {
                 <div className="stack mt16">
                   {(planMovements || []).map((m) => (
                     <div key={m.id} className="planRow">
-                      <div className="planLeft">
-                        <div className="planName">{m.name}</div>
-                        {m.note ? <div className="muted mt4">{m.note}</div> : null}
-                        <div className="pills mt8">
-                          <Pill>{m.mode}</Pill>
-                          <Pill>3 sets</Pill>
-                          {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
-                          {m.allowWeight ? <Pill>weights</Pill> : null}
-                          {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
-                        {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
-                          </div>
-                      </div>
-                      <div className="planBtns">
-                        
+  <div className="planMoveHead">
+    <div className="planLeft">
+      <div className="planName">{m.name}</div>
+      {m.note ? <div className="muted mt4">{m.note}</div> : null}
+      <div className="pills mt8">
+        <Pill>{m.mode}</Pill>
+        <Pill>3 sets</Pill>
+        {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
+        {m.allowWeight ? <Pill>weights</Pill> : null}
+        {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
+        {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
+      </div>
+    </div>
+
+    <div className="planMoveActions planBtns">
+                             
                         <SecondaryButton
                           onClick={async () => {
                             // Optional targets (copy/examples only — stored as text, numeric parsed when obvious)
@@ -2179,6 +2181,8 @@ async function resetDay() {
                         </SecondaryButton>
                       </div>
                     </div>
+                  </div>
+                </div>
                   ))}
 
                   {(planMovements || []).length < 3 && (
