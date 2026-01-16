@@ -173,8 +173,11 @@ function builtInTypes() {
     { id: "run", name: "Run (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
     { id: "swim", name: "Swim (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
     { id: "duration", name: "Duration only (minutes)", kind: "custom", movementsEnabled: false, fields: { durationMin: true } },
+    // NEW: tick-box tasks (yes/no)
+    { id: "tasks", name: "Tick-box tasks (yes/no)", kind: "task", movementsEnabled: false, fields: { tasks: true } },
   ];
 }
+
 
 function defaultPlanForFamily() {
   const types = builtInTypes();
@@ -225,6 +228,71 @@ function defaultPlanForFamily() {
     cardioTargetByWeekday: {}, // optional "session focus" text for cardio days
   };
 }
+
+// -------- Day activities (primary + extras) ----------
+// Primary activity still comes from dayTypeByWeekday / movementsByWeekday / cardioTargetByWeekday
+// Extras are stored in plan.dayActivitiesByWeekday[weekday] as an array of blocks.
+function getDayActivitiesForWeekday(plan, weekday) {
+  if (!plan || !weekday) return [];
+
+  const typeId = plan.dayTypeByWeekday?.[weekday] || "strength";
+  const movements = plan.movementsByWeekday?.[weekday] || [];
+  const restSec = plan.restSecByWeekday?.[weekday] ?? 60;
+  const cardioTarget = plan.cardioTargetByWeekday?.[weekday] || "";
+
+  const primary = {
+    id: `${weekday}_main`,
+    typeId,
+    label: "",
+    movements,
+    restSec,
+    cardioTarget,
+    isPrimary: true,
+    tasks: [],
+  };
+
+  const extrasRaw = Array.isArray(plan.dayActivitiesByWeekday?.[weekday])
+    ? plan.dayActivitiesByWeekday[weekday]
+    : [];
+
+  const extras = extrasRaw.map((block, idx) => ({
+    id: block.id || `${weekday}_extra_${idx}`,
+    typeId: block.typeId || "tasks",
+    label: block.label || "",
+    movements: block.movements || [],
+    restSec: typeof block.restSec === "number" ? block.restSec : undefined,
+    cardioTarget: block.cardioTarget,
+    tasks: Array.isArray(block.tasks) ? block.tasks : [],
+    isPrimary: false,
+  }));
+
+  return [primary, ...extras];
+}
+
+// Update only the *extra* blocks for a given weekday, leaving the primary plan intact.
+function updateDayActivities(plan, weekday, updater) {
+  const all = getDayActivitiesForWeekday(plan, weekday);
+  const primary = all[0];
+  const extras = all.slice(1);
+  const nextExtras = updater(extras, primary) || [];
+
+  return {
+    ...plan,
+    dayActivitiesByWeekday: {
+      ...(plan.dayActivitiesByWeekday || {}),
+      [weekday]: nextExtras.map((block, idx) => ({
+        id: block.id || `${weekday}_extra_${idx}`,
+        typeId: block.typeId || "tasks",
+        label: block.label || "",
+        movements: block.movements || [],
+        restSec: typeof block.restSec === "number" ? block.restSec : undefined,
+        cardioTarget: block.cardioTarget,
+        tasks: Array.isArray(block.tasks) ? block.tasks : [],
+      })),
+    },
+  };
+}
+
 
 // -------- Calculations ----------
 function setDidSomething(s) {
@@ -342,6 +410,10 @@ function suggestCardioTarget({ lastCardio }) {
 
 function isDayComplete(log, planDay) {
   if (!log) return false;
+  if (planDay.kind === "task") {
+    const anyDone = Object.values(log?.tasks || {}).some((t) => t && t.done);
+    return anyDone;
+  }
   if (planDay.kind === "cardio") {
     return safeNumber(log.cardio?.distanceKm) > 0 && safeNumber(log.cardio?.durationMin) > 0;
   }
@@ -813,6 +885,14 @@ export default function App() {
   const planActivityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === planDayTypeId) || builtInTypes()[0];
   const planMovements = plan?.movementsByWeekday?.[planWeekday] || [];
   const planDayEditor = { ...planActivityType, movements: planMovements };
+  const activityTypesForPlan = (plan?.activityTypes || builtInTypes());
+  const dayActivitiesForPlanWeekday = getDayActivitiesForWeekday(plan || defaultPlanForFamily(), planWeekday);
+  const extraActivitiesForPlanWeekday = dayActivitiesForPlanWeekday.slice(1);
+  const taskBlocksForPlanWeekday = extraActivitiesForPlanWeekday.filter((block) => {
+    const t = activityTypesForPlan.find((x) => x.id === block.typeId);
+    return t && (t.kind === "task" || t.id === "tasks");
+  });
+  const tasksActivityForPlanWeekday = taskBlocksForPlanWeekday[0] || null;
 
 const planDayForWeekday = (weekday) => {
   const typeId = plan?.dayTypeByWeekday?.[weekday] || "strength";
@@ -900,19 +980,21 @@ useEffect(() => {
   function blankLogForDay() {
     const restFromPlan = safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
     return {
-      // Timing/session meta lives in meta.
-      meta: {
-        restSec: restFromPlan, // actual rest used (editable)
-        sessions: [],
-        dayManualMin: "", // optional override for whole day
-      },
-      weekday: selectedWeekday,
-      typeId: dayTypeId,
-      entries: {},
-      cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
-      custom: { durationMin: "" },
-      gamify: { comboMax: 0 },
-    };
+  // Timing/session meta lives in meta.
+  meta: {
+    restSec: restFromPlan, // actual rest used (editable)
+    sessions: [],
+    dayManualMin: "", // optional override for whole day
+  },
+  weekday: selectedWeekday,
+  typeId: dayTypeId,
+  entries: {},
+  tasks: {}, // NEW: tick-box tasks done for this day
+  cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
+  custom: { durationMin: "" },
+  gamify: { comboMax: 0 },
+};
+
   }
 
   // --- Sessions (timing blocks) ---
@@ -1035,6 +1117,16 @@ async function resetDay() {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
+    async function updateTask(taskId, done) {
+    const ctx = await ensureAudio();
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const tasks = { ...(next.tasks || {}) };
+    tasks[taskId] = { ...(tasks[taskId] || {}), done };
+    next.tasks = tasks;
+    await saveLog(next);
+    if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+  
   function computeTotalMinutesForDay(log) {
     if (!log) return null;
     const manualDay = safeNumber(log?.meta?.dayManualMin);
@@ -1114,6 +1206,9 @@ async function resetDay() {
       } else if (at.kind === "custom") {
         const min = safeNumber(log.custom?.durationMin);
         if (min > 0) didAnything = true;
+      } else if (at.kind === "task") {
+        const anyTaskDone = Object.values(log.tasks || {}).some((t) => t && t.done);
+        if (anyTaskDone) didAnything = true;  
       } else {
         const entries = log.entries || {};
         let dayStrength = 0;
@@ -1629,6 +1724,44 @@ async function resetDay() {
                   )}
                 </div>
               )}
+              {/* Tick-box tasks from extra day activities */}
+              {(() => {
+                const acts = getDayActivitiesForWeekday(plan || defaultPlanForFamily(), selectedWeekday);
+                const extras = acts.slice(1);
+                const activityTypes = (plan?.activityTypes || builtInTypes());
+                const taskBlocks = extras.filter((b) => {
+                  const t = activityTypes.find((x) => x.id === b.typeId);
+                  return t && (t.kind === "task" || t.id === "tasks");
+                });
+                if (!taskBlocks.length) return null;
+
+                return (
+                  <div className="panel mt16">
+                    <div className="h2">Other daily tasks</div>
+                    <div className="stack mt12">
+                      {taskBlocks.map((block) => (
+                        <div key={block.id} className="stack">
+                          {block.label ? <div className="label">{block.label}</div> : null}
+                          {(block.tasks || []).length ? (
+                            (block.tasks || []).map((task) => (
+                              <label key={task.id} className="check">
+                                <input
+                                  type="checkbox"
+                                  checked={!!logForDay?.tasks?.[task.id]?.done}
+                                  onChange={(e) => updateTask(task.id, e.target.checked)}
+                                />
+                                {task.label}
+                              </label>
+                            ))
+                          ) : (
+                            <div className="muted">No tasks defined in this block.</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </Card>
 
             <div className="stack">
@@ -2209,6 +2342,154 @@ async function resetDay() {
   </div>
 )}
 
+                            {/* Tick-box tasks for this day */}
+              <div className="panel mt16">
+                <div className="rowBetween">
+                  <div>
+                    <div className="h3">Tick-box tasks for this day</div>
+                    <div className="muted mt8">
+                      Use this for simple yes/no tasks (reading, homework, hydration, tidy room, etc.).
+                    </div>
+                  </div>
+                  <PrimaryButton
+                    disabled={!plan || !!tasksActivityForPlanWeekday}
+                    onClick={async () => {
+                      if (!plan) return;
+                      const label = window.prompt(
+                        "Name for this task group (e.g. 'Extras', 'Habits', 'School tasks'):",
+                        "Extras"
+                      );
+                      const name = label && label.trim();
+                      const builtInTaskType = builtInTypes().find((t) => t.id === "tasks");
+                      const taskType =
+                        activityTypesForPlan.find((t) => t.kind === "task" || t.id === "tasks") ||
+                        builtInTaskType;
+
+                      let nextPlan = plan;
+                      if (!activityTypesForPlan.some((t) => t.id === taskType.id)) {
+                        nextPlan = { ...plan, activityTypes: [...activityTypesForPlan, taskType] };
+                      }
+
+                      const newBlock = {
+                        id: uid(),
+                        typeId: taskType.id,
+                        label: name || "",
+                        tasks: [],
+                      };
+
+                      const updatedPlan = updateDayActivities(nextPlan, planWeekday, (extras) => [
+                        ...extras,
+                        newBlock,
+                      ]);
+                      await savePlan(updatedPlan);
+                    }}
+                  >
+                    + Add tasks
+                  </PrimaryButton>
+                </div>
+
+                {tasksActivityForPlanWeekday ? (
+                  <>
+                    <div className="mt12">
+                      <div className="label">Group label (optional)</div>
+                      <Input
+                        value={tasksActivityForPlanWeekday.label || ""}
+                        onChange={async (v) => {
+                          if (!plan) return;
+                          const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
+                            extras.map((b) =>
+                              b.id === tasksActivityForPlanWeekday.id ? { ...b, label: v } : b
+                            )
+                          );
+                          await savePlan(updatedPlan);
+                        }}
+                        placeholder="e.g. Extras, Habits, School tasks"
+                      />
+                    </div>
+
+                    <div className="stack mt12">
+                      {(tasksActivityForPlanWeekday.tasks || []).map((task) => (
+                        <div key={task.id} className="rowBetween">
+                          <div style={{ flex: 1, marginRight: 8 }}>
+                            <Input
+                              value={task.label || ""}
+                              onChange={async (v) => {
+                                if (!plan) return;
+                                const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
+                                  extras.map((b) => {
+                                    if (b.id !== tasksActivityForPlanWeekday.id) return b;
+                                    const nextTasks = (b.tasks || []).map((t) =>
+                                      t.id === task.id ? { ...t, label: v } : t
+                                    );
+                                    return { ...b, tasks: nextTasks };
+                                  })
+                                );
+                                await savePlan(updatedPlan);
+                              }}
+                              placeholder="Task name"
+                            />
+                          </div>
+                          <SecondaryButton
+                            onClick={async () => {
+                              if (!plan) return;
+                              const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
+                                extras.map((b) => {
+                                  if (b.id !== tasksActivityForPlanWeekday.id) return b;
+                                  const nextTasks = (b.tasks || []).filter((t) => t.id !== task.id);
+                                  return { ...b, tasks: nextTasks };
+                                })
+                              );
+                              await savePlan(updatedPlan);
+                            }}
+                          >
+                            Remove
+                          </SecondaryButton>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="row mt12">
+                      <PrimaryButton
+                        onClick={async () => {
+                          if (!plan) return;
+                          const label = window.prompt("New task name (e.g. 'Reading 20 min'):");
+                          if (!label || !label.trim()) return;
+                          const newTask = { id: uid(), label: label.trim() };
+                          const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
+                            extras.map((b) => {
+                              if (b.id !== tasksActivityForPlanWeekday.id) return b;
+                              const nextTasks = [...(b.tasks || []), newTask];
+                              return { ...b, tasks: nextTasks };
+                            })
+                          );
+                          await savePlan(updatedPlan);
+                        }}
+                      >
+                        + Add task
+                      </PrimaryButton>
+                      <div style={{ width: 10 }} />
+                      <SecondaryButton
+                        onClick={async () => {
+                          if (!plan || !tasksActivityForPlanWeekday) return;
+                          const ok = window.confirm("Remove all tick-box tasks for this day?");
+                          if (!ok) return;
+                          const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
+                            extras.filter((b) => b.id !== tasksActivityForPlanWeekday.id)
+                          );
+                          await savePlan(updatedPlan);
+                        }}
+                      >
+                        Remove tasks block
+                      </SecondaryButton>
+                    </div>
+                  </>
+                ) : (
+                  <div className="muted mt12">
+                    No tick-box tasks set for this day yet.
+                  </div>
+                )}
+              </div>
+
               </Card>
             </div>
           )}
@@ -2561,15 +2842,16 @@ function AddType({ existing, onAdd }) {
         <div>
           <div className="label">Kind</div>
           <Select
-            value={kind}
-            onChange={setKind}
-            options={[
-              { value: "strength", label: "Strength (movements + reps/weight)" },
-              { value: "time", label: "Time (movements + seconds)" },
-              { value: "cardio", label: "Cardio (distance + time)" },
-              { value: "custom", label: "Custom (duration only)" },
-            ]}
-          />
+  value={kind}
+  onChange={setKind}
+  options={[
+    { value: "strength", label: "Strength (movements + reps/weight)" },
+    { value: "time", label: "Time (movements + seconds)" },
+    { value: "cardio", label: "Cardio (distance + time)" },
+    { value: "custom", label: "Custom (duration only)" },
+    { value: "task", label: "Tick-box tasks (yes/no)" },
+  ]}
+/>
         </div>
       </div>
 
