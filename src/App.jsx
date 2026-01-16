@@ -226,6 +226,9 @@ function defaultPlanForFamily() {
     }, {}),
     movementsByWeekday: movements, // only for days where movementsEnabled
     cardioTargetByWeekday: {}, // optional "session focus" text for cardio days
+    // NEW: optional extra activity blocks per weekday (e.g. Run + HIIT)
+    // Shape: { [weekday]: [ { id, typeId, label } ] }
+    dayActivitiesByWeekday: {},
   };
 }
 
@@ -739,6 +742,10 @@ export default function App() {
   const [bonusPop, setBonusPop] = useState(0);
 
   const audioCtxRef = useRef(null);
+  // Draft inputs for one-off activities on the Log tab
+  const [oneOffNameDraft, setOneOffNameDraft] = useState("");
+  const [oneOffKindDraft, setOneOffKindDraft] = useState("custom");
+
 
   // --- Boot: session ---
   useEffect(() => {
@@ -869,6 +876,35 @@ export default function App() {
     })().catch(() => {});
   }, [activeProfileId, activeProfile?.plan_json]);
 
+  // Names we’ve used before for one-off activities (for dropdown suggestions)
+  const knownOneOffNames = useMemo(() => {
+    const names = new Set();
+
+    // From historic logs: meta.oneOffActivities
+    for (const r of allLogs || []) {
+      const arr = r?.log?.meta?.oneOffActivities;
+      if (Array.isArray(arr)) {
+        for (const a of arr) {
+          if (a?.name && typeof a.name === "string") {
+            names.add(a.name);
+          }
+        }
+      }
+    }
+
+    // Also include labels from extra day activities in the weekly plan
+    const actsByDay = plan?.dayActivitiesByWeekday || {};
+    Object.values(actsByDay).forEach((arr) => {
+      (arr || []).forEach((a) => {
+        if (a?.label && typeof a.label === "string") {
+          names.add(a.label);
+        }
+      });
+    });
+
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [allLogs, plan]);
+  
   const xpToNext = 100 - (xp % 100);
   const level = 1 + Math.floor(xp / 100);
   const unlocked = { arcade: level >= 3, chill: level >= 5 };
@@ -1115,6 +1151,123 @@ async function resetDay() {
     next.custom = { ...(next.custom || { durationMin: "" }), ...patch };
     await saveLog(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+
+    // --- One-off activities on the Log page ---
+
+  function getOneOffActivities(log) {
+    if (!log?.meta?.oneOffActivities || !Array.isArray(log.meta.oneOffActivities)) return [];
+    return log.meta.oneOffActivities;
+  }
+
+  async function addOneOffActivity(name, kind) {
+    const trimmed = (name || "").trim();
+    if (!trimmed) return;
+
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const meta = { ...(next.meta || {}) };
+    const current = Array.isArray(meta.oneOffActivities)
+      ? meta.oneOffActivities.slice()
+      : [];
+
+    current.push({
+      id: uid(),
+      name: trimmed,
+      kind: kind || "custom",
+      done: false,
+    });
+
+    meta.oneOffActivities = current;
+    next.meta = meta;
+    await saveLog(next);
+  }
+
+  async function updateOneOffActivity(id, patch) {
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const meta = { ...(next.meta || {}) };
+    const list = Array.isArray(meta.oneOffActivities)
+      ? meta.oneOffActivities.slice()
+      : [];
+
+    meta.oneOffActivities = list.map((a) =>
+      a.id === id ? { ...a, ...patch } : a
+    );
+    next.meta = meta;
+    await saveLog(next);
+  }
+
+  async function removeOneOffActivity(id) {
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const meta = { ...(next.meta || {}) };
+    const list = Array.isArray(meta.oneOffActivities)
+      ? meta.oneOffActivities.slice()
+      : [];
+
+    meta.oneOffActivities = list.filter((a) => a.id !== id);
+    next.meta = meta;
+    await saveLog(next);
+  }
+
+  // Promote a one-off into the weekly plan for this weekday
+  async function addOneOffToWeeklyPlan(activity) {
+    if (!activity?.name) return;
+    if (!(await ensureUnlocked("add this activity to the weekly plan"))) return;
+
+    const weekday = selectedWeekday;
+    const basePlan = plan || defaultPlanForFamily();
+    const typeId = basePlan?.dayTypeByWeekday?.[weekday] || "strength";
+    const t =
+      (basePlan.activityTypes || builtInTypes()).find((x) => x.id === typeId) ||
+      builtInTypes()[0];
+
+    // If this day uses movements (strength / time style), add as a new movement
+    if (t.movementsEnabled) {
+      const baseMovements = basePlan.movementsByWeekday?.[weekday] || [];
+      const mode =
+        activity.kind === "cardio"
+          ? "time"
+          : activity.kind === "strength"
+          ? "strength"
+          : activity.kind === "time"
+          ? "time"
+          : "custom";
+
+      const newMov = {
+        id: uid(),
+        name: activity.name,
+        mode,
+        allowWeight: mode === "strength",
+        allowCount: mode === "time",
+      };
+
+      const next = {
+        ...basePlan,
+        movementsByWeekday: {
+          ...(basePlan.movementsByWeekday || {}),
+          [weekday]: [...baseMovements, newMov],
+        },
+      };
+      await savePlan(next);
+      return;
+    }
+
+    // Otherwise, store it as an extra activity block on that day
+    const byDay = { ...(basePlan.dayActivitiesByWeekday || {}) };
+    const dayList = Array.isArray(byDay[weekday]) ? byDay[weekday].slice() : [];
+
+    dayList.push({
+      id: uid(),
+      typeId,
+      label: activity.name,
+    });
+
+    byDay[weekday] = dayList;
+
+    const next = {
+      ...basePlan,
+      dayActivitiesByWeekday: byDay,
+    };
+    await savePlan(next);
   }
 
     async function updateTask(taskId, done) {
@@ -1762,6 +1915,104 @@ async function resetDay() {
                   </div>
                 );
               })()}
+
+              {/* One-off activities for this specific date */}
+              <div className="panel mt16">
+                <div className="rowBetween">
+                  <div>
+                    <div className="h3">One-off activities today</div>
+                    <div className="muted mt4">
+                      Use this for PE, football matches, bonus walks, or extra workouts that aren’t in the weekly plan.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt12">
+                  <div className="label">Add one-off</div>
+                  <div className="row mt4">
+                    <div style={{ flex: 1 }}>
+                      <input
+                        className="input"
+                        list="oneoff-name-options"
+                        value={oneOffNameDraft}
+                        onChange={(e) => setOneOffNameDraft(e.target.value)}
+                        placeholder="e.g. Extra run, PE lesson, Football match"
+                      />
+                      <datalist id="oneoff-name-options">
+                        {knownOneOffNames.map((n) => (
+                          <option key={n} value={n} />
+                        ))}
+                      </datalist>
+                    </div>
+                    <div style={{ width: 8 }} />
+                    <div style={{ minWidth: 170 }}>
+                      <Select
+                        value={oneOffKindDraft}
+                        onChange={setOneOffKindDraft}
+                        options={[
+                          { value: "strength", label: "Strength / sets" },
+                          { value: "cardio", label: "Cardio (run / bike / swim)" },
+                          { value: "custom", label: "Tick-box task / habit" },
+                        ]}
+                      />
+                    </div>
+                    <div style={{ width: 8 }} />
+                    <PrimaryButton
+                      onClick={async () => {
+                        await addOneOffActivity(oneOffNameDraft, oneOffKindDraft);
+                        setOneOffNameDraft("");
+                      }}
+                    >
+                      + Add
+                    </PrimaryButton>
+                  </div>
+                </div>
+
+                <div className="stack mt12">
+                  {getOneOffActivities(logForDay).length === 0 ? (
+                    <div className="muted">
+                      No one-off activities logged yet.
+                    </div>
+                  ) : (
+                    getOneOffActivities(logForDay).map((a) => (
+                      <div key={a.id} className="oneOffRow">
+                        <div className="rowBetween">
+                          <label className="check">
+                            <input
+                              type="checkbox"
+                              checked={!!a.done}
+                              onChange={(e) =>
+                                updateOneOffActivity(a.id, { done: e.target.checked })
+                              }
+                            />
+                            <span>{a.name}</span>
+                          </label>
+                          <div className="mini">
+                            <div className="muted">
+                              Kind: {a.kind || "custom"}
+                            </div>
+                            <div className="row mt4">
+                              <SecondaryButton onClick={() => addOneOffToWeeklyPlan(a)}>
+                                Add to weekly plan
+                              </SecondaryButton>
+                              <div style={{ width: 6 }} />
+                              <SecondaryButton onClick={() => removeOneOffActivity(a.id)}>
+                                Remove
+                              </SecondaryButton>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="muted mt8">
+                  Tip: if this becomes a regular thing, tap <b>“Add to weekly plan”</b>
+                  to turn it into a recurring movement.
+                </div>
+              </div>
+              
             </Card>
 
             <div className="stack">
@@ -2175,6 +2426,130 @@ async function resetDay() {
                   </div>
                 </div>
               </div>
+
+                            {/* Extra activity blocks for this weekday (e.g. Run + HIIT) */}
+              <div className="panel mt16">
+                <div className="rowBetween">
+                  <div>
+                    <div className="h3">Extra activities on this day</div>
+                    <div className="muted mt4">
+                      Use this when the same day has more than one block —
+                      e.g. <b>Run + HIIT</b>, or <b>School PE + home workout</b>.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="stack mt12">
+                  {(plan?.dayActivitiesByWeekday?.[planWeekday] || []).length === 0 ? (
+                    <div className="muted">
+                      No extra activities yet. The main type above is still your primary plan.
+                    </div>
+                  ) : (
+                    (plan?.dayActivitiesByWeekday?.[planWeekday] || []).map((a) => (
+                      <div key={a.id} className="planRow">
+                        <div className="planMoveHead">
+                          <div className="planLeft">
+                            <div className="planName">
+                              <Input
+                                value={a.label || ""}
+                                onChange={async (v) => {
+                                  const list = (plan?.dayActivitiesByWeekday?.[planWeekday] || []).map((x) =>
+                                    x.id === a.id ? { ...x, label: v } : x
+                                  );
+                                  const next = {
+                                    ...plan,
+                                    dayActivitiesByWeekday: {
+                                      ...(plan.dayActivitiesByWeekday || {}),
+                                      [planWeekday]: list,
+                                    },
+                                  };
+                                  await savePlan(next);
+                                }}
+                                placeholder="e.g. Extra run"
+                              />
+                            </div>
+                            <div className="pills mt8">
+                              <Pill>
+                                {(plan?.activityTypes || builtInTypes()).find(
+                                  (t) => t.id === (a.typeId || "")
+                                )?.name || "Activity"}
+                              </Pill>
+                            </div>
+                          </div>
+
+                          <div className="planBtns">
+                            <div style={{ minWidth: 160 }}>
+                              <Select
+                                value={
+                                  a.typeId ||
+                                  (plan?.dayTypeByWeekday?.[planWeekday] || "strength")
+                                }
+                                onChange={async (v) => {
+                                  const list = (plan?.dayActivitiesByWeekday?.[planWeekday] || []).map((x) =>
+                                    x.id === a.id ? { ...x, typeId: v } : x
+                                  );
+                                  const next = {
+                                    ...plan,
+                                    dayActivitiesByWeekday: {
+                                      ...(plan.dayActivitiesByWeekday || {}),
+                                      [planWeekday]: list,
+                                    },
+                                  };
+                                  await savePlan(next);
+                                }}
+                                options={(plan?.activityTypes || builtInTypes()).map((t) => ({
+                                  value: t.id,
+                                  label: t.name,
+                                }))}
+                              />
+                            </div>
+
+                            <SecondaryButton
+                              onClick={async () => {
+                                const list = (plan?.dayActivitiesByWeekday?.[planWeekday] || []).filter(
+                                  (x) => x.id !== a.id
+                                );
+                                const next = {
+                                  ...plan,
+                                  dayActivitiesByWeekday: {
+                                    ...(plan.dayActivitiesByWeekday || {}),
+                                    [planWeekday]: list,
+                                  },
+                                };
+                                await savePlan(next);
+                              }}
+                            >
+                              Remove
+                            </SecondaryButton>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="row mt12">
+                  <PrimaryButton
+                    onClick={async () => {
+                      const byDay = { ...(plan?.dayActivitiesByWeekday || {}) };
+                      const list = Array.isArray(byDay[planWeekday])
+                        ? byDay[planWeekday].slice()
+                        : [];
+                      list.push({
+                        id: uid(),
+                        typeId: plan?.dayTypeByWeekday?.[planWeekday] || "strength",
+                        label: "",
+                      });
+                      byDay[planWeekday] = list;
+                      const next = { ...plan, dayActivitiesByWeekday: byDay };
+                      await savePlan(next);
+                    }}
+                  >
+                    + Add extra activity
+                  </PrimaryButton>
+                </div>
+              </div>
+
 
               {planActivityType.kind === "cardio" ? (
                 <div className="panel mt16">
@@ -3048,6 +3423,7 @@ const boxRounds = (names) =>
     restSecByWeekday: restSecByWeekday || weekdays.reduce((acc, d) => ((acc[d] = 60), acc), {}),
     movementsByWeekday: movementsByWeekday || {},
     cardioTargetByWeekday: cardioTargetByWeekday || {},
+    dayActivitiesByWeekday: dayActivitiesByWeekday || {},
   });
 
   // --- Presets ---
