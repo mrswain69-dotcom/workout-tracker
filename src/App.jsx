@@ -3416,7 +3416,7 @@ const boxRounds = (names) =>
 
   const baseTypes = builtInTypes();
 
-  const makePlan = ({ dayTypeByWeekday, movementsByWeekday, restSecByWeekday, cardioTargetByWeekday }) => ({
+  const makePlan = ({ dayTypeByWeekday, movementsByWeekday, restSecByWeekday, cardioTargetByWeekday, dayActivitiesByWeekday }) => ({
     version: 1,
     activityTypes: baseTypes,
     dayTypeByWeekday: dayTypeByWeekday || defaultPlanForFamily().dayTypeByWeekday,
