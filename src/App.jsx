@@ -1007,7 +1007,10 @@ useEffect(() => {
   async function saveLog(nextLog) {
     setLogForDay(nextLog);
     if (!family?.id || !activeProfileId) return;
-    await upsertLog(family.id, activeProfileId, selectedDate, nextLog);
+    const { error } = await upsertLog(family.id, activeProfileId, selectedDate, nextLog);
+if (error) {
+  console.error("upsertLog failed", error);
+}
     // refresh logs list for stats
     const { data } = await listLogs(family.id, activeProfileId, 2000);
     setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
@@ -1021,6 +1024,7 @@ useEffect(() => {
     restSec: restFromPlan, // actual rest used (editable)
     sessions: [],
     dayManualMin: "", // optional override for whole day
+    oneOffActivities: [],
   },
   weekday: selectedWeekday,
   typeId: dayTypeId,
@@ -1038,7 +1042,12 @@ useEffect(() => {
 
   async function addSession() {
     const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = { ...(next.meta || {}) };
+    const meta = {
+  restSec: next?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60),
+  sessions: Array.isArray(next?.meta?.sessions) ? next.meta.sessions : [],
+  dayManualMin: next?.meta?.dayManualMin ?? "",
+  ...(next.meta || {}),
+};
     const sessions = [...getSessions(next)];
     sessions.push({ id: uid(), startedAt: null, finishedAt: null, manualMin: "" });
     meta.sessions = sessions;
@@ -1048,7 +1057,12 @@ useEffect(() => {
 
   async function updateSession(sessionId, patch) {
     const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = { ...(next.meta || {}) };
+    const meta = {
+  restSec: next?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60),
+  sessions: Array.isArray(next?.meta?.sessions) ? next.meta.sessions : [],
+  dayManualMin: next?.meta?.dayManualMin ?? "",
+  ...(next.meta || {}),
+};
     const sessions = [...getSessions(next)].map((s) => (s.id === sessionId ? { ...s, ...patch } : s));
     meta.sessions = sessions;
     next.meta = meta;
@@ -1056,7 +1070,12 @@ useEffect(() => {
   }
   async function removeSession(sessionId) {
     const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = { ...(next.meta || {}) };
+    const meta = {
+  restSec: next?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60),
+  sessions: Array.isArray(next?.meta?.sessions) ? next.meta.sessions : [],
+  dayManualMin: next?.meta?.dayManualMin ?? "",
+  ...(next.meta || {}),
+};
     const sessions = [...getSessions(next)].filter((s) => s.id !== sessionId);
     meta.sessions = sessions;
     next.meta = meta;
