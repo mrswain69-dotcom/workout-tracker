@@ -745,6 +745,7 @@ export default function App() {
   // Draft inputs for one-off activities on the Log tab
   const [oneOffNameDraft, setOneOffNameDraft] = useState("");
   const [oneOffKindDraft, setOneOffKindDraft] = useState("custom");
+  const loadDayLogReqRef = useRef(0);
 
 
   // --- Boot: session ---
@@ -836,12 +837,34 @@ export default function App() {
   }, [family?.id, activeProfileId]);
 
   // --- Load day log ---
-  useEffect(() => {
-    if (!family?.id || !activeProfileId) return;
+    useEffect(() => {
+    if (!family?.id || !activeProfileId || !selectedDate) return;
+
+    // bump request id so older requests can't overwrite newer state
+    const reqId = ++loadDayLogReqRef.current;
+
     (async () => {
-      const { data } = await getLog(family.id, activeProfileId, selectedDate);
-      setLogForDay(data?.log_json || null);
-    })().catch(() => setLogForDay(null));
+      // Optional: clear while loading so you can see it’s fetching
+      // setLogForDay(null);
+
+      const { data, error } = await getLog(family.id, activeProfileId, selectedDate);
+      if (reqId !== loadDayLogReqRef.current) return; // ignore stale response
+
+      if (error) {
+        console.error("getLog failed", error);
+        setLogForDay(null);
+        return;
+      }
+
+      // Supabase might return a row OR an array of rows depending on helper implementation
+      const row = Array.isArray(data) ? data[0] : data;
+
+      setLogForDay(row?.log_json || null);
+    })().catch((e) => {
+      if (reqId !== loadDayLogReqRef.current) return;
+      console.error("getLog exception", e);
+      setLogForDay(null);
+    });
   }, [family?.id, activeProfileId, selectedDate]);
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
