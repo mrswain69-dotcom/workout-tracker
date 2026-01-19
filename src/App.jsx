@@ -748,6 +748,7 @@ export default function App() {
   const [extraMovNameDraft, setExtraMovNameDraft] = useState("");
   const [extraMovModeDraft, setExtraMovModeDraft] = useState("strength");
   const loadDayLogReqRef = useRef(0);
+  const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
 
 
   // --- Boot: session ---
@@ -839,35 +840,43 @@ export default function App() {
   }, [family?.id, activeProfileId]);
 
   // --- Load day log ---
-    useEffect(() => {
+  useEffect(() => {
     if (!family?.id || !activeProfileId || !selectedDate) return;
+
+    const dateKey = ymd(selectedDate);
+
+    // If we have a more recent log cached for this date, show it immediately
+    const cached = lastLogByDateRef.current[dateKey];
+    if (cached) {
+      setLogForDay(cached);
+    }
 
     // bump request id so older requests can't overwrite newer state
     const reqId = ++loadDayLogReqRef.current;
 
     (async () => {
-      // Optional: clear while loading so you can see it’s fetching
-      // setLogForDay(null);
-
       const { data, error } = await getLog(family.id, activeProfileId, selectedDate);
       if (reqId !== loadDayLogReqRef.current) return; // ignore stale response
 
       if (error) {
         console.error("getLog failed", error);
-        setLogForDay(null);
+        if (!cached) setLogForDay(null);
         return;
       }
 
-      // Supabase might return a row OR an array of rows depending on helper implementation
       const row = Array.isArray(data) ? data[0] : data;
+      const fromDb = row?.log_json || null;
 
-      setLogForDay(row?.log_json || null);
+      // Prefer the cached version if we have one (it’s our latest write)
+      const latest = cached || fromDb;
+      setLogForDay(latest);
     })().catch((e) => {
       if (reqId !== loadDayLogReqRef.current) return;
       console.error("getLog exception", e);
-      setLogForDay(null);
+      if (!cached) setLogForDay(null);
     });
   }, [family?.id, activeProfileId, selectedDate]);
+
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
@@ -1029,14 +1038,25 @@ useEffect(() => {
     await upsertProfilePlan(activeProfileId, nextPlan);
   }
 
-  async function saveLog(nextLog) {
+    async function saveLog(nextLog) {
     setLogForDay(nextLog);
+
+    // Remember the latest log we’ve saved for this date in-memory
+    const dateKey = selectedDate ? ymd(selectedDate) : null;
+    if (dateKey) {
+      lastLogByDateRef.current = {
+        ...lastLogByDateRef.current,
+        [dateKey]: nextLog,
+      };
+    }
+
     if (!family?.id || !activeProfileId) return;
     const { error } = await upsertLog(family.id, activeProfileId, selectedDate, nextLog);
-if (error) {
-  console.error("upsertLog failed", error);
-}
-    // refresh logs list for stats
+    if (error) {
+      console.error("upsertLog failed", error);
+    }
+
+    // Refresh logs list for stats
     const { data } = await listLogs(family.id, activeProfileId, 2000);
     setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
   }
