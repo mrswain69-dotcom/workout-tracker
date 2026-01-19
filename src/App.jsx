@@ -1205,6 +1205,12 @@ async function resetDay() {
     return log.meta.oneOffActivities;
   }
 
+  // Extra strength/time movements logged only on this date
+  function getExtraMovements(log) {
+    if (!log?.meta?.extraMovements || !Array.isArray(log.meta.extraMovements)) return [];
+    return log.meta.extraMovements;
+  }
+
   async function addOneOffActivity(name, kind) {
     const trimmed = (name || "").trim();
     if (!trimmed) return;
