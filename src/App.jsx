@@ -1038,27 +1038,41 @@ useEffect(() => {
     await upsertProfilePlan(activeProfileId, nextPlan);
   }
   
-async function saveLog(nextLog) {
-  setLogForDay(nextLog);
+  async function saveLog(nextLog) {
+    setLogForDay(nextLog);
 
-  const cacheKey = makeLogCacheKey(family?.id, activeProfileId, selectedDate);
-  if (cacheKey) {
-    lastLogByDateRef.current = {
-      ...lastLogByDateRef.current,
-      [cacheKey]: nextLog,
-    };
-  }
+    // Update in-memory cache for this family/profile/date
+    const cacheKey = makeLogCacheKey(family?.id, activeProfileId, selectedDate);
+    if (cacheKey) {
+      lastLogByDateRef.current = {
+        ...(lastLogByDateRef.current || {}),
+        [cacheKey]: nextLog,
+      };
+    }
 
-  if (!family?.id || !activeProfileId) return;
-  const { error } = await upsertLog(family.id, activeProfileId, selectedDate, nextLog);
-  ...
-}
+    if (!family?.id || !activeProfileId) return;
 
+    const { error } = await upsertLog(
+      family.id,
+      activeProfileId,
+      selectedDate,
+      nextLog
+    );
+    if (error) {
+      console.error("upsertLog failed", error);
+      return;
+    }
 
-    // Refresh logs list for stats
+    // Refresh logs list for stats / XP
     const { data } = await listLogs(family.id, activeProfileId, 2000);
-    setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
+    setAllLogs(
+      (data || []).map((r) => ({
+        date_ymd: r.date_ymd,
+        log: r.log_json,
+      }))
+    );
   }
+
 
   function blankLogForDay() {
   const restFromPlan = safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
