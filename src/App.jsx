@@ -1038,41 +1038,48 @@ useEffect(() => {
     await upsertProfilePlan(activeProfileId, nextPlan);
   }
   
-  async function saveLog(nextLog) {
-    setLogForDay(nextLog);
+async function saveLog(nextLog) {
+  // Normalise what we store
+  const logToStore = nextLog ? { ...nextLog } : null;
 
-    // Update in-memory cache for this family/profile/date
-    const cacheKey = makeLogCacheKey(family?.id, activeProfileId, selectedDate);
-    if (cacheKey) {
-      lastLogByDateRef.current = {
-        ...(lastLogByDateRef.current || {}),
-        [cacheKey]: nextLog,
-      };
+  // 1) Update in-memory state for the selected day
+  setLogForDay(logToStore);
+
+  // 2) Update our per-day cache so navigation feels instant
+  const cacheKey = makeLogCacheKey(family?.id, activeProfileId, selectedDate);
+  if (cacheKey) {
+    const prev = lastLogByDateRef.current || {};
+    if (logToStore) {
+      lastLogByDateRef.current = { ...prev, [cacheKey]: logToStore };
+    } else {
+      const copy = { ...prev };
+      delete copy[cacheKey];
+      lastLogByDateRef.current = copy;
     }
-
-    if (!family?.id || !activeProfileId) return;
-
-    const { error } = await upsertLog(
-      family.id,
-      activeProfileId,
-      selectedDate,
-      nextLog
-    );
-    if (error) {
-      console.error("upsertLog failed", error);
-      return;
-    }
-
-    // Refresh logs list for stats / XP
-    const { data } = await listLogs(family.id, activeProfileId, 2000);
-    setAllLogs(
-      (data || []).map((r) => ({
-        date_ymd: r.date_ymd,
-        log: r.log_json,
-      }))
-    );
   }
 
+  // 3) Persist to Supabase
+  if (!family?.id || !activeProfileId) return;
+  const { error } = await upsertLog(
+    family.id,
+    activeProfileId,
+    selectedDate,
+    logToStore
+  );
+  if (error) {
+    console.error("upsertLog failed", error);
+    return;
+  }
+
+  // 4) Refresh logs list (used for stats + XP)
+  const { data } = await listLogs(family.id, activeProfileId, 2000);
+  setAllLogs(
+    (data || []).map((r) => ({
+      date_ymd: r.date_ymd,
+      log: r.log_json,
+    }))
+  );
+}
 
   function blankLogForDay() {
   const restFromPlan = safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
