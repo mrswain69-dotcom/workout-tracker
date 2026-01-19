@@ -745,6 +745,8 @@ export default function App() {
   // Draft inputs for one-off activities on the Log tab
   const [oneOffNameDraft, setOneOffNameDraft] = useState("");
   const [oneOffKindDraft, setOneOffKindDraft] = useState("custom");
+  const [extraMovNameDraft, setExtraMovNameDraft] = useState("");
+  const [extraMovModeDraft, setExtraMovModeDraft] = useState("strength");
   const loadDayLogReqRef = useRef(0);
 
 
@@ -1040,25 +1042,26 @@ if (error) {
   }
 
   function blankLogForDay() {
-    const restFromPlan = safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
-    return {
-  // Timing/session meta lives in meta.
-  meta: {
-    restSec: restFromPlan, // actual rest used (editable)
-    sessions: [],
-    dayManualMin: "", // optional override for whole day
-    oneOffActivities: [],
-  },
-  weekday: selectedWeekday,
-  typeId: dayTypeId,
-  entries: {},
-  tasks: {}, // NEW: tick-box tasks done for this day
-  cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
-  custom: { durationMin: "" },
-  gamify: { comboMax: 0 },
-};
+  const restFromPlan = safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
+  return {
+    // Timing/session meta lives in meta.
+    meta: {
+      restSec: restFromPlan, // actual rest used (editable)
+      sessions: [],
+      dayManualMin: "", // optional override for whole day
+      oneOffActivities: [],
+      extraMovements: [], // NEW: per-day strength/time movements
+    },
+    weekday: selectedWeekday,
+    typeId: dayTypeId,
+    entries: {},
+    tasks: {}, // tick-box tasks done for this day
+    cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
+    custom: { durationMin: "" },
+    gamify: { comboMax: 0 },
+  };
+}
 
-  }
 
   // --- Sessions (timing blocks) ---
   const getSessions = (l) => (l?.meta?.sessions && Array.isArray(l.meta.sessions) ? l.meta.sessions : []);
@@ -1238,6 +1241,31 @@ async function resetDay() {
     await saveLog(next);
   }
 
+  async function addExtraMovementForToday(name, mode) {
+    const trimmed = (name || "").trim();
+    if (!trimmed) return;
+
+    const mMode = mode === "time" ? "time" : "strength";
+
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const meta = { ...(next.meta || {}) };
+    const list = Array.isArray(meta.extraMovements)
+      ? meta.extraMovements.slice()
+      : [];
+
+    list.push({
+      id: uid(),
+      name: trimmed,
+      mode: mMode,
+      allowWeight: mMode === "strength",
+      allowCount: mMode === "time",
+    });
+
+    meta.extraMovements = list;
+    next.meta = meta;
+    await saveLog(next);
+  }
+  
   async function removeOneOffActivity(id) {
     const next = logForDay ? { ...logForDay } : blankLogForDay();
     const meta = { ...(next.meta || {}) };
@@ -1825,19 +1853,71 @@ async function resetDay() {
                   </div>
                   <div className="muted mt8">Good for Pilates, yoga, mobility, etc.</div>
                 </div>
-              ) : (
+                           ) : (
                 <div className="stack mt16">
-                  {(planDay.movements || []).length === 0 ? (
-                    <div className="dashed">No movements for this day. Go to <b>Plan</b> and add movements.</div>
-                  ) : (
-                    (planDay.movements || []).map((ex) => {
+                  {/* Extra movements for this specific date */}
+                  <div className="panel">
+                    <div className="h2">Extra movements for today</div>
+                    <div className="muted mt4">
+                      Use this for extra strength or timed blocks that aren’t in the weekly plan.
+                    </div>
+                    <div className="row mt8">
+                      <div style={{ flex: 1 }}>
+                        <div className="label">Name</div>
+                        <Input
+                          value={extraMovNameDraft}
+                          onChange={setExtraMovNameDraft}
+                          placeholder="e.g. Extra push-ups"
+                        />
+                      </div>
+                      <div style={{ width: 8 }} />
+                      <div style={{ minWidth: 160 }}>
+                        <div className="label">Mode</div>
+                        <Select
+                          value={extraMovModeDraft}
+                          onChange={setExtraMovModeDraft}
+                          options={[
+                            { value: "strength", label: "Strength (reps + weight)" },
+                            { value: "time", label: "Timed (seconds + count)" },
+                          ]}
+                        />
+                      </div>
+                      <div style={{ width: 8 }} />
+                      <PrimaryButton
+                        onClick={async () => {
+                          await addExtraMovementForToday(
+                            extraMovNameDraft,
+                            extraMovModeDraft
+                          );
+                          setExtraMovNameDraft("");
+                        }}
+                      >
+                        + Add movement
+                      </PrimaryButton>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const baseMovs = planDay.movements || [];
+                    const extraMovs = getExtraMovements(logForDay);
+                    const allMovs = [...baseMovs, ...extraMovs];
+
+                    if (allMovs.length === 0) {
+                      return (
+                        <div className="dashed">
+                          No movements for this day. Add one above, or go to <b>Plan</b> and add weekly movements.
+                        </div>
+                      );
+                    }
+
+                    return allMovs.map((ex) => {
                       const sets = (logForDay?.entries?.[ex.id] || [{}, {}, {}]).map((s) => ({
                         reps: "",
                         weight: "",
                         timeSeconds: ex.fixedSeconds ? String(ex.fixedSeconds) : "",
                         count: "",
                         notes: "",
-    meta: { restSecDefault: 60, sessionsCount: 1 },
+                        meta: { restSecDefault: 60, sessionsCount: 1 },
                         ...(s || {}),
                       }));
                       const isTime = ex.mode === "time";
@@ -1857,8 +1937,17 @@ async function resetDay() {
                                 {(() => {
                                   const lastSets = findLastMovementSets(allLogs, ex.id, ymd(selectedDate));
                                   const lastTxt = summarizeStrengthSets(lastSets);
-                                  const initialTarget = { text: ex.targetText || null, reps: ex.targetReps || null, weight: ex.targetWeight || null };
-                                  const t = suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup: activeProfile?.age_group || "under16" });
+                                  const initialTarget = {
+                                    text: ex.targetText || null,
+                                    reps: ex.targetReps || null,
+                                    weight: ex.targetWeight || null,
+                                  };
+                                  const t = suggestStrengthTarget({
+                                    ex,
+                                    lastSets,
+                                    initialTarget,
+                                    ageGroup: activeProfile?.age_group || "under16",
+                                  });
                                   return (
                                     <div>
                                       <div><b>Last time:</b> {lastTxt}</div>
@@ -1881,23 +1970,51 @@ async function resetDay() {
                                     <>
                                       <div>
                                         <div className="label">Reps</div>
-                                        <Input type="number" min={0} step={1} value={s.reps ?? ""} onChange={(v) => addOrUpdateSet(ex.id, i, { reps: v })} placeholder="0" />
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          step={1}
+                                          value={s.reps ?? ""}
+                                          onChange={(v) => addOrUpdateSet(ex.id, i, { reps: v })}
+                                          placeholder="0"
+                                        />
                                       </div>
                                       <div>
                                         <div className="label">Weight (kg)</div>
-                                        <Input type="number" min={0} step={0.5} value={s.weight ?? ""} onChange={(v) => addOrUpdateSet(ex.id, i, { weight: v })} placeholder={ex.allowWeight ? "kg" : "(optional)"} />
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          step={0.5}
+                                          value={s.weight ?? ""}
+                                          onChange={(v) => addOrUpdateSet(ex.id, i, { weight: v })}
+                                          placeholder={ex.allowWeight ? "kg" : "(optional)"}
+                                        />
                                       </div>
                                     </>
                                   ) : (
                                     <>
                                       <div>
                                         <div className="label">Time (sec)</div>
-                                        <Input type="number" min={0} step={1} value={s.timeSeconds ?? (ex.fixedSeconds ? String(ex.fixedSeconds) : "")} onChange={(v) => addOrUpdateSet(ex.id, i, { timeSeconds: v })} placeholder={ex.fixedSeconds ? "" : "e.g. 60"} />
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          step={1}
+                                          value={s.timeSeconds ?? (ex.fixedSeconds ? String(ex.fixedSeconds) : "")}
+                                          onChange={(v) => addOrUpdateSet(ex.id, i, { timeSeconds: v })}
+                                          placeholder={ex.fixedSeconds ? "" : "e.g. 60"}
+                                        />
                                       </div>
                                       {ex.allowCount ? (
                                         <div>
                                           <div className="label">{ex.countLabel || "Count"}</div>
-                                          <Input type="number" min={0} step={1} value={s.count ?? ""} onChange={(v) => addOrUpdateSet(ex.id, i, { count: v })} placeholder="0" />
+                                          <Input
+                                            type="number"
+                                            min={0}
+                                            step={1}
+                                            value={s.count ?? ""}
+                                            onChange={(v) => addOrUpdateSet(ex.id, i, { count: v })}
+                                            placeholder="0"
+                                          />
                                         </div>
                                       ) : (
                                         <div />
@@ -1907,7 +2024,11 @@ async function resetDay() {
 
                                   <div className="notes">
                                     <div className="label">Notes (optional)</div>
-                                    <Input value={s.notes ?? ""} onChange={(v) => addOrUpdateSet(ex.id, i, { notes: v })} placeholder="How did it feel?" />
+                                    <Input
+                                      value={s.notes ?? ""}
+                                      onChange={(v) => addOrUpdateSet(ex.id, i, { notes: v })}
+                                      placeholder="How did it feel?"
+                                    />
                                   </div>
                                 </div>
                               );
@@ -1915,10 +2036,11 @@ async function resetDay() {
                           </div>
                         </div>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </div>
               )}
+
               {/* Tick-box tasks from extra day activities */}
               {(() => {
                 const acts = getDayActivitiesForWeekday(plan || defaultPlanForFamily(), selectedWeekday);
