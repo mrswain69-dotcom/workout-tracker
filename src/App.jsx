@@ -733,6 +733,11 @@ export default function App() {
   // Plan editing should NOT depend on log date.
   const [planWeekday, setPlanWeekday] = useState("Mon");
 
+  function makeLogCacheKey(familyId, profileId, date) {
+  if (!familyId || !profileId || !date) return null;
+  return `${familyId}:${profileId}:${ymd(date)}`;
+}
+
   const [logForDay, setLogForDay] = useState(null);
   const [allLogs, setAllLogs] = useState([]); // for stats
 
@@ -841,42 +846,37 @@ export default function App() {
 
   // --- Load day log ---
   useEffect(() => {
-    if (!family?.id || !activeProfileId || !selectedDate) return;
+  if (!family?.id || !activeProfileId || !selectedDate) return;
 
-    const dateKey = ymd(selectedDate);
+  const cacheKey = makeLogCacheKey(family.id, activeProfileId, selectedDate);
+  const cached = cacheKey ? lastLogByDateRef.current[cacheKey] : undefined;
+  if (cached) {
+    setLogForDay(cached);
+  }
 
-    // If we have a more recent log cached for this date, show it immediately
-    const cached = lastLogByDateRef.current[dateKey];
-    if (cached) {
-      setLogForDay(cached);
+  const reqId = ++loadDayLogReqRef.current;
+
+  (async () => {
+    const { data, error } = await getLog(family.id, activeProfileId, selectedDate);
+    if (reqId !== loadDayLogReqRef.current) return;
+
+    if (error) {
+      console.error("getLog failed", error);
+      if (!cached) setLogForDay(null);
+      return;
     }
 
-    // bump request id so older requests can't overwrite newer state
-    const reqId = ++loadDayLogReqRef.current;
+    const row = Array.isArray(data) ? data[0] : data;
+    const fromDb = row?.log_json || null;
 
-    (async () => {
-      const { data, error } = await getLog(family.id, activeProfileId, selectedDate);
-      if (reqId !== loadDayLogReqRef.current) return; // ignore stale response
-
-      if (error) {
-        console.error("getLog failed", error);
-        if (!cached) setLogForDay(null);
-        return;
-      }
-
-      const row = Array.isArray(data) ? data[0] : data;
-      const fromDb = row?.log_json || null;
-
-      // Prefer the cached version if we have one (it’s our latest write)
-      const latest = cached || fromDb;
-      setLogForDay(latest);
-    })().catch((e) => {
-      if (reqId !== loadDayLogReqRef.current) return;
-      console.error("getLog exception", e);
-      if (!cached) setLogForDay(null);
-    });
-  }, [family?.id, activeProfileId, selectedDate]);
-
+    const latest = cached || fromDb;
+    setLogForDay(latest);
+  })().catch((e) => {
+    if (reqId !== loadDayLogReqRef.current) return;
+    console.error("getLog exception", e);
+    if (!cached) setLogForDay(null);
+  });
+}, [family?.id, activeProfileId, selectedDate]);
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
@@ -1037,24 +1037,23 @@ useEffect(() => {
     updateProfilePlanInState(activeProfileId, nextPlan);
     await upsertProfilePlan(activeProfileId, nextPlan);
   }
+  
+async function saveLog(nextLog) {
+  setLogForDay(nextLog);
 
-    async function saveLog(nextLog) {
-    setLogForDay(nextLog);
+  const cacheKey = makeLogCacheKey(family?.id, activeProfileId, selectedDate);
+  if (cacheKey) {
+    lastLogByDateRef.current = {
+      ...lastLogByDateRef.current,
+      [cacheKey]: nextLog,
+    };
+  }
 
-    // Remember the latest log we’ve saved for this date in-memory
-    const dateKey = selectedDate ? ymd(selectedDate) : null;
-    if (dateKey) {
-      lastLogByDateRef.current = {
-        ...lastLogByDateRef.current,
-        [dateKey]: nextLog,
-      };
-    }
+  if (!family?.id || !activeProfileId) return;
+  const { error } = await upsertLog(family.id, activeProfileId, selectedDate, nextLog);
+  ...
+}
 
-    if (!family?.id || !activeProfileId) return;
-    const { error } = await upsertLog(family.id, activeProfileId, selectedDate, nextLog);
-    if (error) {
-      console.error("upsertLog failed", error);
-    }
 
     // Refresh logs list for stats
     const { data } = await listLogs(family.id, activeProfileId, 2000);
@@ -1184,10 +1183,10 @@ async function resetDay() {
   const blank = blankLogForDay();
 
   // Clear our in-memory "latest log for date" cache so it can’t resurrect
-  const dateKey = selectedDate ? ymd(selectedDate) : null;
-  if (dateKey) {
+  const cacheKey = makeLogCacheKey(family?.id, activeProfileId, selectedDate);
+  if (cacheKey) {
     const copy = { ...(lastLogByDateRef.current || {}) };
-    delete copy[dateKey];
+    delete copy[cacheKey];
     lastLogByDateRef.current = copy;
   }
 
