@@ -989,6 +989,53 @@ useEffect(() => {
   setXp(computeXpFromLogs(allLogs));
 }, [allLogs, plan]);
 
+  // XP breakdown per day (for debugging / cross-checking)
+  const xpDebugRows = useMemo(() => {
+    if (!Array.isArray(allLogs)) return [];
+
+    const rows = [];
+
+    for (const r of allLogs) {
+      const date = r?.date_ymd || r?.date;
+      const log = r?.log;
+      if (!date || !log) continue;
+
+      const weekday = log.weekday || weekdayFromYMD(date);
+      const planDay = planDayForWeekday(weekday);
+      const baseXp = awardXpForDay(log, planDay);
+      const bonus = log?.meta?.challengeClaimed ? 15 : 0;
+
+      const complete = isDayComplete(log, planDay);
+      const kind = planDay.kind || "strength";
+
+      // light extra hints
+      const setsLogged = Object.values(log.entries || {})
+        .flat()
+        .filter(setDidSomething).length;
+
+      const cardioKm = safeNumber(log?.cardio?.distanceKm);
+      const customMin = safeNumber(log?.custom?.durationMin);
+      const tasksDone = Object.values(log.tasks || {}).filter((t) => t && t.done).length;
+
+      rows.push({
+        date,
+        weekday,
+        kind,
+        complete,
+        baseXp,
+        bonus,
+        totalXp: baseXp + bonus,
+        setsLogged,
+        cardioKm,
+        customMin,
+        tasksDone,
+      });
+    }
+
+    // newest first
+    rows.sort((a, b) => (a.date < b.date ? 1 : -1));
+    return rows;
+  }, [allLogs, plan]);
 
 
   async function ensureUnlocked(actionLabel = "save changes") {
@@ -3113,6 +3160,34 @@ async function resetDay() {
                   <RewardItem title="Chill" desc="Softer sounds" active={victoryTheme === "chill"} locked={!unlocked.chill} onPick={() => unlocked.chill && setVictoryTheme("chill")} />
                 </div>
                 <div className="mini mt12">Unlock rules: Level 3 = Arcade, Level 5 = Chill. (100 XP per level)</div>
+              </div>
+               {/* XP debug view – helps cross-check logs vs XP */}
+              <div className="panel mt16">
+                <div className="h3">XP debug (recent days)</div>
+                <div className="muted mt4">
+                  Dev view to see which days are earning XP and why. Shows the last 14 logged days for this profile.
+                </div>
+
+                <div className="stack mt8">
+                  {xpDebugRows.slice(0, 14).map((row) => (
+                    <div key={row.date} className="rowBetween mini">
+                      <div>
+                        <b>{row.date}</b> ({row.weekday}) – {row.kind}
+                        {row.complete ? " ✅" : ""}
+                      </div>
+                      <div>
+                        {row.totalXp} XP
+                        <span className="muted">
+                          {row.bonus ? ` (base ${row.baseXp} + bonus ${row.bonus})` : ` (base ${row.baseXp})`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {xpDebugRows.length === 0 && (
+                    <div className="muted">No logs yet for this profile.</div>
+                  )}
+                </div>
               </div>
             </Card>
 
