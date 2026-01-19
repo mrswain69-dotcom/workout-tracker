@@ -1190,13 +1190,8 @@ async function claimDailyBonus() {
 }
 
 async function resetDay() {
-    await saveLog(null);
-    // wipe row by upserting empty? easiest: store null locally; for DB, overwrite with blank? We'll just store a blank with a reset marker.
-    const next = blankLogForDay();
-    next.reset = true;
-    await saveLog(next);
-    await saveLog(null);
-  }
+  await resetSelectedDayLog();
+}
 
   async function resetSelectedDayLog() {
   if (!(await ensureUnlocked("reset this day"))) return;
