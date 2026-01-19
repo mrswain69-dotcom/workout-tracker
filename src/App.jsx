@@ -1178,6 +1178,23 @@ async function resetDay() {
     await saveLog(null);
   }
 
+  async function resetSelectedDayLog() {
+  if (!(await ensureUnlocked("reset this day"))) return;
+
+  const blank = blankLogForDay();
+
+  // Clear our in-memory "latest log for date" cache so it can’t resurrect
+  const dateKey = selectedDate ? ymd(selectedDate) : null;
+  if (dateKey) {
+    const copy = { ...(lastLogByDateRef.current || {}) };
+    delete copy[dateKey];
+    lastLogByDateRef.current = copy;
+  }
+
+  // Persist the reset to Supabase
+  await saveLog(blank);
+}
+
   async function addOrUpdateSet(exId, idx, patch) {
     const ctx = await ensureAudio();
     const next = logForDay ? { ...logForDay } : blankLogForDay();
