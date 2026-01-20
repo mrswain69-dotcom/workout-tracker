@@ -1063,18 +1063,21 @@ useEffect(() => {
 
     (async () => {
       // Fallback to DB helper (in case plan_json isn't included in listProfiles).
-      const { data } = await getProfilePlan(activeProfileId);
-      if (data?.plan_json) {
-        setPlan(data.plan_json);
-        updateProfilePlanInState(activeProfileId, data.plan_json);
-      } else {
-        const p = defaultPlanForFamily();
-        await upsertProfilePlan(activeProfileId, p);
-        setPlan(p);
-        updateProfilePlanInState(activeProfileId, p);
-      }
-    })().catch(() => {});
-  }, [activeProfileId, activeProfile?.plan_json]);
+      const { data, error } = await getProfilePlan(activeProfileId);
+if (error) {
+  console.error("getProfilePlan failed", error);
+  return; // don't overwrite anything
+}
+
+if (data?.plan_json) {
+  setPlan(data.plan_json);
+  updateProfilePlanInState(activeProfileId, data.plan_json);
+} else {
+  const p = defaultPlanForFamily();
+  await upsertProfilePlan(activeProfileId, p);
+  setPlan(p);
+  updateProfilePlanInState(activeProfileId, p);
+}
 
   // Names we’ve used before for one-off activities (for dropdown suggestions)
   const knownOneOffNames = useMemo(() => {
@@ -3423,11 +3426,18 @@ async function resetDay() {
                       }
 
                       const newBlock = {
-                        id: uid(),
-                        typeId: taskType.id,
-                        label: name || "",
-                        tasks: [],
-                      };
+  id: uid(),
+  typeId: taskType.id,
+  label: name || "",
+  tasks: [
+    {
+      id: uid(),
+      label: name || "Task",
+      completed: false,
+    },
+  ],
+};
+
 
                       const updatedPlan = updateDayActivities(nextPlan, planWeekday, (extras) => [
                         ...extras,
@@ -4044,10 +4054,23 @@ function StyleTag() {
       .mt16{margin-top:16px}
       .stack{display:flex;flex-direction:column;gap:12px}
       .row{display:flex;flex-direction:column;gap:10px}
-      @media(min-width:900px){.row{flex-direction:row;align-items:flex-end;justify-content:space-between}}
+      @media (min-width: 900px){
+  .row{ flex-direction:row; align-items:flex-start; justify-content:space-between; }
+  .rowRight{ justify-content:flex-end; }
+  
+  /* Log header alignment */
+  .logTopRow{ align-items:center; }
+  .logTopActions{
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:flex-end;
+    gap:10px;
+    flex-wrap:nowrap;
+  }
+}
       .rowLeft{display:grid;grid-template-columns:1fr;gap:10px}
       @media(min-width:600px){.rowLeft{grid-template-columns:180px 260px}}
-      .rowRight{display:flex;flex-wrap:wrap;gap:10px}
       .rowBetween{display:flex;align-items:center;justify-content:space-between;gap:10px}
       .field{min-width:180px}
       .gridLog{display:grid;gap:12px}
