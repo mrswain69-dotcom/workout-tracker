@@ -82,7 +82,28 @@ header .brandRow{ width:100%; }
 }
 
 /* Header icon buttons */
-.tabsRow{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; }
+.tabsRow{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  width:100%;
+}
+
+/* Tab strip (Log / Stats / Plan / Rewards) */
+.tabs{
+  display:flex;
+  flex:1 1 auto;
+  justify-content:space-between;
+  align-items:stretch;
+  gap:8px;
+  flex-wrap:nowrap;  /* keep them on one line */
+}
+
+.tabs .btn{
+  flex:1 1 0;       /* each tab grows to fill row evenly */
+}
+
 .iconBtn{
   width:44px;height:44px;
   border-radius:14px;
@@ -377,6 +398,8 @@ button.btn.primary:hover{
 }
 
 .motStreak .rowBetween {
+  display:flex;
+  flex-direction: row;
   width: 100%;
   justify-content: space-between;
   align-items: center;
@@ -394,3 +417,13 @@ button.btn.primary:hover{
     gap: 4px;
   }
 }
+
+/* Status dot for selected day on Log tab */
+.dayStatusDot{
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+  flex: 0 0 auto;
+}
+
