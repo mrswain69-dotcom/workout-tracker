@@ -745,6 +745,7 @@ export default function App() {
   const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
   const [xp, setXp] = useState(0);
   const [bonusPop, setBonusPop] = useState(0);
+  const [showXpLog, setShowXpLog] = useState(false);
 
   const audioCtxRef = useRef(null);
   // Draft inputs for one-off activities on the Log tab
@@ -973,15 +974,33 @@ const planDayForWeekday = (weekday) => {
 
 const computeXpFromLogs = (records) => {
   if (!Array.isArray(records)) return 0;
+
   let total = 0;
+
   for (const r of records) {
-    const l = r?.log;
-    if (!l) continue;
-    const w = l.weekday || weekdayFromYMD(r?.date_ymd  || r?.date);
-    const pd = planDayForWeekday(w);
-    total += awardXpForDay(l, pd);
-    if (l?.meta?.challengeClaimed) total += 15;
+    const log = r?.log;
+    if (!log) continue;
+
+    const date = r?.date_ymd || r?.date;
+    const weekday = log.weekday || weekdayFromYMD(date);
+    const planDay = planDayForWeekday(weekday);
+
+    // Base XP from the main plan (10 base + completion + combo)
+    const baseXp = awardXpForDay(log, planDay);
+
+    // Daily challenge bonus (the ✅ claim button)
+    const challengeBonus = log?.meta?.challengeClaimed ? 15 : 0;
+
+    // NEW: XP for one-off activities ticked as done
+    const oneOffList = Array.isArray(log?.meta?.oneOffActivities)
+      ? log.meta.oneOffActivities
+      : [];
+    const oneOffDone = oneOffList.filter((a) => a && a.done).length;
+    const oneOffXp = oneOffDone * 5; // 5 XP per one-off ticked
+
+    total += baseXp + challengeBonus + oneOffXp;
   }
+
   return total;
 };
 
@@ -989,7 +1008,7 @@ useEffect(() => {
   setXp(computeXpFromLogs(allLogs));
 }, [allLogs, plan]);
 
-  // XP breakdown per day (for debugging / cross-checking)
+  // XP breakdown per day (for cross-checking)
   const xpDebugRows = useMemo(() => {
     if (!Array.isArray(allLogs)) return [];
 
@@ -1002,8 +1021,18 @@ useEffect(() => {
 
       const weekday = log.weekday || weekdayFromYMD(date);
       const planDay = planDayForWeekday(weekday);
+
       const baseXp = awardXpForDay(log, planDay);
-      const bonus = log?.meta?.challengeClaimed ? 15 : 0;
+      const challengeBonus = log?.meta?.challengeClaimed ? 15 : 0;
+
+      // One-off activities (tick-box list on the Log page)
+      const oneOffList = Array.isArray(log?.meta?.oneOffActivities)
+        ? log.meta.oneOffActivities
+        : [];
+      const oneOffDone = oneOffList.filter((a) => a && a.done).length;
+      const oneOffXp = oneOffDone * 5;
+
+      const totalXp = baseXp + challengeBonus + oneOffXp;
 
       const complete = isDayComplete(log, planDay);
       const kind = planDay.kind || "strength";
@@ -1023,8 +1052,10 @@ useEffect(() => {
         kind,
         complete,
         baseXp,
-        bonus,
-        totalXp: baseXp + bonus,
+        bonus: challengeBonus,
+        oneOffDone,
+        oneOffXp,
+        totalXp,
         setsLogged,
         cardioKm,
         customMin,
@@ -1036,7 +1067,6 @@ useEffect(() => {
     rows.sort((a, b) => (a.date < b.date ? 1 : -1));
     return rows;
   }, [allLogs, plan]);
-
 
   async function ensureUnlocked(actionLabel = "save changes") {
     if (!family?.id) return false;
@@ -3161,33 +3191,51 @@ async function resetDay() {
                 </div>
                 <div className="mini mt12">Unlock rules: Level 3 = Arcade, Level 5 = Chill. (100 XP per level)</div>
               </div>
-               {/* XP debug view – helps cross-check logs vs XP */}
+                             {/* XP log – recent XP breakdown */}
               <div className="panel mt16">
-                <div className="h3">XP debug (recent days)</div>
-                <div className="muted mt4">
-                  Dev view to see which days are earning XP and why. Shows the last 14 logged days for this profile.
-                </div>
-
-                <div className="stack mt8">
-                  {xpDebugRows.slice(0, 14).map((row) => (
-                    <div key={row.date} className="rowBetween mini">
-                      <div>
-                        <b>{row.date}</b> ({row.weekday}) – {row.kind}
-                        {row.complete ? " ✅" : ""}
-                      </div>
-                      <div>
-                        {row.totalXp} XP
-                        <span className="muted">
-                          {row.bonus ? ` (base ${row.baseXp} + bonus ${row.bonus})` : ` (base ${row.baseXp})`}
-                        </span>
-                      </div>
+                <div className="rowBetween">
+                  <div>
+                    <div className="h3">XP log</div>
+                    <div className="muted mt4">
+                      See how XP is being earned for this profile. Newest days first.
                     </div>
-                  ))}
-
-                  {xpDebugRows.length === 0 && (
-                    <div className="muted">No logs yet for this profile.</div>
-                  )}
+                  </div>
+                  <SecondaryButton onClick={() => setShowXpLog((v) => !v)}>
+                    {showXpLog ? "Hide" : "Show"}
+                  </SecondaryButton>
                 </div>
+
+                {showXpLog && (
+                  <div
+                    className="stack mt8"
+                    style={{ maxHeight: 260, overflowY: "auto" }}
+                  >
+                    {xpDebugRows.slice(0, 50).map((row, idx) => (
+                      <div key={`${row.date}-${idx}`} className="rowBetween mini">
+                        <div>
+                          <b>{row.date}</b> ({row.weekday}) – {row.kind}
+                          {row.complete ? " ✅" : ""}
+                          {row.oneOffDone
+                            ? ` • ${row.oneOffDone} one-off${row.oneOffDone > 1 ? "s" : ""}`
+                            : ""}
+                        </div>
+                        <div>
+                          {row.totalXp} XP
+                          <span className="muted">
+                            {` (base ${row.baseXp}`}
+                            {row.bonus ? ` + bonus ${row.bonus}` : ""}
+                            {row.oneOffXp ? ` + one-offs ${row.oneOffXp}` : ""}
+                            {")"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {xpDebugRows.length === 0 && (
+                      <div className="muted">No logs yet for this profile.</div>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
 
