@@ -354,8 +354,9 @@ button.btn.primary:hover{
 
 .motStreakRow {
   display: flex;
+  justify-content: center;  /* centers number + "days" */
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
 }
 
 .motStreakNum {
@@ -369,4 +370,27 @@ button.btn.primary:hover{
   font-weight: 800;
   opacity: 0.85;
   transform: translateY(-2px);
+}
+
+.motStreak {
+  text-align: center;
+}
+
+.motStreak .rowBetween {
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Tighter tabs on small screens so "Rewards" stays on one line */
+@media (max-width: 420px) {
+  .tabs .btn {
+    padding-inline: 8px;
+    padding-block: 6px;
+    font-size: 14px;
+  }
+
+  .tabs {
+    gap: 4px;
+  }
 }
