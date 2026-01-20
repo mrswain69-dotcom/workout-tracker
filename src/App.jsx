@@ -1084,35 +1084,72 @@ useEffect(() => {
     );
   }
 
+    // Mirror the latest plan per profile into localStorage (safety net for refresh)
+  function cachePlanLocally(profileId, nextPlan) {
+    if (!profileId || !nextPlan) return;
+    try {
+      localStorage.setItem(
+        `wt_plan_profile_${profileId}`,
+        JSON.stringify(nextPlan)
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  function getCachedPlan(profileId) {
+    if (!profileId) return null;
+    try {
+      const raw = localStorage.getItem(`wt_plan_profile_${profileId}`);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  function setAndCachePlan(profileId, nextPlan) {
+    setPlan(nextPlan);
+    updateProfilePlanInState(profileId, nextPlan);
+    cachePlanLocally(profileId, nextPlan);
+  }
+
   // --- Load weekly plan for the selected profile ---
   useEffect(() => {
     if (!activeProfileId) return;
-    // Prefer the plan already present on the profile row (fast + avoids shared-plan bugs).
+
+    // 1) If the profile row already has a plan, use that.
     if (activeProfile?.plan_json) {
-      setPlan(activeProfile.plan_json);
+      setAndCachePlan(activeProfileId, activeProfile.plan_json);
       return;
     }
 
+    // 2) Try local cached copy (protects against any DB hiccups)
+    const cached = getCachedPlan(activeProfileId);
+    if (cached) {
+      setAndCachePlan(activeProfileId, cached);
+      return;
+    }
+
+    // 3) Fallback to Supabase helper
     (async () => {
-      // Fallback to DB helper (in case plan_json isn't included in listProfiles).
       const { data, error } = await getProfilePlan(activeProfileId);
-if (error) {
-  console.error("getProfilePlan failed", error);
-  return; // don't overwrite anything
-}
+      if (error) {
+        console.error("getProfilePlan failed", error);
+        return; // don't overwrite whatever we already had
+      }
 
-if (data?.plan_json) {
-  setPlan(data.plan_json);
-  updateProfilePlanInState(activeProfileId, data.plan_json);
-} else {
-  const p = defaultPlanForFamily();
-  await upsertProfilePlan(activeProfileId, p);
-  setPlan(p);
-  updateProfilePlanInState(activeProfileId, p);
-}
-
+      if (data?.plan_json) {
+        setAndCachePlan(activeProfileId, data.plan_json);
+      } else {
+        // No plan stored yet: create a default one and persist it
+        const p = defaultPlanForFamily();
+        await upsertProfilePlan(activeProfileId, p);
+        setAndCachePlan(activeProfileId, p);
+      }
     })();
-  }, [activeProfileId]);
+  }, [activeProfileId, activeProfile]);
+
 
 
   // Names we’ve used before for one-off activities (for dropdown suggestions)
@@ -1478,9 +1515,8 @@ const todayPlanStatus = useMemo(() => {
     if (!(await ensureUnlocked("apply changes"))) return;
     setUndoPlan(plan || null);
     setUndoLabel(label);
-    setPlan(nextPlan);
+    setAndCachePlan(activeProfileId, nextPlan);
     if (!family?.id) return;
-    updateProfilePlanInState(activeProfileId, nextPlan);
     await upsertProfilePlan(activeProfileId, nextPlan);
   }
 
@@ -1490,17 +1526,15 @@ const todayPlanStatus = useMemo(() => {
     const prev = undoPlan;
     setUndoPlan(null);
     setUndoLabel("");
-    setPlan(prev);
+    setAndCachePlan(activeProfileId, prev);
     if (!family?.id) return;
-    updateProfilePlanInState(activeProfileId, prev);
     await upsertProfilePlan(activeProfileId, prev);
   }
 
   async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
-    setPlan(nextPlan);
+    setAndCachePlan(activeProfileId, nextPlan);
     if (!family?.id) return;
-    updateProfilePlanInState(activeProfileId, nextPlan);
     await upsertProfilePlan(activeProfileId, nextPlan);
   }
   
