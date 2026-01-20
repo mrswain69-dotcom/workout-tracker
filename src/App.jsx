@@ -311,6 +311,22 @@ function setVolume(s) {
   const w = safeNumber(s.weight);
   return reps * w;
 }
+function scoreSets(sets) {
+  if (!Array.isArray(sets)) return 0;
+  let score = 0;
+  for (const s of sets) {
+    // Strength volume is the main signal
+    score += setVolume(s);
+
+    // Small bonuses for reps / time / distance
+    score += safeNumber(s.reps) * 0.5;
+    score += safeNumber(s.timeSeconds) * 0.1;
+    score += safeNumber(s.count) * 0.5;
+    score += safeNumber(s.distanceKm) * 10;
+    score += safeNumber(s.durationMin);
+  }
+  return score;
+}
 function calcComboMax(log) {
   const entries = log?.entries || {};
   let combo = 0;
@@ -389,6 +405,27 @@ function findLastCardio(allLogs, beforeYmd) {
   }
   return null;
 }
+function isCardioImproved(current, last) {
+  if (!current || !last) return false;
+
+  const curD = safeNumber(current.distanceKm);
+  const curT = safeNumber(current.durationMin);
+  const lastD = safeNumber(last.distanceKm);
+  const lastT = safeNumber(last.durationMin);
+
+  // If we have distance + time for both, compare speed
+  if (curD && curT && lastD && lastT) {
+    const curSpeed = curD / curT;
+    const lastSpeed = lastD / lastT;
+    return curSpeed > lastSpeed + 0.01; // ~1% faster
+  }
+
+  // Otherwise fall back to simple distance / duration comparisons
+  if (curD && lastD) return curD > lastD + 0.05;      // +0.05km
+  if (curT && lastT) return curT > lastT + 1;         // +1 min
+
+  return false;
+}
 function summarizeCardio(c) {
   if (!c) return "—";
   const d = Number(c.distanceKm || 0);
@@ -433,6 +470,7 @@ function isDayComplete(log, planDay) {
   }
   return true;
 }
+// Can be deleted once new xp engine works
 function awardXpForDay(log, planDay) {
   const base = 10;
   const completion = isDayComplete(log, planDay) ? 25 : 0;
@@ -967,106 +1005,240 @@ export default function App() {
 
 const planDayForWeekday = (weekday) => {
   const typeId = plan?.dayTypeByWeekday?.[weekday] || "strength";
-  const t = (plan?.activityTypes || builtInTypes()).find((x) => x.id === typeId) || builtInTypes()[0];
+  const t =
+    (plan?.activityTypes || builtInTypes()).find((x) => x.id === typeId) ||
+    builtInTypes()[0];
   const movs = plan?.movementsByWeekday?.[weekday] || [];
   return { ...t, movements: movs };
 };
 
-const computeXpFromLogs = (records) => {
-  if (!Array.isArray(records)) return 0;
+// -------- XP rules (new engine) ----------
+const XP_RULES = {
+  perSet: 5,
+  perMovementComplete: 5,
+  perDayComplete: 5,
+  progression: 10,
+  cardioProgression: 20,
+  extraMovement: 10,
+  challengeDaily: 15,
+  oneOff: 5,
+  streak: {
+    2: 5,
+    3: 10,
+    5: 20,
+    10: 50,
+    30: 100,
+    60: 200,
+    90: 300,
+    180: 600,
+    365: 2000,
+  },
+};
 
-  let total = 0;
+function computeStreakBonusMap(records) {
+  if (!Array.isArray(records) || !records.length) return {};
+  const rows = records
+    .map((r) => ({
+      date: r?.date_ymd || r?.date,
+      log: r?.log,
+    }))
+    .filter((x) => x.date && x.log)
+    .sort((a, b) => (a.date < b.date ? -1 : 1)); // oldest first
 
-  for (const r of records) {
-    const log = r?.log;
-    if (!log) continue;
+  const byDate = {};
+  let streak = 0;
+  let prevDate = null;
 
-    const date = r?.date_ymd || r?.date;
+  for (const { date, log } of rows) {
     const weekday = log.weekday || weekdayFromYMD(date);
     const planDay = planDayForWeekday(weekday);
+    const complete = isDayComplete(log, planDay);
 
-    // Base XP from the main plan (10 base + completion + combo)
-    const baseXp = awardXpForDay(log, planDay);
+    if (!complete) {
+      streak = 0;
+      prevDate = date;
+      continue;
+    }
 
-    // Daily challenge bonus (the ✅ claim button)
-    const challengeBonus = log?.meta?.challengeClaimed ? 15 : 0;
+    if (!prevDate) {
+      streak = 1;
+    } else {
+      const dPrev = new Date(prevDate + "T00:00:00");
+      const dCur = new Date(date + "T00:00:00");
+      const diffDays = Math.round((dCur - dPrev) / 86400000);
+      streak = diffDays === 1 ? streak + 1 : 1;
+    }
 
-    // NEW: XP for one-off activities ticked as done
+    prevDate = date;
+
+    const bonus = XP_RULES.streak[streak];
+    if (bonus) byDate[date] = bonus;
+  }
+
+  return byDate;
+}
+
+const buildXpDebugRows = (records) => {
+  if (!Array.isArray(records)) return [];
+
+  const streakXpByDate = computeStreakBonusMap(records);
+  const rows = [];
+
+  for (const r of records) {
+    const date = r?.date_ymd || r?.date;
+    const log = r?.log;
+    if (!date || !log) continue;
+
+    const weekday = log.weekday || weekdayFromYMD(date);
+    const planDay = planDayForWeekday(weekday);
+    const kind = planDay.kind || "strength";
+
+    const entries = log.entries || {};
+
+    // Main plan movements + extra movements
+    const mainMovements = Array.isArray(planDay.movements)
+      ? planDay.movements
+      : [];
+    const extraMovementsArr = Array.isArray(log?.meta?.extraMovements)
+      ? log.meta.extraMovements
+      : [];
+
+    let setsDone = 0;
+    let movementsCompleted = 0;
+    let extraCompleted = 0;
+    let progressedMovement = false;
+
+    // Count sets and completed movements for main plan
+    for (const m of mainMovements) {
+      const setsRaw = entries[m.id] || [];
+      const sets = Array.isArray(setsRaw)
+        ? setsRaw.filter(setDidSomething)
+        : [];
+      if (sets.length) {
+        setsDone += sets.length;
+        if (sets.length >= 3) movementsCompleted += 1;
+      }
+    }
+
+    // Extra movements for today
+    for (const em of extraMovementsArr) {
+      const setsRaw = entries[em.id] || [];
+      const sets = Array.isArray(setsRaw)
+        ? setsRaw.filter(setDidSomething)
+        : [];
+      if (sets.length) {
+        setsDone += sets.length;
+        extraCompleted += 1;
+      }
+    }
+
+    // Progression: beat previous session for any movement (once per day)
+    const allMovements = [...mainMovements, ...extraMovementsArr];
+    for (const m of allMovements) {
+      const setsRaw = entries[m.id] || [];
+      if (!Array.isArray(setsRaw) || !setsRaw.some(setDidSomething)) continue;
+      const lastSets = findLastMovementSets(records, m.id, date);
+      const lastScore = scoreSets(lastSets || []);
+      const curScore = scoreSets(setsRaw);
+      if (curScore > lastScore && lastScore > 0) {
+        progressedMovement = true;
+        break;
+      }
+    }
+
+    const setsXp = setsDone * XP_RULES.perSet;
+    const movementsXp = movementsCompleted * XP_RULES.perMovementComplete;
+    const extraXp = extraCompleted * XP_RULES.extraMovement;
+
+    const complete = isDayComplete(log, planDay);
+    const dayCompleteXp = complete ? XP_RULES.perDayComplete : 0;
+
+    let progressXp = progressedMovement ? XP_RULES.progression : 0;
+
+    // Cardio progression (once per day)
+    let cardioProgressXp = 0;
+    if (planDay.kind === "cardio" && log.cardio) {
+      const lastCardio = findLastCardio(records, date);
+      if (isCardioImproved(log.cardio, lastCardio)) {
+        cardioProgressXp = XP_RULES.cardioProgression;
+      }
+    }
+
+    // Challenge + one-offs + streak
+    const challengeBonus = log?.meta?.challengeClaimed
+      ? XP_RULES.challengeDaily
+      : 0;
+
     const oneOffList = Array.isArray(log?.meta?.oneOffActivities)
       ? log.meta.oneOffActivities
       : [];
     const oneOffDone = oneOffList.filter((a) => a && a.done).length;
-    const oneOffXp = oneOffDone * 5; // 5 XP per one-off ticked
+    const oneOffXp = oneOffDone * XP_RULES.oneOff;
 
-    total += baseXp + challengeBonus + oneOffXp;
+    const streakXp = streakXpByDate[date] || 0;
+
+    const baseXp =
+      setsXp +
+      movementsXp +
+      dayCompleteXp +
+      progressXp +
+      cardioProgressXp +
+      extraXp;
+    const totalXp = baseXp + challengeBonus + oneOffXp + streakXp;
+
+    // Extra hints (for charts / debugging)
+    const setsLogged = Object.values(entries)
+      .flat()
+      .filter(setDidSomething).length;
+    const cardioKm = safeNumber(log?.cardio?.distanceKm);
+    const customMin = safeNumber(log?.custom?.durationMin);
+    const tasksDone = Object.values(log.tasks || {}).filter(
+      (t) => t && t.done
+    ).length;
+
+    rows.push({
+      date,
+      weekday,
+      kind,
+      complete,
+      baseXp,
+      bonus: challengeBonus,
+      oneOffDone,
+      oneOffXp,
+      streakXp,
+      setsXp,
+      movementsXp,
+      dayCompleteXp,
+      progressXp,
+      cardioProgressXp,
+      extraXp,
+      totalXp,
+      setsLogged,
+      cardioKm,
+      customMin,
+      tasksDone,
+    });
   }
 
-  return total;
+  // newest first
+  rows.sort((a, b) => (a.date < b.date ? 1 : -1));
+  return rows;
+};
+
+const computeXpFromLogs = (records) => {
+  const rows = buildXpDebugRows(records);
+  return rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
 };
 
 useEffect(() => {
   setXp(computeXpFromLogs(allLogs));
 }, [allLogs, plan]);
 
-  // XP breakdown per day (for cross-checking)
-  const xpDebugRows = useMemo(() => {
-    if (!Array.isArray(allLogs)) return [];
-
-    const rows = [];
-
-    for (const r of allLogs) {
-      const date = r?.date_ymd || r?.date;
-      const log = r?.log;
-      if (!date || !log) continue;
-
-      const weekday = log.weekday || weekdayFromYMD(date);
-      const planDay = planDayForWeekday(weekday);
-
-      const baseXp = awardXpForDay(log, planDay);
-      const challengeBonus = log?.meta?.challengeClaimed ? 15 : 0;
-
-      // One-off activities (tick-box list on the Log page)
-      const oneOffList = Array.isArray(log?.meta?.oneOffActivities)
-        ? log.meta.oneOffActivities
-        : [];
-      const oneOffDone = oneOffList.filter((a) => a && a.done).length;
-      const oneOffXp = oneOffDone * 5;
-
-      const totalXp = baseXp + challengeBonus + oneOffXp;
-
-      const complete = isDayComplete(log, planDay);
-      const kind = planDay.kind || "strength";
-
-      // light extra hints
-      const setsLogged = Object.values(log.entries || {})
-        .flat()
-        .filter(setDidSomething).length;
-
-      const cardioKm = safeNumber(log?.cardio?.distanceKm);
-      const customMin = safeNumber(log?.custom?.durationMin);
-      const tasksDone = Object.values(log.tasks || {}).filter((t) => t && t.done).length;
-
-      rows.push({
-        date,
-        weekday,
-        kind,
-        complete,
-        baseXp,
-        bonus: challengeBonus,
-        oneOffDone,
-        oneOffXp,
-        totalXp,
-        setsLogged,
-        cardioKm,
-        customMin,
-        tasksDone,
-      });
-    }
-
-    // newest first
-    rows.sort((a, b) => (a.date < b.date ? 1 : -1));
-    return rows;
-  }, [allLogs, plan]);
+// XP breakdown per day (for cross-checking / XP log)
+const xpDebugRows = useMemo(
+  () => buildXpDebugRows(allLogs),
+  [allLogs, plan]
+);
 
   async function ensureUnlocked(actionLabel = "save changes") {
     if (!family?.id) return false;
