@@ -741,11 +741,6 @@ const HEALTH_TIPS = [
   "Get fresh air early in the day if you can 🌤️",
 ];
 
-function pickRandom(arr) {
-  if (!Array.isArray(arr) || arr.length === 0) return "";
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
 const [motivationLine, setMotivationLine] = useState("");
 const [healthTip, setHealthTip] = useState("");
 const [motivationKey, setMotivationKey] = useState(0);
@@ -873,9 +868,6 @@ useEffect(() => {
   const [xp, setXp] = useState(0);
   const [bonusPop, setBonusPop] = useState(0);
   const [showXpLog, setShowXpLog] = useState(false);
-
-  const [motivationLine, setMotivationLine] = useState("");
-  const [healthTip, setHealthTip] = useState("");
 
   const audioCtxRef = useRef(null);
   // Draft inputs for one-off activities on the Log tab
