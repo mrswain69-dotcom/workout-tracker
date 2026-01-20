@@ -2567,7 +2567,7 @@ async function resetDay() {
 
                 return (
                   <div className="panel mt16">
-                    <div className="h2">Other daily tasks</div>
+                    <div className="h2">Activities</div>
                     <div className="stack mt12">
                       {taskBlocks.map((block) => (
                         <div key={block.id} className="stack">
