@@ -2798,10 +2798,10 @@ async function resetDay() {
                   <div className="big">
                     {(() => {
                       const kcal = estimateCalories({ kind: planDay.kind, bodyWeightKg: activeProfile?.body_weight_kg, log: logForDay });
-                      return kcal === null ? "Add bodyweight in Settings" : `${kcal} kcal`;
+                      return kcal === null ? "Record activity or Add bodyweight in Settings" : `${kcal} kcal`;
                     })()}
                   </div>
-                  <div className="muted">Motivation estimate only.</div>
+                  <div className="muted">Estimate only.</div>
                 </div>
               </Card>
 
@@ -2846,8 +2846,6 @@ async function resetDay() {
 <Card className="pad">
                 <div className="h3">Mini challenges</div>
                 <div className="stack mt12">
-                  <Challenge text="Complete today’s plan" done={isDayComplete(logForDay, planDay)} />
-                  <Challenge text="Hit a combo streak (5 sets in a row)" done={(logForDay?.gamify?.comboMax || 0) >= 5} />
                   <div className="challenge">
                     <div>
                       Claim daily bonus <span className="muted">(15 XP)</span>
@@ -2863,6 +2861,8 @@ async function resetDay() {
                       </label>
                     </div>
                   </div>
+                  <Challenge text="Complete today’s plan" done={isDayComplete(logForDay, planDay)} />
+                  <Challenge text="Hit a combo streak (5 sets in a row)" done={(logForDay?.gamify?.comboMax || 0) >= 5} />
                   <Challenge text="XP to next level" done={xpToNext <= 25} />
                   {bonusPop ? <div key={bonusPop} className="confettiBurst" aria-hidden="true" /> : null}
                 </div>
