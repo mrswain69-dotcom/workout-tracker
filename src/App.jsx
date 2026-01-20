@@ -60,15 +60,33 @@ function getTodayYMD() {
 function getCurrentPlanStreak(records, todayYmd, planDayForWeekdayFn) {
   if (!Array.isArray(records) || !records.length) return 0;
 
+  // Build date -> log map
   const map = new Map();
   for (const r of records) {
     const date = r?.date_ymd || r?.date;
-    if (!date || !r?.log) continue;
-    map.set(date, r.log);
+    const log = r?.log;
+    if (!date || !log) continue;
+    map.set(date, log);
   }
 
+  // Find the most recent day (<= today) where the plan was complete
+  const completeDates = [];
+  for (const [date, log] of map.entries()) {
+    if (date > todayYmd) continue;
+    const weekday = log.weekday || weekdayFromYMD(date);
+    const planDay = planDayForWeekdayFn(weekday);
+    if (isDayComplete(log, planDay)) {
+      completeDates.push(date);
+    }
+  }
+
+  if (!completeDates.length) return 0;
+
+  // Start from the latest completed date and walk backwards
+  completeDates.sort((a, b) => (a < b ? -1 : 1));
+  let cursor = completeDates[completeDates.length - 1];
+
   let streak = 0;
-  let cursor = todayYmd;
 
   while (true) {
     const log = map.get(cursor);
@@ -76,9 +94,6 @@ function getCurrentPlanStreak(records, todayYmd, planDayForWeekdayFn) {
 
     const weekday = log.weekday || weekdayFromYMD(cursor);
     const planDay = planDayForWeekdayFn(weekday);
-
-    // Optional: if you want "rest days" to count when explicitly logged as rest:
-    // if (planDay?.kind === "rest") { ... }
     const complete = isDayComplete(log, planDay);
     if (!complete) break;
 
