@@ -4220,8 +4220,19 @@ function StyleTag() {
       @media(min-width:600px){.rowLeft{grid-template-columns:180px 260px}}
       .rowBetween{display:flex;align-items:center;justify-content:space-between;gap:10px}
       .field{min-width:180px}
-      .gridLog{display:grid;gap:12px;width:100%;box-sizing:border-box}
-      @media(min-width:1100px){.gridLog{grid-template-columns:1.25fr .75fr}}
+      /* Log layout – match width with header + top slots */
+      .gridLog{
+        display:grid;
+        gap:12px;
+        width:100%;
+        box-sizing:border-box;
+      }
+      @media(min-width:900px){
+        .gridLog{
+          grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+          align-items:flex-start;
+        }
+      }
       .grid2cols{display:grid;gap:12px}
       @media(min-width:1000px){.grid2cols{grid-template-columns:1fr 1fr}}
       .gridPlan{display:grid;gap:12px}
