@@ -1375,7 +1375,7 @@ const xpDebugRows = useMemo(
 
 const currentPlanStreak = useMemo(() => {
   return getCurrentPlanStreak(allLogs, todayYmd, planDayForWeekday);
-}, [allLogs, todayYmd, plan]);
+}, [allLogs, todayYmd, plan, activeProfileId]);
 
 const todayPlanStatus = useMemo(() => {
   // Status for TODAY only: "green" complete, "amber" started/not complete, "amber" no log yet, "grey" not used for today.
@@ -2044,6 +2044,31 @@ async function resetDay() {
     return pts.slice(-60);
   }, [allLogs]);
 
+    // --- Status dot for the currently selected day on the Log tab ---
+  const selectedDayDotColor =
+    selectedDayStatus === "green"
+      ? "var(--good, #2ecc71)"
+      : selectedDayStatus === "amber"
+      ? "var(--warn, #f39c12)"
+      : "var(--muted, #9aa0a6)";
+
+  const selectedDayTitle = (() => {
+    if (selectedDayStatus === "green") {
+      return selectedDate === todayYmd
+        ? "Today: plan completed"
+        : "Plan completed on this day";
+    }
+    if (selectedDayStatus === "amber") {
+      return selectedDate === todayYmd
+        ? "Today: plan not completed yet"
+        : "Plan started but not complete";
+    }
+    return selectedDate === todayYmd
+      ? "Today: no activity logged"
+      : "No activity logged on this day";
+  })();
+
+  
   const motivationMessages = useMemo(() => {
   // Slot 1 dot colour
   const dotColor =
@@ -2197,10 +2222,16 @@ async function resetDay() {
                   </div>
                 </div>
 
-                <div className="rowRight">
+                                <div className="rowRight">
+                  <div
+                    className="dayStatusDot"
+                    title={selectedDayTitle}
+                    style={{ background: selectedDayDotColor }}
+                  />
                   <SecondaryButton onClick={addSession}>+ Session</SecondaryButton>
                   <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
                 </div>
+
               </div>
 
               <div className="muted mt8">
