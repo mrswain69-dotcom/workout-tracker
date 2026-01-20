@@ -1079,6 +1079,10 @@ if (data?.plan_json) {
   updateProfilePlanInState(activeProfileId, p);
 }
 
+    })();
+  }, [activeProfileId, activeProfile?.plan_json]);
+
+
   // Names we’ve used before for one-off activities (for dropdown suggestions)
   const knownOneOffNames = useMemo(() => {
     const names = new Set();
