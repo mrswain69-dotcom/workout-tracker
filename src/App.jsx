@@ -3111,7 +3111,7 @@ async function resetDay() {
                   </PrimaryButton>
                 </div>
 
-                <div className="row mt12">
+                <div className="row planTemplatesRow mt12">
                   <PrimaryButton
                     onClick={async () => {
                       const name = window.prompt("Name this saved weekly plan:");
@@ -3124,7 +3124,7 @@ async function resetDay() {
                       setPlanTemplates(data || []);
                     }}
                   >
-                    Save current as new
+                    Save as new
                   </PrimaryButton>
                   <div style={{ width: 10 }} />
                   <SecondaryButton
@@ -3141,7 +3141,7 @@ async function resetDay() {
                       setPlanTemplates(data || []);
                     }}
                   >
-                    Update selected
+                    Update plan
                   </SecondaryButton>
                   <div style={{ width: 10 }} />
                   <SecondaryButton
@@ -3159,7 +3159,7 @@ async function resetDay() {
                       setSelectedTemplateId("");
                     }}
                   >
-                    Delete selected
+                    Delete plan
                   </SecondaryButton>
                 </div>
               </div>
@@ -4203,7 +4203,8 @@ function StyleTag() {
       @media (min-width: 900px){
   .row{ flex-direction:row; align-items:flex-start; justify-content:space-between; }
   .rowRight{ justify-content:flex-end; }
-  
+  .planTemplatesRow{flex-wrap:wrap;align-items:center;}
+
   /* Log header alignment */
   .logTopRow{ align-items:center; }
   .logTopActions{
@@ -4219,7 +4220,7 @@ function StyleTag() {
       @media(min-width:600px){.rowLeft{grid-template-columns:180px 260px}}
       .rowBetween{display:flex;align-items:center;justify-content:space-between;gap:10px}
       .field{min-width:180px}
-      .gridLog{display:grid;gap:12px}
+      .gridLog{display:grid;gap:12px;width:100%;box-sizing:border-box}
       @media(min-width:1100px){.gridLog{grid-template-columns:1.25fr .75fr}}
       .grid2cols{display:grid;gap:12px}
       @media(min-width:1000px){.grid2cols{grid-template-columns:1fr 1fr}}
