@@ -1118,37 +1118,43 @@ useEffect(() => {
   useEffect(() => {
     if (!activeProfileId) return;
 
-    // 1) If the profile row already has a plan, use that.
-    if (activeProfile?.plan_json) {
-      setAndCachePlan(activeProfileId, activeProfile.plan_json);
-      return;
-    }
-
-    // 2) Try local cached copy (protects against any DB hiccups)
+    // 1) Try local cached copy first (includes extra activities)
     const cached = getCachedPlan(activeProfileId);
     if (cached) {
       setAndCachePlan(activeProfileId, cached);
-      return;
     }
 
-    // 3) Fallback to Supabase helper
+    // 2) Always try the DB plan (authoritative for extras)
     (async () => {
       const { data, error } = await getProfilePlan(activeProfileId);
       if (error) {
         console.error("getProfilePlan failed", error);
-        return; // don't overwrite whatever we already had
+
+        // If we have cached, keep it; otherwise fall back to profile row plan_json
+        if (!cached && activeProfile?.plan_json) {
+          setAndCachePlan(activeProfileId, activeProfile.plan_json);
+        }
+        return;
       }
 
       if (data?.plan_json) {
         setAndCachePlan(activeProfileId, data.plan_json);
-      } else {
-        // No plan stored yet: create a default one and persist it
-        const p = defaultPlanForFamily();
-        await upsertProfilePlan(activeProfileId, p);
-        setAndCachePlan(activeProfileId, p);
+        return;
       }
+
+      // 3) If DB has no plan yet, fall back to profile row plan_json
+      if (activeProfile?.plan_json) {
+        setAndCachePlan(activeProfileId, activeProfile.plan_json);
+        return;
+      }
+
+      // 4) No plan anywhere: create default + persist
+      const p = defaultPlanForFamily();
+      await upsertProfilePlan(activeProfileId, p);
+      setAndCachePlan(activeProfileId, p);
     })();
-  }, [activeProfileId, activeProfile]);
+  }, [activeProfileId]);  // IMPORTANT: do not depend on activeProfile here
+
 
 
 
