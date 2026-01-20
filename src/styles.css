@@ -427,3 +427,16 @@ button.btn.primary:hover{
   flex: 0 0 auto;
 }
 
+/* Log page top row: keep date + actions aligned nicely on desktop */
+@media (min-width: 900px){
+  .logTopRow{
+    align-items: center; /* aligns date input + buttons vertically */
+  }
+  .logTopActions{
+    display:flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+}
