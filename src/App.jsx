@@ -3866,7 +3866,6 @@ function AddMovement({ onAdd, defaultKind }) {
   const [countLabel, setCountLabel] = useState(defaultKind === "time" ? "hits" : "count");
   const [note, setNote] = useState("");
 
-
   useEffect(() => {
     setMode(defaultKind === "time" ? "time" : "strength");
     setAllowWeight(defaultKind !== "time");
@@ -3877,57 +3876,100 @@ function AddMovement({ onAdd, defaultKind }) {
 
   return (
     <div className="stack mt12">
+      {/* Name */}
       <div>
         <div className="label">Name</div>
         <Input value={name} onChange={setName} placeholder="e.g. Pull-ups" />
       </div>
 
+      {/* Coach note */}
       <div>
-  <div className="label">Coach note (optional)</div>
-  <Textarea
-    value={note}
-    onChange={setNote}
-    placeholder="e.g. Keep elbows tucked. Control down. Strong core."
-    rows={3}
-  />
-</div>
+        <div className="label">Coach note (optional)</div>
+        <Textarea
+          value={note}
+          onChange={setNote}
+          placeholder="e.g. Keep elbows tucked. Control down. Strong core."
+          rows={3}
+        />
+      </div>
 
-
+      {/* Mode + options */}
       <div className="grid2">
         <div>
           <div className="label">Mode</div>
-          <Select value={mode} onChange={setMode} options={[{ value: "strength", label: "Reps (+ optional weight)" }, { value: "time", label: "Time (seconds)" }]} />
+          <Select
+            value={mode}
+            onChange={(v) => {
+              if (v === "time") {
+                setMode("time");
+                setAllowWeight(false);
+                setFixedSeconds("60");
+                setAllowCount(true);
+                setCountLabel("hits");
+              } else {
+                setMode("strength");
+                setAllowWeight(true);
+                setFixedSeconds("");
+                setAllowCount(false);
+                setCountLabel("count");
+              }
+            }}
+            options={[
+              { value: "strength", label: "Strength (reps + optional weight)" },
+              { value: "time", label: "Time (seconds)" },
+            ]}
+          />
         </div>
-        <div className="box">
-          <label className="check">
-            <input type="checkbox" checked={allowWeight} onChange={(e) => setAllowWeight(e.target.checked)} disabled={mode !== "strength"} />
-            Allow weight
-          </label>
-          <div className="muted">For dumbbells etc.</div>
-        </div>
-      </div>
 
-      {mode === "time" && (
-        <div className="grid2">
-          <div>
-            <div className="label">Fixed seconds (optional)</div>
-            <Input value={fixedSeconds} onChange={setFixedSeconds} type="number" min={0} step={1} placeholder="e.g. 60" />
-          </div>
+        {mode === "strength" ? (
           <div className="box">
             <label className="check">
-              <input type="checkbox" checked={allowCount} onChange={(e) => setAllowCount(e.target.checked)} />
-              Allow count
+              <input
+                type="checkbox"
+                checked={allowWeight}
+                onChange={(e) => setAllowWeight(e.target.checked)}
+              />
+              Allow weight (kg)
             </label>
-            <div className="muted">Hits/rounds etc.</div>
+            <div className="muted">If unticked, just reps.</div>
           </div>
-          {allowCount && (
+        ) : (
+          <div className="grid2">
             <div>
-              <div className="label">Count label</div>
-              <Input value={countLabel} onChange={setCountLabel} placeholder="hits" />
+              <div className="label">Fixed seconds (optional)</div>
+              <Input
+                value={fixedSeconds}
+                onChange={setFixedSeconds}
+                type="number"
+                min={0}
+                step={1}
+                placeholder="e.g. 60"
+              />
             </div>
-          )}
-        </div>
-      )}
+            <div className="box">
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={allowCount}
+                  onChange={(e) => setAllowCount(e.target.checked)}
+                />
+                Allow count
+              </label>
+              <div className="muted">Hits/rounds etc.</div>
+            </div>
+            {allowCount && (
+              <div>
+                <div className="label">Count label</div>
+                <Input
+                  value={countLabel}
+                  onChange={setCountLabel}
+                  placeholder="hits"
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <PrimaryButton
         onClick={() => {
@@ -3937,9 +3979,13 @@ function AddMovement({ onAdd, defaultKind }) {
             note: note.trim() || "",
             mode,
             allowWeight: mode === "strength" ? allowWeight : false,
-            fixedSeconds: mode === "time" && safeNumber(fixedSeconds) > 0 ? safeNumber(fixedSeconds) : undefined,
+            fixedSeconds:
+              mode === "time" && safeNumber(fixedSeconds) > 0
+                ? safeNumber(fixedSeconds)
+                : undefined,
             allowCount: mode === "time" ? allowCount : false,
-            countLabel: mode === "time" && allowCount ? countLabel.trim() : undefined,
+            countLabel:
+              mode === "time" && allowCount ? countLabel.trim() : undefined,
           });
           setName("");
           setNote("");
@@ -3951,13 +3997,16 @@ function AddMovement({ onAdd, defaultKind }) {
   );
 }
 
-function AddType({ existing, onAdd }) {
+function AddType({ onAdd }) {
   const [name, setName] = useState("");
-  const [kind, setKind] = useState("custom"); // strength | time | cardio | custom
+  const [kind, setKind] = useState("task");
   const [movementsEnabled, setMovementsEnabled] = useState(false);
 
+  // If "Tick-box tasks" kind is selected, force movements off
   useEffect(() => {
-    setMovementsEnabled(kind === "strength" || kind === "time");
+    if (kind === "task") {
+      setMovementsEnabled(false);
+    }
   }, [kind]);
 
   return (
@@ -3965,21 +4014,25 @@ function AddType({ existing, onAdd }) {
       <div className="grid2">
         <div>
           <div className="label">Type name</div>
-          <Input value={name} onChange={setName} placeholder="e.g. Pilates" />
+          <Input
+            value={name}
+            onChange={setName}
+            placeholder="e.g. Pilates"
+          />
         </div>
         <div>
           <div className="label">Kind</div>
           <Select
-  value={kind}
-  onChange={setKind}
-  options={[
-    { value: "strength", label: "Strength (movements + reps/weight)" },
-    { value: "time", label: "Time (movements + seconds)" },
-    { value: "cardio", label: "Cardio (distance + time)" },
-    { value: "custom", label: "Custom (duration only)" },
-    { value: "task", label: "Tick-box tasks (yes/no)" },
-  ]}
-/>
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: "strength", label: "Strength (movements + reps/weight)" },
+              { value: "time", label: "Time (movements + seconds)" },
+              { value: "cardio", label: "Cardio (distance + time)" },
+              { value: "custom", label: "Custom (duration only)" },
+              { value: "task", label: "Tick-box tasks (yes/no)" },
+            ]}
+          />
         </div>
       </div>
 
@@ -3989,19 +4042,29 @@ function AddType({ existing, onAdd }) {
 
       <SecondaryButton
         onClick={() => {
-          const nm = name.trim();
-          if (!nm) return;
-          const id = nm.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24) + "-" + uid().slice(0, 4);
-          if (existing.some((t) => t.id === id)) return alert("Type id clash, try again.");
-          const t = {
+          if (!name.trim()) return;
+
+          const id = slugifyId(name.trim());
+          const isTask = kind === "task";
+
+          onAdd({
             id,
-            name: nm,
+            name: name.trim(),
             kind,
-            movementsEnabled,
-            ...(kind === "time" ? { fixedSeconds: 60, allowCount: true, countLabel: "hits" } : {}),
-          };
-          onAdd(t);
+            movementsEnabled: !isTask && movementsEnabled,
+            fields: isTask
+              ? { tasks: true }
+              : {
+                  movements: true,
+                  restSeconds: kind === "strength" || kind === "time",
+                  cardioTarget: kind === "cardio",
+                  durationMinutes: kind === "custom",
+                },
+          });
+
           setName("");
+          setKind("task");
+          setMovementsEnabled(false);
         }}
       >
         Add type
@@ -4009,6 +4072,7 @@ function AddType({ existing, onAdd }) {
     </div>
   );
 }
+
 
 function StyleTag() {
   return (
