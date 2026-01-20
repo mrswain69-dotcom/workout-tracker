@@ -853,8 +853,15 @@ useEffect(() => {
   const [family, setFamily] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [activeProfileId, setActiveProfileId] = useState(() => {
-    try { return localStorage.getItem("wt_activeProfileId") || ""; } catch { return ""; }
-  });
+  try {
+    const v = localStorage.getItem("wt_activeProfileId") || "";
+    // Guard against accidental string values in storage
+    if (!v || v === "undefined" || v === "null") return "";
+    return v;
+  } catch {
+    return "";
+  }
+});
 
   // Persist selected profile across refreshes
   useEffect(() => {
@@ -950,7 +957,15 @@ useEffect(() => {
       profList = again.data || [];
     }
     setProfiles(profList);
-    const storedProfileId = (() => { try { return localStorage.getItem("wt_activeProfileId") || ""; } catch { return ""; } })();
+    const storedProfileId = (() => {
+  try {
+    const v = localStorage.getItem("wt_activeProfileId") || "";
+    if (!v || v === "undefined" || v === "null") return "";
+    return v;
+  } catch {
+    return "";
+  }
+})();
     const nextProfileId =
       (storedProfileId && profList.some((p) => p.id === storedProfileId))
         ? storedProfileId
@@ -979,12 +994,21 @@ useEffect(() => {
 
   // --- Load logs when profile changes ---
   useEffect(() => {
-    if (!family?.id || !activeProfileId) return;
-    (async () => {
-      const { data } = await listLogs(family.id, activeProfileId, 2000);
-      setAllLogs((data || []).map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
-    })().catch(() => {});
-  }, [family?.id, activeProfileId]);
+  if (!family?.id || !activeProfileId) return;
+
+  // Important: clear immediately so we don't display previous profile streak/logs
+  setAllLogs([]);
+
+  (async () => {
+    const { data } = await listLogs(family.id, activeProfileId, 2000);
+
+    // Defensive: if db query ever returns mixed profiles, filter client-side
+    const rows = (data || []).filter((r) => !r.profile_id || r.profile_id === activeProfileId);
+
+    setAllLogs(rows.map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
+  })().catch(() => {});
+}, [family?.id, activeProfileId]);
+
 
   // --- Load day log ---
   useEffect(() => {
@@ -2214,7 +2238,7 @@ async function resetDay() {
         {tab === "log" && (
           <div className="gridLog">
             <Card className="pad">
-              <div className="row">
+              <div className="row logTopRow">
                 <div className="rowLeft">
                   <div className="field">
                     <div className="label">Date</div>
@@ -2222,7 +2246,7 @@ async function resetDay() {
                   </div>
                 </div>
 
-                                <div className="rowRight">
+                                <div className="rowRight logTopActions">
                   <div
                     className="dayStatusDot"
                     title={selectedDayTitle}
