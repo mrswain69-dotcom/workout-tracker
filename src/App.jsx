@@ -48,6 +48,52 @@ function weekdayFromYMD(ymd) {
   }
 }
 
+function getTodayYMD() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Counts consecutive "plan complete" days up to today (inclusive).
+function getCurrentPlanStreak(records, todayYmd, planDayForWeekdayFn) {
+  if (!Array.isArray(records) || !records.length) return 0;
+
+  const map = new Map();
+  for (const r of records) {
+    const date = r?.date_ymd || r?.date;
+    if (!date || !r?.log) continue;
+    map.set(date, r.log);
+  }
+
+  let streak = 0;
+  let cursor = todayYmd;
+
+  while (true) {
+    const log = map.get(cursor);
+    if (!log) break;
+
+    const weekday = log.weekday || weekdayFromYMD(cursor);
+    const planDay = planDayForWeekdayFn(weekday);
+
+    // Optional: if you want "rest days" to count when explicitly logged as rest:
+    // if (planDay?.kind === "rest") { ... }
+    const complete = isDayComplete(log, planDay);
+    if (!complete) break;
+
+    streak += 1;
+
+    const d = new Date(cursor + "T00:00:00");
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    cursor = `${y}-${m}-${day}`;
+  }
+
+  return streak;
+}
 
 // -------- Utilities ----------
 function uid() {
@@ -676,6 +722,49 @@ export default function App() {
 
   const [tab, setTab] = useState("log");
 
+  // --- Rotating Motivation & Health tip (changes on tab switch) ---
+const MOTIVATION_QUOTES = [
+  "Small steps count. Show up and win the day ⭐",
+  "🚀 You don’t have to be perfect — just consistent.",
+  "Strong body, strong mind. Let’s go 🔥",
+  "Future you is built by today you 💥",
+  "Effort is a superpower 🏃 Use it.",
+  "Finish what you start — even if it’s a little ✅",
+  "📈 Be proud of progress, not perfection.",
+];
+
+const HEALTH_TIPS = [
+  "Drink plenty of water today 💧",
+  "Sleep matters 😴 it’s as important as activity.",
+  "Try new things 🧠 it builds a stronger brain.",
+  "Eat nutrient-rich foods: veg 🥦 fruit 🍎 protein 🍗",
+  "Get fresh air early in the day if you can 🌤️",
+];
+
+function pickRandom(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return "";
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+const [motivationLine, setMotivationLine] = useState("");
+const [healthTip, setHealthTip] = useState("");
+const [motivationKey, setMotivationKey] = useState(0);
+const [healthKey, setHealthKey] = useState(0);
+
+useEffect(() => {
+  setMotivationLine(pickRandom(MOTIVATION_QUOTES));
+  setHealthTip(pickRandom(HEALTH_TIPS));
+  setMotivationKey((k) => k + 1);
+  setHealthKey((k) => k + 1);
+}, [tab]);
+
+// ensure initial values exist
+useEffect(() => {
+  setMotivationLine((v) => v || pickRandom(MOTIVATION_QUOTES));
+  setHealthTip((v) => v || pickRandom(HEALTH_TIPS));
+}, []);
+
+
   // --- Service worker update toast (prevents stale PWA UI after deploys) ---
   const [swUpdateReg, setSwUpdateReg] = useState(null);
   const [showSwToast, setShowSwToast] = useState(false);
@@ -785,6 +874,9 @@ export default function App() {
   const [bonusPop, setBonusPop] = useState(0);
   const [showXpLog, setShowXpLog] = useState(false);
 
+  const [motivationLine, setMotivationLine] = useState("");
+  const [healthTip, setHealthTip] = useState("");
+
   const audioCtxRef = useRef(null);
   // Draft inputs for one-off activities on the Log tab
   const [oneOffNameDraft, setOneOffNameDraft] = useState("");
@@ -794,6 +886,10 @@ export default function App() {
   const loadDayLogReqRef = useRef(0);
   const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
 
+  function pickRandom(arr) {
+  if (!Array.isArray(arr) || arr.length === 0) return "";
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
   // --- Boot: session ---
   useEffect(() => {
@@ -1239,6 +1335,57 @@ const xpDebugRows = useMemo(
   () => buildXpDebugRows(allLogs),
   [allLogs, plan]
 );
+  
+  const todayYmd = useMemo(() => getTodayYMD(), []);
+
+  const selectedDayStatus = useMemo(() => {
+  // returns: "green" | "amber" | "grey"
+  const d = selectedDate;
+  if (!d) return "grey";
+
+  const rec = Array.isArray(allLogs)
+    ? allLogs.find((r) => (r?.date_ymd || r?.date) === d)
+    : null;
+
+  const isToday = d === todayYmd;
+
+  // No log exists for this day
+  if (!rec || !rec.log) {
+    return isToday ? "amber" : "grey";
+  }
+
+  const log = rec.log;
+  const weekday = log.weekday || weekdayFromYMD(d);
+  const planDay = planDayForWeekday(weekday);
+
+  const complete = isDayComplete(log, planDay);
+  if (complete) return "green";
+
+  // Logged but not complete
+  return isToday ? "amber" : "grey";
+}, [selectedDate, allLogs, plan, todayYmd]);
+
+
+const currentPlanStreak = useMemo(() => {
+  return getCurrentPlanStreak(allLogs, todayYmd, planDayForWeekday);
+}, [allLogs, todayYmd, plan]);
+
+const todayPlanStatus = useMemo(() => {
+  // Status for TODAY only: "green" complete, "amber" started/not complete, "amber" no log yet, "grey" not used for today.
+  const rec = Array.isArray(allLogs)
+    ? allLogs.find((r) => (r?.date_ymd || r?.date) === todayYmd)
+    : null;
+
+  if (!rec || !rec.log) return "amber"; // today not logged yet
+
+  const log = rec.log;
+  const weekday = log.weekday || weekdayFromYMD(todayYmd);
+  const planDay = planDayForWeekday(weekday);
+
+  const complete = isDayComplete(log, planDay);
+  return complete ? "green" : "amber";
+}, [allLogs, todayYmd, plan]);
+
 
   async function ensureUnlocked(actionLabel = "save changes") {
     if (!family?.id) return false;
@@ -1891,68 +2038,65 @@ async function resetDay() {
   }, [allLogs]);
 
   const motivationMessages = useMemo(() => {
-    const name = activeProfile?.name || "You";
-    const msgs = [];
+  // Slot 1 dot colour
+  const dotColor =
+    todayPlanStatus === "green"
+      ? "var(--good, #2ecc71)"
+      : todayPlanStatus === "amber"
+      ? "var(--warn, #f39c12)"
+      : "var(--muted, #9aa0a6)";
 
-    // 1) Streak + XP
-    if ((stats?.streak || 0) >= 3) {
-      msgs.push(`🔥 ${name}, ${stats.streak}-day streak — keep it alive today.`);
-    } else if ((stats?.streak || 0) === 2) {
-      msgs.push(`🔥 ${name}, 2-day streak — one more makes it a real run. Let’s go.`);
-    } else if ((stats?.streak || 0) === 1) {
-      msgs.push(`✅ Nice start, ${name}. Log today to make it a 2-day streak.`);
-    } else {
-      msgs.push(`🚀 ${name}, today’s a great day to start a streak. One session = momentum.`);
-    }
+  const slot1 = (
+    <div className="motBlock motStreak" key="streak">
+      <div className="rowBetween">
+        <div className="motTitle">Plan Streak</div>
+        <div
+          title={
+            todayPlanStatus === "green"
+              ? "Today: completed"
+              : "Today: not completed yet"
+          }
+          style={{
+            width: 14,
+            height: 14,
+            borderRadius: 999,
+            background: dotColor,
+            flex: "0 0 auto",
+            boxShadow: "0 0 0 3px rgba(0,0,0,0.08)",
+          }}
+        />
+      </div>
 
-    if (xpToNext <= 15) msgs.push(`⭐ Only ${xpToNext} XP to Level ${level + 1}. Finish today and you’ll likely level up.`);
-    else if (xpToNext <= 35) msgs.push(`⭐ ${xpToNext} XP to your next level. You’re close — finish strong.`);
+      <div className="motStreakRow">
+        <div className="motStreakNum">{currentPlanStreak}</div>
+        <div className="motStreakUnit">
+          day{currentPlanStreak === 1 ? "" : "s"}
+        </div>
+      </div>
+    </div>
+  );
 
-    // 2) Recent improvement (exercise or cardio)
-    const exName = exerciseOptions.find((e) => e.id === selectedExerciseForChart)?.name;
-    if ((exerciseProgress?.length || 0) >= 3) {
-      const last3 = exerciseProgress.slice(-3).map((p) => p.bestVol || p.bestReps || p.bestTime || 0);
-      const improvedAll = last3[0] > 0 && last3[1] >= last3[0] && last3[2] >= last3[1] && last3[2] > last3[0];
-      if (improvedAll && exName) {
-        msgs.push(`📈 ${name}, your ${exName} is trending up — you’ve improved across the last 3 sessions. Keep building.`);
-      }
-    }
+  const slot2 = (
+    <span key={`mot-${motivationKey}`} className="motFade">
+      {motivationLine}
+    </span>
+  );
 
-    if ((cardioProgress?.length || 0) >= 3) {
-      const last3s = cardioProgress.slice(-3).map((p) => p.speed || 0);
-      const up = last3s[0] > 0 && last3s[1] >= last3s[0] && last3s[2] >= last3s[1] && last3s[2] > last3s[0];
-      if (up) {
-        msgs.push(`🏃 Your average speed has improved across your last 3 cardio logs. Keep pushing your pace.`);
-      }
-    }
+  const slot3 = (
+    <span key={`health-${healthKey}`} className="motFade">
+      {healthTip}
+    </span>
+  );
 
-    // 3) Today focus + micro-goal
-    const comboMax = logForDay?.gamify?.comboMax || 0;
-    if (comboMax >= 5) msgs.push(`💥 Combo beast: ${comboMax} sets in a row. Try to beat it today.`);
-    else msgs.push(`💥 Micro-goal: hit a 5-set combo streak today (log sets back-to-back).`);
-
-    // Ensure exactly 3
-    const unique = [];
-    for (const m of msgs) {
-      if (!unique.includes(m)) unique.push(m);
-      if (unique.length >= 3) break;
-    }
-    while (unique.length < 3) unique.push(`✅ Keep going, ${name}. Small wins stack up.`);
-    return unique;
-  }, [
-    activeProfile?.name,
-    stats?.streak,
-    xpToNext,
-    level,
-    exerciseProgress,
-    cardioProgress,
-    selectedExerciseForChart,
-    exerciseOptions,
-    logForDay?.gamify?.comboMax,
-  ]);
-
-  
-
+  return [slot1, slot2, slot3];
+}, [
+  todayPlanStatus,
+  currentPlanStreak,
+  motivationLine,
+  healthTip,
+  motivationKey,
+  healthKey,
+]);
 
   if (!sessionReady) return <div className="page"><div className="wrap">
       {ENABLE_SW_TOAST && showSwToast && !swToastDismissed ? (
@@ -3352,6 +3496,26 @@ async function resetDay() {
                 <SummaryStat label="XP to next" value={xpToNext} />
                 <SummaryStat label="Unlocked" value={`${unlocked.arcade ? "Arcade " : ""}${unlocked.chill ? "Chill" : ""}`.trim() || "—"} />
               </div>
+
+              <div className="panel mt12">
+  <div className="rowBetween">
+    <div className="h3">Current Plan Streak</div>
+    <div
+      style={{
+        width: 12,
+        height: 12,
+        borderRadius: 999,
+        background:
+          todayPlanStatus === "green"
+            ? "var(--good, #2ecc71)"
+            : "var(--warn, #f39c12)",
+      }}
+    />
+  </div>
+  <div className="bigNumber mt8">
+    {currentPlanStreak} day{currentPlanStreak === 1 ? "" : "s"}
+  </div>
+</div>
 
               <div className="mt16">
                 <div className="h3">Rewards shop</div>
