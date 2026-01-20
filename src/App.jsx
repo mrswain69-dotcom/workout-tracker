@@ -3861,9 +3861,13 @@ function AddMovement({ onAdd, defaultKind }) {
   const [name, setName] = useState("");
   const [mode, setMode] = useState(defaultKind === "time" ? "time" : "strength");
   const [allowWeight, setAllowWeight] = useState(defaultKind !== "time");
-  const [fixedSeconds, setFixedSeconds] = useState(defaultKind === "time" ? "60" : "");
+  const [fixedSeconds, setFixedSeconds] = useState(
+    defaultKind === "time" ? "60" : ""
+  );
   const [allowCount, setAllowCount] = useState(defaultKind === "time");
-  const [countLabel, setCountLabel] = useState(defaultKind === "time" ? "hits" : "count");
+  const [countLabel, setCountLabel] = useState(
+    defaultKind === "time" ? "hits" : "count"
+  );
   const [note, setNote] = useState("");
 
   useEffect(() => {
@@ -3876,13 +3880,15 @@ function AddMovement({ onAdd, defaultKind }) {
 
   return (
     <div className="stack mt12">
-      {/* Name */}
       <div>
         <div className="label">Name</div>
-        <Input value={name} onChange={setName} placeholder="e.g. Pull-ups" />
+        <Input
+          value={name}
+          onChange={setName}
+          placeholder="e.g. Pull-ups"
+        />
       </div>
 
-      {/* Coach note */}
       <div>
         <div className="label">Coach note (optional)</div>
         <Textarea
@@ -3893,83 +3899,68 @@ function AddMovement({ onAdd, defaultKind }) {
         />
       </div>
 
-      {/* Mode + options */}
       <div className="grid2">
         <div>
           <div className="label">Mode</div>
           <Select
             value={mode}
-            onChange={(v) => {
-              if (v === "time") {
-                setMode("time");
-                setAllowWeight(false);
-                setFixedSeconds("60");
-                setAllowCount(true);
-                setCountLabel("hits");
-              } else {
-                setMode("strength");
-                setAllowWeight(true);
-                setFixedSeconds("");
-                setAllowCount(false);
-                setCountLabel("count");
-              }
-            }}
+            onChange={setMode}
             options={[
-              { value: "strength", label: "Strength (reps + optional weight)" },
+              { value: "strength", label: "Reps (+ optional weight)" },
               { value: "time", label: "Time (seconds)" },
             ]}
           />
         </div>
+        <div className="box">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={allowWeight}
+              onChange={(e) => setAllowWeight(e.target.checked)}
+              disabled={mode !== "strength"}
+            />
+            Allow weight
+          </label>
+          <div className="muted">For dumbbells etc.</div>
+        </div>
+      </div>
 
-        {mode === "strength" ? (
+      {mode === "time" && (
+        <div className="grid2">
+          <div>
+            <div className="label">Fixed seconds (optional)</div>
+            <Input
+              value={fixedSeconds}
+              onChange={setFixedSeconds}
+              type="number"
+              min={0}
+              step={1}
+              placeholder="e.g. 60"
+            />
+          </div>
           <div className="box">
             <label className="check">
               <input
                 type="checkbox"
-                checked={allowWeight}
-                onChange={(e) => setAllowWeight(e.target.checked)}
+                checked={allowCount}
+                onChange={(e) => setAllowCount(e.target.checked)}
               />
-              Allow weight (kg)
+              Allow count
             </label>
-            <div className="muted">If unticked, just reps.</div>
+            <div className="muted">Hits/rounds etc.</div>
           </div>
-        ) : (
-          <div className="grid2">
+          {allowCount && (
             <div>
-              <div className="label">Fixed seconds (optional)</div>
+              <div className="label">Count label</div>
               <Input
-                value={fixedSeconds}
-                onChange={setFixedSeconds}
-                type="number"
-                min={0}
-                step={1}
-                placeholder="e.g. 60"
+                value={countLabel}
+                onChange={setCountLabel}
+                placeholder="hits"
               />
             </div>
-            <div className="box">
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={allowCount}
-                  onChange={(e) => setAllowCount(e.target.checked)}
-                />
-                Allow count
-              </label>
-              <div className="muted">Hits/rounds etc.</div>
-            </div>
-            {allowCount && (
-              <div>
-                <div className="label">Count label</div>
-                <Input
-                  value={countLabel}
-                  onChange={setCountLabel}
-                  placeholder="hits"
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <PrimaryButton
         onClick={() => {
@@ -3996,6 +3987,7 @@ function AddMovement({ onAdd, defaultKind }) {
     </div>
   );
 }
+
 
 function AddType({ onAdd }) {
   const [name, setName] = useState("");
