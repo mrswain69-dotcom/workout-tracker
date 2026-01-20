@@ -82,10 +82,23 @@ function getCurrentPlanStreak(records, todayYmd, planDayForWeekdayFn) {
 
   if (!completeDates.length) return 0;
 
-  // Start from the latest completed date and walk backwards
+// Sort and find the latest completed date
   completeDates.sort((a, b) => (a < b ? -1 : 1));
-  let cursor = completeDates[completeDates.length - 1];
+  const latest = completeDates[completeDates.length - 1];
 
+  // If the latest completed day isn't today or yesterday, streak is broken.
+  const todayDate = new Date(todayYmd + "T00:00:00");
+  const latestDate = new Date(latest + "T00:00:00");
+  const diffFromToday = Math.round(
+    (todayDate - latestDate) / 86400000
+  );
+  if (diffFromToday > 1) {
+    // Last complete day is more than 1 day ago -> no current streak
+    return 0;
+  }
+
+  // Start from that latest completed date and walk backwards
+  let cursor = latest;
   let streak = 0;
 
   while (true) {
@@ -874,6 +887,25 @@ useEffect(() => {
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
   const selectedWeekday = weekdayFromYMD(selectedDate);
+  
+    // Tick-box tasks (from weekly plan) for the currently selected log date
+  const tasksActivityForSelectedDay = useMemo(() => {
+    if (!plan) return null;
+
+    // All extra activity blocks for this weekday (from weekly plan)
+    const extras = getDayActivitiesForWeekday(plan, selectedWeekday) || [];
+
+    // Activity types that are "task" style
+    const taskTypeIds = new Set(
+      (plan.activityTypes || [])
+        .filter((t) => t?.kind === "task" || t?.id === "tasks")
+        .map((t) => t.id)
+    );
+
+    // Return the first block whose type is a task-type
+    return extras.find((b) => taskTypeIds.has(b.typeId)) || null;
+  }, [plan, selectedWeekday]);
+  
   // Plan editing should NOT depend on log date.
   const [planWeekday, setPlanWeekday] = useState("Mon");
 
@@ -1080,7 +1112,7 @@ if (data?.plan_json) {
 }
 
     })();
-  }, [activeProfileId, activeProfile?.plan_json]);
+  }, [activeProfileId]);
 
 
   // Names we’ve used before for one-off activities (for dropdown suggestions)
@@ -2591,7 +2623,15 @@ async function resetDay() {
                               </label>
                             ))
                           ) : (
-                            <div className="muted">No tasks defined in this block.</div>
+                             // Fallback: treat the whole block as a single tick-box task
+      <label className="check">
+        <input
+          type="checkbox"
+          checked={!!logForDay?.tasks?.[block.id]?.done}
+          onChange={(e) => updateTask(block.id, e.target.checked)}
+        />
+        {block.label || "Done"}
+      </label>
                           )}
                         </div>
                       ))}
@@ -4087,6 +4127,12 @@ function StyleTag() {
       .header-right{display:flex;flex-direction:column;gap:10px}
       @media(min-width:900px){.header-right{flex-direction:row;align-items:center}}
       .tabs{display:flex;flex-wrap:wrap;gap:8px}
+      /* Prevent button text wrapping */
+      .btn, button { white-space: nowrap; }
+
+      /* Make the +Session / Reset day buttons big enough on desktop */
+      .logTopActions, .logActions, .dateActions { display:flex; gap:10px; align-items:center; flex-wrap:nowrap; }
+      .logTopActions .btn, .logActions .btn, .dateActions .btn { min-width: 120px; }
 
       .tabsRow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
       .iconBtn{width:44px;height:44px;border-radius:14px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;display:inline-flex;align-items:center;justify-content:center}
