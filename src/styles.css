@@ -333,3 +333,40 @@ button.btn.primary:hover{
   20%{ transform:translateY(0) scale(1.1); opacity:1; }
   100%{ transform:translateY(-14px) scale(1); opacity:0; }
 }
+
+.motFade {
+  display: inline-block;
+  animation: motFadeIn 180ms ease-out;
+}
+
+@keyframes motFadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.motBlock { display: flex; flex-direction: column; gap: 6px; }
+
+.motTitle {
+  font-weight: 800;
+  opacity: 0.95;
+  letter-spacing: 0.2px;
+}
+
+.motStreakRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.motStreakNum {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.motStreakUnit {
+  font-size: 14px;
+  font-weight: 800;
+  opacity: 0.85;
+  transform: translateY(-2px);
+}
