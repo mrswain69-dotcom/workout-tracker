@@ -1374,7 +1374,7 @@ const buildXpDebugRows = (records) => {
       }
     }
 
-    // Challenge + one-offs + streak
+        // Challenge + one-offs + streak
     const challengeBonus = log?.meta?.challengeClaimed
       ? XP_RULES.challengeDaily
       : 0;
@@ -1385,6 +1385,12 @@ const buildXpDebugRows = (records) => {
     const oneOffDone = oneOffList.filter((a) => a && a.done).length;
     const oneOffXp = oneOffDone * XP_RULES.oneOff;
 
+    // Tasks (tick-box activities) – award per ticked item
+    const tasksDone = Object.values(log.tasks || {}).filter(
+      (t) => t && t.done
+    ).length;
+    const tasksXp = tasksDone * XP_RULES.taskComplete;
+
     const streakXp = streakXpByDate[date] || 0;
 
     const baseXp =
@@ -1393,8 +1399,9 @@ const buildXpDebugRows = (records) => {
       dayCompleteXp +
       progressXp +
       cardioProgressXp +
-      extraXp;
+      extraXp +
       tasksXp;
+
     const totalXp = baseXp + challengeBonus + oneOffXp + streakXp;
 
     // Extra hints (for charts / debugging)
@@ -1403,10 +1410,6 @@ const buildXpDebugRows = (records) => {
       .filter(setDidSomething).length;
     const cardioKm = safeNumber(log?.cardio?.distanceKm);
     const customMin = safeNumber(log?.custom?.durationMin);
-    const tasksDone = Object.values(log.tasks || {}).filter(
-      (t) => t && t.done
-    ).length;
-    const tasksXp = tasksDone * XP_RULES.taskComplete;
 
     rows.push({
       date,
@@ -1424,11 +1427,12 @@ const buildXpDebugRows = (records) => {
       progressXp,
       cardioProgressXp,
       extraXp,
+      tasksDone,
+      tasksXp,
       totalXp,
       setsLogged,
       cardioKm,
       customMin,
-      tasksDone,
     });
   }
 
@@ -4208,15 +4212,25 @@ function StyleTag() {
   .rowRight{ justify-content:flex-end; }
   .planTemplatesRow{flex-wrap:wrap;align-items:center;}
 
-  /* Log header alignment */
-  .logTopRow{ align-items:center; }
-  .logTopActions{
+/* Log header alignment */
+  .logTopRow{
+    align-items:center;
+    justify-content:space-between;   /* keep everything on one line */
+  }
+
+  .logTopRow .rowLeft{
+    flex:1 1 auto;                   /* let the date side take remaining space */
+    min-width:0;
+  }
+
+  .logTopRow .logTopActions{
     display:flex;
     flex-direction:row;
     align-items:center;
     justify-content:flex-end;
     gap:10px;
-    flex-wrap:nowrap;
+    flex-wrap:nowrap;                /* no wrapping */
+    flex:0 0 auto;                   /* keep buttons snug to the right */
   }
 }
       .rowLeft{display:grid;grid-template-columns:1fr;gap:10px}
