@@ -1375,6 +1375,12 @@ useEffect(() => {
 
 const planDayForWeekday = (weekday) => {
   const typeId = plan?.dayTypeByWeekday?.[weekday] || "strength";
+
+  //dev blocks check
+  if (plan?.blocksByWeekday) {
+  console.log("PLAN V2 BLOCKS:", plan.blocksByWeekday);
+}
+
   const t =
     (plan?.activityTypes || builtInTypes()).find((x) => x.id === typeId) ||
     builtInTypes()[0];
