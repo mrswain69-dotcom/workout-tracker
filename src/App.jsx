@@ -597,7 +597,7 @@ function SecondaryButton({ children, onClick, disabled }) {
     </button>
   );
 }
-function Input({ value, onChange, placeholder, type = "text", min, step, readOnly }) {
+function Input({ value, onChange, placeholder, type = "text", min, step, readOnly, onKeyDown }) {
   return (
     <input
       value={value}
@@ -607,6 +607,7 @@ function Input({ value, onChange, placeholder, type = "text", min, step, readOnl
       min={min}
       step={step}
       readOnly={readOnly}
+      onKeyDown={onKeyDown}
       className="input"
     />
   );
@@ -677,6 +678,20 @@ function AuthScreen({ onAuthed }) {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
+  async function handleAuth() {
+    if (busy) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const fn = mode === "signup" ? signUp : signIn;
+      const { error } = await fn(email.trim(), pw);
+      if (error) setMsg(error.message);
+      else onAuthed();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="page">
       <div className="wrap">
@@ -707,29 +722,39 @@ function AuthScreen({ onAuthed }) {
               <div className="stack mt16">
                 <div>
                   <div className="label">Email</div>
-                  <Input value={email} onChange={setEmail} placeholder="you@email.com" type="email" />
+                  <Input value={email}
+  onChange={setEmail}
+  placeholder="you@email.com"
+  type="email"
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAuth();
+    }
+  }}
+/>
                 </div>
                 <div>
                   <div className="label">Password</div>
-                  <Input value={pw} onChange={setPw} placeholder="••••••••" type="password" />
+                  <Input
+  value={pw}
+  onChange={setPw}
+  placeholder="••••••••"
+  type="password"
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAuth();
+    }
+  }}
+/>
                 </div>
                 <PrimaryButton
-                  disabled={busy}
-                  onClick={async () => {
-                    setBusy(true);
-                    setMsg("");
-                    try {
-                      const fn = mode === "signup" ? signUp : signIn;
-                      const { error } = await fn(email.trim(), pw);
-                      if (error) setMsg(error.message);
-                      else onAuthed();
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >
-                  {mode === "signup" ? "Create account" : "Sign in"}
-                </PrimaryButton>
+  disabled={busy}
+  onClick={handleAuth}
+>
+  {mode === "signup" ? "Create account" : "Sign in"}
+</PrimaryButton>
                 {msg && <div className="muted">{msg}</div>}
                 <div className="muted">
                   Sign in to manage your people, plan, logs and rewards.
@@ -1118,41 +1143,45 @@ useEffect(() => {
   useEffect(() => {
     if (!activeProfileId) return;
 
-    // 1) Try local cached copy first (includes extra activities)
-    const cached = getCachedPlan(activeProfileId);
-    if (cached) {
-      setAndCachePlan(activeProfileId, cached);
+// 1) Try local cached copy first (includes extra activities)
+const cached = getCachedPlan(activeProfileId);
+if (cached) {
+  setAndCachePlan(activeProfileId, cached);
+}
+
+// 2) Always try the DB plan (authoritative for extras)
+(async () => {
+  const { data, error } = await getProfilePlan(activeProfileId);
+  if (error) {
+    console.error("getProfilePlan failed", error);
+
+    // If we have cached, keep it; otherwise fall back to profile row plan_json
+    if (!cached && activeProfile?.plan_json) {
+      setAndCachePlan(activeProfileId, activeProfile.plan_json);
     }
+    return;
+  }
 
-    // 2) Always try the DB plan (authoritative for extras)
-    (async () => {
-      const { data, error } = await getProfilePlan(activeProfileId);
-      if (error) {
-        console.error("getProfilePlan failed", error);
+  if (data?.plan_json) {
+    // Use the DB copy as the source of truth and refresh cache
+    setAndCachePlan(activeProfileId, data.plan_json);
+    return;
+  }
 
-        // If we have cached, keep it; otherwise fall back to profile row plan_json
-        if (!cached && activeProfile?.plan_json) {
-          setAndCachePlan(activeProfileId, activeProfile.plan_json);
-        }
-        return;
-      }
+  // 3) If DB has no plan yet, fall back to profile row plan_json
+  //    but only if we didn't already load a cached plan
+  if (!cached && activeProfile?.plan_json) {
+    setAndCachePlan(activeProfileId, activeProfile.plan_json);
+    return;
+  }
 
-      if (data?.plan_json) {
-        setAndCachePlan(activeProfileId, data.plan_json);
-        return;
-      }
-
-      // 3) If DB has no plan yet, fall back to profile row plan_json
-      if (activeProfile?.plan_json) {
-        setAndCachePlan(activeProfileId, activeProfile.plan_json);
-        return;
-      }
-
-      // 4) No plan anywhere: create default + persist
-      const p = defaultPlanForFamily();
-      await upsertProfilePlan(activeProfileId, p);
-      setAndCachePlan(activeProfileId, p);
-    })();
+  // 4) No plan anywhere and no cached copy: create default + persist
+  if (!cached) {
+    const p = defaultPlanForFamily();
+    await upsertProfilePlan(activeProfileId, p);
+    setAndCachePlan(activeProfileId, p);
+  }
+})();
   }, [activeProfileId]);  // IMPORTANT: do not depend on activeProfile here
 
 
