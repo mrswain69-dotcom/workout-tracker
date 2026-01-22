@@ -930,6 +930,23 @@ useEffect(() => {
     // Return the first block whose type is a task-type
     return extras.find((b) => taskTypeIds.has(b.typeId)) || null;
   }, [plan, selectedWeekday]);
+
+    // Cardio-style extra activities (from weekly plan) for the selected log date
+  const cardioExtrasForSelectedDay = useMemo(() => {
+    if (!plan) return [];
+
+    const extras = getDayActivitiesForWeekday(plan, selectedWeekday) || [];
+
+    // Activity types that are "cardio" (Run, Swim, anything custom you flag as cardio)
+    const cardioTypeIds = new Set(
+      (plan.activityTypes || [])
+        .filter((t) => t?.kind === "cardio")
+        .map((t) => t.id)
+    );
+
+    return extras.filter((b) => cardioTypeIds.has(b.typeId));
+  }, [plan, selectedWeekday]);
+
   
   // Plan editing should NOT depend on log date.
   const [planWeekday, setPlanWeekday] = useState("Mon");
@@ -2594,6 +2611,14 @@ async function resetDay() {
                   {(plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text) ? (
                     <div className="muted mt8"><b>Today’s focus:</b> {plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text}</div>
                   ) : null}
+                   {cardioExtrasForSelectedDay.length > 0 && (
+      <div className="muted mt4">
+        <b>Planned blocks today:</b>{" "}
+        {cardioExtrasForSelectedDay
+          .map((b, idx) => (b.label && b.label.trim()) || `Extra cardio ${idx + 1}`)
+          .join(" · ")}
+      </div>
+    )}
                   <div className="grid3 mt12">
                     <div>
                       <div className="label">Distance (km)</div>
