@@ -133,25 +133,26 @@ export async function upsertPlan(familyId, plan) {
 }
 
 // -------- Per-profile weekly plans --------
-// These allow each person under a family account to have their own weekly plan.
-// They use the same "plans" table, but keyed by (family_id, profile_id).
+// Live weekly plan is stored directly on the profiles table (plan_json).
+// familyId is unused here but kept in the signature for compatibility.
 export async function getProfilePlan(familyId, profileId) {
   const { data, error } = await supabase
-    .from("plans")
-    .select("*")
-    .eq("family_id", familyId)
-    .eq("profile_id", profileId)
+    .from("profiles")
+    .select("plan_json")
+    .eq("id", profileId)
     .maybeSingle();
+
   return { data, error };
 }
 
 export async function upsertProfilePlan(familyId, profileId, plan) {
-  const payload = { family_id: familyId, profile_id: profileId, plan_json: plan };
   const { data, error } = await supabase
-    .from("plans")
-    .upsert(payload, { onConflict: "family_id,profile_id" })
-    .select("*")
+    .from("profiles")
+    .update({ plan_json: plan })
+    .eq("id", profileId)
+    .select("plan_json")
     .single();
+
   return { data, error };
 }
 
