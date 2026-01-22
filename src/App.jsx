@@ -1231,6 +1231,7 @@ const XP_RULES = {
   extraMovement: 10,
   challengeDaily: 15,
   oneOff: 5,
+  taskComplete: 5,
   streak: {
     2: 5,
     3: 10,
@@ -1393,6 +1394,7 @@ const buildXpDebugRows = (records) => {
       progressXp +
       cardioProgressXp +
       extraXp;
+      tasksXp;
     const totalXp = baseXp + challengeBonus + oneOffXp + streakXp;
 
     // Extra hints (for charts / debugging)
@@ -1404,6 +1406,7 @@ const buildXpDebugRows = (records) => {
     const tasksDone = Object.values(log.tasks || {}).filter(
       (t) => t && t.done
     ).length;
+    const tasksXp = tasksDone * XP_RULES.taskComplete;
 
     rows.push({
       date,
