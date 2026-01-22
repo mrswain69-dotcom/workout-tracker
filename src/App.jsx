@@ -1133,10 +1133,46 @@ useEffect(() => {
     }
   }
 
+  function normalisePlanForRuntime(plan) {
+  if (!plan) return null;
+
+  // 1) Ensure built-in activity types (including Tick-box tasks) are present
+  const builtIns = builtInTypes();
+  const existing = Array.isArray(plan.activityTypes) ? plan.activityTypes : [];
+
+  const byId = {};
+
+  // Seed with built-ins so new kinds are always available
+  for (const t of builtIns) {
+    byId[t.id] = { ...t };
+  }
+
+  // Overlay any stored/custom types (letting them override built-in defaults)
+  for (const t of existing) {
+    if (!t || !t.id) continue;
+    byId[t.id] = { ...(byId[t.id] || {}), ...t };
+  }
+
+  const mergedTypes = Object.values(byId);
+
+  // 2) Ensure dayActivitiesByWeekday exists
+  const dayActivitiesByWeekday =
+    plan.dayActivitiesByWeekday && typeof plan.dayActivitiesByWeekday === "object"
+      ? plan.dayActivitiesByWeekday
+      : {};
+
+  return {
+    ...plan,
+    activityTypes: mergedTypes,
+    dayActivitiesByWeekday,
+  };
+}
+
   function setAndCachePlan(profileId, nextPlan) {
-    setPlan(nextPlan);
-    updateProfilePlanInState(profileId, nextPlan);
-    cachePlanLocally(profileId, nextPlan);
+    const normalised = normalisePlanForRuntime(nextPlan);
+    setPlan(normalised);
+    updateProfilePlanInState(profileId, normalised);
+    cachePlanLocally(profileId, normalised);
   }
 
   // --- Load weekly plan for the selected profile ---
