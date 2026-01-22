@@ -1155,16 +1155,110 @@ useEffect(() => {
 
   const mergedTypes = Object.values(byId);
 
-  // 2) Ensure dayActivitiesByWeekday exists
-  const dayActivitiesByWeekday =
+  // 2) Ensure dayActivitiesByWeekday exists (legacy extras list used by current UI)
+  const rawDayActivities =
     plan.dayActivitiesByWeekday && typeof plan.dayActivitiesByWeekday === "object"
       ? plan.dayActivitiesByWeekday
       : {};
 
+  // 3) Build / normalise blocksByWeekday (Plan V2 shape).
+  //    For now this is a superset used for future features; the current UI
+  //    still reads primary day fields + dayActivitiesByWeekday.
+  const blocksByWeekday = {};
+  const hasBlocksV2 =
+    plan.blocksByWeekday &&
+    typeof plan.blocksByWeekday === "object" &&
+    Object.values(plan.blocksByWeekday).some((v) => Array.isArray(v) && v.length);
+
+  if (hasBlocksV2) {
+    // Normalise whatever is stored in blocksByWeekday.
+    for (const w of weekdays) {
+      const rawList = Array.isArray(plan.blocksByWeekday[w]) ? plan.blocksByWeekday[w] : [];
+      blocksByWeekday[w] = rawList.map((b, idx) => ({
+        id: b && b.id ? b.id : `${w}_block_${idx}`,
+        typeId: b && b.typeId ? b.typeId : (plan.dayTypeByWeekday?.[w] || "strength"),
+        label: (b && b.label) || "",
+        movements: Array.isArray(b?.movements) ? b.movements : [],
+        restSec: typeof b?.restSec === "number" ? b.restSec : undefined,
+        cardioTarget: typeof b?.cardioTarget === "string" ? b.cardioTarget : "",
+        tasks: Array.isArray(b?.tasks) ? b.tasks : [],
+      }));
+    }
+  } else {
+    // Derive blocks from the legacy fields (dayTypeByWeekday + movementsByWeekday + extras).
+    const dayTypeByWeekday = plan.dayTypeByWeekday || {};
+    const movementsByWeekday = plan.movementsByWeekday || {};
+    const restSecByWeekday = plan.restSecByWeekday || {};
+    const cardioTargetByWeekday = plan.cardioTargetByWeekday || {};
+
+    for (const w of weekdays) {
+      const typeId = dayTypeByWeekday[w] || "strength";
+      const primary = {
+        id: `${w}_main`,
+        typeId,
+        label: "",
+        movements: Array.isArray(movementsByWeekday[w]) ? movementsByWeekday[w] : [],
+        restSec: typeof restSecByWeekday[w] === "number" ? restSecByWeekday[w] : 60,
+        cardioTarget: cardioTargetByWeekday[w] || "",
+        tasks: [],
+      };
+
+      const extrasRaw =
+        rawDayActivities[w] && Array.isArray(rawDayActivities[w]) ? rawDayActivities[w] : [];
+      const extras = extrasRaw.map((b, idx) => ({
+        id: b && b.id ? b.id : `${w}_extra_${idx}`,
+        typeId: b && b.typeId ? b.typeId : "tasks",
+        label: (b && b.label) || "",
+        movements: Array.isArray(b?.movements) ? b.movements : [],
+        restSec: typeof b?.restSec === "number" ? b.restSec : undefined,
+        cardioTarget: typeof b?.cardioTarget === "string" ? b.cardioTarget : "",
+        tasks: Array.isArray(b?.tasks) ? b.tasks : [],
+      }));
+
+      blocksByWeekday[w] = [primary, ...extras];
+    }
+  }
+
+  // 4) Keep legacy fields in sync so the rest of the app keeps working.
+  const nextDayTypeByWeekday = { ...(plan.dayTypeByWeekday || {}) };
+  const nextMovementsByWeekday = { ...(plan.movementsByWeekday || {}) };
+  const nextRestSecByWeekday = { ...(plan.restSecByWeekday || {}) };
+  const nextCardioTargetByWeekday = { ...(plan.cardioTargetByWeekday || {}) };
+  const nextDayActivitiesByWeekday = { ...rawDayActivities };
+
+  for (const w of weekdays) {
+    const blocks = Array.isArray(blocksByWeekday[w]) ? blocksByWeekday[w] : [];
+    if (!blocks.length) continue;
+
+    const primary = blocks[0];
+
+    if (!nextDayTypeByWeekday[w]) {
+      nextDayTypeByWeekday[w] = primary.typeId || "strength";
+    }
+    if (!nextMovementsByWeekday[w] && Array.isArray(primary.movements)) {
+      nextMovementsByWeekday[w] = primary.movements;
+    }
+    if (nextRestSecByWeekday[w] == null) {
+      nextRestSecByWeekday[w] =
+        typeof primary.restSec === "number" ? primary.restSec : 60;
+    }
+    if (!nextCardioTargetByWeekday[w] && primary.cardioTarget) {
+      nextCardioTargetByWeekday[w] = primary.cardioTarget;
+    }
+
+    // Extras = all non-primary blocks.
+    nextDayActivitiesByWeekday[w] = blocks.slice(1);
+  }
+
   return {
     ...plan,
     activityTypes: mergedTypes,
-    dayActivitiesByWeekday,
+    dayActivitiesByWeekday: nextDayActivitiesByWeekday,
+    blocksByWeekday,
+    dayTypeByWeekday: nextDayTypeByWeekday,
+    movementsByWeekday: nextMovementsByWeekday,
+    restSecByWeekday: nextRestSecByWeekday,
+    cardioTargetByWeekday: nextCardioTargetByWeekday,
   };
 }
 
@@ -1611,11 +1705,18 @@ const todayPlanStatus = useMemo(() => {
     await upsertProfilePlan(family.id, activeProfileId, prev);
   }
 
-  async function savePlan(nextPlan) {
+    async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
-    setAndCachePlan(activeProfileId, nextPlan);
+
+    // Normalise once so DB + cache both store the same canonical shape
+    const normalised = normalisePlanForRuntime(nextPlan);
+
+    // Update in-memory state + localStorage cache
+    setAndCachePlan(activeProfileId, normalised);
+
+    // Persist to Supabase
     if (!family?.id || !activeProfileId) return;
-    await upsertProfilePlan(family.id, activeProfileId, nextPlan);
+    await upsertProfilePlan(family.id, activeProfileId, normalised);
   }
   
 async function saveLog(nextLog) {
