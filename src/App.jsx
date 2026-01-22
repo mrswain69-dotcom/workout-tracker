@@ -1175,52 +1175,54 @@ useEffect(() => {
     cachePlanLocally(profileId, normalised);
   }
 
-  // --- Load weekly plan for the selected profile ---
+   // --- Load weekly plan for the selected profile ---
   useEffect(() => {
-    if (!activeProfileId) return;
+    // We need both a profile and a family to be able to read/write the DB plan
+    if (!activeProfileId || !family?.id) return;
 
-// 1) Try local cached copy first (includes extra activities)
-const cached = getCachedPlan(activeProfileId);
-if (cached) {
-  setAndCachePlan(activeProfileId, cached);
-}
+    const familyId = family.id;
+    const profileId = activeProfileId;
 
-// 2) Always try the DB plan (authoritative for extras)
-(async () => {
-  const { data, error } = await getProfilePlan(activeProfileId);
-  if (error) {
-    console.error("getProfilePlan failed", error);
-
-    // If we have cached, keep it; otherwise fall back to profile row plan_json
-    if (!cached && activeProfile?.plan_json) {
-      setAndCachePlan(activeProfileId, activeProfile.plan_json);
+    // 1) Try local cached copy first (includes extra activities)
+    const cached = getCachedPlan(profileId);
+    if (cached) {
+      setAndCachePlan(profileId, cached);
     }
-    return;
-  }
 
-  if (data?.plan_json) {
-    // Use the DB copy as the source of truth and refresh cache
-    setAndCachePlan(activeProfileId, data.plan_json);
-    return;
-  }
+    // 2) Always try the DB plan (authoritative for extras)
+    (async () => {
+      const { data, error } = await getProfilePlan(familyId, profileId);
+      if (error) {
+        console.error("getProfilePlan failed", error);
 
-  // 3) If DB has no plan yet, fall back to profile row plan_json
-  //    but only if we didn't already load a cached plan
-  if (!cached && activeProfile?.plan_json) {
-    setAndCachePlan(activeProfileId, activeProfile.plan_json);
-    return;
-  }
+        // If we have cached, keep it; otherwise fall back to profile row plan_json
+        if (!cached && activeProfile?.plan_json) {
+          setAndCachePlan(profileId, activeProfile.plan_json);
+        }
+        return;
+      }
 
-  // 4) No plan anywhere and no cached copy: create default + persist
-  if (!cached) {
-    const p = defaultPlanForFamily();
-    await upsertProfilePlan(activeProfileId, p);
-    setAndCachePlan(activeProfileId, p);
-  }
-})();
-  }, [activeProfileId]);  // IMPORTANT: do not depend on activeProfile here
+      if (data?.plan_json) {
+        // Use the DB copy as the source of truth and refresh cache
+        setAndCachePlan(profileId, data.plan_json);
+        return;
+      }
 
+      // 3) If DB has no plan yet, fall back to profile row plan_json
+      //    but only if we didn't already load a cached plan
+      if (!cached && activeProfile?.plan_json) {
+        setAndCachePlan(profileId, activeProfile.plan_json);
+        return;
+      }
 
+      // 4) No plan anywhere and no cached copy: create default + persist
+      if (!cached) {
+        const p = defaultPlanForFamily();
+        await upsertProfilePlan(familyId, profileId, p);
+        setAndCachePlan(profileId, p);
+      }
+    })();
+  }, [activeProfileId, family?.id]);  // IMPORTANT: do not depend on activeProfile here
 
 
   // Names we’ve used before for one-off activities (for dropdown suggestions)
@@ -1594,8 +1596,8 @@ const todayPlanStatus = useMemo(() => {
     setUndoPlan(plan || null);
     setUndoLabel(label);
     setAndCachePlan(activeProfileId, nextPlan);
-    if (!family?.id) return;
-    await upsertProfilePlan(activeProfileId, nextPlan);
+    if (!family?.id || !activeProfileId) return;
+    await upsertProfilePlan(family.id, activeProfileId, nextPlan);
   }
 
   async function undoLastPlan() {
@@ -1605,15 +1607,15 @@ const todayPlanStatus = useMemo(() => {
     setUndoPlan(null);
     setUndoLabel("");
     setAndCachePlan(activeProfileId, prev);
-    if (!family?.id) return;
-    await upsertProfilePlan(activeProfileId, prev);
+    if (!family?.id || !activeProfileId) return;
+    await upsertProfilePlan(family.id, activeProfileId, prev);
   }
 
   async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
     setAndCachePlan(activeProfileId, nextPlan);
-    if (!family?.id) return;
-    await upsertProfilePlan(activeProfileId, nextPlan);
+    if (!family?.id || !activeProfileId) return;
+    await upsertProfilePlan(family.id, activeProfileId, nextPlan);
   }
   
 async function saveLog(nextLog) {
