@@ -312,6 +312,33 @@ function defaultPlanForFamily() {
 function getDayActivitiesForWeekday(plan, weekday) {
   if (!plan || !weekday) return [];
 
+  // --- Plan V2: prefer blocksByWeekday if present ---
+  const hasBlocks =
+    plan.blocksByWeekday &&
+    Array.isArray(plan.blocksByWeekday[weekday]);
+
+  if (hasBlocks && plan.blocksByWeekday[weekday].length > 0) {
+    const blocksForDay = plan.blocksByWeekday[weekday];
+
+    return blocksForDay.map((b, idx) => ({
+      id: b.id || `${weekday}_${idx === 0 ? "main" : `extra_${idx - 1}`}`,
+      typeId: b.typeId || (plan.dayTypeByWeekday?.[weekday] || "strength"),
+      label: b.label || "",
+      movements: Array.isArray(b.movements) ? b.movements : [],
+      restSec:
+        typeof b.restSec === "number"
+          ? b.restSec
+          : plan.restSecByWeekday?.[weekday] ?? 60,
+      cardioTarget:
+        typeof b.cardioTarget === "string"
+          ? b.cardioTarget
+          : plan.cardioTargetByWeekday?.[weekday] || "",
+      tasks: Array.isArray(b.tasks) ? b.tasks : [],
+      isPrimary: idx === 0,
+    }));
+  }
+
+  // --- Legacy fallback: derive from dayType + movements + extras list ---
   const typeId = plan.dayTypeByWeekday?.[weekday] || "strength";
   const movements = plan.movementsByWeekday?.[weekday] || [];
   const restSec = plan.restSecByWeekday?.[weekday] ?? 60;
@@ -348,6 +375,50 @@ function getDayActivitiesForWeekday(plan, weekday) {
 
 // Update only the *extra* blocks for a given weekday, leaving the primary plan intact.
 function updateDayActivities(plan, weekday, updater) {
+  if (!plan || !weekday || typeof updater !== "function") return plan;
+
+  // --- Plan V2: operate on blocksByWeekday if present ---
+  if (plan.blocksByWeekday && Array.isArray(plan.blocksByWeekday[weekday])) {
+    const existingBlocks = plan.blocksByWeekday[weekday] || [];
+    if (existingBlocks.length === 0) {
+      // Nothing sensible to update
+      return plan;
+    }
+
+    const primary = existingBlocks[0];
+    const extras = existingBlocks.slice(1);
+    const nextExtras = updater(extras, primary) || [];
+
+    const nextBlocks = [primary, ...nextExtras];
+
+    return {
+      ...plan,
+      blocksByWeekday: {
+        ...(plan.blocksByWeekday || {}),
+        [weekday]: nextBlocks.map((block, idx) => ({
+          id: block.id || `${weekday}_${idx === 0 ? "main" : `extra_${idx - 1}`}`,
+          typeId: block.typeId || primary.typeId || "strength",
+          label: block.label || "",
+          movements: Array.isArray(block.movements) ? block.movements : [],
+          restSec:
+            typeof block.restSec === "number"
+              ? block.restSec
+              : typeof primary.restSec === "number"
+              ? primary.restSec
+              : plan.restSecByWeekday?.[weekday] ?? 60,
+          cardioTarget:
+            typeof block.cardioTarget === "string"
+              ? block.cardioTarget
+              : primary.cardioTarget ||
+                plan.cardioTargetByWeekday?.[weekday] ||
+                "",
+          tasks: Array.isArray(block.tasks) ? block.tasks : [],
+        })),
+      },
+    };
+  }
+
+  // --- Legacy fallback: update dayActivitiesByWeekday only ---
   const all = getDayActivitiesForWeekday(plan, weekday);
   const primary = all[0];
   const extras = all.slice(1);
@@ -3392,128 +3463,114 @@ async function resetDay() {
                 </div>
               </div>
 
-                            {/* Extra activity blocks for this weekday (e.g. Run + HIIT) */}
-              <div className="panel mt16">
-                <div className="rowBetween">
-                  <div>
-                    <div className="h3">Extra activities on this day</div>
-                    <div className="muted mt4">
-                      Use this when the same day has more than one block —
-                      e.g. <b>Run + HIIT</b>, or <b>School PE + home workout</b>.
-                    </div>
-                  </div>
-                </div>
+              {/* Extra activity blocks for this weekday (e.g. Run + HIIT) */}
+<div className="panel mt16">
+  <div className="rowBetween">
+    <div>
+      <div className="h3">Extra activities on this day</div>
+      <div className="muted mt4">
+        Use this when the same day has more than one block — e.g. <b>Run + HIIT</b>, or{" "}
+        <b>School PE + home workout</b>.
+      </div>
+    </div>
+  </div>
 
-                <div className="stack mt12">
-                  {(plan?.dayActivitiesByWeekday?.[planWeekday] || []).length === 0 ? (
-                    <div className="muted">
-                      No extra activities yet. The main type above is still your primary plan.
-                    </div>
-                  ) : (
-                    (plan?.dayActivitiesByWeekday?.[planWeekday] || []).map((a) => (
-                      <div key={a.id} className="planRow">
-                        <div className="planMoveHead">
-                          <div className="planLeft">
-                            <div className="planName">
-                              <Input
-                                value={a.label || ""}
-                                onChange={async (v) => {
-                                  const list = (plan?.dayActivitiesByWeekday?.[planWeekday] || []).map((x) =>
-                                    x.id === a.id ? { ...x, label: v } : x
-                                  );
-                                  const next = {
-                                    ...plan,
-                                    dayActivitiesByWeekday: {
-                                      ...(plan.dayActivitiesByWeekday || {}),
-                                      [planWeekday]: list,
-                                    },
-                                  };
-                                  await savePlan(next);
-                                }}
-                                placeholder="e.g. Extra run"
-                              />
-                            </div>
-                            <div className="pills mt8">
-                              <Pill>
-                                {(plan?.activityTypes || builtInTypes()).find(
-                                  (t) => t.id === (a.typeId || "")
-                                )?.name || "Activity"}
-                              </Pill>
-                            </div>
-                          </div>
-
-                          <div className="planBtns">
-                            <div style={{ minWidth: 160 }}>
-                              <Select
-                                value={
-                                  a.typeId ||
-                                  (plan?.dayTypeByWeekday?.[planWeekday] || "strength")
-                                }
-                                onChange={async (v) => {
-                                  const list = (plan?.dayActivitiesByWeekday?.[planWeekday] || []).map((x) =>
-                                    x.id === a.id ? { ...x, typeId: v } : x
-                                  );
-                                  const next = {
-                                    ...plan,
-                                    dayActivitiesByWeekday: {
-                                      ...(plan.dayActivitiesByWeekday || {}),
-                                      [planWeekday]: list,
-                                    },
-                                  };
-                                  await savePlan(next);
-                                }}
-                                options={(plan?.activityTypes || builtInTypes()).map((t) => ({
-                                  value: t.id,
-                                  label: t.name,
-                                }))}
-                              />
-                            </div>
-
-                            <SecondaryButton
-                              onClick={async () => {
-                                const list = (plan?.dayActivitiesByWeekday?.[planWeekday] || []).filter(
-                                  (x) => x.id !== a.id
-                                );
-                                const next = {
-                                  ...plan,
-                                  dayActivitiesByWeekday: {
-                                    ...(plan.dayActivitiesByWeekday || {}),
-                                    [planWeekday]: list,
-                                  },
-                                };
-                                await savePlan(next);
-                              }}
-                            >
-                              Remove
-                            </SecondaryButton>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="row mt12">
-                  <PrimaryButton
-                    onClick={async () => {
-                      const byDay = { ...(plan?.dayActivitiesByWeekday || {}) };
-                      const list = Array.isArray(byDay[planWeekday])
-                        ? byDay[planWeekday].slice()
-                        : [];
-                      list.push({
-                        id: uid(),
-                        typeId: plan?.dayTypeByWeekday?.[planWeekday] || "strength",
-                        label: "",
-                      });
-                      byDay[planWeekday] = list;
-                      const next = { ...plan, dayActivitiesByWeekday: byDay };
-                      await savePlan(next);
-                    }}
-                  >
-                    + Add extra activity
-                  </PrimaryButton>
-                </div>
+  <div className="stack mt12">
+    {extraActivitiesForPlanWeekday.length === 0 ? (
+      <div className="muted">
+        No extra activities yet. The main type above is still your primary plan.
+      </div>
+    ) : (
+      extraActivitiesForPlanWeekday.map((a) => (
+        <div key={a.id} className="planRow">
+          <div className="planMoveHead">
+            <div className="planLeft">
+              <div className="planName">
+                <Input
+                  value={a.label || ""}
+                  onChange={async (v) => {
+                    if (!plan) return;
+                    const next = updateDayActivities(plan, planWeekday, (extras) =>
+                      extras.map((x) => (x.id === a.id ? { ...x, label: v } : x))
+                    );
+                    await savePlan(next);
+                  }}
+                  placeholder="e.g. Extra run"
+                />
               </div>
+              <div className="pills mt8">
+                <Pill>
+                  {activityTypesForPlan.find(
+                    (t) => t.id === (a.typeId || "")
+                  )?.name || "Activity"}
+                </Pill>
+              </div>
+            </div>
+
+            <div className="planBtns">
+              <div style={{ minWidth: 160 }}>
+                <Select
+                  value={
+                    a.typeId ||
+                    (plan?.dayTypeByWeekday?.[planWeekday] || "strength")
+                  }
+                  onChange={async (v) => {
+                    if (!plan) return;
+                    const next = updateDayActivities(plan, planWeekday, (extras) =>
+                      extras.map((x) => (x.id === a.id ? { ...x, typeId: v } : x))
+                    );
+                    await savePlan(next);
+                  }}
+                  options={activityTypesForPlan.map((t) => ({
+                    value: t.id,
+                    label: t.name,
+                  }))}
+                />
+              </div>
+
+              <SecondaryButton
+                onClick={async () => {
+                  if (!plan) return;
+                  const next = updateDayActivities(plan, planWeekday, (extras) =>
+                    extras.filter((x) => x.id !== a.id)
+                  );
+                  await savePlan(next);
+                }}
+              >
+                Remove
+              </SecondaryButton>
+            </div>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+
+  <div className="row mt12">
+    <PrimaryButton
+      onClick={async () => {
+        if (!plan) return;
+        const next = updateDayActivities(plan, planWeekday, (extras, primary) => [
+          ...extras,
+          {
+            id: uid(),
+            typeId:
+              (extraActivitiesForPlanWeekday[
+                extraActivitiesForPlanWeekday.length - 1
+              ]?.typeId) ||
+              primary?.typeId ||
+              plan?.dayTypeByWeekday?.[planWeekday] ||
+              "strength",
+            label: "",
+          },
+        ]);
+        await savePlan(next);
+      }}
+    >
+      + Add extra activity
+    </PrimaryButton>
+  </div>
+</div>
 
 
               {planActivityType.kind === "cardio" ? (
