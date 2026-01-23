@@ -2317,7 +2317,63 @@ async function resetDay() {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
-    // --- One-off activities on the Log page ---
+    async function updateCardioForBlock(blockId, cardioPatch) {
+    const ctx = await ensureAudio();
+    const base = logForDay ? { ...logForDay } : blankLogForDay();
+
+    // Patch the specific block's cardio
+    const next = updateBlockLog(base, blockId, { cardio: cardioPatch });
+
+    // Keep legacy day-level cardio summary in sync for older code / stats
+    if (Array.isArray(next.blocks) && next.blocks.length) {
+      let totalKm = 0;
+      let totalMin = 0;
+
+      for (const b of next.blocks) {
+        if (!b || !b.cardio) continue;
+        totalKm += safeNumber(b.cardio.distanceKm);
+        totalMin += safeNumber(b.cardio.durationMin);
+      }
+
+      if (totalKm > 0 && totalMin > 0) {
+        const spd = totalMin > 0 ? totalKm / (totalMin / 60) : 0;
+        next.cardio = {
+          distanceKm: String(totalKm),
+          durationMin: String(totalMin),
+          avgSpeedKmh: spd ? spd.toFixed(2) : "",
+        };
+      }
+    }
+
+    await saveLog(next);
+    if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+
+  async function updateDurationForBlock(blockId, durationPatch) {
+    const ctx = await ensureAudio();
+    const base = logForDay ? { ...logForDay } : blankLogForDay();
+
+    // Patch the specific block's duration
+    const next = updateBlockLog(base, blockId, { duration: durationPatch });
+
+    // Keep legacy custom.durationMin summary in sync
+    if (Array.isArray(next.blocks) && next.blocks.length) {
+      let totalMin = 0;
+      for (const b of next.blocks) {
+        if (!b || !b.duration) continue;
+        totalMin += safeNumber(b.duration.minutes);
+      }
+      next.custom = {
+        ...(next.custom || {}),
+        durationMin: totalMin ? String(totalMin) : "",
+      };
+    }
+
+    await saveLog(next);
+    if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+
+  // --- One-off activities on the Log page ---
 
   function getOneOffActivities(log) {
     if (!log?.meta?.oneOffActivities || !Array.isArray(log.meta.oneOffActivities)) return [];
@@ -2542,18 +2598,50 @@ async function resetDay() {
       let didAnything = false;
 
       if (at.kind === "cardio") {
-        const km = safeNumber(log.cardio?.distanceKm);
-        const min = safeNumber(log.cardio?.durationMin);
-        const spd = min > 0 ? km / (min / 60) : 0;
-        if (km > 0 && min > 0) {
+        // Prefer per-block cardio (sum distance/time across blocks),
+        // fallback to legacy day-level log.cardio.
+        let totalKm = 0;
+        let totalMin = 0;
+
+        if (Array.isArray(log.blocks) && log.blocks.length) {
+          for (const b of log.blocks) {
+            if (!b || !b.cardio) continue;
+            totalKm += safeNumber(b.cardio.distanceKm);
+            totalMin += safeNumber(b.cardio.durationMin);
+          }
+        }
+
+        // Legacy fallback if no per-block data
+        if (totalKm <= 0 || totalMin <= 0) {
+          const km = safeNumber(log.cardio?.distanceKm);
+          const min = safeNumber(log.cardio?.durationMin);
+          totalKm = km;
+          totalMin = min;
+        }
+
+        if (totalKm > 0 && totalMin > 0) {
+          const spd = totalMin > 0 ? totalKm / (totalMin / 60) : 0;
           didAnything = true;
           bestCardioSpeed = Math.max(bestCardioSpeed, spd);
-          bestCardioDistance = Math.max(bestCardioDistance, km);
-          w.cardioKm += km;
+          bestCardioDistance = Math.max(bestCardioDistance, totalKm);
+          w.cardioKm += totalKm;
         }
       } else if (at.kind === "custom") {
-        const min = safeNumber(log.custom?.durationMin);
-        if (min > 0) didAnything = true;
+        // Prefer per-block duration, fallback to legacy log.custom
+        let totalMin = 0;
+
+        if (Array.isArray(log.blocks) && log.blocks.length) {
+          for (const b of log.blocks) {
+            if (!b || !b.duration) continue;
+            totalMin += safeNumber(b.duration.minutes);
+          }
+        }
+
+        if (totalMin <= 0) {
+          totalMin = safeNumber(log.custom?.durationMin);
+        }
+
+        if (totalMin > 0) didAnything = true;
       } else if (at.kind === "task") {
         const anyTaskDone = Object.values(log.tasks || {}).some((t) => t && t.done);
         if (anyTaskDone) didAnything = true;  
@@ -2973,40 +3061,153 @@ async function resetDay() {
                 </div>
               </div>
 
-              {planDay.kind === "cardio" ? (
+                            {planDay.kind === "cardio" ? (
                 <div className="panel mt16">
                   <div className="h2">Cardio log</div>
-                  {(plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text) ? (
-                    <div className="muted mt8"><b>Today’s focus:</b> {plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text}</div>
-                  ) : null}                   
-                  <div className="grid3 mt12">
-                    <div>
-                      <div className="label">Distance (km)</div>
-                      <Input type="number" min={0} step={0.01} value={logForDay?.cardio?.distanceKm ?? ""} onChange={(v) => updateCardio({ distanceKm: v })} placeholder="e.g. 2.50" />
+                  {(plan?.cardioTargetByWeekday?.[selectedWeekday] ||
+                    plan?.runSettings?.[selectedWeekday]?.text) ? (
+                    <div className="muted mt8">
+                      <b>Today’s focus:</b>{" "}
+                      {plan?.cardioTargetByWeekday?.[selectedWeekday] ||
+                        plan?.runSettings?.[selectedWeekday]?.text}
                     </div>
-                    <div>
-                      <div className="label">Time (minutes)</div>
-                      <Input type="number" min={0} step={0.1} value={logForDay?.cardio?.durationMin ?? ""} onChange={(v) => updateCardio({ durationMin: v })} placeholder="e.g. 14.5" />
+                  ) : null}
+
+                  {plannedBlocksForSelectedDay
+                    .filter(
+                      (b) =>
+                        b &&
+                        (b.typeId === "run" ||
+                          b.typeId === "swim" ||
+                          b.typeId === "cardio")
+                    )
+                    .map((block) => {
+                      const blockLog = getBlockLog(logForDay, block.id);
+                      const cardio = blockLog.cardio;
+                      const label =
+                        block.label ||
+                        (block.typeId === "run"
+                          ? "Run block"
+                          : block.typeId === "swim"
+                          ? "Swim block"
+                          : "Cardio block");
+
+                      return (
+                        <div key={block.id} className="mt12">
+                          <div className="h3">{label}</div>
+                          {block.note ? (
+                            <div className="muted mt4">{block.note}</div>
+                          ) : null}
+                          <div className="grid3 mt8">
+                            <div>
+                              <div className="label">Distance (km)</div>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                value={cardio.distanceKm}
+                                onChange={(v) =>
+                                  updateCardioForBlock(block.id, {
+                                    distanceKm: v,
+                                  })
+                                }
+                                placeholder="e.g. 2.50"
+                              />
+                            </div>
+                            <div>
+                              <div className="label">Time (minutes)</div>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.5}
+                                value={cardio.durationMin}
+                                onChange={(v) =>
+                                  updateCardioForBlock(block.id, {
+                                    durationMin: v,
+                                  })
+                                }
+                                placeholder="e.g. 14.5"
+                              />
+                            </div>
+                            <div>
+                              <div className="label">Avg speed (km/h)</div>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.1}
+                                value={cardio.avgSpeedKmh}
+                                onChange={(v) =>
+                                  updateCardioForBlock(block.id, {
+                                    avgSpeedKmh: v,
+                                  })
+                                }
+                                placeholder="auto or manual"
+                              />
+                              <div className="muted mini mt4">
+                                Leave blank to auto-calc from distance & time.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                  {plannedBlocksForSelectedDay.filter(
+                    (b) =>
+                      b &&
+                      (b.typeId === "run" ||
+                        b.typeId === "swim" ||
+                        b.typeId === "cardio")
+                  ).length === 0 && (
+                    <div className="muted mt8">
+                      No cardio blocks planned for today. You can still log a run
+                      using one-off activities below.
                     </div>
-                    <div>
-                      <div className="label">Avg speed (km/h)</div>
-                      <Input value={logForDay?.cardio?.avgSpeedKmh ?? ""} readOnly onChange={null} placeholder="auto" />
-                    </div>
-                  </div>
-                  <div className="muted mt8">Used for run/swim/etc.</div>
+                  )}
                 </div>
               ) : planDay.kind === "custom" ? (
                 <div className="panel mt16">
                   <div className="h2">Duration log</div>
-                  <div className="grid3 mt12">
-                    <div>
-                      <div className="label">Minutes</div>
-                      <Input type="number" min={0} step={0.5} value={logForDay?.custom?.durationMin ?? ""} onChange={(v) => updateCustom({ durationMin: v })} placeholder="e.g. 30" />
-                    </div>
+
+                  {plannedBlocksForSelectedDay
+                    .filter((b) => b && b.typeId === "duration")
+                    .map((block) => {
+                      const blockLog = getBlockLog(logForDay, block.id);
+                      const duration = blockLog.duration;
+                      const label = block.label || "Duration block";
+
+                      return (
+                        <div key={block.id} className="mt12">
+                          <div className="h3">{label}</div>
+                          {block.note ? (
+                            <div className="muted mt4">{block.note}</div>
+                          ) : null}
+                          <div className="grid3 mt8">
+                            <div>
+                              <div className="label">Minutes</div>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.5}
+                                value={duration.minutes}
+                                onChange={(v) =>
+                                  updateDurationForBlock(block.id, {
+                                    minutes: v,
+                                  })
+                                }
+                                placeholder="e.g. 30"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                  <div className="muted mt8">
+                    Good for Pilates, yoga, mobility, etc.
                   </div>
-                  <div className="muted mt8">Good for Pilates, yoga, mobility, etc.</div>
                 </div>
-                           ) : (
+              ) : (
                 <div className="stack mt16">
                   {/* Extra movements for this specific date */}
                   <div className="panel">
