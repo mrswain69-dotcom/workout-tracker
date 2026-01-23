@@ -1985,14 +1985,89 @@ function blankLogForDay() {
     custom: { durationMin: "" },
     gamify: { comboMax: 0 },
 
-    // NEW: lightweight block snapshot for this day.
-    // For now we only keep ID / type / label; we’ll extend later.
+        // Plan V2: per-block snapshot for this day.
+    // We now keep ID / type / label / note plus empty cardio & duration slots
+    // so later we can bind UI + XP onto these.
     blocks: plannedBlocks.map((b) => ({
       id: b.id,
       typeId: b.typeId,
       label: b.label || "",
+      note: b.note || "",
+      cardio: {
+        distanceKm: "",
+        durationMin: "",
+        avgSpeedKmh: "",
+      },
+      duration: {
+        minutes: "",
+      },
     })),
   };
+}
+// --- Per-block log helpers (Plan V2, Stage 2) ---
+// Safely retrieve the log entry for a specific block on this day.
+function getBlockLog(log, blockId) {
+  if (!log || !blockId) return null;
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+  const found = blocks.find((b) => b && b.id === blockId);
+  if (!found) return null;
+
+  // Ensure cardio/duration objects always exist so callers can rely on them.
+  const cardio =
+    found.cardio && typeof found.cardio === "object"
+      ? found.cardio
+      : { distanceKm: "", durationMin: "", avgSpeedKmh: "" };
+
+  const duration =
+    found.duration && typeof found.duration === "object"
+      ? found.duration
+      : { minutes: "" };
+
+  return {
+    ...found,
+    cardio,
+    duration,
+  };
+}
+
+// Pure helper: returns a *new* log object with the given block patched.
+// Callers must then pass the result to saveLog(nextLog).
+function updateBlockLog(log, blockId, patch) {
+  if (!log || !blockId || !patch || typeof patch !== "object") return log;
+
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+  const nextBlocks = blocks.map((b) => {
+    if (!b || b.id !== blockId) return b;
+
+    const baseCardio =
+      b.cardio && typeof b.cardio === "object"
+        ? b.cardio
+        : { distanceKm: "", durationMin: "", avgSpeedKmh: "" };
+
+    const baseDuration =
+      b.duration && typeof b.duration === "object"
+        ? b.duration
+        : { minutes: "" };
+
+    const next = { ...b, ...patch };
+
+    if (patch.cardio) {
+      next.cardio = { ...baseCardio, ...patch.cardio };
+    } else if (!b.cardio) {
+      // Ensure shape exists even if not explicitly patched.
+      next.cardio = baseCardio;
+    }
+
+    if (patch.duration) {
+      next.duration = { ...baseDuration, ...patch.duration };
+    } else if (!b.duration) {
+      next.duration = baseDuration;
+    }
+
+    return next;
+  });
+
+  return { ...log, blocks: nextBlocks };
 }
 
 
