@@ -2707,28 +2707,7 @@ async function resetDay() {
                   <div className="h2">Cardio log</div>
                   {(plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text) ? (
                     <div className="muted mt8"><b>Today’s focus:</b> {plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text}</div>
-                  ) : null}
-                   {plannedBlocksForSelectedDay.length > 0 && (
-                    <div className="muted mt4">
-                      <b>Planned blocks today:</b>{" "}
-                      {plannedBlocksForSelectedDay
-                        .map((b, idx) => {
-                          const allTypes = plan?.activityTypes || builtInTypes();
-                          const typeName =
-                            allTypes.find((t) => t.id === b.typeId)?.name ||
-                            "Activity";
-
-                          if (b.label && b.label.trim()) {
-                            return b.label.trim();
-                          }
-
-                          // Fallbacks when there’s no custom label
-                          if (idx === 0) return typeName; // primary block
-                          return `${typeName} ${idx + 1}`; // extra blocks
-                        })
-                        .join(" · ")}
-                    </div>
-                  )}
+                  ) : null}                   
                   <div className="grid3 mt12">
                     <div>
                       <div className="label">Distance (km)</div>
@@ -3151,6 +3130,27 @@ async function resetDay() {
                   ) : (
                     <div className="muted">Log your session and keep your streak alive.</div>
                   )}
+                      {plannedBlocksForSelectedDay.length > 0 && (
+      <div className="muted">
+        <b>Planned blocks:</b>{" "}
+        {plannedBlocksForSelectedDay
+          .map((b, idx) => {
+            const allTypes = plan?.activityTypes || builtInTypes();
+            const typeName =
+              allTypes.find((t) => t.id === b.typeId)?.name || "Activity";
+
+            if (b.label && b.label.trim()) {
+              return b.label.trim();
+            }
+
+            // Fallbacks when there’s no custom label
+            if (idx === 0) return typeName;        // primary block
+            return `${typeName} ${idx + 1}`;       // extra blocks
+          })
+          .join(" · ")}
+      </div>
+    )}
+
                 </div>
               </Card>
 
