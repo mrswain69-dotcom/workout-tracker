@@ -324,6 +324,7 @@ function getDayActivitiesForWeekday(plan, weekday) {
       id: b.id || `${weekday}_${idx === 0 ? "main" : `extra_${idx - 1}`}`,
       typeId: b.typeId || (plan.dayTypeByWeekday?.[weekday] || "strength"),
       label: b.label || "",
+      note: typeof b.note === "string" ? b.note : "",
       movements: Array.isArray(b.movements) ? b.movements : [],
       restSec:
         typeof b.restSec === "number"
@@ -348,6 +349,7 @@ function getDayActivitiesForWeekday(plan, weekday) {
     id: `${weekday}_main`,
     typeId,
     label: "",
+    note: "",
     movements,
     restSec,
     cardioTarget,
@@ -363,6 +365,7 @@ function getDayActivitiesForWeekday(plan, weekday) {
     id: block.id || `${weekday}_extra_${idx}`,
     typeId: block.typeId || "tasks",
     label: block.label || "",
+    note: typeof block.note === "string" ? block.note : "",
     movements: block.movements || [],
     restSec: typeof block.restSec === "number" ? block.restSec : undefined,
     cardioTarget: block.cardioTarget,
@@ -392,30 +395,32 @@ function updateDayActivities(plan, weekday, updater) {
     const nextBlocks = [primary, ...nextExtras];
 
     return {
-      ...plan,
-      blocksByWeekday: {
-        ...(plan.blocksByWeekday || {}),
-        [weekday]: nextBlocks.map((block, idx) => ({
-          id: block.id || `${weekday}_${idx === 0 ? "main" : `extra_${idx - 1}`}`,
-          typeId: block.typeId || primary.typeId || "strength",
-          label: block.label || "",
-          movements: Array.isArray(block.movements) ? block.movements : [],
-          restSec:
-            typeof block.restSec === "number"
-              ? block.restSec
-              : typeof primary.restSec === "number"
-              ? primary.restSec
-              : plan.restSecByWeekday?.[weekday] ?? 60,
-          cardioTarget:
-            typeof block.cardioTarget === "string"
-              ? block.cardioTarget
-              : primary.cardioTarget ||
-                plan.cardioTargetByWeekday?.[weekday] ||
-                "",
-          tasks: Array.isArray(block.tasks) ? block.tasks : [],
-        })),
-      },
-    };
+  ...plan,
+  blocksByWeekday: {
+    ...(plan.blocksByWeekday || {}),
+    [weekday]: nextBlocks.map((block, idx) => ({
+      id: block.id || `${weekday}_${idx === 0 ? "main" : `extra_${idx - 1}`}`,
+      typeId: block.typeId || primary.typeId || "strength",
+      label: block.label || "",
+      note: typeof block.note === "string" ? block.note : "",
+      movements: Array.isArray(block.movements) ? block.movements : [],
+      restSec:
+        typeof block.restSec === "number"
+          ? block.restSec
+          : typeof primary.restSec === "number"
+          ? primary.restSec
+          : plan.restSecByWeekday?.[weekday] ?? 60,
+      cardioTarget:
+        typeof block.cardioTarget === "string"
+          ? block.cardioTarget
+          : primary.cardioTarget ||
+            plan.cardioTargetByWeekday?.[weekday] ||
+            "",
+      tasks: Array.isArray(block.tasks) ? block.tasks : [],
+    })),
+  },
+};
+
   }
 
   // --- Legacy fallback: update dayActivitiesByWeekday only ---
@@ -429,11 +434,98 @@ function updateDayActivities(plan, weekday, updater) {
     dayActivitiesByWeekday: {
       ...(plan.dayActivitiesByWeekday || {}),
       [weekday]: nextExtras.map((block, idx) => ({
+  id: block.id || `${weekday}_extra_${idx}`,
+  typeId: block.typeId || "tasks",
+  label: block.label || "",
+  note: typeof block.note === "string" ? block.note : "",
+  movements: block.movements || [],
+  restSec: typeof block.restSec === "number" ? block.restSec : undefined,
+  cardioTarget: block.cardioTarget,
+  tasks: Array.isArray(block.tasks) ? block.tasks : [],
+})),
+    },
+  };
+}
+
+// -------- Blocks helpers for Plan V2 (Stage 1) ----------
+function getBlocksForPlanWeekday(plan, weekday) {
+  // For now, just use the existing helper which already prefers blocksByWeekday
+  return getDayActivitiesForWeekday(plan, weekday);
+}
+
+// Update primary + extras as a single blocks list, keeping legacy fields in sync.
+function updateBlocksForPlanWeekday(plan, weekday, updater) {
+  if (!plan || !weekday || typeof updater !== "function") return plan;
+
+  // Start from the canonical view of blocks for this day
+  const current = getDayActivitiesForWeekday(plan, weekday);
+  if (!current.length) return plan;
+
+  const nextBlocks = updater(current) || current;
+  if (!Array.isArray(nextBlocks) || !nextBlocks.length) {
+    // Don't allow wiping the day via this helper
+    return plan;
+  }
+
+  const base = { ...plan };
+  const primary = nextBlocks[0];
+  const extras = nextBlocks.slice(1);
+
+  const nextBlocksForDay = nextBlocks.map((block, idx) => {
+    const typeId =
+      block.typeId ||
+      primary.typeId ||
+      base.dayTypeByWeekday?.[weekday] ||
+      "strength";
+
+    const restSec =
+      typeof block.restSec === "number"
+        ? block.restSec
+        : typeof primary.restSec === "number"
+        ? primary.restSec
+        : base.restSecByWeekday?.[weekday] ?? 60;
+
+    const cardioTarget =
+      typeof block.cardioTarget === "string"
+        ? block.cardioTarget
+        : primary.cardioTarget ||
+          base.cardioTargetByWeekday?.[weekday] ||
+          "";
+
+    return {
+      id: block.id || `${weekday}_${idx === 0 ? "main" : `extra_${idx - 1}`}`,
+      typeId,
+      label: block.label || "",
+      note: typeof block.note === "string" ? block.note : "",
+      movements: Array.isArray(block.movements) ? block.movements : [],
+      restSec,
+      cardioTarget,
+      tasks: Array.isArray(block.tasks) ? block.tasks : [],
+    };
+  });
+
+  return {
+    ...base,
+    blocksByWeekday: {
+      ...(base.blocksByWeekday || {}),
+      [weekday]: nextBlocksForDay,
+    },
+    // Keep primary kind in sync for the rest of the app
+    dayTypeByWeekday: {
+      ...(base.dayTypeByWeekday || {}),
+      [weekday]: primary.typeId || "strength",
+    },
+    // Keep legacy extras list in sync (for existing tasks/movements code)
+    dayActivitiesByWeekday: {
+      ...(base.dayActivitiesByWeekday || {}),
+      [weekday]: extras.map((block, idx) => ({
         id: block.id || `${weekday}_extra_${idx}`,
         typeId: block.typeId || "tasks",
         label: block.label || "",
-        movements: block.movements || [],
-        restSec: typeof block.restSec === "number" ? block.restSec : undefined,
+        note: typeof block.note === "string" ? block.note : "",
+        movements: Array.isArray(block.movements) ? block.movements : [],
+        restSec:
+          typeof block.restSec === "number" ? block.restSec : undefined,
         cardioTarget: block.cardioTarget,
         tasks: Array.isArray(block.tasks) ? block.tasks : [],
       })),
@@ -1268,14 +1360,15 @@ useEffect(() => {
     for (const w of weekdays) {
       const rawList = Array.isArray(plan.blocksByWeekday[w]) ? plan.blocksByWeekday[w] : [];
       blocksByWeekday[w] = rawList.map((b, idx) => ({
-        id: b && b.id ? b.id : `${w}_block_${idx}`,
-        typeId: b && b.typeId ? b.typeId : (plan.dayTypeByWeekday?.[w] || "strength"),
-        label: (b && b.label) || "",
-        movements: Array.isArray(b?.movements) ? b.movements : [],
-        restSec: typeof b?.restSec === "number" ? b.restSec : undefined,
-        cardioTarget: typeof b?.cardioTarget === "string" ? b.cardioTarget : "",
-        tasks: Array.isArray(b?.tasks) ? b.tasks : [],
-      }));
+  id: b && b.id ? b.id : `${w}_block_${idx}`,
+  typeId: b && b.typeId ? b.typeId : (plan.dayTypeByWeekday?.[w] || "strength"),
+  label: (b && b.label) || "",
+  note: typeof b?.note === "string" ? b.note : "",
+  movements: Array.isArray(b?.movements) ? b.movements : [],
+  restSec: typeof b?.restSec === "number" ? b.restSec : undefined,
+  cardioTarget: typeof b?.cardioTarget === "string" ? b.cardioTarget : "",
+  tasks: Array.isArray(b?.tasks) ? b.tasks : [],
+}));
     }
   } else {
     // Derive blocks from the legacy fields (dayTypeByWeekday + movementsByWeekday + extras).
@@ -1460,6 +1553,10 @@ useEffect(() => {
   const activityTypesForPlan = (plan?.activityTypes || builtInTypes());
   const dayActivitiesForPlanWeekday = getDayActivitiesForWeekday(plan || defaultPlanForFamily(), planWeekday);
   const extraActivitiesForPlanWeekday = dayActivitiesForPlanWeekday.slice(1);
+  const blocksForPlanWeekday = getBlocksForPlanWeekday(
+  plan || defaultPlanForFamily(),
+  planWeekday
+);
   const taskBlocksForPlanWeekday = extraActivitiesForPlanWeekday.filter((block) => {
     const t = activityTypesForPlan.find((x) => x.id === block.typeId);
     return t && (t.kind === "task" || t.id === "tasks");
@@ -3475,142 +3572,196 @@ async function resetDay() {
                 </div>
               </div>
 
-              <div className="panel mt16">
-                <div className="h3">Day activity type</div>
-                <div className="grid3 mt12">
-                  <div>
-                    <div className="label">Type</div>
-                    <Select
-                      value={(plan?.dayTypeByWeekday?.[planWeekday] || "strength")}
-                      onChange={async (v) => {
-                        const next = { ...plan, dayTypeByWeekday: { ...(plan.dayTypeByWeekday || {}), [planWeekday]: v } };
-                        await savePlan(next);
-                      }}
-                      options={(plan?.activityTypes || builtInTypes()).map((t) => ({ value: t.id, label: t.name }))}
-                    />
-                  </div>
-                  <div className="mini">
-                    <div className="label">Kind</div>
-                    <div className="big">{planActivityType.kind}</div>
-                    <div className="muted">Controls which inputs appear.</div>
-                  </div>
-                  <div className="mini">
-                    <div className="label">Movements</div>
-                    <div className="big">{planActivityType.movementsEnabled ? "Enabled" : "None"}</div>
-                    <div className="muted">Strength / Timed rounds use movements.</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Extra activity blocks for this weekday (e.g. Run + HIIT) */}
+              {/* Blocks-centric UI for this weekday (Stage 1) */}
 <div className="panel mt16">
   <div className="rowBetween">
     <div>
-      <div className="h3">Extra activities on this day</div>
+      <div className="h3">Blocks for this day</div>
       <div className="muted mt4">
-        Use this when the same day has more than one block — e.g. <b>Run + HIIT</b>, or{" "}
-        <b>School PE + home workout</b>.
+        Each block is a separate chunk of activity – for example a{" "}
+        <b>Strength</b> session, a <b>Run/Swim</b>, a <b>Duration</b> block,
+        or a <b>Tasks</b> block.
       </div>
     </div>
   </div>
 
   <div className="stack mt12">
-    {extraActivitiesForPlanWeekday.length === 0 ? (
+    {blocksForPlanWeekday.length === 0 ? (
       <div className="muted">
-        No extra activities yet. The main type above is still your primary plan.
+        No blocks yet. Add one below to start planning this day.
       </div>
     ) : (
-      extraActivitiesForPlanWeekday.map((a) => (
-        <div key={a.id} className="planRow">
-          <div className="planMoveHead">
-            <div className="planLeft">
-              <div className="planName">
-                <Input
-                  value={a.label || ""}
-                  onChange={async (v) => {
-                    if (!plan) return;
-                    const next = updateDayActivities(plan, planWeekday, (extras) =>
-                      extras.map((x) => (x.id === a.id ? { ...x, label: v } : x))
-                    );
-                    await savePlan(next);
-                  }}
-                  placeholder="e.g. Extra run"
-                />
-              </div>
-              <div className="pills mt8">
-                <Pill>
-                  {activityTypesForPlan.find(
-                    (t) => t.id === (a.typeId || "")
-                  )?.name || "Activity"}
-                </Pill>
-              </div>
-            </div>
+      blocksForPlanWeekday.map((block, idx) => {
+        const isPrimary = !!block.isPrimary || idx === 0;
+        const type =
+          activityTypesForPlan.find((t) => t.id === block.typeId) ||
+          activityTypesForPlan[0];
+        const kind = type.kind;
 
-            <div className="planBtns">
-              <div style={{ minWidth: 160 }}>
-                <Select
-                  value={
-                    a.typeId ||
-                    (plan?.dayTypeByWeekday?.[planWeekday] || "strength")
-                  }
-                  onChange={async (v) => {
-                    if (!plan) return;
-                    const next = updateDayActivities(plan, planWeekday, (extras) =>
-                      extras.map((x) => (x.id === a.id ? { ...x, typeId: v } : x))
-                    );
-                    await savePlan(next);
-                  }}
-                  options={activityTypesForPlan.map((t) => ({
-                    value: t.id,
-                    label: t.name,
-                  }))}
-                />
+        let hint = "";
+        if (kind === "strength" || kind === "time") {
+          hint =
+            "Strength/Box blocks use the movements & sets section below for the main work.";
+        } else if (kind === "cardio") {
+          hint =
+            "Cardio blocks use the Cardio target text for distance/time/effort notes.";
+        } else if (kind === "custom") {
+          hint =
+            "Duration blocks log total minutes on the Log tab, but you can name and describe them here.";
+        } else if (kind === "task" || type.id === "tasks") {
+          hint =
+            "Tasks blocks use the task list below – this block groups those tick-box tasks together.";
+        }
+
+        return (
+          <div key={block.id} className="planRow">
+            <div className="planMoveHead">
+              <div className="planLeft">
+                <div className="mini muted">
+                  {isPrimary ? "Primary block" : "Extra block"}
+                  {(kind === "task" || type.id === "tasks") &&
+                    " · Tasks block"}
+                </div>
+
+                {/* Block name */}
+                <div className="planName mt4">
+                  <Input
+                    value={block.label || ""}
+                    onChange={async (v) => {
+                      if (!plan) return;
+                      const next = updateBlocksForPlanWeekday(
+                        plan,
+                        planWeekday,
+                        (blocks) =>
+                          blocks.map((b) =>
+                            b.id === block.id ? { ...b, label: v } : b
+                          )
+                      );
+                      await savePlan(next);
+                    }}
+                    placeholder={
+                      isPrimary
+                        ? "e.g. Main workout"
+                        : "e.g. Extra run / mobility"
+                    }
+                  />
+                </div>
+
+                {/* Coach notes */}
+                <div className="mt8">
+                  <div className="label">Coach notes (optional)</div>
+                  <Input
+                    value={block.note || ""}
+                    onChange={async (v) => {
+                      if (!plan) return;
+                      const next = updateBlocksForPlanWeekday(
+                        plan,
+                        planWeekday,
+                        (blocks) =>
+                          blocks.map((b) =>
+                            b.id === block.id ? { ...b, note: v } : b
+                          )
+                      );
+                      await savePlan(next);
+                    }}
+                    placeholder={
+                      kind === "cardio"
+                        ? "e.g. Easy pace, push last 100m"
+                        : kind === "task"
+                        ? "e.g. Do these before screens"
+                        : "Tips, cues or focus for this block"
+                    }
+                  />
+                </div>
+
+                {hint && <div className="muted mt8">{hint}</div>}
               </div>
 
-              <SecondaryButton
-                onClick={async () => {
-                  if (!plan) return;
-                  const next = updateDayActivities(plan, planWeekday, (extras) =>
-                    extras.filter((x) => x.id !== a.id)
-                  );
-                  await savePlan(next);
-                }}
-              >
-                Remove
-              </SecondaryButton>
+              <div className="planBtns">
+                {/* Type selector */}
+                <div style={{ minWidth: 180 }}>
+                  <div className="label">Type</div>
+                  <Select
+                    value={
+                      block.typeId ||
+                      (plan?.dayTypeByWeekday?.[planWeekday] || "strength")
+                    }
+                    onChange={async (v) => {
+                      if (!plan) return;
+                      const next = updateBlocksForPlanWeekday(
+                        plan,
+                        planWeekday,
+                        (blocks) =>
+                          blocks.map((b) =>
+                            b.id === block.id ? { ...b, typeId: v } : b
+                          )
+                      );
+                      await savePlan(next);
+                    }}
+                    options={activityTypesForPlan.map((t) => ({
+                      value: t.id,
+                      label: t.name,
+                    }))}
+                  />
+                </div>
+
+                {/* Remove extra blocks (not primary) */}
+                {!isPrimary && (
+                  <SecondaryButton
+                    onClick={async () => {
+                      if (!plan) return;
+                      const next = updateBlocksForPlanWeekday(
+                        plan,
+                        planWeekday,
+                        (blocks) =>
+                          blocks.filter((b) => b.id !== block.id)
+                      );
+                      await savePlan(next);
+                    }}
+                  >
+                    Remove
+                  </SecondaryButton>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      ))
+        );
+      })
     )}
   </div>
 
+  {/* Add new block */}
   <div className="row mt12">
     <PrimaryButton
       onClick={async () => {
         if (!plan) return;
-        const next = updateDayActivities(plan, planWeekday, (extras, primary) => [
-          ...extras,
-          {
-            id: uid(),
-            typeId:
-              (extraActivitiesForPlanWeekday[
-                extraActivitiesForPlanWeekday.length - 1
-              ]?.typeId) ||
-              primary?.typeId ||
+        const next = updateBlocksForPlanWeekday(
+          plan,
+          planWeekday,
+          (blocks) => {
+            const lastType =
+              (blocks[blocks.length - 1] &&
+                blocks[blocks.length - 1].typeId) ||
               plan?.dayTypeByWeekday?.[planWeekday] ||
-              "strength",
-            label: "",
-          },
-        ]);
+              "strength";
+            return [
+              ...blocks,
+              {
+                id: uid(),
+                typeId: lastType,
+                label: "",
+                note: "",
+              },
+            ];
+          }
+        );
         await savePlan(next);
       }}
     >
-      + Add extra activity
+      + Add block
     </PrimaryButton>
   </div>
 </div>
-
 
               {planActivityType.kind === "cardio" ? (
                 <div className="panel mt16">
