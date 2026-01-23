@@ -687,26 +687,66 @@ function suggestCardioTarget({ lastCardio }) {
 
 function isDayComplete(log, planDay) {
   if (!log) return false;
+
+  // Pure “tasks day” – any ticked task counts
   if (planDay.kind === "task") {
     const anyDone = Object.values(log?.tasks || {}).some((t) => t && t.done);
     return anyDone;
   }
+
+  // Cardio day: prefer per-block cardio if present, otherwise fall back to old log.cardio
   if (planDay.kind === "cardio") {
-    return safeNumber(log.cardio?.distanceKm) > 0 && safeNumber(log.cardio?.durationMin) > 0;
+    // 1) Check per-block cardio
+    if (Array.isArray(log.blocks) && log.blocks.length) {
+      let totalDist = 0;
+      let totalMin = 0;
+      for (const b of log.blocks) {
+        if (!b || !b.cardio) continue;
+        totalDist += safeNumber(b.cardio.distanceKm);
+        totalMin += safeNumber(b.cardio.durationMin);
+      }
+      if (totalDist > 0 && totalMin > 0) return true;
+    }
+
+    // 2) Fallback to legacy day-level cardio
+    return (
+      safeNumber(log.cardio?.distanceKm) > 0 &&
+      safeNumber(log.cardio?.durationMin) > 0
+    );
   }
+
+  // Duration-only/custom day: prefer per-block duration if present
   if (planDay.kind === "custom") {
+    if (Array.isArray(log.blocks) && log.blocks.length) {
+      let totalMin = 0;
+      for (const b of log.blocks) {
+        if (!b || !b.duration) continue;
+        totalMin += safeNumber(b.duration.minutes);
+      }
+      if (totalMin > 0) return true;
+    }
+
+    // Fallback to legacy custom.durationMin
     return safeNumber(log.custom?.durationMin) > 0;
   }
+
+  // Strength / time-based day
   if (!planDay.movementsEnabled) return false;
   const ex = planDay.movements || [];
   if (!ex.length) return false;
-  for (const e of ex) {
-    const sets = log.entries?.[e.id] || [];
-    if (sets.length < 3) return false;
-    for (let i = 0; i < 3; i++) if (!setDidSomething(sets[i] || {})) return false;
+
+  const entries = log.entries || {};
+  let didAny = false;
+  for (const m of ex) {
+    const sets = entries[m.id] || [];
+    if (Array.isArray(sets) && sets.some(setDidSomething)) {
+      didAny = true;
+      break;
+    }
   }
-  return true;
+  return didAny;
 }
+
 // Can be deleted once new xp engine works
 function awardXpForDay(log, planDay) {
   const base = 10;
@@ -1717,11 +1757,41 @@ const buildXpDebugRows = (records) => {
 
     let progressXp = progressedMovement ? XP_RULES.progression : 0;
 
-    // Cardio progression (once per day)
+        // Cardio progression (once per day, block-aware)
     let cardioProgressXp = 0;
-    if (planDay.kind === "cardio" && log.cardio) {
+
+    // Build an "effective" cardio summary:
+    // - If per-block cardio is present, sum it
+    // - Otherwise, fall back to legacy log.cardio
+    let effectiveCardio = log.cardio || null;
+
+    if (Array.isArray(log.blocks) && log.blocks.length) {
+      let totalDist = 0;
+      let totalMin = 0;
+
+      for (const b of log.blocks) {
+        if (!b || !b.cardio) continue;
+        totalDist += safeNumber(b.cardio.distanceKm);
+        totalMin += safeNumber(b.cardio.durationMin);
+      }
+
+      if (totalDist > 0 || totalMin > 0) {
+        const avgSpeed =
+          totalDist > 0 && totalMin > 0
+            ? (totalDist / (totalMin / 60 || 1))
+            : safeNumber(log.cardio?.avgSpeedKmh);
+
+        effectiveCardio = {
+          distanceKm: totalDist ? String(totalDist) : "",
+          durationMin: totalMin ? String(totalMin) : "",
+          avgSpeedKmh: avgSpeed ? String(avgSpeed.toFixed(2)) : "",
+        };
+      }
+    }
+
+    if (planDay.kind === "cardio" && effectiveCardio) {
       const lastCardio = findLastCardio(records, date);
-      if (isCardioImproved(log.cardio, lastCardio)) {
+      if (isCardioImproved(effectiveCardio, lastCardio)) {
         cardioProgressXp = XP_RULES.cardioProgression;
       }
     }
@@ -1737,10 +1807,39 @@ const buildXpDebugRows = (records) => {
     const oneOffDone = oneOffList.filter((a) => a && a.done).length;
     const oneOffXp = oneOffDone * XP_RULES.oneOff;
 
-    // Tasks (tick-box activities) – award per ticked item
-    const tasksDone = Object.values(log.tasks || {}).filter(
-      (t) => t && t.done
-    ).length;
+    // Tasks (tick-box activities) – award per planned task ticked.
+    // We align with task IDs from the plan's blocks for that weekday.
+    let tasksDone = 0;
+
+    const allTasks = log.tasks || {};
+
+    if (plan) {
+      // Planned blocks for this weekday (primary + extras)
+      const plannedBlocksForDay =
+        getDayActivitiesForWeekday(plan, weekday) || [];
+
+      const taskIds = [];
+      for (const b of plannedBlocksForDay) {
+        if (!b || !Array.isArray(b.tasks)) continue;
+        for (const task of b.tasks) {
+          if (task && task.id) taskIds.push(task.id);
+        }
+      }
+
+      if (taskIds.length) {
+        for (const id of taskIds) {
+          const t = allTasks[id];
+          if (t && t.done) tasksDone += 1;
+        }
+      } else {
+        // Fallback: if no structured tasks found in plan, just count any done tasks.
+        tasksDone = Object.values(allTasks).filter((t) => t && t.done).length;
+      }
+    } else {
+      // No plan loaded – fallback to simple behaviour
+      tasksDone = Object.values(allTasks).filter((t) => t && t.done).length;
+    }
+
     const tasksXp = tasksDone * XP_RULES.taskComplete;
 
     const streakXp = streakXpByDate[date] || 0;
