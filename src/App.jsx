@@ -1018,6 +1018,11 @@ useEffect(() => {
     return extras.filter((b) => cardioTypeIds.has(b.typeId));
   }, [plan, selectedWeekday]);
 
+  // All planned blocks (primary + extras) for the selected log weekday
+  const plannedBlocksForSelectedDay = useMemo(() => {
+    if (!plan) return [];
+    return getDayActivitiesForWeekday(plan, selectedWeekday) || [];
+  }, [plan, selectedWeekday]);
   
   // Plan editing should NOT depend on log date.
   const [planWeekday, setPlanWeekday] = useState("Mon");
@@ -1851,8 +1856,21 @@ async function saveLog(nextLog) {
   );
 }
 
-  function blankLogForDay() {
-  const restFromPlan = safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
+function blankLogForDay() {
+  const restFromPlan =
+    safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
+
+  // Plan V2: snapshot the planned blocks for this weekday.
+  // This does NOT change XP or UI yet – it's just stored on the log
+  // so we can later attach per-block distances, durations, etc.
+  const plannedBlocks =
+    plan && selectedWeekday
+      ? getDayActivitiesForWeekday(
+          plan || defaultPlanForFamily(),
+          selectedWeekday
+        ) || []
+      : [];
+
   return {
     // Timing/session meta lives in meta.
     meta: {
@@ -1860,7 +1878,7 @@ async function saveLog(nextLog) {
       sessions: [],
       dayManualMin: "", // optional override for whole day
       oneOffActivities: [],
-      extraMovements: [], // NEW: per-day strength/time movements
+      extraMovements: [], // per-day strength/time movements
     },
     weekday: selectedWeekday,
     typeId: dayTypeId,
@@ -1869,6 +1887,14 @@ async function saveLog(nextLog) {
     cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
     custom: { durationMin: "" },
     gamify: { comboMax: 0 },
+
+    // NEW: lightweight block snapshot for this day.
+    // For now we only keep ID / type / label; we’ll extend later.
+    blocks: plannedBlocks.map((b) => ({
+      id: b.id,
+      typeId: b.typeId,
+      label: b.label || "",
+    })),
   };
 }
 
@@ -2682,14 +2708,27 @@ async function resetDay() {
                   {(plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text) ? (
                     <div className="muted mt8"><b>Today’s focus:</b> {plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text}</div>
                   ) : null}
-                   {cardioExtrasForSelectedDay.length > 0 && (
-      <div className="muted mt4">
-        <b>Planned blocks today:</b>{" "}
-        {cardioExtrasForSelectedDay
-          .map((b, idx) => (b.label && b.label.trim()) || `Extra cardio ${idx + 1}`)
-          .join(" · ")}
-      </div>
-    )}
+                   {plannedBlocksForSelectedDay.length > 0 && (
+                    <div className="muted mt4">
+                      <b>Planned blocks today:</b>{" "}
+                      {plannedBlocksForSelectedDay
+                        .map((b, idx) => {
+                          const allTypes = plan?.activityTypes || builtInTypes();
+                          const typeName =
+                            allTypes.find((t) => t.id === b.typeId)?.name ||
+                            "Activity";
+
+                          if (b.label && b.label.trim()) {
+                            return b.label.trim();
+                          }
+
+                          // Fallbacks when there’s no custom label
+                          if (idx === 0) return typeName; // primary block
+                          return `${typeName} ${idx + 1}`; // extra blocks
+                        })
+                        .join(" · ")}
+                    </div>
+                  )}
                   <div className="grid3 mt12">
                     <div>
                       <div className="label">Distance (km)</div>
