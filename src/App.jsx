@@ -3081,16 +3081,21 @@ async function resetDay() {
                           b.typeId === "swim" ||
                           b.typeId === "cardio")
                     )
-                    .map((block) => {
-                      const blockLog = getBlockLog(logForDay, block.id);
-                      const cardio = blockLog.cardio;
-                      const label =
-                        block.label ||
-                        (block.typeId === "run"
-                          ? "Run block"
-                          : block.typeId === "swim"
-                          ? "Swim block"
-                          : "Cardio block");
+                     .map((block) => {
+    const blockLog = getBlockLog(logForDay, block.id);
+    const cardio =
+      (blockLog && blockLog.cardio) || {
+        distanceKm: "",
+        durationMin: "",
+        avgSpeedKmh: "",
+      };
+    const label =
+      block.label ||
+      (block.typeId === "run"
+        ? "Run block"
+        : block.typeId === "swim"
+        ? "Swim block"
+        : "Cardio block");
 
                       return (
                         <div key={block.id} className="mt12">
@@ -3171,10 +3176,13 @@ async function resetDay() {
 
                   {plannedBlocksForSelectedDay
                     .filter((b) => b && b.typeId === "duration")
-                    .map((block) => {
-                      const blockLog = getBlockLog(logForDay, block.id);
-                      const duration = blockLog.duration;
-                      const label = block.label || "Duration block";
+                      .map((block) => {
+    const blockLog = getBlockLog(logForDay, block.id);
+    const duration =
+      (blockLog && blockLog.duration) || {
+        minutes: "",
+      };
+    const label = block.label || "Duration block";
 
                       return (
                         <div key={block.id} className="mt12">
