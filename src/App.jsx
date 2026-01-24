@@ -351,7 +351,7 @@ function defaultPlanForFamily() {
 function getDayActivitiesForWeekday(plan, weekday) {
   if (!plan || !weekday) return [];
 
-  // --- Plan V2: prefer blocksByWeekday if present ---
+  // --- Plan V3: prefer blocksByWeekday if present ---
   const hasBlocks =
     plan.blocksByWeekday &&
     Array.isArray(plan.blocksByWeekday[weekday]);
@@ -359,21 +359,12 @@ function getDayActivitiesForWeekday(plan, weekday) {
   if (hasBlocks && plan.blocksByWeekday[weekday].length > 0) {
     const blocksForDay = plan.blocksByWeekday[weekday];
 
+    // IMPORTANT: keep the full block object (cardioType, plannedMinutes, etc.)
+    // and just add metadata like id / isPrimary.
     return blocksForDay.map((b, idx) => ({
+      ...b,
       id: b.id || `${weekday}_${idx === 0 ? "main" : `extra_${idx - 1}`}`,
-      typeId: b.typeId || (plan.dayTypeByWeekday?.[weekday] || "strength"),
-      label: b.label || "",
-      note: typeof b.note === "string" ? b.note : "",
-      movements: Array.isArray(b.movements) ? b.movements : [],
-      restSec:
-        typeof b.restSec === "number"
-          ? b.restSec
-          : plan.restSecByWeekday?.[weekday] ?? 60,
-      cardioTarget:
-        typeof b.cardioTarget === "string"
-          ? b.cardioTarget
-          : plan.cardioTargetByWeekday?.[weekday] || "",
-      tasks: Array.isArray(b.tasks) ? b.tasks : [],
+      typeId: b.typeId || "strength",
       isPrimary: idx === 0,
     }));
   }
