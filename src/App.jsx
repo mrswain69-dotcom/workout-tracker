@@ -1142,6 +1142,12 @@ useEffect(() => {
   const [planWeekday, setPlanWeekday] = useState("Mon");
   const [planViewMode, setPlanViewMode] = useState("edit"); // "edit" | "clean"
 
+    // V3: blocks for the currently selected day on the PLAN tab
+  const blocksForSelectedPlanDay = useMemo(() => {
+    if (!plan) return [];
+    return getBlocksForPlanWeekday(plan, planWeekday) || [];
+  }, [plan, planWeekday]);
+
   function makeLogCacheKey(familyId, profileId, date) {
   if (!familyId || !profileId || !date) return null;
   return `${familyId}:${profileId}:${ymd(date)}`;
@@ -1973,6 +1979,171 @@ const todayPlanStatus = useMemo(() => {
     // Persist to Supabase
     if (!family?.id || !activeProfileId) return;
     await upsertProfilePlan(family.id, activeProfileId, normalised);
+  }
+
+    // ---------- V3 PLAN BLOCK EDIT HELPERS ----------
+
+  // Always work on a plan that has blocksByWeekday initialised
+  function getPlanWithBlocks() {
+    return ensureBlocksByWeekday(plan || defaultPlanForFamily());
+  }
+
+  // Generic helper: update blocks for the currently selected plan weekday
+  async function updatePlanBlocksForCurrentDay(label, updater) {
+    const base = getPlanWithBlocks();
+
+    const nextPlan = updateBlocksForPlanWeekday(
+      base,
+      planWeekday,
+      (blocks) => {
+        const safeBlocks = Array.isArray(blocks) ? blocks : [];
+        return updater(safeBlocks);
+      }
+    );
+
+    // Persist + normalise via existing save function (PIN-protected etc.)
+    await savePlan(nextPlan);
+  }
+
+  function addBlockToDay(typeId) {
+    let newBlock;
+
+    if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+      newBlock = createStrengthBlock();
+      newBlock.typeId = typeId;
+    } else if (typeId === "cardio") {
+      newBlock = createCardioBlock();
+    } else if (typeId === "duration") {
+      newBlock = createDurationBlock();
+    } else if (typeId === "tasks") {
+      newBlock = createTasksBlock();
+    } else {
+      return;
+    }
+
+    updatePlanBlocksForCurrentDay("Add block", (blocks) => [
+      ...blocks,
+      newBlock,
+    ]);
+  }
+
+  function removeBlockFromDay(blockId) {
+    updatePlanBlocksForCurrentDay("Remove block", (blocks) =>
+      blocks.filter((b) => b.id !== blockId)
+    );
+  }
+
+  // patchFn can be () => ({ ... }) as you use in JSX
+  function updateBlockInDay(blockId, patchFn) {
+    updatePlanBlocksForCurrentDay("Update block", (blocks) =>
+      blocks.map((b) => {
+        if (b.id !== blockId) return b;
+        const patch =
+          typeof patchFn === "function" ? patchFn(b) : patchFn || {};
+        return { ...b, ...patch };
+      })
+    );
+  }
+
+  function addMovement(blockId) {
+    const newMovement = {
+      id: uid(),
+      name: "",
+      sets: 3,
+      reps: "",
+      trackWeight: false,
+      trackDuration: false,
+      initialTarget: "",
+    };
+
+    updatePlanBlocksForCurrentDay("Add movement", (blocks) =>
+      blocks.map((b) =>
+        b.id === blockId
+          ? {
+              ...b,
+              movements: [
+                ...(Array.isArray(b.movements) ? b.movements : []),
+                newMovement,
+              ],
+            }
+          : b
+      )
+    );
+  }
+
+  function removeMovement(blockId, movementId) {
+    updatePlanBlocksForCurrentDay("Remove movement", (blocks) =>
+      blocks.map((b) =>
+        b.id === blockId
+          ? {
+              ...b,
+              movements: (Array.isArray(b.movements) ? b.movements : []).filter(
+                (m) => m.id !== movementId
+              ),
+            }
+          : b
+      )
+    );
+  }
+
+  function updateMovementField(blockId, movementId, field, value) {
+    updatePlanBlocksForCurrentDay("Update movement", (blocks) =>
+      blocks.map((b) => {
+        if (b.id !== blockId) return b;
+        const movements = Array.isArray(b.movements) ? b.movements : [];
+        return {
+          ...b,
+          movements: movements.map((m) =>
+            m.id === movementId ? { ...m, [field]: value } : m
+          ),
+        };
+      })
+    );
+  }
+
+  function addTaskToBlock(blockId) {
+    const newTask = { id: uid(), label: "", xpValue: 5 };
+
+    updatePlanBlocksForCurrentDay("Add task", (blocks) =>
+      blocks.map((b) =>
+        b.id === blockId
+          ? {
+              ...b,
+              tasks: [...(Array.isArray(b.tasks) ? b.tasks : []), newTask],
+            }
+          : b
+      )
+    );
+  }
+
+  function removeTask(blockId, taskId) {
+    updatePlanBlocksForCurrentDay("Remove task", (blocks) =>
+      blocks.map((b) =>
+        b.id === blockId
+          ? {
+              ...b,
+              tasks: (Array.isArray(b.tasks) ? b.tasks : []).filter(
+                (t) => t.id !== taskId
+              ),
+            }
+          : b
+      )
+    );
+  }
+
+  function updateTaskField(blockId, taskId, field, value) {
+    updatePlanBlocksForCurrentDay("Update task", (blocks) =>
+      blocks.map((b) => {
+        if (b.id !== blockId) return b;
+        const tasks = Array.isArray(b.tasks) ? b.tasks : [];
+        return {
+          ...b,
+          tasks: tasks.map((t) =>
+            t.id === taskId ? { ...t, [field]: value } : t
+          ),
+        };
+      })
+    );
   }
   
 async function saveLog(nextLog) {
