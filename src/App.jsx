@@ -134,6 +134,77 @@ function safeNumber(v) {
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
+// ----- V3 BLOCK MODEL HELPERS -----
+
+function createStrengthBlock() {
+  return {
+    id: uid(),
+    typeId: "strength", // "strength" | "hiit" | "box"
+    label: "",
+    note: "",
+    restSec: 60,
+    movements: [
+      {
+        id: uid(),
+        name: "",
+        sets: 3,
+        reps: "",
+        trackWeight: false,
+        trackDuration: false,
+        initialTarget: "",
+      },
+    ],
+  };
+}
+
+function createCardioBlock() {
+  return {
+    id: uid(),
+    typeId: "cardio",
+    label: "",
+    note: "",
+    cardioType: "run", // "run" | "bike" | "swim" | "other"
+    cardioTypeOtherLabel: "",
+    targetText: "",
+  };
+}
+
+function createDurationBlock() {
+  return {
+    id: uid(),
+    typeId: "duration",
+    label: "",
+    note: "",
+    plannedMinutes: "",
+  };
+}
+
+function createTasksBlock() {
+  return {
+    id: uid(),
+    typeId: "tasks",
+    label: "",
+    note: "",
+    tasks: [
+      {
+        id: uid(),
+        label: "",
+        xpValue: 5,
+      },
+    ],
+  };
+}
+
+function ensureBlocksByWeekday(plan) {
+  const base = plan || {};
+  const existing = base.blocksByWeekday || {};
+  const next = { ...existing };
+  for (const d of weekdays) {
+    if (!Array.isArray(next[d])) next[d] = [];
+  }
+  return { ...base, blocksByWeekday: next };
+}
+
 function ymd(date) {
   const d = typeof date === "string" ? new Date(date) : date;
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -255,16 +326,24 @@ function builtInTypes() {
 
 function defaultPlanForFamily() {
   const types = builtInTypes();
-  // Default weekly assignment (you can change anything in Plan tab)
-  const dayTypeByWeekday = {
-    Mon: "strength",
-    Tue: "run",
-    Wed: "strength",
-    Thu: "box",
-    Fri: "strength",
-    Sat: "duration",
-    Sun: "duration",
+
+  // V3: day has NO "type" – only an ordered list of blocks.
+  const blocksByWeekday = {
+    Mon: [],
+    Tue: [],
+    Wed: [],
+    Thu: [],
+    Fri: [],
+    Sat: [],
+    Sun: [],
   };
+
+  return {
+    version: 3,
+    activityTypes: types,
+    blocksByWeekday,
+  };
+}
 
   const movements = {
     Mon: [
@@ -453,82 +532,25 @@ function getBlocksForPlanWeekday(plan, weekday) {
   return getDayActivitiesForWeekday(plan, weekday);
 }
 
-// Update primary + extras as a single blocks list, keeping legacy fields in sync.
 function updateBlocksForPlanWeekday(plan, weekday, updater) {
   if (!plan || !weekday || typeof updater !== "function") return plan;
 
-  // Start from the canonical view of blocks for this day
-  const current = getDayActivitiesForWeekday(plan, weekday);
-  if (!current.length) return plan;
+  const base = ensureBlocksByWeekday(plan);
+  const current = Array.isArray(base.blocksByWeekday[weekday])
+    ? base.blocksByWeekday[weekday]
+    : [];
 
   const nextBlocks = updater(current) || current;
-  if (!Array.isArray(nextBlocks) || !nextBlocks.length) {
-    // Don't allow wiping the day via this helper
-    return plan;
+
+  if (!Array.isArray(nextBlocks)) {
+    return base;
   }
-
-  const base = { ...plan };
-  const primary = nextBlocks[0];
-  const extras = nextBlocks.slice(1);
-
-  const nextBlocksForDay = nextBlocks.map((block, idx) => {
-    const typeId =
-      block.typeId ||
-      primary.typeId ||
-      base.dayTypeByWeekday?.[weekday] ||
-      "strength";
-
-    const restSec =
-      typeof block.restSec === "number"
-        ? block.restSec
-        : typeof primary.restSec === "number"
-        ? primary.restSec
-        : base.restSecByWeekday?.[weekday] ?? 60;
-
-    const cardioTarget =
-      typeof block.cardioTarget === "string"
-        ? block.cardioTarget
-        : primary.cardioTarget ||
-          base.cardioTargetByWeekday?.[weekday] ||
-          "";
-
-    return {
-      id: block.id || `${weekday}_${idx === 0 ? "main" : `extra_${idx - 1}`}`,
-      typeId,
-      label: block.label || "",
-      note: typeof block.note === "string" ? block.note : "",
-      movements: Array.isArray(block.movements) ? block.movements : [],
-      restSec,
-      cardioTarget,
-      tasks: Array.isArray(block.tasks) ? block.tasks : [],
-    };
-  });
 
   return {
     ...base,
     blocksByWeekday: {
-      ...(base.blocksByWeekday || {}),
-      [weekday]: nextBlocksForDay,
-    },
-    // Keep primary kind in sync for the rest of the app
-    dayTypeByWeekday: {
-      ...(base.dayTypeByWeekday || {}),
-      [weekday]: primary.typeId || "strength",
-    },
-    // Keep legacy extras list in sync (for existing tasks/movements code)
-    dayActivitiesByWeekday: {
-      ...(base.dayActivitiesByWeekday || {}),
-      [weekday]: extras.map((block, idx) => ({
-        id: block.id || `${weekday}_extra_${idx}`,
-        typeId: block.typeId || "tasks",
-        label: block.label || "",
-        note: typeof block.note === "string" ? block.note : "",
-        movements: Array.isArray(block.movements) ? block.movements : [],
-        restSec:
-          typeof block.restSec === "number" ? block.restSec : undefined,
-        cardioTarget: block.cardioTarget,
-        tasks: Array.isArray(block.tasks) ? block.tasks : [],
-      })),
+      ...base.blocksByWeekday,
+      [weekday]: nextBlocks,
     },
   };
 }
@@ -1076,7 +1098,7 @@ useEffect(() => {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [undoPlan, setUndoPlan] = useState(null);
   const [undoLabel, setUndoLabel] = useState("");
-
+  
   const jumpTo = (nextTab, ref) => {
     setTab(nextTab);
     setTimeout(() => {
@@ -1158,6 +1180,7 @@ useEffect(() => {
   
   // Plan editing should NOT depend on log date.
   const [planWeekday, setPlanWeekday] = useState("Mon");
+  const [planViewMode, setPlanViewMode] = useState("edit"); // "edit" | "clean"
 
   function makeLogCacheKey(familyId, profileId, date) {
   if (!familyId || !profileId || !date) return null;
@@ -1359,134 +1382,117 @@ useEffect(() => {
   }
 
   function normalisePlanForRuntime(plan) {
-  if (!plan) return null;
+    if (!plan) return null;
 
-  // 1) Ensure built-in activity types (including Tick-box tasks) are present
-  const builtIns = builtInTypes();
-  const existing = Array.isArray(plan.activityTypes) ? plan.activityTypes : [];
+    // 1) Ensure activityTypes includes all built-ins
+    const builtIns = builtInTypes();
+    const existing = Array.isArray(plan.activityTypes) ? plan.activityTypes : [];
+    const byId = {};
 
-  const byId = {};
-
-  // Seed with built-ins so new kinds are always available
-  for (const t of builtIns) {
-    byId[t.id] = { ...t };
-  }
-
-  // Overlay any stored/custom types (letting them override built-in defaults)
-  for (const t of existing) {
-    if (!t || !t.id) continue;
-    byId[t.id] = { ...(byId[t.id] || {}), ...t };
-  }
-
-  const mergedTypes = Object.values(byId);
-
-  // 2) Ensure dayActivitiesByWeekday exists (legacy extras list used by current UI)
-  const rawDayActivities =
-    plan.dayActivitiesByWeekday && typeof plan.dayActivitiesByWeekday === "object"
-      ? plan.dayActivitiesByWeekday
-      : {};
-
-  // 3) Build / normalise blocksByWeekday (Plan V2 shape).
-  //    For now this is a superset used for future features; the current UI
-  //    still reads primary day fields + dayActivitiesByWeekday.
-  const blocksByWeekday = {};
-  const hasBlocksV2 =
-    plan.blocksByWeekday &&
-    typeof plan.blocksByWeekday === "object" &&
-    Object.values(plan.blocksByWeekday).some((v) => Array.isArray(v) && v.length);
-
-  if (hasBlocksV2) {
-    // Normalise whatever is stored in blocksByWeekday.
-    for (const w of weekdays) {
-      const rawList = Array.isArray(plan.blocksByWeekday[w]) ? plan.blocksByWeekday[w] : [];
-      blocksByWeekday[w] = rawList.map((b, idx) => ({
-  id: b && b.id ? b.id : `${w}_block_${idx}`,
-  typeId: b && b.typeId ? b.typeId : (plan.dayTypeByWeekday?.[w] || "strength"),
-  label: (b && b.label) || "",
-  note: typeof b?.note === "string" ? b.note : "",
-  movements: Array.isArray(b?.movements) ? b.movements : [],
-  restSec: typeof b?.restSec === "number" ? b.restSec : undefined,
-  cardioTarget: typeof b?.cardioTarget === "string" ? b.cardioTarget : "",
-  tasks: Array.isArray(b?.tasks) ? b.tasks : [],
-}));
+    for (const t of builtIns) {
+      byId[t.id] = { ...t };
     }
-  } else {
-    // Derive blocks from the legacy fields (dayTypeByWeekday + movementsByWeekday + extras).
-    const dayTypeByWeekday = plan.dayTypeByWeekday || {};
-    const movementsByWeekday = plan.movementsByWeekday || {};
-    const restSecByWeekday = plan.restSecByWeekday || {};
-    const cardioTargetByWeekday = plan.cardioTargetByWeekday || {};
+    for (const t of existing) {
+      if (t && t.id) {
+        byId[t.id] = { ...byId[t.id], ...t };
+      }
+    }
+
+    const activityTypes = Object.values(byId);
+
+    // 2) Ensure blocksByWeekday exists and normalise each block
+    const outBlocksByWeekday = {};
+    const src = plan.blocksByWeekday || {};
 
     for (const w of weekdays) {
-      const typeId = dayTypeByWeekday[w] || "strength";
-      const primary = {
-        id: `${w}_main`,
-        typeId,
-        label: "",
-        movements: Array.isArray(movementsByWeekday[w]) ? movementsByWeekday[w] : [],
-        restSec: typeof restSecByWeekday[w] === "number" ? restSecByWeekday[w] : 60,
-        cardioTarget: cardioTargetByWeekday[w] || "",
-        tasks: [],
-      };
+      const raw = Array.isArray(src[w]) ? src[w] : [];
+      outBlocksByWeekday[w] = raw.map((b, idx) => {
+        const typeId = b?.typeId || "strength";
 
-      const extrasRaw =
-        rawDayActivities[w] && Array.isArray(rawDayActivities[w]) ? rawDayActivities[w] : [];
-      const extras = extrasRaw.map((b, idx) => ({
-        id: b && b.id ? b.id : `${w}_extra_${idx}`,
-        typeId: b && b.typeId ? b.typeId : "tasks",
-        label: (b && b.label) || "",
-        movements: Array.isArray(b?.movements) ? b.movements : [],
-        restSec: typeof b?.restSec === "number" ? b.restSec : undefined,
-        cardioTarget: typeof b?.cardioTarget === "string" ? b.cardioTarget : "",
-        tasks: Array.isArray(b?.tasks) ? b.tasks : [],
-      }));
+        if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+          const movements = Array.isArray(b.movements) ? b.movements : [];
+          const defaultMovement = createStrengthBlock().movements[0];
 
-      blocksByWeekday[w] = [primary, ...extras];
+          const normMovements = (movements.length ? movements : [defaultMovement]).map(
+            (m, mIdx) => ({
+              id: m?.id || uid(),
+              name: m?.name || "",
+              sets: safeNumber(m?.sets) || 3,
+              reps: m?.reps ?? "",
+              trackWeight: !!m?.trackWeight,
+              trackDuration: !!m?.trackDuration,
+              initialTarget: m?.initialTarget ?? "",
+            })
+          );
+
+          return {
+            id: b?.id || `${w}_block_${idx}`,
+            typeId,
+            label: b?.label || "",
+            note: typeof b?.note === "string" ? b.note : "",
+            restSec: typeof b?.restSec === "number" ? b.restSec : 60,
+            movements: normMovements,
+          };
+        }
+
+        if (typeId === "cardio") {
+          return {
+            id: b?.id || `${w}_block_${idx}`,
+            typeId: "cardio",
+            label: b?.label || "",
+            note: typeof b?.note === "string" ? b.note : "",
+            cardioType: b?.cardioType || "run",
+            cardioTypeOtherLabel: b?.cardioTypeOtherLabel || "",
+            targetText: b?.targetText || "",
+          };
+        }
+
+        if (typeId === "duration") {
+          return {
+            id: b?.id || `${w}_block_${idx}`,
+            typeId: "duration",
+            label: b?.label || "",
+            note: typeof b?.note === "string" ? b.note : "",
+            plannedMinutes:
+              typeof b?.plannedMinutes === "number" ||
+              typeof b?.plannedMinutes === "string"
+                ? String(b.plannedMinutes)
+                : "",
+          };
+        }
+
+        if (typeId === "tasks") {
+          const tasks = Array.isArray(b?.tasks) ? b.tasks : [];
+          return {
+            id: b?.id || `${w}_block_${idx}`,
+            typeId: "tasks",
+            label: b?.label || "",
+            note: typeof b?.note === "string" ? b.note : "",
+            tasks: tasks.map((t) => ({
+              id: t?.id || uid(),
+              label: t?.label || "",
+              xpValue: safeNumber(t?.xpValue) || 5,
+            })),
+          };
+        }
+
+        // Fallback: unknown type → treat as duration block
+        return {
+          id: b?.id || `${w}_block_${idx}`,
+          typeId: "duration",
+          label: b?.label || "",
+          note: typeof b?.note === "string" ? b.note : "",
+          plannedMinutes: "",
+        };
+      });
     }
+
+    return {
+      ...plan,
+      activityTypes,
+      blocksByWeekday: outBlocksByWeekday,
+    };
   }
-
-  // 4) Keep legacy fields in sync so the rest of the app keeps working.
-  const nextDayTypeByWeekday = { ...(plan.dayTypeByWeekday || {}) };
-  const nextMovementsByWeekday = { ...(plan.movementsByWeekday || {}) };
-  const nextRestSecByWeekday = { ...(plan.restSecByWeekday || {}) };
-  const nextCardioTargetByWeekday = { ...(plan.cardioTargetByWeekday || {}) };
-  const nextDayActivitiesByWeekday = { ...rawDayActivities };
-
-  for (const w of weekdays) {
-    const blocks = Array.isArray(blocksByWeekday[w]) ? blocksByWeekday[w] : [];
-    if (!blocks.length) continue;
-
-    const primary = blocks[0];
-
-    if (!nextDayTypeByWeekday[w]) {
-      nextDayTypeByWeekday[w] = primary.typeId || "strength";
-    }
-    if (!nextMovementsByWeekday[w] && Array.isArray(primary.movements)) {
-      nextMovementsByWeekday[w] = primary.movements;
-    }
-    if (nextRestSecByWeekday[w] == null) {
-      nextRestSecByWeekday[w] =
-        typeof primary.restSec === "number" ? primary.restSec : 60;
-    }
-    if (!nextCardioTargetByWeekday[w] && primary.cardioTarget) {
-      nextCardioTargetByWeekday[w] = primary.cardioTarget;
-    }
-
-    // Extras = all non-primary blocks.
-    nextDayActivitiesByWeekday[w] = blocks.slice(1);
-  }
-
-  return {
-    ...plan,
-    activityTypes: mergedTypes,
-    dayActivitiesByWeekday: nextDayActivitiesByWeekday,
-    blocksByWeekday,
-    dayTypeByWeekday: nextDayTypeByWeekday,
-    movementsByWeekday: nextMovementsByWeekday,
-    restSecByWeekday: nextRestSecByWeekday,
-    cardioTargetByWeekday: nextCardioTargetByWeekday,
-  };
-}
 
   function setAndCachePlan(profileId, nextPlan) {
     const normalised = normalisePlanForRuntime(nextPlan);
@@ -3749,675 +3755,407 @@ async function resetDay() {
           </div>
         )}
 
-        {tab === "plan" && (
-          <div className="gridPlan">
-            <Card className="pad planSide">
-              <div className="h2">Edit day</div>
-              <div className="muted mt8">Choose a weekday, then set its activity type and default rest interval.</div>
-
-              <div className="weekPills mt12">
-                {weekdays.map((d) => (
-                  <button key={d} className={"weekPill " + (planWeekday === d ? "active" : "")} onClick={() => setPlanWeekday(d)}>
-                    {d}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt16">
-                <div className="label">Rest between sets (sec)</div>
-                <Input
-                  type="number"
-                  min={0}
-                  step={5}
-                  value={(plan?.restSecByWeekday?.[planWeekday] ?? 60)}
-                  onChange={async (v) => {
-                    const next = { ...plan, restSecByWeekday: { ...(plan?.restSecByWeekday || {}), [planWeekday]: Number(v) } };
-                    await savePlan(next);
-                  }}
-                />
-                <div className="muted mt8">Shown on the Log screen and used for time estimates if you don’t enter minutes.</div>
-              </div>
-
-              <div className="mt16">
-                <div className="h3">Activity types</div>
-                <div className="muted mt8">Add custom types (e.g. Swim, Pilates). Everyone can then use them in their weekly plan.</div>
-                <div className="stack mt12">
-                  {(plan?.activityTypes || builtInTypes()).map((t) => (
-                    <div key={t.id} className="mini rowBetween">
-                      <div>
-                        <b>{t.name}</b>
-                        <div className="muted">{t.kind}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="row mt12">
-                  <PrimaryButton
-                    onClick={async () => {
-                      const name = window.prompt("New activity type name (e.g. Swim, Pilates):");
-                      if (!name) return;
-                      const kind = window.prompt('Kind? Type one of: strength, cardio, time, custom', 'custom');
-                      const k = (kind || "custom").toLowerCase();
-                      const allowed = new Set(["strength", "cardio", "time", "custom"]);
-                      const finalKind = allowed.has(k) ? k : "custom";
-                      const nextType = { id: `custom_${uid()}`, name, kind: finalKind };
-                      const next = { ...plan, activityTypes: [...(plan?.activityTypes || builtInTypes()), nextType] };
-                      await savePlan(next);
-                    }}
-                  >
-                    + Add type
-                  </PrimaryButton>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="pad planMain">
-              <div className="rowBetween">
-                <div>
-                  <div className="h2">Weekly plan (fully custom)</div>
-                  <div className="muted">Assign an activity type to each day. Add custom types for other people (swim, pilates, etc.).</div>
-                </div>
-                <div className="selectWide">
-                </div>
-              </div>
-
-              
-              <div className="panel mt16">
-                <div className="h3">Preset plans</div>
-                <div className="muted mt8">Pick a goal, then apply it (this can overwrite your current week).</div>
-                <div className="row mt12">
-                  <div style={{ flex: 1 }}>
-                    <Select
-                      value={selectedPresetId}
-                      onChange={setSelectedPresetId}
-                      options={[
-                        { value: "", label: "Choose a preset…" },
-                        ...presetPlans().map((p) => ({ value: p.id, label: p.name })),
-                      ]}
-                    />
-                    {selectedPresetId ? (
-                      <div className="muted mt8">
-                        {presetPlans().find((p) => p.id === selectedPresetId)?.note || ""}
-                      </div>
-                    ) : null}
-                  </div>
-                  <div style={{ width: 12 }} />
-                  <PrimaryButton
-                    disabled={!selectedPresetId}
-                    onClick={async () => {
-                      const preset = presetPlans().find((p) => p.id === selectedPresetId);
-                      if (!preset) return;
-                      const ok = window.confirm(
-                        `Apply preset "${preset.name}"?\n\nThis will overwrite your current weekly plan. You can undo right after applying.`
-                      );
-                      if (!ok) return;
-                      await applyPlan({ ...preset.plan, presetId: preset.id }, `Preset applied: ${preset.name}`);
-                      // refresh templates list isn't needed here
-                    }}
-                  >
-                    Apply preset
-                  </PrimaryButton>
-                </div>
-                {undoPlan ? (
-                  <div className="rowBetween mt12">
-                    <div className="mini">Undo available: <b>{undoLabel || "Recent change"}</b></div>
-                    <SecondaryButton onClick={undoLastPlan}>Undo</SecondaryButton>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="panel mt16">
-                <div className="rowBetween">
-                  <div>
-                    <div className="h3">Saved weekly plans</div>
-                    <div className="muted mt8">Save multiple weeks (templates) and switch between them.</div>
-                  </div>
-                </div>
-
-                <div className="row mt12">
-                  <div style={{ flex: 1 }}>
-                    <Select
-                      value={selectedTemplateId}
-                      onChange={setSelectedTemplateId}
-                      options={[
-                        { value: "", label: "Choose a saved plan…" },
-                        ...planTemplates.map((t) => ({ value: t.id, label: t.name })),
-                      ]}
-                    />
-                  </div>
-                  <div style={{ width: 12 }} />
-                  <PrimaryButton
-                    disabled={!selectedTemplateId}
-                    onClick={async () => {
-                      const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
-                      if (!tpl) return;
-                      const ok = window.confirm(
-                        `Load saved plan "${tpl.name}"?\n\nThis will overwrite your current weekly plan. You can undo right after applying.`
-                      );
-                      if (!ok) return;
-                      await applyPlan({ ...(tpl.plan_json || {}), templateId: tpl.id }, `Loaded saved plan: ${tpl.name}`);
-                    }}
-                  >
-                    Load
-                  </PrimaryButton>
-                </div>
-
-                <div className="row planTemplatesRow mt12">
-                  <PrimaryButton
-                    onClick={async () => {
-                      const name = window.prompt("Name this saved weekly plan:");
-                      if (!name) return;
-                      if (!family?.id) return;
-                      if (!(await ensureUnlocked("save a template"))) return;
-                      const { error } = await createPlanTemplate(family.id, name, plan || {});
-                      if (error) window.alert(error.message || String(error));
-                      const { data } = await listPlanTemplates(family.id);
-                      setPlanTemplates(data || []);
-                    }}
-                  >
-                    Save as new
-                  </PrimaryButton>
-                  <div style={{ width: 10 }} />
-                  <SecondaryButton
-                    disabled={!selectedTemplateId}
-                    onClick={async () => {
-                      const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
-                      if (!tpl) return;
-                      const ok = window.confirm(`Update "${tpl.name}" with your current plan?`);
-                      if (!ok) return;
-                      if (!(await ensureUnlocked("update a template"))) return;
-                      const { error } = await updatePlanTemplate(tpl.id, tpl.name, plan || {});
-                      if (error) window.alert(error.message || String(error));
-                      const { data } = await listPlanTemplates(family.id);
-                      setPlanTemplates(data || []);
-                    }}
-                  >
-                    Update plan
-                  </SecondaryButton>
-                  <div style={{ width: 10 }} />
-                  <SecondaryButton
-                    disabled={!selectedTemplateId}
-                    onClick={async () => {
-                      const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
-                      if (!tpl) return;
-                      const ok = window.confirm(`Delete saved plan "${tpl.name}"?`);
-                      if (!ok) return;
-                      if (!(await ensureUnlocked("delete a template"))) return;
-                      const { error } = await deletePlanTemplate(tpl.id);
-                      if (error) window.alert(error.message || String(error));
-                      const { data } = await listPlanTemplates(family.id);
-                      setPlanTemplates(data || []);
-                      setSelectedTemplateId("");
-                    }}
-                  >
-                    Delete plan
-                  </SecondaryButton>
-                </div>
-              </div>
-
-              {/* Blocks-centric UI for this weekday (Stage 1) */}
-<div className="panel mt16">
-  <div className="rowBetween">
-    <div>
-      <div className="h3">Blocks for this day</div>
-      <div className="muted mt4">
-        Each block is a separate chunk of activity – for example a{" "}
-        <b>Strength</b> session, a <b>Run/Swim</b>, a <b>Duration</b> block,
-        or a <b>Tasks</b> block.
+{tab === "plan" && (
+  <div className="gridPlan">
+    {/* LEFT COLUMN: Day selector + inline blocks */}
+    <Card className="pad planSide" ref={planRef}>
+      <div className="h2">Edit day blocks</div>
+      <div className="muted mt8">
+        Select a weekday, then add or edit blocks. A day has no type — it’s
+        just an ordered list of blocks.
       </div>
-    </div>
-  </div>
 
-  <div className="stack mt12">
-    {blocksForPlanWeekday.length === 0 ? (
-      <div className="muted">
-        No blocks yet. Add one below to start planning this day.
+      <div className="weekPills mt12">
+        {weekdays.map((d) => (
+          <button
+            key={d}
+            className={"weekPill " + (planWeekday === d ? "active" : "")}
+            onClick={() => setPlanWeekday(d)}
+          >
+            {d}
+          </button>
+        ))}
       </div>
-    ) : (
-      blocksForPlanWeekday.map((block, idx) => {
-        const isPrimary = !!block.isPrimary || idx === 0;
-        const type =
-          activityTypesForPlan.find((t) => t.id === block.typeId) ||
-          activityTypesForPlan[0];
-        const kind = type.kind;
 
-        let hint = "";
-        if (kind === "strength" || kind === "time") {
-          hint =
-            "Strength/Box blocks use the movements & sets section below for the main work.";
-        } else if (kind === "cardio") {
-          hint =
-            "Cardio blocks use the Cardio target text for distance/time/effort notes.";
-        } else if (kind === "custom") {
-          hint =
-            "Duration blocks log total minutes on the Log tab, but you can name and describe them here.";
-        } else if (kind === "task" || type.id === "tasks") {
-          hint =
-            "Tasks blocks use the task list below – this block groups those tick-box tasks together.";
-        }
+      <div className="row mt16" style={{ alignItems: "center", gap: 8 }}>
+        <div className="muted" style={{ flex: 1 }}>
+          Blocks are the only unit of planning. Everything you log later will
+          belong to one of these blocks.
+        </div>
+        <div className="pillToggle">
+          <button
+            className={
+              "pillToggleBtn " + (planViewMode === "edit" ? "active" : "")
+            }
+            onClick={() => setPlanViewMode("edit")}
+          >
+            Edit view
+          </button>
+          <button
+            className={
+              "pillToggleBtn " + (planViewMode === "clean" ? "active" : "")
+            }
+            onClick={() => setPlanViewMode("clean")}
+          >
+            Clean view
+          </button>
+        </div>
+      </div>
 
-        return (
-          <div key={block.id} className="planRow">
-            <div className="planMoveHead">
-              <div className="planLeft">
-                <div className="mini muted">
-                  {isPrimary ? "Primary block" : "Extra block"}
-                  {(kind === "task" || type.id === "tasks") &&
-                    " · Tasks block"}
-                </div>
+      <div className="mt16 stack">
+        {blocksForSelectedPlanDay.length === 0 && (
+          <div className="muted">
+            No blocks yet for {planWeekday}. Add a strength, cardio, duration,
+            or tasks block below.
+          </div>
+        )}
 
-                {/* Block name */}
-                <div className="planName mt4">
-                  <Input
-                    value={block.label || ""}
-                    onChange={async (v) => {
-                      if (!plan) return;
-                      const next = updateBlocksForPlanWeekday(
-                        plan,
-                        planWeekday,
-                        (blocks) =>
-                          blocks.map((b) =>
-                            b.id === block.id ? { ...b, label: v } : b
-                          )
-                      );
-                      await savePlan(next);
-                    }}
-                    placeholder={
-                      isPrimary
-                        ? "e.g. Main workout"
-                        : "e.g. Extra run / mobility"
-                    }
-                  />
-                </div>
+        {blocksForSelectedPlanDay.map((block, idx) => {
+          const typeId = block.typeId || "strength";
 
-                {/* Coach notes */}
-                <div className="mt8">
-                  <div className="label">Coach notes (optional)</div>
-                  <Input
-                    value={block.note || ""}
-                    onChange={async (v) => {
-                      if (!plan) return;
-                      const next = updateBlocksForPlanWeekday(
-                        plan,
-                        planWeekday,
-                        (blocks) =>
-                          blocks.map((b) =>
-                            b.id === block.id ? { ...b, note: v } : b
-                          )
-                      );
-                      await savePlan(next);
-                    }}
-                    placeholder={
-                      kind === "cardio"
-                        ? "e.g. Easy pace, push last 100m"
-                        : kind === "task"
-                        ? "e.g. Do these before screens"
-                        : "Tips, cues or focus for this block"
-                    }
-                  />
-                </div>
-
-                {hint && <div className="muted mt8">{hint}</div>}
-              </div>
-
-              <div className="planBtns">
-                {/* Type selector */}
-                <div style={{ minWidth: 180 }}>
-                  <div className="label">Type</div>
-                  <Select
-                    value={
-                      block.typeId ||
-                      (plan?.dayTypeByWeekday?.[planWeekday] || "strength")
-                    }
-                    onChange={async (v) => {
-                      if (!plan) return;
-                      const next = updateBlocksForPlanWeekday(
-                        plan,
-                        planWeekday,
-                        (blocks) =>
-                          blocks.map((b) =>
-                            b.id === block.id ? { ...b, typeId: v } : b
-                          )
-                      );
-                      await savePlan(next);
-                    }}
-                    options={activityTypesForPlan.map((t) => ({
-                      value: t.id,
-                      label: t.name,
-                    }))}
-                  />
-                </div>
-
-                {/* Remove extra blocks (not primary) */}
-                {!isPrimary && (
+          if (planViewMode === "clean") {
+            // Compact summary
+            return (
+              <div key={block.id} className="panel mt8">
+                <div className="row between">
+                  <div className="pill">
+                    {typeId === "strength" && "Strength / HIIT"}
+                    {typeId === "hiit" && "HIIT"}
+                    {typeId === "box" && "Boxercise"}
+                    {typeId === "cardio" && "Cardio"}
+                    {typeId === "duration" && "Duration"}
+                    {typeId === "tasks" && "Tasks"}
+                  </div>
                   <SecondaryButton
-                    onClick={async () => {
-                      if (!plan) return;
-                      const next = updateBlocksForPlanWeekday(
-                        plan,
-                        planWeekday,
-                        (blocks) =>
-                          blocks.filter((b) => b.id !== block.id)
-                      );
-                      await savePlan(next);
-                    }}
+                    className="btnSmall"
+                    onClick={() => removeBlockFromDay(block.id)}
                   >
                     Remove
                   </SecondaryButton>
+                </div>
+                <div className="mt8">
+                  <b>{block.label || "(no name yet)"}</b>
+                </div>
+                {block.note && (
+                  <div className="muted mt4">
+                    {block.note.length > 120
+                      ? block.note.slice(0, 120) + "…"
+                      : block.note}
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
-        );
-      })
-    )}
-  </div>
-
-  {/* Add new block */}
-  <div className="row mt12">
-    <PrimaryButton
-      onClick={async () => {
-        if (!plan) return;
-        const next = updateBlocksForPlanWeekday(
-          plan,
-          planWeekday,
-          (blocks) => {
-            const lastType =
-              (blocks[blocks.length - 1] &&
-                blocks[blocks.length - 1].typeId) ||
-              plan?.dayTypeByWeekday?.[planWeekday] ||
-              "strength";
-            return [
-              ...blocks,
-              {
-                id: uid(),
-                typeId: lastType,
-                label: "",
-                note: "",
-              },
-            ];
+            );
           }
-        );
-        await savePlan(next);
-      }}
-    >
-      + Add block
-    </PrimaryButton>
-  </div>
-</div>
 
-              {planActivityType.kind === "cardio" ? (
-                <div className="panel mt16">
-                  <div className="h3">Cardio target (optional)</div>
-                  <div className="muted mt8">
-                    Examples: <b>2.5 km</b> • <b>15 min</b> • <b>6×(1 min fast / 1 min easy)</b> • <b>Tempo: hard but controlled</b>
-                    <br/>
-                    Leave blank to use last time → auto targets.
-                  </div>
+          // EDIT VIEW
+          return (
+            <div key={block.id} className="panel mt12">
+              <div className="row between">
+                <div className="pillRow">
+                  <span className="pill">
+                    {typeId === "strength" && "Strength / HIIT"}
+                    {typeId === "hiit" && "HIIT"}
+                    {typeId === "box" && "Boxercise"}
+                    {typeId === "cardio" && "Cardio"}
+                    {typeId === "duration" && "Duration"}
+                    {typeId === "tasks" && "Tasks"}
+                  </span>
+                  {typeId === "strength" || typeId === "hiit" || typeId === "box" ? (
+                    <Select
+                      className="ml8"
+                      value={typeId}
+                      onChange={(v) =>
+                        updateBlockInDay(block.id, () => ({ typeId: v }))
+                      }
+                      options={[
+                        { value: "strength", label: "Strength" },
+                        { value: "hiit", label: "HIIT" },
+                        { value: "box", label: "Boxercise" },
+                      ]}
+                    />
+                  ) : null}
+                </div>
+                <SecondaryButton
+                  className="btnSmall"
+                  onClick={() => removeBlockFromDay(block.id)}
+                >
+                  Remove
+                </SecondaryButton>
+              </div>
+
+              {/* Common: name + coach note */}
+              <div className="mt12">
+                <div className="label">Name</div>
+                <Input
+                  value={block.label || ""}
+                  onChange={(v) =>
+                    updateBlockInDay(block.id, () => ({ label: v }))
+                  }
+                  placeholder={
+                    typeId === "cardio"
+                      ? "e.g. Easy run"
+                      : typeId === "duration"
+                      ? "e.g. Yoga flow"
+                      : typeId === "tasks"
+                      ? "e.g. Recovery tasks"
+                      : "e.g. Upper body"
+                  }
+                />
+              </div>
+
+              <div className="mt8">
+                <div className="label">Coach note</div>
+                <Textarea
+                  value={block.note || ""}
+                  onChange={(v) =>
+                    updateBlockInDay(block.id, () => ({ note: v }))
+                  }
+                  placeholder="Optional notes, cues, or reminders…"
+                />
+              </div>
+
+              {/* Type-specific config */}
+              {(typeId === "strength" ||
+                typeId === "hiit" ||
+                typeId === "box") && (
+                <>
                   <div className="mt12">
+                    <div className="label">Rest between sets (seconds)</div>
                     <Input
-                      value={(plan?.cardioTargetByWeekday?.[planWeekday]) || ""}
-                      onChange={async (v) => {
-                        const next = {
-                          ...plan,
-                          cardioTargetByWeekday: { ...(plan.cardioTargetByWeekday || {}), [planWeekday]: v },
-                        };
-                        await savePlan(next);
-                      }}
-                      placeholder='e.g. 6×(1 min fast / 1 min easy)'
+                      type="number"
+                      min={0}
+                      step={5}
+                      value={
+                        typeof block.restSec === "number"
+                          ? block.restSec
+                          : 60
+                      }
+                      onChange={(v) =>
+                        updateBlockInDay(block.id, () => ({
+                          restSec: safeNumber(v),
+                        }))
+                      }
                     />
                   </div>
-                </div>
-              ) : null}
 
-              {planActivityType.movementsEnabled ? (
-  <div className="stack mt16">
-    {(planMovements || []).map((m) => (
-      <div key={m.id} className="planRow">
-        <div className="planMoveHead">
-          <div className="planLeft">
-            <div className="planName">{m.name}</div>
-            {m.note ? <div className="muted mt4">{m.note}</div> : null}
+                  <div className="mt12">
+                    <div className="label">Movements</div>
+                    <div className="stack mt8">
+                      {(block.movements || []).map((m) => (
+                        <div key={m.id} className="movementRow">
+                          <div className="row movementRowTop">
+                            <div className="field flex1">
+                              <div className="label">Movement</div>
+                              <Input
+                                value={m.name || ""}
+                                onChange={(v) =>
+                                  updateMovementField(
+                                    block.id,
+                                    m.id,
+                                    "name",
+                                    v
+                                  )
+                                }
+                                placeholder="e.g. Push-ups"
+                              />
+                            </div>
+                            <div className="field w80">
+                              <div className="label">Sets</div>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={20}
+                                value={m.sets || 3}
+                                onChange={(v) =>
+                                  updateMovementField(
+                                    block.id,
+                                    m.id,
+                                    "sets",
+                                    safeNumber(v) || 1
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="field w120">
+                              <div className="label">Reps / duration</div>
+                              <Input
+                                value={m.reps || ""}
+                                onChange={(v) =>
+                                  updateMovementField(
+                                    block.id,
+                                    m.id,
+                                    "reps",
+                                    v
+                                  )
+                                }
+                                placeholder="e.g. 10–12 or 30s"
+                              />
+                            </div>
+                          </div>
+                          <div className="row mt4 movementRowBottom">
+                            <label className="checkboxLabel">
+                              <input
+                                type="checkbox"
+                                checked={!!m.trackWeight}
+                                onChange={(e) =>
+                                  updateMovementField(
+                                    block.id,
+                                    m.id,
+                                    "trackWeight",
+                                    e.target.checked
+                                  )
+                                }
+                              />
+                              Track weight
+                            </label>
+                            <label className="checkboxLabel ml12">
+                              <input
+                                type="checkbox"
+                                checked={!!m.trackDuration}
+                                onChange={(e) =>
+                                  updateMovementField(
+                                    block.id,
+                                    m.id,
+                                    "trackDuration",
+                                    e.target.checked
+                                  )
+                                }
+                              />
+                              Track duration
+                            </label>
 
-            <div className="pills mt8">
-              <Pill>{m.mode}</Pill>
-              <Pill>3 sets</Pill>
-              {m.fixedSeconds ? <Pill>{m.fixedSeconds}s</Pill> : null}
-              {m.allowWeight ? <Pill>weights</Pill> : null}
-              {m.allowCount ? <Pill>{m.countLabel || "count"}</Pill> : null}
-              {m.targetText ? <Pill>Target: {m.targetText}</Pill> : null}
-            </div>
-          </div>
-
-          <div className="planBtns">
-            <SecondaryButton
-              onClick={async () => {
-                const examples =
-                  m.mode === "strength"
-                    ? 'Examples:\n• 10\n• 10 @ 20kg\n• 8–12 reps'
-                    : m.mode === "time"
-                      ? 'Examples:\n• 60s\n• 1 min\n• 3 × 1 min rounds'
-                      : m.mode === "custom"
-                        ? 'Examples:\n• 20 min\n• 30 min easy'
-                        : 'Examples:\n• 10';
-
-                const promptText = `Optional target for "${m.name}" (leave blank for none):\n${examples}\n\nTip: You can type anything — it’s just a reminder.`;
-                const prevDefault =
-                  (m.targetText != null && String(m.targetText)) ||
-                  (m.targetReps != null ? String(m.targetReps) : "");
-                const raw = prompt(promptText, prevDefault);
-                if (raw === null) return;
-
-                const txt = raw.trim();
-                let targetText = txt === "" ? null : txt;
-
-                let targetReps = null;
-                let targetWeight = null;
-
-                if (m.mode === "strength" && targetText) {
-                  const m1 = targetText.match(/^\s*(\d+)\s*(?:@|at)?\s*(\d+(?:\.\d+)?)?\s*(?:kg)?\s*$/i);
-                  if (m1) {
-                    targetReps = Number(m1[1]);
-                    if (m1[2] != null && m.allowWeight) targetWeight = Number(m1[2]);
-                  } else {
-                    const m2 = targetText.match(/^\s*(\d+)\s*$/);
-                    if (m2) targetReps = Number(m2[1]);
-                  }
-                  if (!Number.isFinite(targetReps)) targetReps = null;
-                  if (!Number.isFinite(targetWeight)) targetWeight = null;
-                }
-
-                const nextMov = (planMovements || []).map((x) =>
-                  x.id === m.id ? { ...x, targetText, targetReps, targetWeight } : x
-                );
-                const next = {
-                  ...plan,
-                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-                };
-                await savePlan(next);
-              }}
-            >
-              Targets
-            </SecondaryButton>
-
-            <SecondaryButton
-              onClick={async () => {
-                const name = prompt("Rename movement:", m.name);
-                if (!name) return;
-                const nextMov = (planMovements || []).map((x) =>
-                  x.id === m.id ? { ...x, name: name.trim() } : x
-                );
-                const next = {
-                  ...plan,
-                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-                };
-                await savePlan(next);
-              }}
-            >
-              Rename
-            </SecondaryButton>
-
-            <SecondaryButton
-              onClick={async () => {
-                const prev = m.note || "";
-                const nextNote = prompt(`Coach note for "${m.name}" (optional):`, prev);
-                if (nextNote === null) return;
-                const nextMov = (planMovements || []).map((x) =>
-                  x.id === m.id ? { ...x, note: nextNote.trim() } : x
-                );
-                const next = {
-                  ...plan,
-                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-                };
-                await savePlan(next);
-              }}
-            >
-              Coach note
-            </SecondaryButton>
-
-            <SecondaryButton
-              onClick={async () => {
-                const nextMov = (planMovements || []).filter((x) => x.id !== m.id);
-                const next = {
-                  ...plan,
-                  movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: nextMov },
-                };
-                await savePlan(next);
-              }}
-            >
-              Remove
-            </SecondaryButton>
-          </div>
-        </div>
-      </div>
-    ))}
-
-    <Card className="pad">
-  <div className="h3">Add movement</div>
-  <div className="muted">Add as many movements as you like for this day.</div>
-  <AddMovement
-    defaultKind={planActivityType.kind}
-    onAdd={async (m) => {
-      const arr = [...(planMovements || [])];
-      arr.push({ ...m, id: uid() });
-      const next = { ...plan, movementsByWeekday: { ...(plan.movementsByWeekday || {}), [planWeekday]: arr } };
-      await savePlan(next);
-    }}
-  />
-</Card>
-  </div>
-) : (
-  <div className="dashed mt16">
-    This activity type doesn’t use movements (just log distance/time or minutes).
-  </div>
-)}
-
-                            {/* Tick-box tasks for this day */}
-              <div className="panel mt16">
-                <div className="rowBetween">
-                  <div>
-                    <div className="h3">Tick-box tasks for this day</div>
-                    <div className="muted mt8">
-                      Use this for simple yes/no tasks (reading, homework, hydration, tidy room, etc.).
+                            <SecondaryButton
+                              className="btnTiny mlAuto"
+                              onClick={() =>
+                                removeMovement(block.id, m.id)
+                              }
+                            >
+                              Remove
+                            </SecondaryButton>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+
+                    <PrimaryButton
+                      className="btnSmall mt8"
+                      onClick={() => addMovementToBlock(block.id)}
+                    >
+                      + Add movement
+                    </PrimaryButton>
                   </div>
-                  <PrimaryButton
-                    disabled={!plan || !!tasksActivityForPlanWeekday}
-                    onClick={async () => {
-                      if (!plan) return;
-                      const label = window.prompt(
-                        "Name for this task group (e.g. 'Extras', 'Habits', 'School tasks'):",
-                        "Extras"
-                      );
-                      const name = label && label.trim();
-                      const builtInTaskType = builtInTypes().find((t) => t.id === "tasks");
-                      const taskType =
-                        activityTypesForPlan.find((t) => t.kind === "task" || t.id === "tasks") ||
-                        builtInTaskType;
+                </>
+              )}
 
-                      let nextPlan = plan;
-                      if (!activityTypesForPlan.some((t) => t.id === taskType.id)) {
-                        nextPlan = { ...plan, activityTypes: [...activityTypesForPlan, taskType] };
+              {typeId === "cardio" && (
+                <>
+                  <div className="mt12">
+                    <div className="label">Cardio type</div>
+                    <Select
+                      value={block.cardioType || "run"}
+                      onChange={(v) =>
+                        updateBlockInDay(block.id, () => ({
+                          cardioType: v,
+                          cardioTypeOtherLabel:
+                            v === "other" ? block.cardioTypeOtherLabel || "" : "",
+                        }))
                       }
+                      options={[
+                        { value: "run", label: "Run" },
+                        { value: "bike", label: "Bike" },
+                        { value: "swim", label: "Swim" },
+                        { value: "other", label: "Other" },
+                      ]}
+                    />
+                  </div>
 
-                      const newBlock = {
-  id: uid(),
-  typeId: taskType.id,
-  label: name || "",
-  tasks: [
-    {
-      id: uid(),
-      label: name || "Task",
-      completed: false,
-    },
-  ],
-};
-
-
-                      const updatedPlan = updateDayActivities(nextPlan, planWeekday, (extras) => [
-                        ...extras,
-                        newBlock,
-                      ]);
-                      await savePlan(updatedPlan);
-                    }}
-                  >
-                    + Add tasks
-                  </PrimaryButton>
-                </div>
-
-                {tasksActivityForPlanWeekday ? (
-                  <>
-                    <div className="mt12">
-                      <div className="label">Group label (optional)</div>
+                  {block.cardioType === "other" && (
+                    <div className="mt8">
+                      <div className="label">Other cardio name</div>
                       <Input
-                        value={tasksActivityForPlanWeekday.label || ""}
-                        onChange={async (v) => {
-                          if (!plan) return;
-                          const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
-                            extras.map((b) =>
-                              b.id === tasksActivityForPlanWeekday.id ? { ...b, label: v } : b
-                            )
-                          );
-                          await savePlan(updatedPlan);
-                        }}
-                        placeholder="e.g. Extras, Habits, School tasks"
+                        value={block.cardioTypeOtherLabel || ""}
+                        onChange={(v) =>
+                          updateBlockInDay(block.id, () => ({
+                            cardioTypeOtherLabel: v,
+                          }))
+                        }
+                        placeholder="e.g. Row, Cross-trainer, Football match…"
                       />
                     </div>
+                  )}
 
-                    <div className="stack mt12">
-                      {(tasksActivityForPlanWeekday.tasks || []).map((task) => (
-                        <div key={task.id} className="rowBetween">
-                          <div style={{ flex: 1, marginRight: 8 }}>
+                  <div className="mt8">
+                    <div className="label">Target</div>
+                    <Textarea
+                      value={block.targetText || ""}
+                      onChange={(v) =>
+                        updateBlockInDay(block.id, () => ({
+                          targetText: v,
+                        }))
+                      }
+                      placeholder='e.g. "2 km easy" or "3 × 400m fast"'
+                    />
+                  </div>
+                </>
+              )}
+
+              {typeId === "duration" && (
+                <>
+                  <div className="mt12">
+                    <div className="label">Planned minutes (optional)</div>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={block.plannedMinutes || ""}
+                      onChange={(v) =>
+                        updateBlockInDay(block.id, () => ({
+                          plannedMinutes: v,
+                        }))
+                      }
+                      placeholder="e.g. 20"
+                    />
+                  </div>
+                </>
+              )}
+
+              {typeId === "tasks" && (
+                <>
+                  <div className="mt12">
+                    <div className="label">Tasks</div>
+                    <div className="stack mt8">
+                      {(block.tasks || []).map((t) => (
+                        <div key={t.id} className="row taskRow">
+                          <div className="field flex1">
+                            <div className="label">Task</div>
                             <Input
-                              value={task.label || ""}
-                              onChange={async (v) => {
-                                if (!plan) return;
-                                const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
-                                  extras.map((b) => {
-                                    if (b.id !== tasksActivityForPlanWeekday.id) return b;
-                                    const nextTasks = (b.tasks || []).map((t) =>
-                                      t.id === task.id ? { ...t, label: v } : t
-                                    );
-                                    return { ...b, tasks: nextTasks };
-                                  })
-                                );
-                                await savePlan(updatedPlan);
-                              }}
-                              placeholder="Task name"
+                              value={t.label || ""}
+                              onChange={(v) =>
+                                updateTaskField(block.id, t.id, "label", v)
+                              }
+                              placeholder="e.g. Stretch, Journal, Ice bath"
+                            />
+                          </div>
+                          <div className="field w80">
+                            <div className="label">XP</div>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={t.xpValue || 5}
+                              onChange={(v) =>
+                                updateTaskField(
+                                  block.id,
+                                  t.id,
+                                  "xpValue",
+                                  safeNumber(v) || 0
+                                )
+                              }
                             />
                           </div>
                           <SecondaryButton
-                            onClick={async () => {
-                              if (!plan) return;
-                              const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
-                                extras.map((b) => {
-                                  if (b.id !== tasksActivityForPlanWeekday.id) return b;
-                                  const nextTasks = (b.tasks || []).filter((t) => t.id !== task.id);
-                                  return { ...b, tasks: nextTasks };
-                                })
-                              );
-                              await savePlan(updatedPlan);
-                            }}
+                            className="btnTiny ml8"
+                            onClick={() =>
+                              removeTask(block.id, t.id)
+                            }
                           >
                             Remove
                           </SecondaryButton>
@@ -4425,53 +4163,140 @@ async function resetDay() {
                       ))}
                     </div>
 
-                    <div className="row mt12">
-                      <PrimaryButton
-                        onClick={async () => {
-                          if (!plan) return;
-                          const label = window.prompt("New task name (e.g. 'Reading 20 min'):");
-                          if (!label || !label.trim()) return;
-                          const newTask = { id: uid(), label: label.trim() };
-                          const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
-                            extras.map((b) => {
-                              if (b.id !== tasksActivityForPlanWeekday.id) return b;
-                              const nextTasks = [...(b.tasks || []), newTask];
-                              return { ...b, tasks: nextTasks };
-                            })
-                          );
-                          await savePlan(updatedPlan);
-                        }}
-                      >
-                        + Add task
-                      </PrimaryButton>
-                      <div style={{ width: 10 }} />
-                      <SecondaryButton
-                        onClick={async () => {
-                          if (!plan || !tasksActivityForPlanWeekday) return;
-                          const ok = window.confirm("Remove all tick-box tasks for this day?");
-                          if (!ok) return;
-                          const updatedPlan = updateDayActivities(plan, planWeekday, (extras) =>
-                            extras.filter((b) => b.id !== tasksActivityForPlanWeekday.id)
-                          );
-                          await savePlan(updatedPlan);
-                        }}
-                      >
-                        Remove tasks block
-                      </SecondaryButton>
-                    </div>
-                  </>
-                ) : (
-                  <div className="muted mt12">
-                    No tick-box tasks set for this day yet.
+                    <PrimaryButton
+                      className="btnSmall mt8"
+                      onClick={() => addTaskToBlock(block.id)}
+                    >
+                      + Add task
+                    </PrimaryButton>
                   </div>
-                )}
-              </div>
-
-              </Card>
+                </>
+              )}
             </div>
-          )}
+          );
+        })}
+      </div>
 
+      {/* Block add buttons */}
+      <div className="mt16">
+        <div className="label">Add block</div>
+        <div className="row mt8" style={{ gap: 8, flexWrap: "wrap" }}>
+          <PrimaryButton
+            className="btnSmall"
+            onClick={() => addBlockToDay("strength")}
+          >
+            + Strength / HIIT block
+          </PrimaryButton>
+          <PrimaryButton
+            className="btnSmall"
+            onClick={() => addBlockToDay("cardio")}
+          >
+            + Cardio block
+          </PrimaryButton>
+          <PrimaryButton
+            className="btnSmall"
+            onClick={() => addBlockToDay("duration")}
+          >
+            + Duration block
+          </PrimaryButton>
+          <PrimaryButton
+            className="btnSmall"
+            onClick={() => addBlockToDay("tasks")}
+          >
+            + Tasks block
+          </PrimaryButton>
+        </div>
+      </div>
+    </Card>
 
+    {/* RIGHT COLUMN: Weekly plan + presets + activity type info */}
+    <Card className="pad planSide">
+      <div className="h2">Weekly plan overview</div>
+      <div className="muted mt8">
+        This shows all blocks for the week. Use it to sense-check balance and
+        save or apply presets.
+      </div>
+
+      <div className="mt12 weeklyPlanSummary">
+        {weekdays.map((d) => {
+          const dayBlocks =
+            normalisedPlan?.blocksByWeekday?.[d] || [];
+          return (
+            <div key={d} className="weeklyPlanDay">
+              <div className="weeklyPlanDayHeader">{d}</div>
+              {dayBlocks.length === 0 ? (
+                <div className="muted small mt4">No blocks</div>
+              ) : (
+                <ul className="weeklyPlanBlockList mt4">
+                  {dayBlocks.map((b) => (
+                    <li key={b.id} className="weeklyPlanBlockItem">
+                      <span className="pill tiny">
+                        {b.typeId === "strength" && "Strength"}
+                        {b.typeId === "hiit" && "HIIT"}
+                        {b.typeId === "box" && "Box"}
+                        {b.typeId === "cardio" && "Cardio"}
+                        {b.typeId === "duration" && "Duration"}
+                        {b.typeId === "tasks" && "Tasks"}
+                      </span>
+                      <span className="ml4">
+                        {b.label || "(no name)"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Preset plans (reuse your existing presetPlans() + apply logic) */}
+      <div className="panel mt16">
+        <div className="h3">Preset plans</div>
+        <div className="muted mt8">
+          Pick a weekly preset, then apply it. This can overwrite your current
+          week.
+        </div>
+        {/* keep your existing presetPlans() + selectedPresetId UI here, unchanged */}
+        {/* (reuse the block you already had under "Preset plans") */}
+      </div>
+
+      {/* Saved weekly plans (existing logic) */}
+      <div className="panel mt16">
+        <div className="h3">Saved weekly plans</div>
+        {/* reuse your existing saved plan templates UI here */}
+      </div>
+
+      {/* Activity Types (collapsed by default) */}
+      <div className="panel mt16">
+        <details>
+          <summary className="h3">Activity types</summary>
+          <div className="muted mt8">
+            Information about the different types of activity you can add:
+          </div>
+          <ul className="mt8">
+            <li>
+              <b>Strength / HIIT / Boxercise</b> — sets &amp; reps with optional
+              weight and duration tracking.
+            </li>
+            <li>
+              <b>Cardio</b> — runs, rides, swims, or other cardio with clear
+              free-form targets.
+            </li>
+            <li>
+              <b>Duration</b> — time-based activities like yoga, mobility, or
+              stretching.
+            </li>
+            <li>
+              <b>Tasks</b> — tick-box actions like stretching, journaling, or
+              ice baths, each with its own XP value.
+            </li>
+          </ul>
+        </details>
+      </div>
+    </Card>
+  </div>
+)}
 
         {tab === "rewards" && (
           <div className="grid2cols">
