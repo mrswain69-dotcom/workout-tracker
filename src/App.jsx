@@ -4183,131 +4183,134 @@ async function resetDay() {
                 </>
               )}
 
-              {typeId === "cardio" && (
-                <>
-                  <div className="mt12">
-                    <div className="label">Cardio type</div>
-                    <Select
-                      value={block.cardioType || "run"}
-                      onChange={(v) =>
-                        updateBlockInDay(block.id, () => ({
-                          cardioType: v,
-                          cardioTypeOtherLabel:
-                            v === "other" ? block.cardioTypeOtherLabel || "" : "",
-                        }))
-                      }
-                      options={[
-                        { value: "run", label: "Run" },
-                        { value: "bike", label: "Bike" },
-                        { value: "swim", label: "Swim" },
-                        { value: "other", label: "Other" },
-                      ]}
-                    />
-                  </div>
+{typeId === "cardio" && (
+  <>
+    <div className="mt12">
+      <div className="label">Cardio type</div>
+      <Select
+        value={block.cardioType || "run"}
+        onChange={(v) =>
+          updateBlockInDay(block.id, () => ({
+            cardioType: v,
+            cardioTypeOtherLabel:
+              v === "other" ? block.cardioTypeOtherLabel || "" : "",
+          }))
+        }
+        options={[
+          { value: "run", label: "Run" },
+          { value: "bike", label: "Bike" },
+          { value: "swim", label: "Swim" },
+          { value: "other", label: "Other" },
+        ]}
+      />
+    </div>
 
-                  {block.cardioType === "other" && (
-                    <div className="mt8">
-                      <div className="label">Other cardio name</div>
-                      <Input
-                        value={block.cardioTypeOtherLabel || ""}
-                        onChange={(v) =>
-                          updateBlockInDay(block.id, () => ({
-                            cardioTypeOtherLabel: v,
-                          }))
-                        }
-                        placeholder="e.g. Row, Cross-trainer, Football match…"
-                      />
-                    </div>
-                  )}
+    {block.cardioType === "other" && (
+      <div className="mt8">
+        <div className="label">Other cardio name</div>
+        <Input
+          value={block.cardioTypeOtherLabel || ""}
+          onChange={(v) =>
+            updateBlockInDay(block.id, () => ({
+              cardioTypeOtherLabel: v,
+            }))
+          }
+          placeholder="e.g. Row, Cross-trainer, Football match…"
+        />
+      </div>
+    )}
 
-                  <div className="mt8">
-                    <div className="label">Target</div>
-                    <Textarea
-                      value={block.targetText || ""}
-                      onChange={(v) =>
-                        updateBlockInDay(block.id, () => ({
-                          targetText: v,
-                        }))
-                      }
-                      placeholder='e.g. "2 km easy" or "3 × 400m fast"'
-                    />
-                  </div>
-                </>
-              )}
+    <div className="mt8">
+      <div className="label">Target</div>
+      <Input
+        value={block.targetText || ""}
+        onChange={(v) =>
+          updateBlockInDay(block.id, () => ({
+            targetText: v,
+          }))
+        }
+        placeholder='e.g. "2 km easy" or "3 × 400m fast"'
+      />
+    </div>
+  </>
+)}
 
-              {typeId === "duration" && (
-                <>
-                  <div className="mt12">
-                    <div className="label">Planned minutes (optional)</div>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={block.plannedMinutes ?? ""}
-                      onChange={(v) =>
-                        updateBlockInDay(block.id, () => ({
-                          plannedMinutes: v,
-                        }))
-                      }
-                      placeholder="e.g. 20"
-                    />
-                  </div>
-                </>
-              )}
+ {typeId === "duration" && (
+  <>
+    <div className="mt12">
+      <div className="label">Planned minutes (optional)</div>
+      <Input
+        type="number"
+        min={0}
+        value={
+          block.plannedMinutes === "" || block.plannedMinutes == null
+            ? ""
+            : String(block.plannedMinutes)
+        }
+        onChange={(v) => {
+          const cleaned =
+            v === "" ? "" : Math.max(0, parseInt(v, 10) || 0);
 
-              {typeId === "tasks" && (
-                <>
-                  <div className="mt12">
-                    <div className="label">Tasks</div>
-                    <div className="stack mt8">
-                      {(block.tasks || []).map((t) => (
-                        <div key={t.id} className="row taskRow">
-                          <div className="field flex1">
-                            <div className="label">Task</div>
-                            <Input
-                              value={t.label || ""}
-                              onChange={(v) =>
-                                updateTaskField(block.id, t.id, "label", v)
-                              }
-                              placeholder="e.g. Stretch, Journal, Ice bath"
-                            />
-                          </div>
-                          <div className="field w80">
-                            <div className="label">XP</div>
-                            <Input
-                              type="number"
-                              min={0}
-                              value={t.xpValue || 5}
-                              onChange={(v) =>
-                                updateTaskField(
-                                  block.id,
-                                  t.id,
-                                  "xpValue",
-                                  safeNumber(v) || 0
-                                )
-                              }
-                            />
-                          </div>
-                          <SecondaryButton
-                            className="btnTiny ml8"
-                            onClick={() =>
-                              removeTask(block.id, t.id)
-                            }
-                          >
-                            Remove
-                          </SecondaryButton>
-                        </div>
-                      ))}
-                    </div>
+          updateBlockInDay(block.id, () => ({
+            plannedMinutes: cleaned,
+          }));
+        }}
+        placeholder="e.g. 20"
+      />
+    </div>
+  </>
+)}
 
-                    <PrimaryButton
-                      className="btnSmall mt8"
-                      onClick={() => addTaskToBlock(block.id)}
-                    >
-                      + Add task
-                    </PrimaryButton>
-                  </div>
-                </>
-              )}
+
+ {typeId === "tasks" && (
+  <>
+    <div className="mt12">
+      <div className="label">Tasks</div>
+      <div className="stack mt8">
+        {(block.tasks || []).map((t) => (
+          <div key={t.id} className="row taskRow">
+            <div className="field flex1">
+              {/* no extra label here – heading above is enough */}
+              <Input
+                value={t.label || ""}
+                onChange={(v) =>
+                  updateTaskInBlock(block.id, t.id, { label: v })
+                }
+                placeholder="Task name (e.g. 30 mins reading)"
+              />
+            </div>
+            <div className="field w80">
+              <div className="label">XP</div>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={t.xpValue ?? 0}
+                onChange={(v) =>
+                  updateTaskInBlock(block.id, t.id, {
+                    xpValue: Number(v || 0),
+                  })
+                }
+              />
+            </div>
+            <SecondaryButton
+              className="btnSmall ml8"
+              onClick={() => removeTaskFromBlock(block.id, t.id)}
+            >
+              Remove
+            </SecondaryButton>
+          </div>
+        ))}
+      </div>
+      <PrimaryButton
+        className="mt8"
+        onClick={() => addTaskToBlock(block.id)}
+      >
+        + Add task
+      </PrimaryButton>
+    </div>
+  </>
+)}
             </div>
           );
         })}
