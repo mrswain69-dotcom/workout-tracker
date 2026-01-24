@@ -345,46 +345,6 @@ function defaultPlanForFamily() {
   };
 }
 
-  const movements = {
-    Mon: [
-      { id: uid(), name: "Push-ups", mode: "strength", allowWeight: false },
-      { id: uid(), name: "Bodyweight Squats", mode: "strength", allowWeight: false },
-      { id: uid(), name: "Plank", mode: "time", allowCount: false },
-    ],
-    Wed: [
-      { id: uid(), name: "Dumbbell Row", mode: "strength", allowWeight: true },
-      { id: uid(), name: "Shoulder Press", mode: "strength", allowWeight: true },
-      { id: uid(), name: "Hollow Hold", mode: "time", allowCount: false },
-    ],
-    Fri: [
-      { id: uid(), name: "Lunges", mode: "strength", allowWeight: false },
-      { id: uid(), name: "Goblet Squat", mode: "strength", allowWeight: true },
-      { id: uid(), name: "Jump Rope", mode: "time", allowCount: true, countLabel: "skips" },
-    ],
-    Thu: [
-      { id: uid(), name: "Cross-punch rally 1-2-3-4-5 (repeat)", mode: "time", fixedSeconds: 60, allowCount: true, countLabel: "hits" },
-      { id: uid(), name: "Sit-up + cross punches (repeat)", mode: "time", fixedSeconds: 60, allowCount: true, countLabel: "rounds" },
-      { id: uid(), name: "Cross, duck, cross combo (repeat)", mode: "time", fixedSeconds: 60, allowCount: true, countLabel: "rounds" },
-    ],
-  };
-
-  return {
-    version: 1,
-    activityTypes: types, // can add custom types
-    dayTypeByWeekday,
-    // Rest interval (seconds) between sets/rounds for each weekday (editable)
-    restSecByWeekday: weekdays.reduce((acc, d) => {
-      acc[d] = 60;
-      return acc;
-    }, {}),
-    movementsByWeekday: movements, // only for days where movementsEnabled
-    cardioTargetByWeekday: {}, // optional "session focus" text for cardio days
-    // NEW: optional extra activity blocks per weekday (e.g. Run + HIIT)
-    // Shape: { [weekday]: [ { id, typeId, label } ] }
-    dayActivitiesByWeekday: {},
-  };
-}
-
 // -------- Day activities (primary + extras) ----------
 // Primary activity still comes from dayTypeByWeekday / movementsByWeekday / cardioTargetByWeekday
 // Extras are stored in plan.dayActivitiesByWeekday[weekday] as an array of blocks.
