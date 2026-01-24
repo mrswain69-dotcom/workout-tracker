@@ -4072,7 +4072,7 @@ async function resetDay() {
                         <div key={m.id} className="movementRow">
                           <div className="row movementRowTop">
                             <div className="field flex1">
-                              <div className="label">Movement</div>
+                              {/* Heading above covers the label for this column */}
                               <Input
                                 value={m.name || ""}
                                 onChange={(v) =>
