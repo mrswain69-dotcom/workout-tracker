@@ -2033,7 +2033,6 @@ const todayPlanStatus = useMemo(() => {
     );
   }
 
-  // patchFn can be () => ({ ... }) as you use in JSX
   function updateBlockInDay(blockId, patchFn) {
     updatePlanBlocksForCurrentDay("Update block", (blocks) =>
       blocks.map((b) => {
@@ -2071,6 +2070,11 @@ const todayPlanStatus = useMemo(() => {
     );
   }
 
+  // alias used by the Plan UI button
+  function addMovementToBlock(blockId) {
+    addMovement(blockId);
+  }
+
   function removeMovement(blockId, movementId) {
     updatePlanBlocksForCurrentDay("Remove movement", (blocks) =>
       blocks.map((b) =>
@@ -2100,6 +2104,7 @@ const todayPlanStatus = useMemo(() => {
       })
     );
   }
+
 
   function addTaskToBlock(blockId) {
     const newTask = { id: uid(), label: "", xpValue: 5 };
@@ -4237,7 +4242,7 @@ async function resetDay() {
                     <Input
                       type="number"
                       min={0}
-                      value={block.plannedMinutes || ""}
+                      value={block.plannedMinutes ?? ""}
                       onChange={(v) =>
                         updateBlockInDay(block.id, () => ({
                           plannedMinutes: v,
@@ -4381,21 +4386,164 @@ async function resetDay() {
         })}
       </div>
 
-      {/* Preset plans (reuse your existing presetPlans() + apply logic) */}
+        {/* Preset plans */}
       <div className="panel mt16">
         <div className="h3">Preset plans</div>
         <div className="muted mt8">
-          Pick a weekly preset, then apply it. This can overwrite your current
-          week.
+          Pick a weekly preset, then apply it. This can overwrite your current week.
         </div>
-        {/* keep your existing presetPlans() + selectedPresetId UI here, unchanged */}
-        {/* (reuse the block you already had under "Preset plans") */}
+
+        <div className="row mt12">
+          <div style={{ flex: 1 }}>
+            <Select
+              value={selectedPresetId}
+              onChange={setSelectedPresetId}
+              options={[
+                { value: "", label: "Choose a preset…" },
+                ...presetPlans().map((p) => ({ value: p.id, label: p.name })),
+              ]}
+            />
+            {selectedPresetId ? (
+              <div className="muted mt8">
+                {presetPlans().find((p) => p.id === selectedPresetId)?.note || ""}
+              </div>
+            ) : null}
+          </div>
+          <div style={{ width: 12 }} />
+          <PrimaryButton
+            disabled={!selectedPresetId}
+            onClick={async () => {
+              const preset = presetPlans().find((p) => p.id === selectedPresetId);
+              if (!preset) return;
+              const ok = window.confirm(
+                `Apply preset "${preset.name}"?\n\nThis will overwrite your current weekly plan. You can undo right after applying.`
+              );
+              if (!ok) return;
+              await applyPlan(
+                { ...preset.plan, presetId: preset.id },
+                `Preset applied: ${preset.name}`
+              );
+            }}
+          >
+            Apply preset
+          </PrimaryButton>
+        </div>
+
+        {undoPlan ? (
+          <div className="rowBetween mt12">
+            <div className="mini">
+              Undo available: <b>{undoLabel || "Recent change"}</b>
+            </div>
+            <SecondaryButton onClick={undoLastPlan}>Undo</SecondaryButton>
+          </div>
+        ) : null}
       </div>
 
-      {/* Saved weekly plans (existing logic) */}
+      {/* Saved weekly plans */}
       <div className="panel mt16">
-        <div className="h3">Saved weekly plans</div>
-        {/* reuse your existing saved plan templates UI here */}
+        <div className="rowBetween">
+          <div>
+            <div className="h3">Saved weekly plans</div>
+            <div className="muted mt8">
+              Save multiple weeks (templates) and switch between them.
+            </div>
+          </div>
+        </div>
+
+        <div className="row mt12">
+          <div style={{ flex: 1 }}>
+            <Select
+              value={selectedTemplateId}
+              onChange={setSelectedTemplateId}
+              options={[
+                { value: "", label: "Choose a saved plan…" },
+                ...planTemplates.map((t) => ({ value: t.id, label: t.name })),
+              ]}
+            />
+          </div>
+          <div style={{ width: 12 }} />
+          <PrimaryButton
+            disabled={!selectedTemplateId}
+            onClick={async () => {
+              const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
+              if (!tpl) return;
+              const ok = window.confirm(
+                `Load saved plan "${tpl.name}"?\n\nThis will overwrite your current weekly plan. You can undo right after applying.`
+              );
+              if (!ok) return;
+              await applyPlan(
+                { ...(tpl.plan_json || {}), templateId: tpl.id },
+                `Loaded saved plan: ${tpl.name}`
+              );
+            }}
+          >
+            Load
+          </PrimaryButton>
+        </div>
+
+        <div className="row planTemplatesRow mt12">
+          <PrimaryButton
+            onClick={async () => {
+              const name = window.prompt("Name this saved weekly plan:");
+              if (!name) return;
+              if (!family?.id) return;
+              if (!(await ensureUnlocked("save a template"))) return;
+              const { error } = await createPlanTemplate(
+                family.id,
+                name,
+                plan || {}
+              );
+              if (error) window.alert(error.message || String(error));
+              const { data } = await listPlanTemplates(family.id);
+              setPlanTemplates(data || []);
+            }}
+          >
+            Save as new
+          </PrimaryButton>
+          <div style={{ width: 10 }} />
+          <SecondaryButton
+            disabled={!selectedTemplateId}
+            onClick={async () => {
+              const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
+              if (!tpl) return;
+              const ok = window.confirm(
+                `Update "${tpl.name}" with your current plan?`
+              );
+              if (!ok) return;
+              if (!(await ensureUnlocked("update a template"))) return;
+              const { error } = await updatePlanTemplate(
+                tpl.id,
+                tpl.name,
+                plan || {}
+              );
+              if (error) window.alert(error.message || String(error));
+              const { data } = await listPlanTemplates(family.id);
+              setPlanTemplates(data || []);
+            }}
+          >
+            Update plan
+          </SecondaryButton>
+          <div style={{ width: 10 }} />
+          <SecondaryButton
+            disabled={!selectedTemplateId}
+            onClick={async () => {
+              const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
+              if (!tpl) return;
+              const ok = window.confirm(
+                `Delete saved plan "${tpl.name}"?`
+              );
+              if (!ok) return;
+              if (!(await ensureUnlocked("delete a template"))) return;
+              const { error } = await deletePlanTemplate(tpl.id);
+              if (error) window.alert(error.message || String(error));
+              const { data } = await listPlanTemplates(family.id);
+              setPlanTemplates(data || []);
+              setSelectedTemplateId("");
+            }}
+          >
+            Delete plan
+          </SecondaryButton>
+        </div>
       </div>
 
       {/* Activity Types (collapsed by default) */}
@@ -5057,6 +5205,26 @@ function StyleTag() {
       .planLeft{flex:1}
       .planName{font-weight:900}
       .planBtns{display:flex;gap:10px;flex-wrap:wrap}
+            .planViewToggle{
+        display:flex;
+        gap:8px;
+        margin-top:12px;
+      }
+      .pillToggleBtn{
+        border-radius:999px;
+        border:1px solid #e2e8f0;
+        background:#fff;
+        padding:6px 14px;
+        font-size:13px;
+        font-weight:600;
+        color:#475569;
+        cursor:pointer;
+      }
+      .pillToggleBtn.active{
+        background:#0f172a;
+        color:#fff;
+        border-color:#0f172a;
+      }
       .reward{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:14px}
       .reward.locked{opacity:.6}
       .reward-title{font-weight:900}
