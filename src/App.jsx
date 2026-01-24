@@ -4351,7 +4351,7 @@ async function resetDay() {
       <div className="mt12 weeklyPlanSummary">
         {weekdays.map((d) => {
           const dayBlocks =
-            Plan?.blocksByWeekday?.[d] || [];
+            plan?.blocksByWeekday?.[d] || [];
           return (
             <div key={d} className="weeklyPlanDay">
               <div className="weeklyPlanDayHeader">{d}</div>
