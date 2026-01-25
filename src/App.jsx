@@ -2573,20 +2573,6 @@ async function resetDay() {
     await saveLog(next);
   }
 
-  async function updateOneOffActivity(id, patch) {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = { ...(next.meta || {}) };
-    const list = Array.isArray(meta.oneOffActivities)
-      ? meta.oneOffActivities.slice()
-      : [];
-
-    meta.oneOffActivities = list.map((a) =>
-      a.id === id ? { ...a, ...patch } : a
-    );
-    next.meta = meta;
-    await saveLog(next);
-  }
-
   async function addExtraMovementForToday(name, mode) {
     const trimmed = (name || "").trim();
     if (!trimmed) return;
@@ -2608,6 +2594,45 @@ async function resetDay() {
     });
 
     meta.extraMovements = list;
+    next.meta = meta;
+    await saveLog(next);
+  }
+
+  // Click handler for the "+ Add extra movement" button on the Log tab
+  async function addExtraMovement() {
+    const name = (extraMovNameDraft || "").trim();
+    if (!name) return;
+
+    const mode = extraMovModeDraft || "strength";
+
+    await addExtraMovementForToday(name, mode);
+
+    // Clear the draft inputs after saving
+    setExtraMovNameDraft("");
+    setExtraMovModeDraft("strength");
+  }
+
+  // Remove an extra movement from today's log
+  async function removeExtraMovement(id) {
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const meta = { ...(next.meta || {}) };
+    const list = Array.isArray(meta.extraMovements)
+      ? meta.extraMovements.slice()
+      : [];
+
+    meta.extraMovements = list.filter((m) => m.id !== id);
+    next.meta = meta;
+    await saveLog(next);
+  }
+
+  async function removeOneOffActivity(id) {
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const meta = { ...(next.meta || {}) };
+    const list = Array.isArray(meta.oneOffActivities)
+      ? meta.oneOffActivities.slice()
+      : [];
+
+    meta.oneOffActivities = list.filter((a) => a.id !== id);
     next.meta = meta;
     await saveLog(next);
   }
