@@ -3514,15 +3514,6 @@ async function resetDay() {
       )}
   </div>
 
-  {/* One-off activities */}
-  <div className="panel mt16">
-    <div className="h2">One-off activities</div>
-    {/* keep existing one-off UI unchanged */}
-    {/* (name dropdown, kind selector, + Add button, list, checkboxes, etc.) */}
-    {/* Just leave the code you already have for one-off activities here */}
-  </div>
-</div>
-
               {/* One-off activities for this specific date */}
               <div className="panel mt16">
                 <div className="rowBetween">
