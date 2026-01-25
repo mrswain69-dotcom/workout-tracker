@@ -3513,7 +3513,7 @@ async function resetDay() {
         </div>
       )}
   </div>
-
+</div>
               {/* One-off activities for this specific date */}
               <div className="panel mt16">
                 <div className="rowBetween">
