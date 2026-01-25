@@ -2506,7 +2506,7 @@ async function resetDay() {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
-    async function toggleTaskForBlock(blockId, taskId, done) {
+  async function toggleTaskForBlock(blockId, taskId, done) {
     if (!family?.id || !activeProfileId || !selectedDate) return;
 
     // Start from the current log or a blank one
@@ -2514,6 +2514,7 @@ async function resetDay() {
       ? { ...logForDay }
       : blankLogForDay(selectedWeekday);
 
+    // --- 1) Update the block-level log (V3 way) ---
     const blockLog = getBlockLog(baseLog, blockId) || {};
     const currentTasks = blockLog.tasksDone || {};
 
@@ -2528,10 +2529,25 @@ async function resetDay() {
       tasksDone: nextTasks,
     });
 
-    // Persist + update state
+    // --- 2) Mirror into legacy log.tasks for XP + completion engine ---
+    const tasksMap = { ...(nextLog.tasks || {}) };
+
+    if (done) {
+      // Mark as done; keep any existing metadata
+      tasksMap[taskId] = {
+        ...(tasksMap[taskId] || {}),
+        done: true,
+      };
+    } else {
+      // Remove when unticked so it doesn't count
+      delete tasksMap[taskId];
+    }
+
+    nextLog.tasks = tasksMap;
+
+    // --- 3) Persist + little reward sound ---
     await saveLog(nextLog);
 
-    // Optional: play a little reward sound
     const ctx = await ensureAudio();
     if (ctx) {
       playBling(ctx, 1, victoryTheme);
