@@ -2301,76 +2301,6 @@ function updateBlockLog(log, blockId, patch) {
 
   return { ...log, blocks: nextBlocks };
 }
-
-
-  // --- Sessions (timing blocks) ---
-  const getSessions = (l) => (l?.meta?.sessions && Array.isArray(l.meta.sessions) ? l.meta.sessions : []);
-
-  async function addSession() {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = {
-  restSec: next?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60),
-  sessions: Array.isArray(next?.meta?.sessions) ? next.meta.sessions : [],
-  dayManualMin: next?.meta?.dayManualMin ?? "",
-  ...(next.meta || {}),
-};
-    const sessions = [...getSessions(next)];
-    sessions.push({ id: uid(), startedAt: null, finishedAt: null, manualMin: "" });
-    meta.sessions = sessions;
-    next.meta = meta;
-    await saveLog(next);
-  }
-
-  async function updateSession(sessionId, patch) {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = {
-  restSec: next?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60),
-  sessions: Array.isArray(next?.meta?.sessions) ? next.meta.sessions : [],
-  dayManualMin: next?.meta?.dayManualMin ?? "",
-  ...(next.meta || {}),
-};
-    const sessions = [...getSessions(next)].map((s) => (s.id === sessionId ? { ...s, ...patch } : s));
-    meta.sessions = sessions;
-    next.meta = meta;
-    await saveLog(next);
-  }
-  async function removeSession(sessionId) {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = {
-  restSec: next?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60),
-  sessions: Array.isArray(next?.meta?.sessions) ? next.meta.sessions : [],
-  dayManualMin: next?.meta?.dayManualMin ?? "",
-  ...(next.meta || {}),
-};
-    const sessions = [...getSessions(next)].filter((s) => s.id !== sessionId);
-    meta.sessions = sessions;
-    next.meta = meta;
-    await saveLog(next);
-  }
-
-
-
-  async function startSession(sessionId) {
-    const ctx = await ensureAudio();
-    if (ctx) playStartSound(ctx, victoryTheme);
-    await updateSession(sessionId, { startedAt: new Date().toISOString(), finishedAt: null });
-  }
-
-  async function finishSession(sessionId) {
-    const ctx = await ensureAudio();
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = { ...(next.meta || {}) };
-    const sessions = [...getSessions(next)].map((s) =>
-      s.id === sessionId ? { ...s, finishedAt: new Date().toISOString() } : s
-    );
-    meta.sessions = sessions;
-    next.meta = meta;
-    next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
-
-    await saveLog(next);
-    if (ctx) playBling(ctx, Math.max(1, next?.gamify?.comboMax || 1), victoryTheme);
-  }
-
   
 async function claimDailyBonus() {
   const qualifies = isDayComplete(logForDay, planDay);
@@ -3186,85 +3116,13 @@ async function resetDay() {
                     title={selectedDayTitle}
                     style={{ background: selectedDayDotColor }}
                   />
-                  <SecondaryButton onClick={addSession}>+ Session</SecondaryButton>
                   <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
                 </div>
 
               </div>
 
-              <div className="muted mt8">
-                {formatDate(selectedDate)} • <b>{planDay.name}</b> ({planDay.kind})
-              </div>
-
-              {/* Sessions */}
-              <div className="panel mt12">
-                <div className="rowBetween">
-                  <div className="h3">Sessions</div>
-                  <div className="muted">Tap start/finish or enter minutes</div>
-                </div>
-                <div className="stack mt12">
-                  {getSessions(logForDay).length === 0 ? (
-                    <div className="muted">No sessions yet. Tap “+ Session”.</div>
-                  ) : (
-                    getSessions(logForDay).map((s, idx) => (
-                      <div key={s.id} className="sessionRow">
-                        <div className="sessionTitle">Session {idx + 1}</div>
-                        <div className="sessionBtns">
-                          <PrimaryButton
-                            className="btnSmall"
-                            disabled={!!s.startedAt}
-                            onClick={() => startSession(s.id)}
-                          >
-                            Start
-                          </PrimaryButton>
-                          <PrimaryButton
-                            className="btnSmall"
-                            disabled={!s.startedAt || !!s.finishedAt}
-                            onClick={() => finishSession(s.id)}
-                          >
-                            Finish
-                          </PrimaryButton>
-                          <SecondaryButton
-                            className="btnSmall"
-                            onClick={() => removeSession(s.id)}
-                          >
-                            Remove
-                          </SecondaryButton>
-                        </div>
-                        <div className="sessionTimes">
-                          <div className="mini"><span className="label">Start</span> {s.startedAt ? new Date(s.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</div>
-                          <div className="mini"><span className="label">Finish</span> {s.finishedAt ? new Date(s.finishedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</div>
-                        </div>
-                        <div className="sessionManual">
-                          <div className="label">Minutes (manual)</div>
-                          <Input type="number" min={0} step={0.5} value={s.manualMin ?? ""} onChange={(v) => updateSession(s.id, { manualMin: v })} placeholder="e.g. 25" />
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="grid3 mt12">
-                  <div>
-                    <div className="label">Rest between sets (sec)</div>
-                    <Input type="number" min={0} step={5} value={logForDay?.meta?.restSec ?? (safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60)} onChange={(v) => {
-                      const next = logForDay ? { ...logForDay } : blankLogForDay();
-                      next.meta = { ...(next.meta || {}), restSec: v };
-                      saveLog(next);
-                    }} />
-                  </div>
-                  <div>
-                    <div className="label">Total minutes (override)</div>
-                    <Input type="number" min={0} step={0.5} value={logForDay?.meta?.dayManualMin ?? ""} onChange={(v) => {
-                      const next = logForDay ? { ...logForDay } : blankLogForDay();
-                      next.meta = { ...(next.meta || {}), dayManualMin: v };
-                      saveLog(next);
-                    }} placeholder="leave blank" />
-                  </div>
-                  <div className="muted">
-                    If left blank, we’ll use session timers, cardio/custom time, or an estimate.
-                  </div>
-                </div>
+                            <div className="muted mt8">
+                {formatDate(selectedDate)} • <b>{planDay.name}</b>
               </div>
 
                 {/* --- V3 block-based logging panels --- */}
