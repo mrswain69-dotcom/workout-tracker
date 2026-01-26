@@ -2436,6 +2436,33 @@ async function resetDay() {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
+    async function updateStrengthSetsForMovement(blockId, movementId, nextSetsForMovement) {
+    const ctx = await ensureAudio();
+
+    // Start from existing log or a fresh blank one
+    const baseLog = logForDay ? { ...logForDay } : blankLogForDay();
+
+    // Current block log (if any)
+    const blockLog = getBlockLog(baseLog, blockId) || {};
+    const existingSets =
+      blockLog.sets && typeof blockLog.sets === "object" ? blockLog.sets : {};
+
+    // Update sets for this specific movement
+    const nextSetsMap = {
+      ...existingSets,
+      [movementId]: Array.isArray(nextSetsForMovement)
+        ? nextSetsForMovement
+        : [],
+    };
+
+    const nextLog = updateBlockLog(baseLog, blockId, {
+      sets: nextSetsMap,
+    });
+
+    await saveLog(nextLog);
+    if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+
   async function toggleTaskForBlock(blockId, taskId, done) {
     if (!family?.id || !activeProfileId || !selectedDate) return;
 
@@ -3116,8 +3143,238 @@ async function resetDay() {
                 {formatDate(selectedDate)} • <b>{planDay.name}</b>
               </div>
 
-                {/* --- V3 block-based logging panels --- */}
+                               {/* --- V3 block-based logging panels --- */}
 
+                {/* Strength / HIIT / Box blocks log */}
+                {plannedBlocksForSelectedDay.some(
+                  (b) =>
+                    b &&
+                    (b.typeId === "strength" ||
+                      b.typeId === "hiit" ||
+                      b.typeId === "box")
+                ) && (
+                  <div className="panel mt16">
+                    <div className="h2">Strength / HIIT log</div>
+
+                    {plannedBlocksForSelectedDay
+                      .filter(
+                        (b) =>
+                          b &&
+                          (b.typeId === "strength" ||
+                            b.typeId === "hiit" ||
+                            b.typeId === "box")
+                      )
+                      .map((block) => {
+                        const blockLog = getBlockLog(logForDay, block.id) || {};
+                        const setsByMovement =
+                          blockLog.sets && typeof blockLog.sets === "object"
+                            ? blockLog.sets
+                            : {};
+
+                        const movements = Array.isArray(block.movements)
+                          ? block.movements
+                          : [];
+
+                        const restSec = safeNumber(block.restSec) || 60;
+
+                        // Count completed sets for estimated time
+                        let totalCompletedSets = 0;
+                        for (const mov of movements) {
+                          const ms = Array.isArray(setsByMovement[mov.id])
+                            ? setsByMovement[mov.id]
+                            : [];
+                          totalCompletedSets += ms.filter(setDidSomething).length;
+                        }
+
+                        const estimatedMinutes =
+                          totalCompletedSets > 0
+                            ? Math.round(
+                                (totalCompletedSets * restSec * 2) / 60
+                              )
+                            : 0;
+
+                        const actualMinutes =
+                          blockLog.duration && blockLog.duration.minutes != null
+                            ? blockLog.duration.minutes
+                            : "";
+
+                        return (
+                          <div key={block.id} className="mt12">
+                            <div className="h3">
+                              {block.label || "Strength block"}
+                            </div>
+                            {block.note ? (
+                              <div className="muted mt4">{block.note}</div>
+                            ) : null}
+
+                            {movements.map((mov) => {
+                              const movementSets = Array.isArray(
+                                setsByMovement[mov.id]
+                              )
+                                ? setsByMovement[mov.id]
+                                : [];
+
+                              const rowCount = mov.sets || 3;
+                              const rows = [];
+                              for (let i = 0; i < rowCount; i++) {
+                                const s = movementSets[i] || {};
+                                const baseSet = {
+                                  reps: "",
+                                  weight: "",
+                                  timeSeconds: "",
+                                  ...s,
+                                };
+
+                                rows.push(
+                                  <div key={i} className="setRow mt4">
+                                    <div>
+                                      <div className="label mini">
+                                        Set {i + 1}
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      <div className="label">Reps</div>
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        value={
+                                          baseSet.reps !== undefined
+                                            ? baseSet.reps
+                                            : ""
+                                        }
+                                        onChange={(v) => {
+                                          const nextSets = [...movementSets];
+                                          const nextSet = {
+                                            ...baseSet,
+                                            reps: v,
+                                          };
+                                          nextSets[i] = nextSet;
+                                          updateStrengthSetsForMovement(
+                                            block.id,
+                                            mov.id,
+                                            nextSets
+                                          );
+                                        }}
+                                      />
+                                    </div>
+
+                                    {mov.trackWeight && (
+                                      <div>
+                                        <div className="label">
+                                          Weight (kg)
+                                        </div>
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          step={0.5}
+                                          value={
+                                            baseSet.weight !== undefined
+                                              ? baseSet.weight
+                                              : ""
+                                          }
+                                          onChange={(v) => {
+                                            const nextSets = [...movementSets];
+                                            const nextSet = {
+                                              ...baseSet,
+                                              weight: v,
+                                            };
+                                            nextSets[i] = nextSet;
+                                            updateStrengthSetsForMovement(
+                                              block.id,
+                                              mov.id,
+                                              nextSets
+                                            );
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+
+                                    {mov.trackDuration && (
+                                      <div>
+                                        <div className="label">
+                                          Time (sec)
+                                        </div>
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          step={1}
+                                          value={
+                                            baseSet.timeSeconds !== undefined
+                                              ? baseSet.timeSeconds
+                                              : ""
+                                          }
+                                          onChange={(v) => {
+                                            const nextSets = [...movementSets];
+                                            const nextSet = {
+                                              ...baseSet,
+                                              timeSeconds: v,
+                                            };
+                                            nextSets[i] = nextSet;
+                                            updateStrengthSetsForMovement(
+                                              block.id,
+                                              mov.id,
+                                              nextSets
+                                            );
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div key={mov.id} className="mt8">
+                                  <div className="label strong">
+                                    {mov.name || "Movement"}
+                                  </div>
+                                  {mov.initialTarget ? (
+                                    <div className="muted mini mt2">
+                                      {mov.initialTarget}
+                                    </div>
+                                  ) : null}
+                                  {rows}
+                                </div>
+                              );
+                            })}
+
+                            <div className="muted mini mt8">
+                              Estimated time:{" "}
+                              {estimatedMinutes > 0
+                                ? `${estimatedMinutes} min`
+                                : "0 min (log some sets)"}{" "}
+                              • Rest per set: {restSec}s
+                            </div>
+
+                            <div className="mt8" style={{ maxWidth: 180 }}>
+                              <div className="label">
+                                Actual minutes (optional)
+                              </div>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.5}
+                                value={actualMinutes}
+                                onChange={(v) =>
+                                  updateDurationForBlock(block.id, {
+                                    minutes: v,
+                                  })
+                                }
+                                placeholder={
+                                  estimatedMinutes > 0
+                                    ? String(estimatedMinutes)
+                                    : ""
+                                }
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+
+              
 {/* Cardio blocks log */}
 {plannedBlocksForSelectedDay.some(
   (b) =>
