@@ -2669,43 +2669,34 @@ async function resetDay() {
   
   function computeTotalMinutesForDay(log) {
     if (!log) return null;
+
     const manualDay = safeNumber(log?.meta?.dayManualMin);
     if (manualDay > 0) return manualDay;
 
-    // Sum session times (manual overrides win, else start/end).
-    const sess = getSessions(log);
-    let hasAny = false;
-    let sum = 0;
-    for (const s of sess) {
-      const m = safeNumber(s?.manualMin);
-      if (m > 0) {
-        sum += m;
-        hasAny = true;
-        continue;
-      }
-      if (s?.startedAt && s?.finishedAt) {
-        const ms = new Date(s.finishedAt).getTime() - new Date(s.startedAt).getTime();
-        const mins = ms > 0 ? ms / 60000 : 0;
-        if (mins > 0) {
-          sum += mins;
-          hasAny = true;
-        }
-      }
-    }
-    if (hasAny) return Math.round(sum * 10) / 10;
-
-    // Fall back to cardio/custom explicit duration
+    // Prefer explicit cardio/custom durations if present
     const cardioMin = safeNumber(log?.cardio?.durationMin);
     if (cardioMin > 0) return cardioMin;
+
     const customMin = safeNumber(log?.custom?.durationMin);
     if (customMin > 0) return customMin;
 
     // Estimate from sets + rest interval (rough, motivation-only)
-    const restSec = safeNumber(log?.meta?.restSec) || safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) || 60;
-    const setsLogged = Object.values(log?.entries || {}).flat().filter(setDidSomething).length;
+    const restSec =
+      safeNumber(log?.meta?.restSec) ||
+      safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) ||
+      60;
+
+    const setsLogged = Object.values(log?.entries || {})
+      .flat()
+      .filter(setDidSomething).length;
+
     if (setsLogged <= 0) return null;
+
     const workPerSetMin = 0.5; // quick heuristic
-    const est = setsLogged * workPerSetMin + Math.max(0, setsLogged - 1) * (restSec / 60);
+    const est =
+      setsLogged * workPerSetMin +
+      Math.max(0, setsLogged - 1) * (restSec / 60);
+
     return Math.round(est * 10) / 10;
   }
 
@@ -2812,7 +2803,7 @@ async function resetDay() {
       }
 
       if (didAnything) {
-        const sc = Math.max(1, getSessions(log).length);
+        const sc = 1; // V3: count one training "session" per active day
         totalSessions += sc;
         w.sessions += sc;
         sessionDays.add(d);
@@ -3496,7 +3487,6 @@ async function resetDay() {
 
                 <div className="grid2 mt12">
                   <SummaryStat label="Total minutes" value={computeTotalMinutesForDay(logForDay) ?? "—"} />
-                  <SummaryStat label="Sessions" value={Math.max(0, getSessions(logForDay).length) || "—"} />
                   <SummaryStat label="Sets logged" value={Object.values(logForDay?.entries || {}).flat().filter(setDidSomething).length} />
                   <SummaryStat label="Cardio km" value={safeNumber(logForDay?.cardio?.distanceKm) ? Number(logForDay.cardio.distanceKm).toFixed(2) : "—"} />
                 </div>
@@ -3605,7 +3595,6 @@ async function resetDay() {
             <Card className="pad">
               <div className="h2">Highlights</div>
               <div className="grid2 mt12">
-                <SummaryStat label="Sessions" value={(stats.totalSessions ?? 0) || "—"} />
                 <SummaryStat label="Streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} />
                 <SummaryStat label="Top effort day" value={stats.topEffortDay || "—"} />
                 <SummaryStat label="Top effort volume" value={stats.topEffortDay ? Math.round(stats.topEffortValue).toLocaleString() : "—"} />
