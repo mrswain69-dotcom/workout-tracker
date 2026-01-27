@@ -3214,135 +3214,131 @@ async function resetDay() {
                               <div className="muted mt4">{block.note}</div>
                             ) : null}
 
-                            {movements.map((mov) => {
-                              const movementSets = Array.isArray(
-                                setsByMovement[mov.id]
-                              )
-                                ? setsByMovement[mov.id]
-                                : [];
+    {movements.map((mov) => {
+      const movementSets = Array.isArray(setsByMovement[mov.id])
+        ? setsByMovement[mov.id]
+        : [];
 
-                              const rowCount = mov.sets || 3;
-                              const rows = [];
-                              for (let i = 0; i < rowCount; i++) {
-                                const s = movementSets[i] || {};
-                                const baseSet = {
-                                  reps: "",
-                                  weight: "",
-                                  timeSeconds: "",
-                                  ...s,
-                                };
+      const rowCount = mov.sets || 3;
+      const rows = [];
+      for (let i = 0; i < rowCount; i++) {
+        const s = movementSets[i] || {};
+        const baseSet = {
+          reps: "",
+          weight: "",
+          timeSeconds: "",
+          ...s,
+        };
 
-  rows.push(
-    <div key={i} className="mt4">
-      <div className="label mini">Set {i + 1}</div>
-      <div className="setRow mt4">
-        <div>
-          <div className="label">Reps</div>
-          <Input
-            type="number"
-            min={0}
-            value={
-              baseSet.reps !== undefined
-                ? baseSet.reps
-                : ""
-            }
-            onChange={(v) => {
-              const nextSets = [...movementSets];
-              const nextSet = {
-                ...baseSet,
-                reps: v,
-              };
-              nextSets[i] = nextSet;
-              updateStrengthSetsForMovement(
-                block.id,
-                mov.id,
-                nextSets
-              );
-            }}
-          />
+        rows.push(
+          <div key={i} className="mt8">
+            <div className="label mini">Set {i + 1}</div>
+
+            <div className="setRow mt4">
+              <div>
+                <div className="label">Reps</div>
+                <Input
+                  type="number"
+                  min={0}
+                  value={
+                    baseSet.reps !== undefined ? baseSet.reps : ""
+                  }
+                  onChange={(v) => {
+                    const nextSets = [...movementSets];
+                    const nextSet = {
+                      ...baseSet,
+                      reps: v,
+                    };
+                    nextSets[i] = nextSet;
+                    updateStrengthSetsForMovement(
+                      block.id,
+                      mov.id,
+                      nextSets
+                    );
+                  }}
+                />
+              </div>
+
+              {mov.trackWeight && (
+                <div>
+                  <div className="label">Weight (kg)</div>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={
+                      baseSet.weight !== undefined ? baseSet.weight : ""
+                    }
+                    onChange={(v) => {
+                      const nextSets = [...movementSets];
+                      const nextSet = {
+                        ...baseSet,
+                        weight: v,
+                      };
+                      nextSets[i] = nextSet;
+                      updateStrengthSetsForMovement(
+                        block.id,
+                        mov.id,
+                        nextSets
+                      );
+                    }}
+                  />
+                </div>
+              )}
+
+              {mov.trackDuration && (
+                <div>
+                  <div className="label">Time (sec)</div>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={
+                      baseSet.timeSeconds !== undefined
+                        ? baseSet.timeSeconds
+                        : ""
+                    }
+                    onChange={(v) => {
+                      const nextSets = [...movementSets];
+                      const nextSet = {
+                        ...baseSet,
+                        timeSeconds: v,
+                      };
+                      nextSets[i] = nextSet;
+                      updateStrengthSetsForMovement(
+                        block.id,
+                        mov.id,
+                        nextSets
+                      );
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div key={mov.id} className="mt8">
+          <div className="label strong">
+            {mov.name || "Movement"}
+          </div>
+          {mov.initialTarget ? (
+            <div className="muted mini mt2">
+              {mov.initialTarget}
+            </div>
+          ) : null}
+          {mov.coachNote ? (
+            <div className="muted mini mt2">
+              {mov.coachNote}
+            </div>
+          ) : null}
+          {rows}
         </div>
+      );
+    })}
 
-        {mov.trackWeight && (
-          <div>
-            <div className="label">Weight (kg)</div>
-            <Input
-              type="number"
-              min={0}
-              step={0.5}
-              value={
-                baseSet.weight !== undefined
-                  ? baseSet.weight
-                  : ""
-              }
-              onChange={(v) => {
-                const nextSets = [...movementSets];
-                const nextSet = {
-                  ...baseSet,
-                  weight: v,
-                };
-                nextSets[i] = nextSet;
-                updateStrengthSetsForMovement(
-                  block.id,
-                  mov.id,
-                  nextSets
-                );
-              }}
-            />
-          </div>
-        )}
-
-        {mov.trackDuration && (
-          <div>
-            <div className="label">Time (sec)</div>
-            <Input
-              type="number"
-              min={0}
-              step={1}
-              value={
-                baseSet.timeSeconds !== undefined
-                  ? baseSet.timeSeconds
-                  : ""
-              }
-              onChange={(v) => {
-                const nextSets = [...movementSets];
-                const nextSet = {
-                  ...baseSet,
-                  timeSeconds: v,
-                };
-                nextSets[i] = nextSet;
-                updateStrengthSetsForMovement(
-                  block.id,
-                  mov.id,
-                  nextSets
-                );
-              }}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-
-                              return (
-                                <div key={mov.id} className="mt8">
-                                  <div className="label strong">
-                                    {mov.name || "Movement"}
-                                  </div>
-                                  {mov.initialTarget ? (
-                                    <div className="muted mini mt2">
-                                      {mov.initialTarget}
-                                    </div>
-                                  ) : null}
-                                  {mov.coachNote ? (
-    <div className="muted mini mt2">
-      {mov.coachNote}
-    </div>
-  ) : null}
-                                  {rows}
-                                </div>
-                              );
-                            })}
 
                             <div className="muted mini mt8">
                               Estimated time:{" "}
