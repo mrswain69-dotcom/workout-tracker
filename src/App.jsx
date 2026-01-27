@@ -152,6 +152,7 @@ function createStrengthBlock() {
         trackWeight: false,
         trackDuration: false,
         initialTarget: "",
+        coachNote: "",
       },
     ],
   };
@@ -190,6 +191,7 @@ function createTasksBlock() {
         id: uid(),
         label: "",
         xpValue: 5,
+        coachNote: "",
       },
     ],
   };
@@ -1370,17 +1372,20 @@ useEffect(() => {
           const movements = Array.isArray(b.movements) ? b.movements : [];
           const defaultMovement = createStrengthBlock().movements[0];
 
-          const normMovements = (movements.length ? movements : [defaultMovement]).map(
-            (m, mIdx) => ({
-              id: m?.id || uid(),
-              name: m?.name || "",
-              sets: safeNumber(m?.sets) || 3,
-              reps: m?.reps ?? "",
-              trackWeight: !!m?.trackWeight,
-              trackDuration: !!m?.trackDuration,
-              initialTarget: m?.initialTarget ?? "",
-            })
-          );
+  const normMovements = (movements.length ? movements : [defaultMovement]).map(
+    (m, mIdx) => ({
+      id: m?.id || uid(),
+      name: m?.name || "",
+      sets: safeNumber(m?.sets) || 3,
+      reps: m?.reps ?? "",
+      trackWeight: !!m?.trackWeight,
+      trackDuration: !!m?.trackDuration,
+      initialTarget: m?.initialTarget ?? "",
+      coachNote:
+        typeof m?.coachNote === "string" ? m.coachNote : "",
+    })
+  );
+
 
           return {
             id: b?.id || `${w}_block_${idx}`,
@@ -1425,11 +1430,13 @@ useEffect(() => {
             typeId: "tasks",
             label: b?.label || "",
             note: typeof b?.note === "string" ? b.note : "",
-            tasks: tasks.map((t) => ({
-              id: t?.id || uid(),
-              label: t?.label || "",
-              xpValue: safeNumber(t?.xpValue) || 5,
-            })),
+                tasks: tasks.map((t) => ({
+      id: t?.id || uid(),
+      label: t?.label || "",
+      xpValue: safeNumber(t?.xpValue) || 5,
+      coachNote:
+        typeof t?.coachNote === "string" ? t.coachNote : "",
+    })),
           };
         }
 
@@ -3225,104 +3232,97 @@ async function resetDay() {
                                   ...s,
                                 };
 
-                                rows.push(
-                                  <div key={i} className="setRow mt4">
-                                    <div>
-                                      <div className="label mini">
-                                        Set {i + 1}
-                                      </div>
-                                    </div>
+  rows.push(
+    <div key={i} className="mt4">
+      <div className="label mini">Set {i + 1}</div>
+      <div className="setRow mt4">
+        <div>
+          <div className="label">Reps</div>
+          <Input
+            type="number"
+            min={0}
+            value={
+              baseSet.reps !== undefined
+                ? baseSet.reps
+                : ""
+            }
+            onChange={(v) => {
+              const nextSets = [...movementSets];
+              const nextSet = {
+                ...baseSet,
+                reps: v,
+              };
+              nextSets[i] = nextSet;
+              updateStrengthSetsForMovement(
+                block.id,
+                mov.id,
+                nextSets
+              );
+            }}
+          />
+        </div>
 
-                                    <div>
-                                      <div className="label">Reps</div>
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        value={
-                                          baseSet.reps !== undefined
-                                            ? baseSet.reps
-                                            : ""
-                                        }
-                                        onChange={(v) => {
-                                          const nextSets = [...movementSets];
-                                          const nextSet = {
-                                            ...baseSet,
-                                            reps: v,
-                                          };
-                                          nextSets[i] = nextSet;
-                                          updateStrengthSetsForMovement(
-                                            block.id,
-                                            mov.id,
-                                            nextSets
-                                          );
-                                        }}
-                                      />
-                                    </div>
+        {mov.trackWeight && (
+          <div>
+            <div className="label">Weight (kg)</div>
+            <Input
+              type="number"
+              min={0}
+              step={0.5}
+              value={
+                baseSet.weight !== undefined
+                  ? baseSet.weight
+                  : ""
+              }
+              onChange={(v) => {
+                const nextSets = [...movementSets];
+                const nextSet = {
+                  ...baseSet,
+                  weight: v,
+                };
+                nextSets[i] = nextSet;
+                updateStrengthSetsForMovement(
+                  block.id,
+                  mov.id,
+                  nextSets
+                );
+              }}
+            />
+          </div>
+        )}
 
-                                    {mov.trackWeight && (
-                                      <div>
-                                        <div className="label">
-                                          Weight (kg)
-                                        </div>
-                                        <Input
-                                          type="number"
-                                          min={0}
-                                          step={0.5}
-                                          value={
-                                            baseSet.weight !== undefined
-                                              ? baseSet.weight
-                                              : ""
-                                          }
-                                          onChange={(v) => {
-                                            const nextSets = [...movementSets];
-                                            const nextSet = {
-                                              ...baseSet,
-                                              weight: v,
-                                            };
-                                            nextSets[i] = nextSet;
-                                            updateStrengthSetsForMovement(
-                                              block.id,
-                                              mov.id,
-                                              nextSets
-                                            );
-                                          }}
-                                        />
-                                      </div>
-                                    )}
+        {mov.trackDuration && (
+          <div>
+            <div className="label">Time (sec)</div>
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              value={
+                baseSet.timeSeconds !== undefined
+                  ? baseSet.timeSeconds
+                  : ""
+              }
+              onChange={(v) => {
+                const nextSets = [...movementSets];
+                const nextSet = {
+                  ...baseSet,
+                  timeSeconds: v,
+                };
+                nextSets[i] = nextSet;
+                updateStrengthSetsForMovement(
+                  block.id,
+                  mov.id,
+                  nextSets
+                );
+              }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
-                                    {mov.trackDuration && (
-                                      <div>
-                                        <div className="label">
-                                          Time (sec)
-                                        </div>
-                                        <Input
-                                          type="number"
-                                          min={0}
-                                          step={1}
-                                          value={
-                                            baseSet.timeSeconds !== undefined
-                                              ? baseSet.timeSeconds
-                                              : ""
-                                          }
-                                          onChange={(v) => {
-                                            const nextSets = [...movementSets];
-                                            const nextSet = {
-                                              ...baseSet,
-                                              timeSeconds: v,
-                                            };
-                                            nextSets[i] = nextSet;
-                                            updateStrengthSetsForMovement(
-                                              block.id,
-                                              mov.id,
-                                              nextSets
-                                            );
-                                          }}
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              }
 
                               return (
                                 <div key={mov.id} className="mt8">
@@ -3334,6 +3334,11 @@ async function resetDay() {
                                       {mov.initialTarget}
                                     </div>
                                   ) : null}
+                                  {mov.coachNote ? (
+    <div className="muted mini mt2">
+      {mov.coachNote}
+    </div>
+  ) : null}
                                   {rows}
                                 </div>
                               );
@@ -3547,23 +3552,30 @@ async function resetDay() {
               <div className="stack mt8">
                 {tasks.map((t) => {
                   const done = !!tasksDone[t.id];
-                  return (
-                    <label key={t.id} className="check">
-                      <input
-                        type="checkbox"
-                        checked={done}
-                        onChange={(e) =>
-                          toggleTaskForBlock(block.id, t.id, e.target.checked)
-                        }
-                      />
-                      {t.label || "Untitled task"}
-                      {typeof t.xpValue === "number" && t.xpValue > 0 ? (
-                        <span className="muted mini ml4">
-                          ({t.xpValue} XP)
-                        </span>
-                      ) : null}
-                    </label>
-                  );
+  return (
+    <label key={t.id} className="check">
+      <input
+        type="checkbox"
+        checked={done}
+        onChange={(e) =>
+          toggleTaskForBlock(block.id, t.id, e.target.checked)
+        }
+      />
+      <div>
+        <div>
+          {t.label || "Untitled task"}
+          {typeof t.xpValue === "number" && t.xpValue > 0 ? (
+            <span className="muted mini ml4">
+              ({t.xpValue} XP)
+            </span>
+          ) : null}
+        </div>
+        {t.coachNote ? (
+          <div className="muted mini mt2">{t.coachNote}</div>
+        ) : null}
+      </div>
+    </label>
+  );
                 })}
               </div>
             )}
@@ -4211,7 +4223,24 @@ async function resetDay() {
                               Remove
                             </SecondaryButton>
                           </div>
-                        </div>
+                          {/* Coach note for this movement */}
+    <div className="mt4">
+      <div className="label mini">Coach note (optional)</div>
+      <TextArea
+        rows={2}
+        value={m.coachNote || ""}
+        onChange={(v) =>
+          updateMovementField(
+            block.id,
+            m.id,
+            "coachNote",
+            v
+          )
+        }
+        placeholder="Coaching cues or reminders for this movement"
+      />
+    </div>
+                         </div>
                       ))}
                     </div>
 
@@ -4308,39 +4337,62 @@ async function resetDay() {
   <>
     <div className="mt12">
       <div className="label">Tasks</div>
-      <div className="stack mt8">
+            <div className="stack mt8">
         {(block.tasks || []).map((t) => (
-          <div key={t.id} className="row taskRow">
-            <div className="field flex1">
-              {/* no extra label here – heading above is enough */}
-              <Input
-                value={t.label || ""}
-                onChange={(v) =>
-                  updateTaskInBlock(block.id, t.id, { label: v })
+          <div key={t.id} className="taskRow">
+            <div className="row">
+              <div className="field flex1">
+                {/* no extra label here – heading above is enough */}
+                <Input
+                  value={t.label || ""}
+                  onChange={(v) =>
+                    updateTaskInBlock(block.id, t.id, { label: v })
+                  }
+                  placeholder="Task name (e.g. 30 mins reading)"
+                />
+              </div>
+              <div className="field w120">
+                <div className="label">XP</div>
+                <Input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={t.xpValue ?? 0}
+                  onChange={(v) =>
+                    updateTaskInBlock(block.id, t.id, {
+                      xpValue: Number(v || 0),
+                    })
+                  }
+                />
+              </div>
+              <SecondaryButton
+                className="btnSmall ml8"
+                onClick={() =>
+                  removeTaskFromBlock(block.id, t.id)
                 }
-                placeholder="Task name (e.g. 30 mins reading)"
-              />
+              >
+                Remove
+              </SecondaryButton>
             </div>
-            <div className="field w80">
-              <div className="label">XP</div>
-              <Input
-                type="number"
-                min={0}
-                step={1}
-                value={t.xpValue ?? 0}
-                onChange={(v) =>
-                  updateTaskInBlock(block.id, t.id, {
-                    xpValue: Number(v || 0),
-                  })
-                }
-              />
+
+            {/* Coach note for this task */}
+            <div className="row mt4">
+              <div className="field flex1">
+                <div className="label mini">
+                  Coach note (optional)
+                </div>
+                <TextArea
+                  rows={2}
+                  value={t.coachNote || ""}
+                  onChange={(v) =>
+                    updateTaskInBlock(block.id, t.id, {
+                      coachNote: v,
+                    })
+                  }
+                  placeholder="Coaching notes or reminders for this task"
+                />
+              </div>
             </div>
-            <SecondaryButton
-              className="btnSmall ml8"
-              onClick={() => removeTaskFromBlock(block.id, t.id)}
-            >
-              Remove
-            </SecondaryButton>
           </div>
         ))}
       </div>
