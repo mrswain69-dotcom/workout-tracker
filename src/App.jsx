@@ -3232,7 +3232,7 @@ async function resetDay() {
 
         rows.push(
           <div key={i} className="mt8">
-            <div className="label mini">Set {i + 1}</div>
+  <div className="muted mini strong">Set {i + 1}</div>
 
             <div className="setRow mt4">
               <div>
