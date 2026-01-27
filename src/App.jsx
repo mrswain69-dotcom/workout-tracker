@@ -3587,7 +3587,7 @@ async function resetDay() {
           ) : null}
         </div>
         {t.coachNote ? (
-          <div className="muted mt2">{t.coachNote}</div>
+          <div className="muted mt4">{t.coachNote}</div>
         ) : null}
       </div>
     </label>
