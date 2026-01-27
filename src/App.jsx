@@ -4339,27 +4339,30 @@ async function resetDay() {
             <div className="row">
               <div className="field flex1">
                 {/* no extra label here – heading above is enough */}
-                <Input
-                  value={t.label || ""}
-                  onChange={(v) =>
-                    updateTaskInBlock(block.id, t.id, { label: v })
-                  }
-                  placeholder="Task name (e.g. 30 mins reading)"
-                />
+                        <Input
+          value={t.label || ""}
+          onChange={(v) =>
+            updateTaskField(block.id, t.id, "label", v)
+          }
+          placeholder="Task name (e.g. 30 mins reading)"
+        />
               </div>
               <div className="field w120">
                 <div className="label">XP</div>
                 <Input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={t.xpValue ?? 0}
-                  onChange={(v) =>
-                    updateTaskInBlock(block.id, t.id, {
-                      xpValue: Number(v || 0),
-                    })
-                  }
-                />
+  type="number"
+  min={0}
+  step={1}
+  value={t.xpValue ?? 0}
+  onChange={(v) =>
+    updateTaskField(
+      block.id,
+      t.id,
+      "xpValue",
+      Number(v || 0)
+    )
+  }
+/>
               </div>
               <SecondaryButton
                 className="btnSmall ml8"
@@ -4377,16 +4380,14 @@ async function resetDay() {
                 <div className="label mini">
                   Coach note (optional)
                 </div>
-                <Textarea
-                  rows={2}
-                  value={t.coachNote || ""}
-                  onChange={(v) =>
-                    updateTaskInBlock(block.id, t.id, {
-                      coachNote: v,
-                    })
-                  }
-                  placeholder="Coaching notes or reminders for this task"
-                />
+                    <Textarea
+      rows={2}
+      value={t.coachNote || ""}
+      onChange={(v) =>
+        updateTaskField(block.id, t.id, "coachNote", v)
+      }
+      placeholder="Coaching notes or reminders for this task"
+    />
               </div>
             </div>
           </div>
@@ -5219,6 +5220,7 @@ function StyleTag() {
       .btn-disabled{opacity:.55}
       .input{width:100%;border-radius:14px;border:1px solid #e2e8f0;padding:10px 12px;font-size:14px;outline:none}
       .input:focus{border-color:#94a3b8}
+      .gridLog input[type="number"]{font-size:20px;font-weight:800}
       .label{font-size:12px;font-weight:800;color:#475569;margin-bottom:6px}
       .muted{color:#64748b;font-size:14px}
       .h2{font-size:18px;font-weight:900}
