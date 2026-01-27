@@ -2443,7 +2443,11 @@ async function resetDay() {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
-    async function updateStrengthSetsForMovement(blockId, movementId, nextSetsForMovement) {
+  async function updateStrengthSetsForMovement(
+    blockId,
+    movementId,
+    nextSetsForMovement
+  ) {
     const ctx = await ensureAudio();
 
     // Start from existing log or a fresh blank one
@@ -2454,12 +2458,22 @@ async function resetDay() {
     const existingSets =
       blockLog.sets && typeof blockLog.sets === "object" ? blockLog.sets : {};
 
-    // Update sets for this specific movement
+    // Normalise sets for this movement
+    let normalised = Array.isArray(nextSetsForMovement)
+      ? nextSetsForMovement.map((s) => ({ ...s }))
+      : [];
+
+    // Remove trailing completely empty sets
+    while (
+      normalised.length > 0 &&
+      !setDidSomething(normalised[normalised.length - 1])
+    ) {
+      normalised.pop();
+    }
+
     const nextSetsMap = {
       ...existingSets,
-      [movementId]: Array.isArray(nextSetsForMovement)
-        ? nextSetsForMovement
-        : [],
+      [movementId]: normalised,
     };
 
     const nextLog = updateBlockLog(baseLog, blockId, {
@@ -3219,7 +3233,17 @@ async function resetDay() {
         ? setsByMovement[mov.id]
         : [];
 
-      const rowCount = mov.sets || 3;
+      // Number of rows:
+      // - at least planned sets
+      // - plus 1 extra empty row for quick-add
+      const basePlannedSets = mov.sets || 3;
+      const nonEmptyCount = movementSets.filter(setDidSomething).length;
+      const rowCount = Math.max(
+        basePlannedSets,
+        movementSets.length + 1,
+        nonEmptyCount + 1
+      );
+
       const rows = [];
       for (let i = 0; i < rowCount; i++) {
         const s = movementSets[i] || {};
@@ -3230,79 +3254,86 @@ async function resetDay() {
           ...s,
         };
 
-rows.push(
-  <div key={i} className="mt12">
-    {/* Set title – OUTSIDE the box */}
-    <div className="mini strong muted">Set {i + 1}</div>
+        const didSomething = setDidSomething(baseSet);
+        const rowClass = didSomething
+          ? "mt12 setRowSimple setRowSimple-complete"
+          : "mt12 setRowSimple";
 
-       {/* Inputs grid – no outer box */}
-    <div className="grid3 mt4">
-      <div>
-        <div className="label">Reps</div>
-        <Input
-          type="number"
-          min={0}
-          value={baseSet.reps !== undefined ? baseSet.reps : ""}
-          onChange={(v) => {
-            const nextSets = [...movementSets];
-            nextSets[i] = { ...baseSet, reps: v };
-            updateStrengthSetsForMovement(
-              block.id,
-              mov.id,
-              nextSets
-            );
-          }}
-        />
-      </div>
+        rows.push(
+          <div key={i} className={rowClass}>
+            {/* Set title – OUTSIDE any input box */}
+            <div className="setLabel">Set {i + 1}</div>
 
-      {mov.trackWeight && (
-        <div>
-          <div className="label">Weight (kg)</div>
-          <Input
-            type="number"
-            min={0}
-            step={0.5}
-            value={baseSet.weight !== undefined ? baseSet.weight : ""}
-            onChange={(v) => {
-              const nextSets = [...movementSets];
-              nextSets[i] = { ...baseSet, weight: v };
-              updateStrengthSetsForMovement(
-                block.id,
-                mov.id,
-                nextSets
-              );
-            }}
-          />
-        </div>
-      )}
+            {/* Inputs grid */}
+            <div className="grid3 mt4">
+              <div>
+                <div className="label">Reps</div>
+                <Input
+                  type="number"
+                  min={0}
+                  value={baseSet.reps !== undefined ? baseSet.reps : ""}
+                  onChange={(v) => {
+                    const nextSets = [...movementSets];
+                    nextSets[i] = { ...baseSet, reps: v };
+                    updateStrengthSetsForMovement(
+                      block.id,
+                      mov.id,
+                      nextSets
+                    );
+                  }}
+                />
+              </div>
 
-      {mov.trackDuration && (
-        <div>
-          <div className="label">Time (sec)</div>
-          <Input
-            type="number"
-            min={0}
-            step={1}
-            value={
-              baseSet.timeSeconds !== undefined
-                ? baseSet.timeSeconds
-                : ""
-            }
-            onChange={(v) => {
-              const nextSets = [...movementSets];
-              nextSets[i] = { ...baseSet, timeSeconds: v };
-              updateStrengthSetsForMovement(
-                block.id,
-                mov.id,
-                nextSets
-              );
-            }}
-          />
-        </div>
-      )}
-    </div>
-  </div>
-);
+              {mov.trackWeight && (
+                <div>
+                  <div className="label">Weight (kg)</div>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={
+                      baseSet.weight !== undefined ? baseSet.weight : ""
+                    }
+                    onChange={(v) => {
+                      const nextSets = [...movementSets];
+                      nextSets[i] = { ...baseSet, weight: v };
+                      updateStrengthSetsForMovement(
+                        block.id,
+                        mov.id,
+                        nextSets
+                      );
+                    }}
+                  />
+                </div>
+              )}
+
+              {mov.trackDuration && (
+                <div>
+                  <div className="label">Time (sec)</div>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={
+                      baseSet.timeSeconds !== undefined
+                        ? baseSet.timeSeconds
+                        : ""
+                    }
+                    onChange={(v) => {
+                      const nextSets = [...movementSets];
+                      nextSets[i] = { ...baseSet, timeSeconds: v };
+                      updateStrengthSetsForMovement(
+                        block.id,
+                        mov.id,
+                        nextSets
+                      );
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        );
       }
 
       return (
@@ -3556,7 +3587,7 @@ rows.push(
           ) : null}
         </div>
         {t.coachNote ? (
-          <div className="muted mini mt2">{t.coachNote}</div>
+          <div className="muted mt2">{t.coachNote}</div>
         ) : null}
       </div>
     </label>
@@ -5271,6 +5302,15 @@ function StyleTag() {
       .setRow{display:grid;grid-template-columns:1fr;gap:10px;border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:12px}
       @media(min-width:900px){.setRow{grid-template-columns:120px 1fr 1fr}}
       .setLabel{font-weight:900;color:#475569}
+      .setRowSimple{
+        transition: background-color .18s ease, transform .1s ease;
+      }
+      .setRowSimple-complete{
+        background:#e0f2fe;
+        border-radius:14px;
+        padding:8px 10px;
+        transform:translateY(-1px);
+      }
       .notes{grid-column:1/-1}
       .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
       .grid3{display:grid;grid-template-columns:1fr;gap:10px}
