@@ -3235,8 +3235,8 @@ rows.push(
     {/* Set title – OUTSIDE the box */}
     <div className="mini strong muted">Set {i + 1}</div>
 
-    {/* Boxed content */}
-    <div className="setRow mt4">
+       {/* Inputs grid – no outer box */}
+    <div className="grid3 mt4">
       <div>
         <div className="label">Reps</div>
         <Input
@@ -3545,9 +3545,12 @@ rows.push(
       />
       <div>
         <div>
-          {t.label || "Untitled task"}
+{t.label || "Untitled task"}
           {typeof t.xpValue === "number" && t.xpValue > 0 ? (
-            <span className="muted mini ml4">
+            <span
+              className="muted mini"
+              style={{ marginLeft: 8 }}
+            >
               ({t.xpValue} XP)
             </span>
           ) : null}
