@@ -776,9 +776,11 @@ function SecondaryButton({ children, onClick, disabled }) {
   );
 }
 function Input({ value, onChange, placeholder, type = "text", min, step, readOnly, onKeyDown }) {
+  const safeValue = value === undefined || value === null ? "" : value;
+
   return (
     <input
-      value={value}
+      value={safeValue}
       onChange={(e) => onChange && onChange(e.target.value)}
       placeholder={placeholder}
       type={type}
@@ -3228,133 +3230,124 @@ async function resetDay() {
                               <div className="muted mt4">{block.note}</div>
                             ) : null}
 
-    {movements.map((mov) => {
-      const movementSets = Array.isArray(setsByMovement[mov.id])
-        ? setsByMovement[mov.id]
-        : [];
+{movements.map((mov) => {
+  const movementSets = Array.isArray(setsByMovement[mov.id])
+    ? setsByMovement[mov.id]
+    : [];
 
-      // Number of rows:
-      // - at least planned sets
-      // - plus 1 extra empty row for quick-add
-      const basePlannedSets = mov.sets || 3;
-      const nonEmptyCount = movementSets.filter(setDidSomething).length;
-      const rowCount = Math.max(
-        basePlannedSets,
-        movementSets.length + 1,
-        nonEmptyCount + 1
-      );
+  // Number of rows:
+  // - at least planned sets
+  // - plus any user-added sets
+  const basePlannedSets = mov.sets || 3;
+  const rowCount = Math.max(basePlannedSets, movementSets.length || 0);
 
-      const rows = [];
-      for (let i = 0; i < rowCount; i++) {
-        const s = movementSets[i] || {};
-        const baseSet = {
-          reps: "",
-          weight: "",
-          timeSeconds: "",
-          ...s,
-        };
+  const rows = [];
 
-        const didSomething = setDidSomething(baseSet);
-        const rowClass = didSomething
-          ? "mt12 setRowSimple setRowSimple-complete"
-          : "mt12 setRowSimple";
+  for (let i = 0; i < rowCount; i++) {
+    const s = movementSets[i] || {};
+    const baseSet = {
+      reps: "",
+      weight: "",
+      timeSeconds: "",
+      ...s,
+    };
 
-        rows.push(
-          <div key={i} className={rowClass}>
-            {/* Set title – OUTSIDE any input box */}
-            <div className="setLabel">Set {i + 1}</div>
+    const didSomething = setDidSomething(baseSet);
+    const rowClass = didSomething
+      ? "mt12 setRowSimple setRowSimple-complete"
+      : "mt12 setRowSimple";
 
-            {/* Inputs grid */}
-            <div className="grid3 mt4">
-              <div>
-                <div className="label">Reps</div>
-                <Input
-                  type="number"
-                  min={0}
-                  value={baseSet.reps !== undefined ? baseSet.reps : ""}
-                  onChange={(v) => {
-                    const nextSets = [...movementSets];
-                    nextSets[i] = { ...baseSet, reps: v };
-                    updateStrengthSetsForMovement(
-                      block.id,
-                      mov.id,
-                      nextSets
-                    );
-                  }}
-                />
-              </div>
+    rows.push(
+      <div key={i} className={rowClass}>
+        {/* Set title – OUTSIDE any input box */}
+        <div className="setLabel">Set {i + 1}</div>
 
-              {mov.trackWeight && (
-                <div>
-                  <div className="label">Weight (kg)</div>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={
-                      baseSet.weight !== undefined ? baseSet.weight : ""
-                    }
-                    onChange={(v) => {
-                      const nextSets = [...movementSets];
-                      nextSets[i] = { ...baseSet, weight: v };
-                      updateStrengthSetsForMovement(
-                        block.id,
-                        mov.id,
-                        nextSets
-                      );
-                    }}
-                  />
-                </div>
-              )}
-
-              {mov.trackDuration && (
-                <div>
-                  <div className="label">Time (sec)</div>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={
-                      baseSet.timeSeconds !== undefined
-                        ? baseSet.timeSeconds
-                        : ""
-                    }
-                    onChange={(v) => {
-                      const nextSets = [...movementSets];
-                      nextSets[i] = { ...baseSet, timeSeconds: v };
-                      updateStrengthSetsForMovement(
-                        block.id,
-                        mov.id,
-                        nextSets
-                      );
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+        {/* Inputs grid */}
+        <div className="grid3 mt4">
+          <div>
+            <div className="label">Reps</div>
+            <Input
+              type="number"
+              min={0}
+              value={
+                baseSet.reps !== undefined && baseSet.reps !== null
+                  ? baseSet.reps
+                  : ""
+              }
+              onChange={(v) => {
+                const nextSets = [...movementSets];
+                nextSets[i] = { ...baseSet, reps: v };
+                updateStrengthSetsForMovement(block.id, mov.id, nextSets);
+              }}
+            />
           </div>
-        );
-      }
 
-      return (
-        <div key={mov.id} className="mt8">
-          <div className="label strong">
-            {mov.name || "Movement"}
-          </div>
-          {mov.initialTarget ? (
-            <div className="muted mini mt2">
-              {mov.initialTarget}
+          {mov.trackWeight && (
+            <div>
+              <div className="label">Weight (kg)</div>
+              <Input
+                type="number"
+                min={0}
+                step={0.5}
+                value={
+                  baseSet.weight !== undefined && baseSet.weight !== null
+                    ? baseSet.weight
+                    : ""
+                }
+                onChange={(v) => {
+                  const nextSets = [...movementSets];
+                  nextSets[i] = { ...baseSet, weight: v };
+                  updateStrengthSetsForMovement(block.id, mov.id, nextSets);
+                }}
+              />
             </div>
-          ) : null}
-         {mov.coachNote ? (
-      <div className="muted mt2">
-        {mov.coachNote}
-      </div>
-    ) : null}
-          {rows}
+          )}
+
+          {mov.trackDuration && (
+            <div>
+              <div className="label">Time (sec)</div>
+              <Input
+                type="number"
+                min={0}
+                value={
+                  baseSet.timeSeconds !== undefined &&
+                  baseSet.timeSeconds !== null
+                    ? baseSet.timeSeconds
+                    : ""
+                }
+                onChange={(v) => {
+                  const nextSets = [...movementSets];
+                  nextSets[i] = { ...baseSet, timeSeconds: v };
+                  updateStrengthSetsForMovement(block.id, mov.id, nextSets);
+                }}
+              />
+            </div>
+          )}
         </div>
-      );
-    })}
+      </div>
+    );
+  }
+
+  return (
+    <div key={mov.id} className="mt12">
+      <div className="label">{mov.label || "Movement"}</div>
+      {rows}
+      <div className="mt8">
+        <SecondaryButton
+          onClick={() => {
+            const nextSets = [
+              ...movementSets,
+              { reps: "", weight: "", timeSeconds: "" },
+            ];
+            updateStrengthSetsForMovement(block.id, mov.id, nextSets);
+          }}
+        >
+          + Add set
+        </SecondaryButton>
+      </div>
+    </div>
+  );
+})}
 
 
                             <div className="muted mini mt8">
@@ -3436,49 +3429,49 @@ async function resetDay() {
             ) : null}
             <div className="grid3 mt8">
               <div>
-                <div className="label">Distance (km)</div>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={cardio.distanceKm}
-                  onChange={(v) =>
-                    updateCardioForBlock(block.id, {
-                      distanceKm: v,
-                    })
-                  }
-                  placeholder="e.g. 2.50"
-                />
+<div className="label">Distance (km)</div>
+<Input
+  type="number"
+  min={0}
+  step={0.01}
+  value={cardio.distanceKm ?? ""}
+  onChange={(v) =>
+    updateCardioForBlock(block.id, {
+      distanceKm: v,
+    })
+  }
+  placeholder="e.g. 2.50"
+/>
               </div>
               <div>
-                <div className="label">Time (minutes)</div>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={cardio.durationMin}
-                  onChange={(v) =>
-                    updateCardioForBlock(block.id, {
-                      durationMin: v,
-                    })
-                  }
-                  placeholder="e.g. 14.5"
-                />
+<div className="label">Time (minutes)</div>
+<Input
+  type="number"
+  min={0}
+  step={0.5}
+  value={cardio.durationMin ?? ""}
+  onChange={(v) =>
+    updateCardioForBlock(block.id, {
+      durationMin: v,
+    })
+  }
+  placeholder="e.g. 14.5"
+/>
               </div>
               <div>
-                <div className="label">Avg speed (km/h)</div>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.1}
-                  value={cardio.avgSpeedKmh}
-                  onChange={(v) =>
-                    updateCardioForBlock(block.id, {
-                      avgSpeedKmh: v,
-                    })
-                  }
-                  placeholder="auto or manual"
-                />
+<div className="label">Avg speed (km/h)</div>
+<Input
+  type="number"
+  min={0}
+  step={0.1}
+  value={cardio.avgSpeedKmh ?? ""}
+  onChange={(v) =>
+    updateCardioForBlock(block.id, {
+      avgSpeedKmh: v,
+    })
+  }
+  placeholder="auto or manual"
+/>
                 <div className="muted mini mt4">
                   Leave blank to auto-calc from distance & time.
                 </div>
@@ -3564,7 +3557,8 @@ async function resetDay() {
             ) : (
               <div className="stack mt8">
                 {tasks.map((t) => {
-                  const done = !!tasksDone[t.id];
+  const done = !!tasksDone[t.id];
+
   return (
     <label key={t.id} className="check">
       <input
@@ -3575,24 +3569,42 @@ async function resetDay() {
         }
       />
       <div>
-        <div>
-{t.label || "Untitled task"}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          <span>{t.label || "Untitled task"}</span>
           {typeof t.xpValue === "number" && t.xpValue > 0 ? (
             <span
               className="muted mini"
-              style={{ marginLeft: 8 }}
+              style={{
+                padding: "2px 8px",
+                borderRadius: 999,
+                fontSize: 11,
+                fontWeight: 600,
+              }}
             >
-              ({t.xpValue} XP)
+              {t.xpValue} XP
             </span>
           ) : null}
         </div>
+
         {t.coachNote ? (
-          <div className="muted mt4">{t.coachNote}</div>
+          <div
+            className="muted mt4"
+            style={{ fontWeight: 400, marginTop: 4 }}
+          >
+            {t.coachNote}
+          </div>
         ) : null}
       </div>
     </label>
   );
-                })}
+})}
               </div>
             )}
           </div>
