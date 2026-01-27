@@ -3230,92 +3230,79 @@ async function resetDay() {
           ...s,
         };
 
-                rows.push(
-          <div key={i} className="mt8">
-            <div className="mini strong">Set {i + 1}</div>
-            <div className="setRow mt4">
-              <div>
-                <div className="label">Reps</div>
-                <Input
-                  type="number"
-                  min={0}
-                  value={
-                    baseSet.reps !== undefined ? baseSet.reps : ""
-                  }
-                  onChange={(v) => {
-                    const nextSets = [...movementSets];
-                    const nextSet = {
-                      ...baseSet,
-                      reps: v,
-                    };
-                    nextSets[i] = nextSet;
-                    updateStrengthSetsForMovement(
-                      block.id,
-                      mov.id,
-                      nextSets
-                    );
-                  }}
-                />
-              </div>
+rows.push(
+  <div key={i} className="mt12">
+    {/* Set title – OUTSIDE the box */}
+    <div className="mini strong muted">Set {i + 1}</div>
 
-              {mov.trackWeight && (
-                <div>
-                  <div className="label">Weight (kg)</div>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={
-                      baseSet.weight !== undefined ? baseSet.weight : ""
-                    }
-                    onChange={(v) => {
-                      const nextSets = [...movementSets];
-                      const nextSet = {
-                        ...baseSet,
-                        weight: v,
-                      };
-                      nextSets[i] = nextSet;
-                      updateStrengthSetsForMovement(
-                        block.id,
-                        mov.id,
-                        nextSets
-                      );
-                    }}
-                  />
-                </div>
-              )}
+    {/* Boxed content */}
+    <div className="setRow mt4">
+      <div>
+        <div className="label">Reps</div>
+        <Input
+          type="number"
+          min={0}
+          value={baseSet.reps !== undefined ? baseSet.reps : ""}
+          onChange={(v) => {
+            const nextSets = [...movementSets];
+            nextSets[i] = { ...baseSet, reps: v };
+            updateStrengthSetsForMovement(
+              block.id,
+              mov.id,
+              nextSets
+            );
+          }}
+        />
+      </div>
 
-              {mov.trackDuration && (
-                <div>
-                  <div className="label">Time (sec)</div>
-                  <Input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={
-                      baseSet.timeSeconds !== undefined
-                        ? baseSet.timeSeconds
-                        : ""
-                    }
-                    onChange={(v) => {
-                      const nextSets = [...movementSets];
-                      const nextSet = {
-                        ...baseSet,
-                        timeSeconds: v,
-                      };
-                      nextSets[i] = nextSet;
-                      updateStrengthSetsForMovement(
-                        block.id,
-                        mov.id,
-                        nextSets
-                      );
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        );
+      {mov.trackWeight && (
+        <div>
+          <div className="label">Weight (kg)</div>
+          <Input
+            type="number"
+            min={0}
+            step={0.5}
+            value={baseSet.weight !== undefined ? baseSet.weight : ""}
+            onChange={(v) => {
+              const nextSets = [...movementSets];
+              nextSets[i] = { ...baseSet, weight: v };
+              updateStrengthSetsForMovement(
+                block.id,
+                mov.id,
+                nextSets
+              );
+            }}
+          />
+        </div>
+      )}
+
+      {mov.trackDuration && (
+        <div>
+          <div className="label">Time (sec)</div>
+          <Input
+            type="number"
+            min={0}
+            step={1}
+            value={
+              baseSet.timeSeconds !== undefined
+                ? baseSet.timeSeconds
+                : ""
+            }
+            onChange={(v) => {
+              const nextSets = [...movementSets];
+              nextSets[i] = { ...baseSet, timeSeconds: v };
+              updateStrengthSetsForMovement(
+                block.id,
+                mov.id,
+                nextSets
+              );
+            }}
+          />
+        </div>
+      )}
+    </div>
+  </div>
+);
       }
 
       return (
