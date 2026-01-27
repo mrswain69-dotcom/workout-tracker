@@ -4222,7 +4222,7 @@ async function resetDay() {
                           {/* Coach note for this movement */}
     <div className="mt4">
       <div className="label mini">Coach note (optional)</div>
-      <TextArea
+      <Textarea
         rows={2}
         value={m.coachNote || ""}
         onChange={(v) =>
@@ -4377,7 +4377,7 @@ async function resetDay() {
                 <div className="label mini">
                   Coach note (optional)
                 </div>
-                <TextArea
+                <Textarea
                   rows={2}
                   value={t.coachNote || ""}
                   onChange={(v) =>
