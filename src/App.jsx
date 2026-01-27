@@ -3232,7 +3232,7 @@ async function resetDay() {
 
         rows.push(
           <div key={i} className="mt8">
-  <div className="muted mini strong">Set {i + 1}</div>
+  <div className="label mini strong">Set {i + 1}</div>
 
             <div className="setRow mt4">
               <div>
@@ -3329,11 +3329,11 @@ async function resetDay() {
               {mov.initialTarget}
             </div>
           ) : null}
-          {mov.coachNote ? (
-            <div className="muted mini mt2">
-              {mov.coachNote}
-            </div>
-          ) : null}
+         {mov.coachNote ? (
+      <div className="muted mt2">
+        {mov.coachNote}
+      </div>
+    ) : null}
           {rows}
         </div>
       );
