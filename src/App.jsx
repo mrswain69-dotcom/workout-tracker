@@ -2485,11 +2485,6 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     }
   }
 
-  await saveLog(next);
-  if (ctx) playBling(ctx, 1, victoryTheme);
-}
-
-
     await saveLog(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
