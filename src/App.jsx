@@ -3425,7 +3425,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
       <div className="label">{mov.name || mov.label || "Movement"}</div>
 
       {/* Target line */}
-      <div className="mt8">
+      <div className="mt12">
         <b>Target:</b> {targetInfo?.text || "Log once to generate targets."}
       </div>
 
