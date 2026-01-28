@@ -3294,13 +3294,13 @@ async function updateCardioForBlock(blockId, cardioPatch) {
                             : "";
 
                         return (
-                          <div key={block.id} className="mt12">
-                            <div className="h3">
-                              {block.label || "Strength block"}
-                            </div>
-                            {block.note ? (
-                              <div className="muted mt4">{block.note}</div>
-                            ) : null}
+  <div key={block.id} className="mt12">
+    {block.label ? (
+      <div className="h3">{block.label}</div>
+    ) : null}
+    {block.note ? (
+      <div className="muted mt4">{block.note}</div>
+    ) : null}
 
 {block.movements.map((planMov) => {
   const mov = planMov;
@@ -3422,11 +3422,12 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   return (
     <div key={mov.id} className="mt12">
       {/* Movement name */}
-      <div className="label">{mov.name || mov.label || "Movement"}</div>
-
-      {/* Target line */}
-      <div className="mt12">
-        <b>Target:</b> {targetInfo?.text || "Log once to generate targets."}
+      <div className="movementName">
+        {mov.name || mov.label || "Movement"}
+      </div>
+            {/* Target line */}
+      <div className="movementTarget">
+        <strong>Target:</strong> {targetInfo?.text || "Log once to generate targets."}
       </div>
 
       {rows}
@@ -5361,10 +5362,12 @@ function StyleTag() {
       .input{width:100%;border-radius:14px;border:1px solid #e2e8f0;padding:10px 12px;font-size:14px;outline:none}
       .input:focus{border-color:#94a3b8}
       .gridLog input[type="number"]{font-size:20px;font-weight:800}
-      .label{font-size:12px;font-weight:800;color:#475569;margin-bottom:6px}
+      .label{font-size:12px;font-weight:600;color:#475569;margin-bottom:4px}
       .muted{color:#64748b;font-size:14px}
-      .h2{font-size:18px;font-weight:900}
-      .h3{font-size:14px;font-weight:900}
+      .h2{font-size:18px;font-weight:900;color:#64748b}        /* section titles muted */
+      .h3{font-size:14px;font-weight:900}                      /* block titles */
+      .movementName{font-size:16px;font-weight:800;color:#0f172a;margin-top:12px;margin-bottom:4px}
+      .movementTarget{font-size:13px;font-weight:500;color:#64748b;margin-bottom:4px}
       .mt8{margin-top:8px}
       .mt12{margin-top:12px}
       .mt16{margin-top:16px}
@@ -5421,7 +5424,7 @@ function StyleTag() {
       .panelTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
       .setRow{display:grid;grid-template-columns:1fr;gap:10px;border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:12px}
       @media(min-width:900px){.setRow{grid-template-columns:120px 1fr 1fr}}
-      .setLabel{font-weight:900;color:#475569}
+      .setLabel{font-size:13px;font-weight:700;color:#475569;margin-bottom:4px}
       .setRowSimple{
         transition: background-color .18s ease, transform .1s ease;
       }
