@@ -620,14 +620,59 @@ function suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup }) {
 }
 function findLastCardio(allLogs, beforeYmd) {
   if (!Array.isArray(allLogs)) return null;
+
   for (let i = allLogs.length - 1; i >= 0; i--) {
     const row = allLogs[i];
-    if (!row?.date_ymd || row.date_ymd >= beforeYmd) continue;
-    const c = row?.log?.cardio;
-    if (c && (Number(c?.distanceKm) || Number(c?.durationMin))) return c;
+    const date = row?.date_ymd || row?.date;
+    if (!date || date >= beforeYmd) continue;
+
+    const log = row?.log;
+    if (!log) continue;
+
+    // V3: aggregate cardio across blocks
+    if (Array.isArray(log.blocks) && log.blocks.length) {
+      let totalDist = 0;
+      let totalMin = 0;
+
+      for (const b of log.blocks) {
+        if (!b || !b.cardio) continue;
+        const c = b.cardio;
+        totalDist += safeNumber(c.distanceKm);
+        totalMin += safeNumber(c.durationMin);
+      }
+
+      if (totalDist > 0 || totalMin > 0) {
+        const avgSpeed =
+          totalDist > 0 && totalMin > 0
+            ? totalDist / (totalMin || 1)
+            : safeNumber(log.cardio?.avgSpeedKmh);
+
+        return {
+          distanceKm: totalDist,
+          durationMin: totalMin,
+          avgSpeedKmh: avgSpeed,
+        };
+      }
+    }
+
+    // Legacy fallback: single cardio object on the log
+    const cLegacy = log.cardio;
+    if (
+      cLegacy &&
+      (safeNumber(cLegacy.distanceKm) > 0 ||
+        safeNumber(cLegacy.durationMin) > 0)
+    ) {
+      return {
+        distanceKm: safeNumber(cLegacy.distanceKm),
+        durationMin: safeNumber(cLegacy.durationMin),
+        avgSpeedKmh: safeNumber(cLegacy.avgSpeedKmh),
+      };
+    }
   }
+
   return null;
 }
+
 function isCardioImproved(current, last) {
   if (!current || !last) return false;
 
@@ -1600,11 +1645,15 @@ const planDayForWeekday = (weekday) => {
 
 const XP_RULES = {
   // Per-block rules
-  strengthSet: 2, // +2 XP per completed set
-  cardioPerMin: 1 / 5, // +1 XP per 5 minutes (rounded up)
-  cardioPerKm: 1 / 0.5, // +1 XP per 0.5km (rounded up)
-  durationPerMin: 1 / 10, // +1 XP per 10 minutes
-  taskDefault: 5, // fallback if a task has no xpValue
+  strengthSet: 2,            // +2 XP per completed strength/HIIT set
+  cardioPerMin: 1 / 5,       // +1 XP per 5 minutes (rounded up)
+  cardioPerKm: 1 / 0.5,      // +1 XP per 0.5km (rounded up)
+  durationPerMin: 1 / 10,    // +1 XP per 10 minutes
+  taskDefault: 5,            // fallback if a task has no xpValue
+
+  // Progression bonuses
+  progression: 10,           // beat last strength session
+  cardioProgression: 20,     // beat last cardio session
 
   // Day-complete bonus
   dayCompleteBonus: 10,
@@ -1612,27 +1661,29 @@ const XP_RULES = {
   // Streak bonuses (per completed day in a streak)
   streak: {
     1: 0,
-    2: 1,
-    3: 2,
-    4: 3,
-    5: 4,
-    6: 5,
-    7: 10,
+    2: 5,
+    3: 10,
+    5: 20,
+    10: 50,
+    30: 100,
+    60: 200,
+    90: 300,
+    180: 600,
+    365: 2000,
   },
 };
 
-// Count completed sets in a single block (any reps/weight/duration)
+// Count completed sets in a single block (any reps/weight/time/etc)
 function countCompletedSetsInBlock(block) {
   if (!block || !block.sets || typeof block.sets !== "object") return 0;
   let count = 0;
-  for (const sets of Object.values(block.sets)) {
-    if (!Array.isArray(sets)) continue;
-    count += sets.filter(setDidSomething).length;
+  for (const movementId of Object.keys(block.sets)) {
+    const arr = Array.isArray(block.sets[movementId]) ? block.sets[movementId] : [];
+    count += arr.filter(setDidSomething).length;
   }
   return count;
 }
 
-// Does this block have *any* meaningful data?
 function blockHasData(block) {
   if (!block) return false;
   const typeId = block.typeId;
@@ -1658,11 +1709,6 @@ function blockHasData(block) {
     const done = block.tasksDone || {};
     return Object.values(done).some(Boolean);
   }
-
-  // Fallback for any other types
-  if (block.duration && safeNumber(block.duration.minutes) > 0) return true;
-  if (block.cardio && (safeNumber(block.cardio.distanceKm) > 0 || safeNumber(block.cardio.durationMin) > 0)) return true;
-  if (block.sets && countCompletedSetsInBlock(block) > 0) return true;
 
   return false;
 }
@@ -1715,13 +1761,13 @@ function xpForDurationBlock(block) {
   return Math.ceil(mins * XP_RULES.durationPerMin);
 }
 
-// Find the plan block corresponding to a log block id
-function findPlanBlockForLogBlock(plan, blockId) {
+function findPlanBlockForLogBlock(plan, logBlockId) {
   if (!plan || !plan.blocksByWeekday) return null;
-  for (const dayBlocks of Object.values(plan.blocksByWeekday)) {
-    if (!Array.isArray(dayBlocks)) continue;
-    const found = dayBlocks.find((b) => b && b.id === blockId);
-    if (found) return found;
+  for (const weekday of Object.keys(plan.blocksByWeekday)) {
+    const arr = plan.blocksByWeekday[weekday] || [];
+    for (const b of arr) {
+      if (b && b.id === logBlockId) return b;
+    }
   }
   return null;
 }
@@ -1792,15 +1838,8 @@ function completionBonusForLog(log) {
   return dayIsGreen(log) ? XP_RULES.dayCompleteBonus : 0;
 }
 
-// Combined per-day XP (blocks + completion bonus, but NOT streak yet)
-function awardXpForLog(log, plan) {
-  if (!log) return 0;
-  const base = baseXpForLog(log, plan);
-  const complete = completionBonusForLog(log);
-  return base + complete;
-}
+// ---- Streaks ----
 
-// Streak bonus map: date_ymd -> streak XP
 function computeStreakBonusMap(records) {
   if (!Array.isArray(records) || !records.length) return {};
 
@@ -1818,6 +1857,7 @@ function computeStreakBonusMap(records) {
   for (const [date, log] of map.entries()) {
     if (dayIsGreen(log)) completeDates.push(date);
   }
+
   if (!completeDates.length) return {};
 
   // Sort ascending
@@ -1848,7 +1888,8 @@ function computeStreakBonusMap(records) {
   return bonusByDate;
 }
 
-// Build detailed XP rows for the Rewards XP log
+// ---- XP breakdown rows (Rewards tab + overall XP) ----
+
 const buildXpDebugRows = (records, plan) => {
   if (!Array.isArray(records) || !records.length) return [];
 
@@ -1864,47 +1905,145 @@ const buildXpDebugRows = (records, plan) => {
     const complete = dayIsGreen(log);
     const blocks = Array.isArray(log.blocks) ? log.blocks : [];
 
-    // Block-based XP
-    const baseXp = baseXpForLog(log, plan);
-    const dayCompleteXp = completionBonusForLog(log);
-    const streakXp = streakXpByDate[date] || 0;
-
-    const totalXp = baseXp + streakXp;
-
-    // Simple metrics for debugging
     let setsLogged = 0;
     let cardioKm = 0;
     let customMin = 0;
+    let tasksDone = 0;
 
-    for (const b of blocks) {
-      if (!b) continue;
-      setsLogged += countCompletedSetsInBlock(b);
-      if (b.typeId === "cardio" && b.cardio) {
-        cardioKm += safeNumber(b.cardio.distanceKm);
-        customMin += safeNumber(b.cardio.durationMin);
-      } else if (b.typeId === "duration" && b.duration) {
-        customMin += safeNumber(b.duration.minutes);
+    let setsXp = 0;
+    let movementsXp = 0; // not used in V3 but kept for compatibility
+    let extraXp = 0;
+
+    let baseXp = 0;
+    let progressXp = 0;
+    let cardioProgressXp = 0;
+
+    let progressedMovement = false;
+
+    // Walk all blocks once and accumulate stats / XP
+    for (const block of blocks) {
+      if (!block) continue;
+
+      switch (block.typeId) {
+        case "strength":
+        case "hiit":
+        case "box": {
+          // Strength / HIIT sets + progression
+          const setsByMovement =
+            block.sets && typeof block.sets === "object" ? block.sets : {};
+          const movements = Array.isArray(block.movements) ? block.movements : [];
+
+          for (const mov of movements) {
+            const movementSets = Array.isArray(setsByMovement[mov.id])
+              ? setsByMovement[mov.id]
+              : [];
+            const completedSets = movementSets.filter(setDidSomething);
+            if (!completedSets.length) continue;
+
+            setsLogged += completedSets.length;
+
+            if (!progressedMovement) {
+              const lastSets = findLastMovementSets(records, mov.id, date);
+              const lastScore = scoreSets(lastSets || []);
+              const curScore = scoreSets(movementSets);
+              if (curScore > lastScore && lastScore > 0) {
+                progressedMovement = true;
+              }
+            }
+          }
+
+          const blockXp = xpForStrengthBlock(block);
+          baseXp += blockXp;
+          setsXp += blockXp; // treat all base strength XP as "sets XP"
+          break;
+        }
+
+        case "cardio": {
+          const c = block.cardio || {};
+          const km = safeNumber(c.distanceKm);
+          const min = safeNumber(c.durationMin);
+          cardioKm += km;
+          customMin += min;
+
+          const blockXp = xpForCardioBlock(block);
+          baseXp += blockXp;
+          break;
+        }
+
+        case "duration": {
+          const d = block.duration || {};
+          const mins = safeNumber(d.minutes);
+          customMin += mins;
+
+          const blockXp = xpForDurationBlock(block);
+          baseXp += blockXp;
+          break;
+        }
+
+        case "tasks": {
+          const done = block.tasksDone || {};
+          tasksDone += Object.values(done).filter(Boolean).length;
+
+          const blockXp = xpForTasksBlock(block, plan);
+          baseXp += blockXp;
+          break;
+        }
+
+        default:
+          break;
       }
     }
+
+    if (progressedMovement) {
+      progressXp = XP_RULES.progression;
+    }
+
+    // Cardio progression: compare today's summed cardio vs previous
+    let effectiveCardio = null;
+    if (cardioKm > 0 || customMin > 0) {
+      const avgSpeed =
+        cardioKm > 0 && customMin > 0
+          ? cardioKm / (customMin || 1)
+          : safeNumber(log.cardio?.avgSpeedKmh);
+
+      effectiveCardio = {
+        distanceKm: cardioKm,
+        durationMin: customMin,
+        avgSpeedKmh: avgSpeed,
+      };
+
+      const lastCardio = findLastCardio(records, date);
+      if (lastCardio && isCardioImproved(effectiveCardio, lastCardio)) {
+        cardioProgressXp = XP_RULES.cardioProgression;
+      }
+    }
+
+    const dayCompleteXp = completionBonusForLog(log);
+    const streakXp = streakXpByDate[date] || 0;
+
+    const baseXpWithProgress =
+      baseXp + progressXp + cardioProgressXp + extraXp + dayCompleteXp;
+
+    const totalXp = baseXpWithProgress + streakXp;
 
     rows.push({
       date,
       weekday,
       kind: "blocks",
       complete,
-      baseXp,
-      bonus: dayCompleteXp, // daily completion bonus
+      baseXp: baseXpWithProgress,
+      bonus: dayCompleteXp,
       streakXp,
       oneOffDone: false,
       oneOffXp: 0,
-      setsXp: 0,
-      movementsXp: 0,
+      setsXp,
+      movementsXp,
       dayCompleteXp,
-      progressXp: 0,
-      cardioProgressXp: 0,
-      extraXp: 0,
-      tasksDone: 0,
-      tasksXp: 0,
+      progressXp,
+      cardioProgressXp,
+      extraXp,
+      tasksDone,
+      tasksXp: 0, // kept for compatibility; tasks XP is in baseXp
       totalXp,
       setsLogged,
       cardioKm,
@@ -1925,6 +2064,12 @@ const computeXpFromLogs = (records, plan) => {
 useEffect(() => {
   setXp(computeXpFromLogs(allLogs, plan));
 }, [allLogs, plan]);
+
+// XP breakdown per day (for cross-checking / XP log)
+const xpDebugRows = useMemo(
+  () => buildXpDebugRows(allLogs, plan),
+  [allLogs, plan]
+);
 
 // XP breakdown per day (for cross-checking / XP log)
 const xpDebugRows = useMemo(
