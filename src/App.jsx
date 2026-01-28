@@ -73,7 +73,7 @@ function getCurrentPlanStreak(records, todayYmd) {
   const completeDates = [];
   for (const [date, log] of map.entries()) {
     if (date > todayYmd) continue;
-    if (dayIsGreen(log)) {
+    if (isDayGreen(log)) {
       completeDates.push(date);
     }
   }
@@ -97,7 +97,7 @@ function getCurrentPlanStreak(records, todayYmd) {
 
   while (true) {
     const log = map.get(cursor);
-    if (!log || !dayIsGreen(log)) break;
+    if (!log || !isDayGreen(log)) break;
     streak += 1;
 
     const d = new Date(cursor + "T00:00:00");
@@ -1720,7 +1720,7 @@ function dayHasAnyBlockActivity(log) {
 }
 
 // Green = every block has some data AND at least one block has data
-function dayIsGreen(log) {
+function isDayGreen(log) {
   if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
 
   let any = false;
@@ -1835,7 +1835,7 @@ function baseXpForLog(log, plan) {
 }
 
 function completionBonusForLog(log) {
-  return dayIsGreen(log) ? XP_RULES.dayCompleteBonus : 0;
+  return isDayGreen(log) ? XP_RULES.dayCompleteBonus : 0;
 }
 
 // ---- Streaks ----
@@ -1855,7 +1855,7 @@ function computeStreakBonusMap(records) {
   // Collect all "green" days
   const completeDates = [];
   for (const [date, log] of map.entries()) {
-    if (dayIsGreen(log)) completeDates.push(date);
+    if (isDayGreen(log)) completeDates.push(date);
   }
 
   if (!completeDates.length) return {};
@@ -1902,7 +1902,7 @@ const buildXpDebugRows = (records, plan) => {
     if (!date || !log) continue;
 
     const weekday = log.weekday || weekdayFromYMD(date);
-    const complete = dayIsGreen(log);
+    const complete = isDayGreen(log);
     const blocks = Array.isArray(log.blocks) ? log.blocks : [];
 
     let setsLogged = 0;
@@ -2090,7 +2090,7 @@ const selectedDayStatus = useMemo(() => {
   }
 
   const log = rec.log;
-  const green = dayIsGreen(log);
+  const green = isDayGreen(log);
   const any = dayHasAnyBlockActivity(log);
 
   if (green) return "green";
@@ -2113,7 +2113,7 @@ const todayPlanStatus = useMemo(() => {
   if (!rec || !rec.log) return "amber"; // today not logged yet
 
   const log = rec.log;
-  const green = dayIsGreen(log);
+  const green = isDayGreen(log);
   const any = dayHasAnyBlockActivity(log);
 
   if (green) return "green";
