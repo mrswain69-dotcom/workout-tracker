@@ -3420,7 +3420,7 @@ async function resetDay() {
       <div className="label">{mov.name || mov.label || "Movement"}</div>
 
       {/* Target line */}
-      <div className="muted mini">
+      <div className="mt8">
         <b>Target:</b> {targetInfo?.text || "Log once to generate targets."}
       </div>
 
