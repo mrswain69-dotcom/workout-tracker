@@ -2245,6 +2245,43 @@ function blankLogForDay() {
     })),
   };
 }
+
+  function ensureBlocksSnapshot(baseLog) {
+  // If we don't have a log, or no plan / weekday, just return as-is
+  if (!baseLog || !plan || !selectedWeekday) return baseLog;
+
+  const existingBlocks = Array.isArray(baseLog.blocks) ? baseLog.blocks : [];
+  if (existingBlocks.length > 0) {
+    // Already has per-block snapshot
+    return baseLog;
+  }
+
+  // Rebuild the per-block snapshot from the current plan for this weekday
+  const plannedBlocks =
+    getDayActivitiesForWeekday(
+      plan || defaultPlanForFamily(),
+      selectedWeekday
+    ) || [];
+
+  return {
+    ...baseLog,
+    blocks: plannedBlocks.map((b) => ({
+      id: b.id,
+      typeId: b.typeId,
+      label: b.label || "",
+      note: b.note || "",
+      cardio: {
+        distanceKm: "",
+        durationMin: "",
+        avgSpeedKmh: "",
+      },
+      duration: {
+        minutes: "",
+      },
+    })),
+  };
+}
+
 // --- Per-block log helpers (Plan V2, Stage 2) ---
 // Safely retrieve the log entry for a specific block on this day.
 function getBlockLog(log, blockId) {
@@ -2391,7 +2428,9 @@ async function resetDay() {
 
     async function updateCardioForBlock(blockId, cardioPatch) {
     const ctx = await ensureAudio();
-    const base = logForDay ? { ...logForDay } : blankLogForDay();
+    const base = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
 
     // Patch the specific block's cardio
     const next = updateBlockLog(base, blockId, { cardio: cardioPatch });
@@ -2421,9 +2460,11 @@ async function resetDay() {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
-  async function updateDurationForBlock(blockId, durationPatch) {
+    async function updateDurationForBlock(blockId, durationPatch) {
     const ctx = await ensureAudio();
-    const base = logForDay ? { ...logForDay } : blankLogForDay();
+    const base = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
 
     // Patch the specific block's duration
     const next = updateBlockLog(base, blockId, { duration: durationPatch });
@@ -2452,8 +2493,10 @@ async function resetDay() {
   ) {
     const ctx = await ensureAudio();
 
-    // Start from existing log or a fresh blank one
-    const baseLog = logForDay ? { ...logForDay } : blankLogForDay();
+        // Start from existing log or a fresh blank one
+    const baseLog = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
 
     // Current block log (if any)
     const blockLog = getBlockLog(baseLog, blockId) || {};
@@ -2490,9 +2533,9 @@ async function resetDay() {
     if (!family?.id || !activeProfileId || !selectedDate) return;
 
     // Start from the current log or a blank one
-    const baseLog = logForDay
-      ? { ...logForDay }
-      : blankLogForDay(selectedWeekday);
+    const baseLog = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
 
     // --- 1) Update the block-level log (V3 way) ---
     const blockLog = getBlockLog(baseLog, blockId) || {};
