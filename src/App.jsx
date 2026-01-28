@@ -2450,35 +2450,45 @@ async function resetDay() {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
-    async function updateCardioForBlock(blockId, cardioPatch) {
-    const ctx = await ensureAudio();
-    const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
-    );
+async function updateCardioForBlock(blockId, cardioPatch) {
+  const ctx = await ensureAudio();
 
-    // Patch the specific block's cardio
-    const next = updateBlockLog(base, blockId, { cardio: cardioPatch });
+  // Take a stable snapshot of today’s log (or a fresh blank one)
+  const base = ensureBlocksSnapshot(
+    logForDay ? { ...logForDay } : blankLogForDay()
+  );
 
-    // Keep legacy day-level cardio summary in sync for older code / stats
-    if (Array.isArray(next.blocks) && next.blocks.length) {
-      let totalKm = 0;
-      let totalMin = 0;
+  // Patch the specific block’s cardio data
+  const next = updateBlockLog(base, blockId, { cardio: cardioPatch });
 
-      for (const b of next.blocks) {
-        if (!b || !b.cardio) continue;
-        totalKm += safeNumber(b.cardio.distanceKm);
-        totalMin += safeNumber(b.cardio.durationMin);
-      }
+  // Keep the day-level cardio summary in sync for stats / summary panel
+  if (Array.isArray(next.blocks) && next.blocks.length) {
+    let totalKm = 0;
+    let totalMin = 0;
 
-      if (totalKm > 0 && totalMin > 0) {
-        const spd = totalMin > 0 ? totalKm / (totalMin / 60) : 0;
-        next.cardio = {
-          distanceKm: String(totalKm),
-          durationMin: String(totalMin),
-          avgSpeedKmh: spd ? spd.toFixed(2) : "",
-        };
-      }
+    for (const b of next.blocks) {
+      if (!b || !b.cardio) continue;
+      totalKm += safeNumber(b.cardio.distanceKm);
+      totalMin += safeNumber(b.cardio.durationMin);
     }
+
+    if (totalKm > 0 || totalMin > 0) {
+      const spd = totalMin > 0 ? totalKm / (totalMin / 60) : 0;
+      next.cardio = {
+        distanceKm: totalKm ? String(totalKm) : "",
+        durationMin: totalMin ? String(totalMin) : "",
+        avgSpeedKmh: spd ? spd.toFixed(2) : "",
+      };
+    } else {
+      // Nothing logged – clear the day-level cardio summary
+      next.cardio = { distanceKm: "", durationMin: "", avgSpeedKmh: "" };
+    }
+  }
+
+  await saveLog(next);
+  if (ctx) playBling(ctx, 1, victoryTheme);
+}
+
 
     await saveLog(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
