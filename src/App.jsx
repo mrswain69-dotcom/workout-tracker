@@ -3273,7 +3273,8 @@ async function resetDay() {
                               <div className="muted mt4">{block.note}</div>
                             ) : null}
 
-{movements.map((mov) => {
+{block.movements.map((planMov) => {
+  const mov = planMov;
   const movementSets = Array.isArray(setsByMovement[mov.id])
     ? setsByMovement[mov.id]
     : [];
@@ -3373,7 +3374,9 @@ async function resetDay() {
 
   return (
     <div key={mov.id} className="mt12">
-      <div className="label">{mov.label || "Movement"}</div>
+      <div className="label strong">
+  {mov.name}
+</div>
       {rows}
       <div className="mt8">
         <SecondaryButton
