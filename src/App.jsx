@@ -2071,13 +2071,7 @@ const xpDebugRows = useMemo(
   [allLogs, plan]
 );
 
-// XP breakdown per day (for cross-checking / XP log)
-const xpDebugRows = useMemo(
-  () => buildXpDebugRows(allLogs, plan),
-  [allLogs, plan]
-);
-  
-  const todayYmd = useMemo(() => getTodayYMD(), []);
+const todayYmd = useMemo(() => getTodayYMD(), []);
 
 const selectedDayStatus = useMemo(() => {
   // returns: "green" | "amber" | "grey"
