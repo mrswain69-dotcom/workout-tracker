@@ -555,14 +555,38 @@ function calcComboMax(log) {
 }
 function findLastMovementSets(allLogs, movementId, beforeYmd) {
   if (!Array.isArray(allLogs)) return null;
+
   for (let i = allLogs.length - 1; i >= 0; i--) {
     const row = allLogs[i];
     if (!row?.date_ymd || row.date_ymd >= beforeYmd) continue;
-    const sets = row?.log?.entries?.[movementId] || null;
-    if (Array.isArray(sets) && sets.some(setDidSomething)) return sets;
+
+    const log = row?.log;
+    if (!log) continue;
+
+    // --- V2: legacy per-day entries ---
+    const legacySets = log?.entries?.[movementId] || null;
+    if (Array.isArray(legacySets) && legacySets.some(setDidSomething)) {
+      return legacySets;
+    }
+
+    // --- V3: per-block sets on log.blocks[].sets[movementId] ---
+    const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+    for (const b of blocks) {
+      if (!b) continue;
+      const setsByMovement =
+        b.sets && typeof b.sets === "object" ? b.sets : null;
+      if (!setsByMovement) continue;
+
+      const blockSets = setsByMovement[movementId];
+      if (Array.isArray(blockSets) && blockSets.some(setDidSomething)) {
+        return blockSets;
+      }
+    }
   }
+
   return null;
 }
+
 function summarizeStrengthSets(sets) {
   if (!Array.isArray(sets) || !sets.length) return "—";
   const reps = sets.map((s) => (Number.isFinite(Number(s?.reps)) ? Number(s.reps) : 0)).filter((x) => x > 0);
@@ -3287,6 +3311,24 @@ async function resetDay() {
 
   const rows = [];
 
+    // --- Target logic for this movement ---
+  const lastSets = findLastMovementSets(allLogs, mov.id, ymd(selectedDate));
+  const initialTarget = {
+    text: mov.initialTarget || "",
+    // For now we only use the text form from the movement;
+    // numeric reps/weight aren't stored separately in V3.
+    reps: null,
+    weight: null,
+  };
+
+  const targetInfo = suggestStrengthTarget({
+    ex: { allowWeight: !!mov.trackWeight },
+    lastSets,
+    initialTarget,
+    ageGroup: activeProfile?.age_group || "under16",
+  });
+
+
   for (let i = 0; i < rowCount; i++) {
     const s = movementSets[i] || {};
     const baseSet = {
@@ -3374,10 +3416,16 @@ async function resetDay() {
 
   return (
     <div key={mov.id} className="mt12">
-      <div className="label strong">
-  {mov.name}
-</div>
+      {/* Movement name */}
+      <div className="label">{mov.name || mov.label || "Movement"}</div>
+
+      {/* Target line */}
+      <div className="muted mini">
+        <b>Target:</b> {targetInfo?.text || "Log once to generate targets."}
+      </div>
+
       {rows}
+
       <div className="mt8">
         <SecondaryButton
           onClick={() => {
@@ -3391,6 +3439,7 @@ async function resetDay() {
           + Add set
         </SecondaryButton>
       </div>
+      <div className="movementDivider" />
     </div>
   );
 })}
@@ -5260,6 +5309,11 @@ function AddType({ onAdd }) {
 function StyleTag() {
   return (
     <style>{`
+      .movementDivider {
+  height: 1px;
+  background: #e5e7eb; /* light grey */
+  margin: 16px 14px 0 14px; /* top spacing + inset from edges */
+}
       .page{min-height:100vh;background:#f8fafc}
       .wrap{max-width:1200px;margin:0 auto;padding:16px}
       .header{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
