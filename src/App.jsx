@@ -1005,6 +1005,44 @@ function AuthScreen({ onAuthed }) {
   );
 }
 
+// -------- Day status helpers (TOP-LEVEL, DO NOT MOVE) --------
+
+function isDayGreen(log) {
+  if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
+
+  let any = false;
+
+  for (const block of log.blocks) {
+    if (!block) continue;
+
+    const typeId = block.typeId;
+
+    let hasData = false;
+
+    if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+      hasData =
+        block.sets &&
+        Object.values(block.sets).some(
+          (arr) => Array.isArray(arr) && arr.some((s) => s && setDidSomething(s))
+        );
+    } else if (typeId === "cardio") {
+      const c = block.cardio || {};
+      hasData =
+        Number(c.distanceKm) > 0 ||
+        Number(c.durationMin) > 0;
+    } else if (typeId === "duration") {
+      hasData = Number(block?.duration?.minutes) > 0;
+    } else if (typeId === "tasks") {
+      hasData = Object.values(block.tasksDone || {}).some(Boolean);
+    }
+
+    if (!hasData) return false;
+    any = true;
+  }
+
+  return any;
+}
+
 // -------- Main app ----------
 export default function App() {
   const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
@@ -1717,20 +1755,6 @@ function blockHasData(block) {
 function dayHasAnyBlockActivity(log) {
   if (!log || !Array.isArray(log.blocks)) return false;
   return log.blocks.some(blockHasData);
-}
-
-// Green = every block has some data AND at least one block has data
-function isDayGreen(log) {
-  if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
-
-  let any = false;
-  for (const block of log.blocks) {
-    if (!block) continue;
-    const has = blockHasData(block);
-    if (!has) return false;
-    any = any || has;
-  }
-  return any;
 }
 
 // ---- XP per-block helpers ----
