@@ -1968,10 +1968,12 @@ const buildXpDebugRows = (records, plan) => {
         case "strength":
         case "hiit":
         case "box": {
-                    // Strength / HIIT sets + progression
+          // Strength / HIIT sets + progression
           const setsByMovement =
             block.sets && typeof block.sets === "object" ? block.sets : {};
-          const movements = Array.isArray(block.movements) ? block.movements : [];
+          const movements = Array.isArray(block.movements)
+            ? block.movements
+            : [];
 
           for (const mov of movements) {
             const movementSets = Array.isArray(setsByMovement[mov.id])
@@ -1988,7 +1990,6 @@ const buildXpDebugRows = (records, plan) => {
             if (curScore > lastScore && lastScore > 0) {
               progressCount += 1;
             }
-          }
           }
 
           const blockXp = xpForStrengthBlock(block);
@@ -2008,6 +2009,29 @@ const buildXpDebugRows = (records, plan) => {
           baseXp += blockXp;
           break;
         }
+
+        case "duration": {
+          const d = block.duration || {};
+          const mins = safeNumber(d.minutes);
+          customMin += mins;
+
+          const blockXp = xpForDurationBlock(block);
+          baseXp += blockXp;
+          break;
+        }
+
+        case "tasks": {
+          const done = block.tasksDone || {};
+          tasksDone += Object.values(done).filter(Boolean).length;
+
+          const blockXp = xpForTasksBlock(block, plan);
+          baseXp += blockXp;
+          break;
+        }
+
+        default:
+          break;
+      }
 
         case "duration": {
           const d = block.duration || {};
