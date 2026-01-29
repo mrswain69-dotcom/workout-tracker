@@ -1017,6 +1017,11 @@ function isDayGreen(log) {
 
     const typeId = block.typeId;
 
+    // Ignore pure task blocks for day-complete logic and streaks
+    if (typeId === "tasks") {
+      continue;
+    }
+
     let hasData = false;
 
     if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
@@ -1032,14 +1037,13 @@ function isDayGreen(log) {
         Number(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = Number(block?.duration?.minutes) > 0;
-    } else if (typeId === "tasks") {
-      hasData = Object.values(block.tasksDone || {}).some(Boolean);
     }
 
     if (!hasData) return false;
     any = true;
   }
 
+  // Must have at least one non-task block with data
   return any;
 }
 
@@ -1250,6 +1254,7 @@ useEffect(() => {
   const [xp, setXp] = useState(0);
   const [bonusPop, setBonusPop] = useState(0);
   const [showXpLog, setShowXpLog] = useState(false);
+  const [showXpRules, setShowXpRules] = useState(false);
 
   const audioCtxRef = useRef(null);
   // Draft inputs for one-off activities on the Log tab
@@ -1684,10 +1689,11 @@ const planDayForWeekday = (weekday) => {
 const XP_RULES = {
   // Per-block rules
   strengthSet: 2,            // +2 XP per completed strength/HIIT set
-  cardioPerMin: 1 / 5,       // +1 XP per 5 minutes (rounded up)
+  cardioPerMin: 1 / 2,       // +1 XP per 1 minutes (rounded up)
   cardioPerKm: 1 / 0.5,      // +1 XP per 0.5km (rounded up)
-  durationPerMin: 1 / 10,    // +1 XP per 10 minutes
+  durationPerMin: 2 / 10,    // +2 XP per 10 minutes
   taskDefault: 5,            // fallback if a task has no xpValue
+  blockComplete: 5,          // +5 XP per completed workout block (non-task)
 
   // Progression bonuses
   progression: 10,           // beat last strength session
@@ -1710,6 +1716,7 @@ const XP_RULES = {
     365: 2000,
   },
 };
+
 
 // Count completed sets in a single block (any reps/weight/time/etc)
 function countCompletedSetsInBlock(block) {
@@ -1837,15 +1844,24 @@ function baseXpForLog(log, plan) {
     switch (block.typeId) {
       case "strength":
       case "hiit":
-      case "box":
-        total += xpForStrengthBlock(block);
+      case "box": {
+        const blockXp = xpForStrengthBlock(block);
+        total += blockXp;
+        if (blockXp > 0) total += XP_RULES.blockComplete;
         break;
-      case "cardio":
-        total += xpForCardioBlock(block);
+      }
+      case "cardio": {
+        const blockXp = xpForCardioBlock(block);
+        total += blockXp;
+        if (blockXp > 0) total += XP_RULES.blockComplete;
         break;
-      case "duration":
-        total += xpForDurationBlock(block);
+      }
+      case "duration": {
+        const blockXp = xpForDurationBlock(block);
+        total += blockXp;
+        if (blockXp > 0) total += XP_RULES.blockComplete;
         break;
+      }
       case "tasks":
         total += xpForTasksBlock(block, plan);
         break;
@@ -1942,7 +1958,7 @@ const buildXpDebugRows = (records, plan) => {
     let progressXp = 0;
     let cardioProgressXp = 0;
 
-    let progressedMovement = false;
+    let progressCount = 0;
 
     // Walk all blocks once and accumulate stats / XP
     for (const block of blocks) {
@@ -1952,7 +1968,7 @@ const buildXpDebugRows = (records, plan) => {
         case "strength":
         case "hiit":
         case "box": {
-          // Strength / HIIT sets + progression
+                    // Strength / HIIT sets + progression
           const setsByMovement =
             block.sets && typeof block.sets === "object" ? block.sets : {};
           const movements = Array.isArray(block.movements) ? block.movements : [];
@@ -1966,14 +1982,13 @@ const buildXpDebugRows = (records, plan) => {
 
             setsLogged += completedSets.length;
 
-            if (!progressedMovement) {
-              const lastSets = findLastMovementSets(records, mov.id, date);
-              const lastScore = scoreSets(lastSets || []);
-              const curScore = scoreSets(movementSets);
-              if (curScore > lastScore && lastScore > 0) {
-                progressedMovement = true;
-              }
+            const lastSets = findLastMovementSets(records, mov.id, date);
+            const lastScore = scoreSets(lastSets || []);
+            const curScore = scoreSets(movementSets);
+            if (curScore > lastScore && lastScore > 0) {
+              progressCount += 1;
             }
+          }
           }
 
           const blockXp = xpForStrengthBlock(block);
@@ -2018,8 +2033,8 @@ const buildXpDebugRows = (records, plan) => {
       }
     }
 
-    if (progressedMovement) {
-      progressXp = XP_RULES.progression;
+        if (progressCount > 0) {
+      progressXp = progressCount * XP_RULES.progression;
     }
 
     // Cardio progression: compare today's summed cardio vs previous
@@ -5057,6 +5072,54 @@ const cardioProgress = useMemo(() => {
                 </div>
                 <div className="mini mt12">Unlock rules: Level 3 = Arcade, Level 5 = Chill. (100 XP per level)</div>
               </div>
+                            {/* XP rules – how XP is earned */}
+              <div className="panel mt16">
+                <div className="rowBetween">
+                  <div>
+                    <div className="h3">How you earn XP</div>
+                    <div className="muted mt4">
+                      Quick reference for what gives XP. Expand to see the details.
+                    </div>
+                  </div>
+                  <SecondaryButton onClick={() => setShowXpRules((v) => !v)}>
+                    {showXpRules ? "Hide" : "Show"}
+                  </SecondaryButton>
+                </div>
+
+                {showXpRules && (
+                  <div
+                    className="stack mt8 mini"
+                    style={{ maxHeight: 220, overflowY: "auto" }}
+                  >
+                    <div>
+                      <b>Strength / HIIT / Box</b> – 2 XP per completed set, plus 5 XP when the block is logged.
+                    </div>
+                    <div>
+                      <b>Cardio</b> – 1 XP per 2 minutes and 2 XP per 0.5 km (rounded up), plus 5 XP per logged cardio block.
+                    </div>
+                    <div>
+                      <b>Duration blocks</b> – 2 XP per 10 minutes, plus 5 XP per logged duration block.
+                    </div>
+                    <div>
+                      <b>Tasks</b> – XP per task based on the value in the plan (default 5 XP). Tasks don’t affect day streaks.
+                    </div>
+                    <div>
+                      <b>Progression – strength</b> – +10 XP for each movement that beats your previous best.
+                    </div>
+                    <div>
+                      <b>Progression – cardio</b> – +20 XP when today’s cardio beats your last session (distance / time / speed).
+                    </div>
+                    <div>
+                      <b>Day complete</b> – +10 XP when all workout blocks (not tasks) for that day are logged.
+                    </div>
+                    <div>
+                      <b>Streak bonuses</b> – extra XP for consecutive completed workout days: 2→5, 3→10, 5→20, 10→50,
+                      30→100, 60→200, 90→300, 180→600, 365→2000.
+                    </div>
+                  </div>
+                )}
+              </div>
+
                              {/* XP log – recent XP breakdown */}
               <div className="panel mt16">
                 <div className="rowBetween">
