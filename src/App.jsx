@@ -2032,29 +2032,6 @@ const buildXpDebugRows = (records, plan) => {
         default:
           break;
       }
-
-        case "duration": {
-          const d = block.duration || {};
-          const mins = safeNumber(d.minutes);
-          customMin += mins;
-
-          const blockXp = xpForDurationBlock(block);
-          baseXp += blockXp;
-          break;
-        }
-
-        case "tasks": {
-          const done = block.tasksDone || {};
-          tasksDone += Object.values(done).filter(Boolean).length;
-
-          const blockXp = xpForTasksBlock(block, plan);
-          baseXp += blockXp;
-          break;
-        }
-
-        default:
-          break;
-      }
     }
 
         if (progressCount > 0) {
