@@ -3549,13 +3549,15 @@ const cardioProgress = useMemo(() => {
 
     // --- Target logic for this movement ---
   const lastSets = findLastMovementSets(allLogs, mov.id, ymd(selectedDate));
-  const initialTarget = {
-    text: mov.initialTarget || "",
-    // For now we only use the text form from the movement;
-    // numeric reps/weight aren't stored separately in V3.
-    reps: null,
-    weight: null,
-  };
+const initialTarget = {
+  // Prefer explicit initialTarget if you ever add one, otherwise use
+  // the Reps/duration field from the plan as the first target.
+  text: mov.initialTarget || mov.reps || "",
+  // For now we only use the text form from the movement;
+  // numeric reps/weight aren't stored separately in V3.
+  reps: null,
+  weight: null,
+};
 
   const targetInfo = suggestStrengthTarget({
     ex: { allowWeight: !!mov.trackWeight },
@@ -3656,9 +3658,16 @@ const cardioProgress = useMemo(() => {
       <div className="movementName">
         {mov.name || mov.label || "Movement"}
       </div>
-            {/* Target line */}
+
+      {/* Movement-level coach note from the plan */}
+      {mov.coachNote ? (
+        <div className="muted mt2">{mov.coachNote}</div>
+      ) : null}
+
+      {/* Target line */}
       <div className="movementTarget">
-        <strong>Target:</strong> {targetInfo?.text || "Log once to generate targets."}
+        <strong>Target:</strong>{" "}
+        {targetInfo?.text || "Log once to generate targets."}
       </div>
 
       {rows}
@@ -3667,7 +3676,9 @@ const cardioProgress = useMemo(() => {
         <SecondaryButton
           onClick={() => {
             const nextSets = [
-              ...movementSets,
+              ...(Array.isArray(setsByMovement[mov.id])
+                ? setsByMovement[mov.id]
+                : []),
               { reps: "", weight: "", timeSeconds: "" },
             ];
             updateStrengthSetsForMovement(block.id, mov.id, nextSets);
@@ -4495,23 +4506,24 @@ const cardioProgress = useMemo(() => {
                     <div className="label">Movements</div>
                     <div className="stack mt8">
                       {(block.movements || []).map((m) => (
-                        <div key={m.id} className="movementRow">
+                        <React.Fragment key={m.id}>
+                        <div className="movementRow">
                           <div className="row movementRowTop">
-                            <div className="field flex1">
-                              {/* Heading above covers the label for this column */}
-                              <Input
-                                value={m.name || ""}
-                                onChange={(v) =>
-                                  updateMovementField(
-                                    block.id,
-                                    m.id,
-                                    "name",
-                                    v
-                                  )
-                                }
-                                placeholder="e.g. Push-ups"
-                              />
-                            </div>
+                                    <div className="field flex1">
+          <div className="label">Movement</div>
+          <Input
+            value={m.name || ""}
+            onChange={(v) =>
+              updateMovementField(
+                block.id,
+                m.id,
+                "name",
+                v
+              )
+            }
+            placeholder="e.g. Push-ups"
+          />
+        </div>
                             <div className="field w80">
                               <div className="label">Sets</div>
                               <Input
@@ -4604,6 +4616,11 @@ const cardioProgress = useMemo(() => {
       />
     </div>
                          </div>
+                  {/* Divider between movements */}
+      {idx < (block.movements || []).length - 1 && (
+        <div className="movementDivider" />
+      )}
+    </React.Fragment>
                       ))}
                     </div>
 
@@ -4702,18 +4719,19 @@ const cardioProgress = useMemo(() => {
       <div className="label">Tasks</div>
             <div className="stack mt8">
         {(block.tasks || []).map((t) => (
-          <div key={t.id} className="taskRow">
+          <React.Fragment key={t.id}>
+          <div className="taskRow">
             <div className="row">
-              <div className="field flex1">
-                {/* no extra label here – heading above is enough */}
-                        <Input
-          value={t.label || ""}
-          onChange={(v) =>
-            updateTaskField(block.id, t.id, "label", v)
-          }
-          placeholder="Task name (e.g. 30 mins reading)"
-        />
-              </div>
+                      <div className="field flex1">
+          <div className="label">Task</div>
+          <Input
+            value={t.label || ""}
+            onChange={(v) =>
+              updateTaskField(block.id, t.id, "label", v)
+            }
+            placeholder="Task name (e.g. 30 mins reading)"
+          />
+        </div>
               <div className="field w120">
                 <div className="label">XP</div>
                 <Input
@@ -4741,22 +4759,24 @@ const cardioProgress = useMemo(() => {
               </SecondaryButton>
             </div>
 
-            {/* Coach note for this task */}
-            <div className="row mt4">
-              <div className="field flex1">
-                <div className="label mini">
-                  Coach note (optional)
-                </div>
-                    <Textarea
-      rows={2}
-      value={t.coachNote || ""}
-      onChange={(v) =>
-        updateTaskField(block.id, t.id, "coachNote", v)
-      }
-      placeholder="Coaching notes or reminders for this task"
-    />
-              </div>
+{/* Coach note for this task */}
+<div className="mt4">
+  <div className="label mini">Coach note (optional)</div>
+  <Textarea
+    rows={2}
+    value={t.coachNote || ""}
+    onChange={(v) =>
+      updateTaskField(block.id, t.id, "coachNote", v)
+    }
+    placeholder="Coaching notes or reminders for this task"
+  />
+</div>
             </div>
+            {/* Divider between tasks */}
+      {idx < (block.tasks || []).length - 1 && (
+        <div className="movementDivider" />
+      )}
+    </React.Fragment>
           </div>
         ))}
       </div>
