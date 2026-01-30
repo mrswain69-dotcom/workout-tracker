@@ -1575,10 +1575,11 @@ useEffect(() => {
     const profileId = activeProfileId;
 
     // 1) Try local cached copy first (includes extra activities)
-    const cached = getCachedPlan(profileId);
-    if (cached) {
-      setAndCachePlan(profileId, cached);
-    }
+  const cached = getCachedPlan(profileId);
+  if (cached) {
+    setAndCachePlan(profileId, cached);
+    return; // 👈 IMPORTANT: do not immediately overwrite with DB
+  }
 
     // 2) Always try the DB plan (authoritative for extras)
     (async () => {
