@@ -3930,7 +3930,6 @@ const cardioProgress = useMemo(() => {
             {t.coachNote}
           </div>
         ) : null}
-        <div className="movementDivider" />
       </div>
     </label>
   );
@@ -4601,7 +4600,7 @@ const cardioProgress = useMemo(() => {
                          </div>
                       ))}
                     </div>
-<div className="movementDivider" />
+
                     <PrimaryButton
                       className="btnSmall mt8"
                       onClick={() => addMovementToBlock(block.id)}
@@ -4750,7 +4749,6 @@ const cardioProgress = useMemo(() => {
       }
       placeholder="Coaching notes or reminders for this task"
     />
-                <div className="movementDivider" />
               </div>
             </div>
           </div>
