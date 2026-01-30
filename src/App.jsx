@@ -4761,7 +4761,7 @@ const initialTarget = {
 
 {/* Coach note for this task */}
 <div className="mt4">
-  <div className="label mini">Coach note (optional)</div>
+  <div className="label">Coach note (optional)</div>
   <Textarea
     rows={2}
     value={t.coachNote || ""}
