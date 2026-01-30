@@ -1568,53 +1568,62 @@ useEffect(() => {
 
    // --- Load weekly plan for the selected profile ---
   useEffect(() => {
-    // We need both a profile and a family to be able to read/write the DB plan
-    if (!activeProfileId || !family?.id) return;
-
-    const familyId = family.id;
+    if (!family?.id || !activeProfileId) return;
     const profileId = activeProfileId;
 
-    // 1) Try local cached copy first (includes extra activities)
-    const cached = getCachedPlan(profileId);
+    // 1) Try local cache first
+    const cached = getCachedPlanForProfile(profileId);
+    const hadCached = !!cached;
     if (cached) {
+      // This sets both in-memory state and ensures localStorage is initialised
       setAndCachePlan(profileId, cached);
     }
 
-    // 2) Always try the DB plan (authoritative for extras)
-    (async () => {
-      const { data, error } = await getProfilePlan(familyId, profileId);
-      if (error) {
-        console.error("getProfilePlan failed", error);
+    // 2) Snapshot of profile row in case we need a fallback
+    const activeProfile = profilesById[profileId];
+    const fromProfileRow = activeProfile?.plan_json || null;
 
-        // If we have cached, keep it; otherwise fall back to profile row plan_json
-        if (!cached && activeProfile?.plan_json) {
-          setAndCachePlan(profileId, activeProfile.plan_json);
+    // 3) Fetch from Supabase, but DO NOT overwrite an existing cached plan.
+    (async () => {
+      const { data, error } = await getProfilePlan(family.id, profileId);
+      if (error) {
+        console.error("getProfilePlan failed:", error);
+        if (!hadCached) {
+          const fallback = ensureBlocksByWeekday(
+            parsePlanFromProfileRows(fromProfileRow, activeProfile)
+          );
+          setAndCachePlan(profileId, fallback);
         }
         return;
       }
 
       if (data?.plan_json) {
-        // Use the DB copy as the source of truth and refresh cache
-        setAndCachePlan(profileId, data.plan_json);
-        return;
+        const parsed = parsePlanFromProfileRows(data.plan_json, activeProfile);
+        if (parsed) {
+          const withBlocks = ensureBlocksByWeekday(parsed);
+
+          if (!hadCached) {
+            // No cache when we started → DB is our source of truth
+            setAndCachePlan(profileId, withBlocks);
+          } else {
+            // We already had a cached plan (likely just edited).
+            // Keep the in-memory version, but refresh localStorage so that
+            // other devices or future sessions get the latest.
+            cachePlanLocally(profileId, withBlocks);
+          }
+          return;
+        }
       }
 
-      // 3) If DB has no plan yet, fall back to profile row plan_json
-      //    but only if we didn't already load a cached plan
-      if (!cached && activeProfile?.plan_json) {
-        setAndCachePlan(profileId, activeProfile.plan_json);
-        return;
-      }
-
-      // 4) No plan anywhere and no cached copy: create default + persist
-      if (!cached) {
-        const p = defaultPlanForFamily();
-        await upsertProfilePlan(familyId, profileId, p);
-        setAndCachePlan(profileId, p);
+      // If DB has no plan_json and we didn't have a cache at all, fall back
+      if (!hadCached) {
+        const fallback = ensureBlocksByWeekday(
+          parsePlanFromProfileRows(fromProfileRow, activeProfile)
+        );
+        setAndCachePlan(profileId, fallback);
       }
     })();
-  }, [activeProfileId, family?.id]);  // IMPORTANT: do not depend on activeProfile here
-
+  }, [family?.id, activeProfileId, profilesById]);
 
   // Names we’ve used before for one-off activities (for dropdown suggestions)
   const knownOneOffNames = useMemo(() => {
@@ -2367,6 +2376,11 @@ const todayPlanStatus = useMemo(() => {
           : b
       )
     );
+  }
+
+    // Alias used by the Plan UI button
+  function removeTaskFromBlock(blockId, taskId) {
+    removeTask(blockId, taskId);
   }
 
   function updateTaskField(blockId, taskId, field, value) {
