@@ -4777,7 +4777,6 @@ const initialTarget = {
         <div className="movementDivider" />
       )}
     </React.Fragment>
-          </div>
         ))}
       </div>
       <PrimaryButton
