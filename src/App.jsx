@@ -3929,8 +3929,8 @@ const cardioProgress = useMemo(() => {
           >
             {t.coachNote}
           </div>
-      <div className="movementDivider" />
         ) : null}
+        <div className="movementDivider" />
       </div>
     </label>
   );
