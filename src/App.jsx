@@ -1579,8 +1579,9 @@ useEffect(() => {
       setAndCachePlan(profileId, cached);
     }
 
-    // 2) Snapshot of profile row in case we need a fallback
-    const activeProfile = profilesById[profileId];
+        // 2) Snapshot of profile row in case we need a fallback
+    const activeProfile =
+      profiles.find((p) => p.id === profileId) || null;
     const fromProfileRow = activeProfile?.plan_json || null;
 
     // 3) Fetch from Supabase, but DO NOT overwrite an existing cached plan.
@@ -1623,7 +1624,7 @@ useEffect(() => {
         setAndCachePlan(profileId, fallback);
       }
     })();
-  }, [family?.id, activeProfileId, profilesById]);
+    }, [family?.id, activeProfileId, profiles]);
 
   // Names we’ve used before for one-off activities (for dropdown suggestions)
   const knownOneOffNames = useMemo(() => {
