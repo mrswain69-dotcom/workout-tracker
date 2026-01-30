@@ -1571,9 +1571,10 @@ useEffect(() => {
     if (!family?.id || !activeProfileId) return;
     const profileId = activeProfileId;
 
-    // 1) Try local cache first
-    const cached = getCachedPlanForProfile(profileId);
-    const hadCached = !!cached;
+      // 1) Try local cache first
+  const cached = getCachedPlan(profileId);
+  const hadCached = !!cached;
+
     if (cached) {
       // This sets both in-memory state and ensures localStorage is initialised
       setAndCachePlan(profileId, cached);
