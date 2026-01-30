@@ -5667,7 +5667,7 @@ function StyleTag() {
       .h2{font-size:18px;font-weight:900;color:#64748b}        /* section titles muted */
       .h3{font-size:14px;font-weight:900}                      /* block titles */
       .movementName{font-size:16px;font-weight:800;color:#0f172a;margin-top:12px;margin-bottom:4px}
-      .movementTarget{font-size:13px;font-weight:500;color:#64748b;margin-bottom:4px}
+      .movementTarget{font-size:13px;font-weight:500;color:#64748b;margin-top:4px;margin-bottom:4px}
       .mt8{margin-top:8px}
       .mt12{margin-top:12px}
       .mt16{margin-top:16px}
