@@ -2369,6 +2369,11 @@ const todayPlanStatus = useMemo(() => {
     );
   }
 
+  // Alias used by the Plan page "Remove" button
+  function removeTaskFromBlock(blockId, taskId) {
+    removeTask(blockId, taskId);
+  }
+
   function updateTaskField(blockId, taskId, field, value) {
     updatePlanBlocksForCurrentDay("Update task", (blocks) =>
       blocks.map((b) => {
