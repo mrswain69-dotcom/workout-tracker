@@ -2116,6 +2116,16 @@ const computeXpFromLogs = (records, plan) => {
   return rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
 };
 
+useEffect(() => {
+  setXp(computeXpFromLogs(allLogs, plan));
+}, [allLogs, plan]);
+
+// XP breakdown per day (for cross-checking / XP log)
+const xpDebugRows = useMemo(
+  () => buildXpDebugRows(allLogs, plan),
+  [allLogs, plan]
+);
+
   const records = useMemo(() => {
     const base = {
       bestXpDay: null,
@@ -2150,16 +2160,6 @@ const computeXpFromLogs = (records, plan) => {
 
     return base;
   }, [allLogs, xpDebugRows]); 
-
-useEffect(() => {
-  setXp(computeXpFromLogs(allLogs, plan));
-}, [allLogs, plan]);
-
-// XP breakdown per day (for cross-checking / XP log)
-const xpDebugRows = useMemo(
-  () => buildXpDebugRows(allLogs, plan),
-  [allLogs, plan]
-);
 
 const todayYmd = useMemo(() => getTodayYMD(), []);
 
