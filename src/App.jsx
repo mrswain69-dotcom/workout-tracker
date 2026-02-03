@@ -69,11 +69,15 @@ function getCurrentPlanStreak(records, todayYmd) {
     map.set(date, log);
   }
 
-  // Collect all "green" (plan-complete) dates
+    // Collect all streak-counting dates:
+  // - normal plan-complete days (green)
+  // - days explicitly marked as streakSaved
   const completeDates = [];
   for (const [date, log] of map.entries()) {
     if (date > todayYmd) continue;
-    if (isDayGreen(log)) {
+    const streakDay =
+      isDayGreen(log) || (log.meta && log.meta.streakSaved);
+    if (streakDay) {
       completeDates.push(date);
     }
   }
@@ -1377,7 +1381,8 @@ useEffect(() => {
 
   // --- Load day log ---
   useEffect(() => {
-  if (!family?.id || !activeProfileId || !selectedDate) return;
+   // Wait until we actually have a plan for this profile/day
+  if (!family?.id || !activeProfileId || !selectedDate || !plan) return;
 
   const cacheKey = makeLogCacheKey(family.id, activeProfileId, selectedDate);
   const cached = cacheKey ? lastLogByDateRef.current[cacheKey] : undefined;
@@ -1649,7 +1654,16 @@ useEffect(() => {
   const xpToNext = 100 - (xp % 100);
   const level = 1 + Math.floor(xp / 100);
   const unlocked = { arcade: level >= 3, chill: level >= 5 };
-  const canUseTheme = (t) => t === "classic" || (t === "arcade" && unlocked.arcade) || (t === "chill" && unlocked.chill);
+
+  // Avatars: 1 unlock every 1000 XP (every 10 levels)
+  const avatarTier = Math.floor(xp / 1000); // 0 = none yet, 1 = first avatar, etc.
+  const nextAvatarAt = (avatarTier + 1) * 1000;
+  const xpToNextAvatar = nextAvatarAt - xp;
+
+  const canUseTheme = (t) =>
+    t === "classic" ||
+    (t === "arcade" && unlocked.arcade) ||
+    (t === "chill" && unlocked.chill);
 
   const dayTypeId = plan?.dayTypeByWeekday?.[selectedWeekday] || "strength";
   const activityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === dayTypeId) || builtInTypes()[0];
@@ -2101,6 +2115,41 @@ const computeXpFromLogs = (records, plan) => {
   const rows = buildXpDebugRows(records, plan);
   return rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
 };
+
+  const records = useMemo(() => {
+    const base = {
+      bestXpDay: null,
+      bestXpValue: 0,
+      longestCombo: 0,
+      longestComboDate: null,
+    };
+
+    if (!Array.isArray(allLogs) || !allLogs.length) return base;
+
+    // Most XP in a single day
+    if (Array.isArray(xpDebugRows) && xpDebugRows.length) {
+      let best = xpDebugRows[0];
+      for (const row of xpDebugRows) {
+        if ((row.totalXp || 0) > (best.totalXp || 0)) best = row;
+      }
+      base.bestXpDay = best.date;
+      base.bestXpValue = best.totalXp || 0;
+    }
+
+    // Longest combo / set streak – prefer gamify.comboMax if present
+    for (const r of allLogs) {
+      const date = r.date_ymd || r.date;
+      const log = r.log;
+      if (!date || !log) continue;
+      const combo = safeNumber(log?.gamify?.comboMax);
+      if (combo > base.longestCombo) {
+        base.longestCombo = combo;
+        base.longestComboDate = date;
+      }
+    }
+
+    return base;
+  }, [allLogs, xpDebugRows]); 
 
 useEffect(() => {
   setXp(computeXpFromLogs(allLogs, plan));
@@ -2665,6 +2714,19 @@ async function resetDay() {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
+  async function toggleStreakSaver(checked) {
+    // Turning ON requires the parent PIN; turning OFF is free.
+    if (checked) {
+      const ok = await ensureUnlocked("save streak for this day");
+      if (!ok) return;
+    }
+
+    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    next.meta = { ...(next.meta || {}), streakSaved: checked };
+    await saveLog(next);
+    setLogForDay(next);
+  }
+
 async function updateCardioForBlock(blockId, cardioPatch) {
   const ctx = await ensureAudio();
 
@@ -3141,6 +3203,39 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     weekly.set(wk, w);
   }
 
+    // Longest daily activity streak (all-time),
+  // counting any real activity OR an explicit streak saver.
+  const streakDays = new Set(sessionDays);
+  for (const row of allLogs) {
+    const d = row.date_ymd || row.date;
+    const log = row.log;
+    if (!d || !log) continue;
+    if (log.meta && log.meta.streakSaved) {
+      streakDays.add(d);
+    }
+  }
+
+  let longestActivityStreak = 0;
+  if (streakDays.size) {
+    const ordered = Array.from(streakDays).sort((a, b) =>
+      a < b ? -1 : a > b ? 1 : 0
+    );
+    let prev = null;
+    let run = 0;
+    for (const d of ordered) {
+      if (!prev) {
+        run = 1;
+      } else {
+        const prevDate = new Date(prev + "T00:00:00");
+        prevDate.setDate(prevDate.getDate() + 1);
+        const expect = ymd(prevDate);
+        run = d === expect ? run + 1 : 1;
+      }
+      if (run > longestActivityStreak) longestActivityStreak = run;
+      prev = d;
+    }
+  }
+    
   // streak (consecutive training days, i.e. any activity on that day)
   let streak = 0;
   let cur = new Date();
@@ -3186,14 +3281,15 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   const improved =
     lastVol > 0 ? Math.round(((thisVol - lastVol) / lastVol) * 100) : null;
 
-  return {
-    totalMinutes: "", // not wired yet
+    return {
+    totalMinutes: "",
     totalSessions,
     totalStrengthVolume,
     bestCardioSpeed,
     bestCardioDistance,
     weeklyChart,
     streak,
+    longestActivityStreak,
     improved,
     topEffortDay,
     topEffortValue,
@@ -3455,13 +3551,29 @@ const cardioProgress = useMemo(() => {
                 </div>
 
                                 <div className="rowRight logTopActions">
-                  <div
-                    className="dayStatusDot"
-                    title={selectedDayTitle}
-                    style={{ background: selectedDayDotColor }}
-                  />
-                  <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
-                </div>
+  <div
+    className="dayStatusDot"
+    title={selectedDayTitle}
+    style={{ background: selectedDayDotColor }}
+  />
+  <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
+  <label
+    className="mini"
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      marginLeft: 12,
+    }}
+  >
+    <input
+      type="checkbox"
+      checked={!!logForDay?.meta?.streakSaved}
+      onChange={(e) => toggleStreakSaver(e.target.checked)}
+    />
+    <span>Streak saver (PIN)</span>
+  </label>
+</div>
 
               </div>
 
@@ -4249,6 +4361,45 @@ const initialTarget = {
                 <div className="h3">Most improved this month</div>
                 <div className="mt8">{stats.improved === null ? "Log sessions across two months to see improvement." : `${stats.improved}% vs last month (strength volume)`}</div>
               </div>
+              <div className="mt16">
+  <div className="h3">Records</div>
+  <div className="mini muted mt4">
+    All-time bests for this profile.
+  </div>
+  <div className="stack mt8 mini">
+    <div>
+      🏆 <b>Most XP in a day</b>:{" "}
+      {records.bestXpValue
+        ? `${records.bestXpValue} XP on ${records.bestXpDay}`
+        : "—"}
+    </div>
+    <div>
+      🥇 <b>Longest set streak</b>:{" "}
+      {records.longestCombo
+        ? `${records.longestCombo} sets (best combo day)`
+        : "—"}
+    </div>
+    <div>
+      🥈 <b>Longest daily activity streak</b>:{" "}
+      {stats.longestActivityStreak
+        ? `${stats.longestActivityStreak} days`
+        : "—"}
+    </div>
+    <div>
+      🥉 <b>Fastest average speed</b>:{" "}
+      {stats.bestCardioSpeed
+        ? `${stats.bestCardioSpeed.toFixed(2)} km/h`
+        : "—"}
+    </div>
+    <div>
+      📈 <b>Biggest improvement</b>:{" "}
+      <span className="muted">
+        per-exercise improvement badges are coming later.
+      </span>
+    </div>
+  </div>
+</div>
+
             </Card>
 
             <Card className="pad">
@@ -5087,6 +5238,35 @@ const initialTarget = {
     {currentPlanStreak} day{currentPlanStreak === 1 ? "" : "s"}
   </div>
 </div>
+              <div className="panel mt12">
+  <div className="h3">Level roadmap</div>
+  <div className="mini muted mt4">
+    Every 100 XP = 1 level. Avatars unlock every 1000 XP (every 10 levels).
+  </div>
+  <div className="stack mt8 mini">
+    <div>
+      🎚 Current level: <b>{level}</b>
+    </div>
+    <div>
+      🧬 Avatar unlocks reached: <b>{avatarTier}</b>
+    </div>
+    <div>
+      {xp < nextAvatarAt ? (
+        <>Next avatar unlock at {nextAvatarAt} XP ({xpToNextAvatar} XP to go).</>
+      ) : (
+        <>You’ve hit an avatar tier — more avatar art coming soon.</>
+      )}
+    </div>
+    <div className="muted mt8">Milestones to aim for:</div>
+    <div>• Level 3 – Unlock Arcade sounds</div>
+    <div>• Level 5 – Unlock Chill sounds</div>
+    <div>• Level 10 – First avatar style</div>
+    <div>• Level 20 – Bronze avatar frame</div>
+    <div>• Level 30 – Silver avatar frame</div>
+    <div>• Level 40 – Gold avatar frame</div>
+    <div>• Level 50 – Legendary badge + avatar set</div>
+  </div>
+</div>
 
               <div className="mt16">
                 <div className="h3">Rewards shop</div>
@@ -5098,6 +5278,25 @@ const initialTarget = {
                 </div>
                 <div className="mini mt12">Unlock rules: Level 3 = Arcade, Level 5 = Chill. (100 XP per level)</div>
               </div>
+              <div className="panel mt16">
+  <div className="h3">Badges (coming alive later)</div>
+  <div className="mini muted mt4">
+    These are long-term goals; later they’ll turn into real, collectable badges.
+  </div>
+  <div className="stack mt8 mini">
+    <div>🏅 First 5K logged</div>
+    <div>🏅 First 10K logged</div>
+    <div>🏅 Speed star: average speed over 8 km/h</div>
+    <div>🏅 Early bird: cardio logged before 8am</div>
+    <div>🏅 Night owl: cardio logged after 7pm</div>
+    <div>🏅 7-day daily activity streak</div>
+    <div>🏅 30-day daily activity streak</div>
+    <div>🏅 100-day daily activity streak</div>
+    <div>🏅 100 strength sets logged</div>
+    <div>🏅 1,000 strength sets logged</div>
+    <div>🏅 100 cardio sessions logged</div>
+  </div>
+</div>
                             {/* XP rules – how XP is earned */}
               <div className="panel mt16">
                 <div className="rowBetween">
