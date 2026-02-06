@@ -1412,7 +1412,7 @@ useEffect(() => {
     console.error("getLog exception", e);
     if (!cached) setLogForDay(null);
   });
-}, [family?.id, activeProfileId, selectedDate]);
+}, [family?.id, activeProfileId, selectedDate, plan]);
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
