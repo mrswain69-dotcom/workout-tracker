@@ -1273,6 +1273,33 @@ useEffect(() => {
   const loadDayLogReqRef = useRef(0);
   const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
 
+  // Strength-like blocks for the selected day (planned + extra one-day)
+  const strengthLikePlannedBlocks = plannedBlocksForSelectedDay.filter(
+    (b) =>
+      b &&
+      (b.typeId === "strength" ||
+        b.typeId === "hiit" ||
+        b.typeId === "box")
+  );
+
+  const strengthLikeExtraBlocks = Array.isArray(logForDay?.blocks)
+    ? logForDay.blocks.filter(
+        (b) =>
+          b &&
+          b.isExtra &&
+          (b.typeId === "strength" ||
+            b.typeId === "hiit" ||
+            b.typeId === "box")
+      )
+    : [];
+
+  const allStrengthBlocksForDay = [
+    ...strengthLikePlannedBlocks,
+    ...strengthLikeExtraBlocks,
+  ];
+
+  const hasAnyStrengthBlocks = allStrengthBlocksForDay.length > 0;
+  
   function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
   return arr[Math.floor(Math.random() * arr.length)];
@@ -3666,289 +3693,292 @@ const cardioProgress = useMemo(() => {
                     <div className="h2">Strength / HIIT log</div>
 
                     {allStrengthBlocksForDay.map((block) => {
-                        const blockLog = getBlockLog(logForDay, block.id) || {};
-                        const setsByMovement =
-                          blockLog.sets && typeof blockLog.sets === "object"
-                            ? blockLog.sets
-                            : {};
+                      const blockLog = getBlockLog(logForDay, block.id) || {};
+                      const setsByMovement =
+                        blockLog.sets && typeof blockLog.sets === "object"
+                          ? blockLog.sets
+                          : {};
 
-                        const movements = Array.isArray(block.movements)
-                          ? block.movements
+                      const movements = Array.isArray(block.movements)
+                        ? block.movements
+                        : [];
+
+                      const restSec = safeNumber(block.restSec) || 60;
+
+                      // Count completed sets for estimated time
+                      let totalCompletedSets = 0;
+                      for (const mov of movements) {
+                        const ms = Array.isArray(setsByMovement[mov.id])
+                          ? setsByMovement[mov.id]
                           : [];
+                        totalCompletedSets += ms.filter(setDidSomething).length;
+                      }
 
-                        const restSec = safeNumber(block.restSec) || 60;
+                      const estimatedMinutes =
+                        totalCompletedSets > 0
+                          ? Math.round(
+                              (totalCompletedSets * restSec * 2) / 60
+                            )
+                          : 0;
 
-                        // Count completed sets for estimated time
-                        let totalCompletedSets = 0;
-                        for (const mov of movements) {
-                          const ms = Array.isArray(setsByMovement[mov.id])
-                            ? setsByMovement[mov.id]
-                            : [];
-                          totalCompletedSets += ms.filter(setDidSomething).length;
-                        }
+                      const actualMinutes =
+                        blockLog.duration && blockLog.duration.minutes != null
+                          ? blockLog.duration.minutes
+                          : "";
 
-                        const estimatedMinutes =
-                          totalCompletedSets > 0
-                            ? Math.round(
-                                (totalCompletedSets * restSec * 2) / 60
-                              )
-                            : 0;
+                      return (
+                        <div key={block.id} className="mt12">
+                          {block.label ? (
+                            <div className="h3">{block.label}</div>
+                          ) : null}
+                          {block.note ? (
+                            <div className="muted mt4">{block.note}</div>
+                          ) : null}
 
-                        const actualMinutes =
-                          blockLog.duration && blockLog.duration.minutes != null
-                            ? blockLog.duration.minutes
-                            : "";
-
-                        const strengthLikePlannedBlocks = plannedBlocksForSelectedDay.filter(
-  (b) =>
-    b &&
-    (b.typeId === "strength" ||
-      b.typeId === "hiit" ||
-      b.typeId === "box")
-);
-
-const strengthLikeExtraBlocks = Array.isArray(logForDay?.blocks)
-  ? logForDay.blocks.filter(
-      (b) =>
-        b &&
-        b.isExtra &&
-        (b.typeId === "strength" ||
-          b.typeId === "hiit" ||
-          b.typeId === "box")
-    )
-  : [];
-
-const allStrengthBlocksForDay = [
-  ...strengthLikePlannedBlocks,
-  ...strengthLikeExtraBlocks,
-];
-
-const hasAnyStrengthBlocks = allStrengthBlocksForDay.length > 0;
-
-                        return (
-  <div key={block.id} className="mt12">
-    {block.label ? (
-      <div className="h3">{block.label}</div>
-    ) : null}
-    {block.note ? (
-      <div className="muted mt4">{block.note}</div>
-    ) : null}
-
-    <div key={block.id} className="mt12">
-  {block.label ? (
-    <div className="h3">{block.label}</div>
-  ) : null}
-  {block.note ? (
-    <div className="muted mt4">{block.note}</div>
-  ) : null}
-
-  {block.isExtra && (
-    <div className="row space mt4">
-      <div className="muted mini">One-day extra movement</div>
-      <SecondaryButton
-        className="btnSmall"
-        onClick={() => removeExtraMovement(block.id)}
-      >
-        Remove
-      </SecondaryButton>
-    </div>
-  )}
-    
-{block.movements.map((planMov) => {
-  const mov = planMov;
-  const movementSets = Array.isArray(setsByMovement[mov.id])
-    ? setsByMovement[mov.id]
-    : [];
-
-  // Number of rows:
-  // - at least planned sets
-  // - plus any user-added sets
-  const basePlannedSets = mov.sets || 3;
-  const rowCount = Math.max(basePlannedSets, movementSets.length || 0);
-
-  const rows = [];
-
-    // --- Target logic for this movement ---
-  const lastSets = findLastMovementSets(allLogs, mov.id, ymd(selectedDate));
-const initialTarget = {
-  // Prefer explicit initialTarget if you ever add one, otherwise use
-  // the Reps/duration field from the plan as the first target.
-  text: mov.initialTarget || mov.reps || "",
-  // For now we only use the text form from the movement;
-  // numeric reps/weight aren't stored separately in V3.
-  reps: null,
-  weight: null,
-};
-
-  const targetInfo = suggestStrengthTarget({
-    ex: { allowWeight: !!mov.trackWeight },
-    lastSets,
-    initialTarget,
-    ageGroup: activeProfile?.age_group || "under16",
-  });
-
-
-  for (let i = 0; i < rowCount; i++) {
-    const s = movementSets[i] || {};
-    const baseSet = {
-      reps: "",
-      weight: "",
-      timeSeconds: "",
-      ...s,
-    };
-
-    const didSomething = setDidSomething(baseSet);
-    const rowClass = didSomething
-      ? "mt12 setRowSimple setRowSimple-complete"
-      : "mt12 setRowSimple";
-
-    rows.push(
-      <div key={i} className={rowClass}>
-        {/* Set title – OUTSIDE any input box */}
-        <div className="setLabel">Set {i + 1}</div>
-
-        {/* Inputs grid */}
-        <div className="grid3 mt4">
-          <div>
-            <div className="label">Reps</div>
-            <Input
-              type="number"
-              min={0}
-              value={
-                baseSet.reps !== undefined && baseSet.reps !== null
-                  ? baseSet.reps
-                  : ""
-              }
-              onChange={(v) => {
-                const nextSets = [...movementSets];
-                nextSets[i] = { ...baseSet, reps: v };
-                updateStrengthSetsForMovement(block.id, mov.id, nextSets);
-              }}
-            />
-          </div>
-
-          {mov.trackWeight && (
-            <div>
-              <div className="label">Weight (kg)</div>
-              <Input
-                type="number"
-                min={0}
-                step={0.5}
-                value={
-                  baseSet.weight !== undefined && baseSet.weight !== null
-                    ? baseSet.weight
-                    : ""
-                }
-                onChange={(v) => {
-                  const nextSets = [...movementSets];
-                  nextSets[i] = { ...baseSet, weight: v };
-                  updateStrengthSetsForMovement(block.id, mov.id, nextSets);
-                }}
-              />
-            </div>
-          )}
-
-          {mov.trackDuration && (
-            <div>
-              <div className="label">Time (sec)</div>
-              <Input
-                type="number"
-                min={0}
-                value={
-                  baseSet.timeSeconds !== undefined &&
-                  baseSet.timeSeconds !== null
-                    ? baseSet.timeSeconds
-                    : ""
-                }
-                onChange={(v) => {
-                  const nextSets = [...movementSets];
-                  nextSets[i] = { ...baseSet, timeSeconds: v };
-                  updateStrengthSetsForMovement(block.id, mov.id, nextSets);
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div key={mov.id} className="mt12">
-      {/* Movement name */}
-      <div className="movementName">
-        {mov.name || mov.label || "Movement"}
-      </div>
-
-      {/* Movement-level coach note from the plan */}
-      {mov.coachNote ? (
-        <div className="muted mt2">{mov.coachNote}</div>
-      ) : null}
-
-      {/* Target line */}
-      <div className="movementTarget">
-        <strong>Target:</strong>{" "}
-        {targetInfo?.text || "Log once to generate targets."}
-      </div>
-
-      {rows}
-
-      <div className="mt8">
-        <SecondaryButton
-          onClick={() => {
-            const nextSets = [
-              ...(Array.isArray(setsByMovement[mov.id])
-                ? setsByMovement[mov.id]
-                : []),
-              { reps: "", weight: "", timeSeconds: "" },
-            ];
-            updateStrengthSetsForMovement(block.id, mov.id, nextSets);
-          }}
-        >
-          + Add set
-        </SecondaryButton>
-      </div>
-      <div className="movementDivider" />
-    </div>
-  );
-})}
-
-
-                            <div className="muted mini mt8">
-                              Estimated time:{" "}
-                              {estimatedMinutes > 0
-                                ? `${estimatedMinutes} min`
-                                : "0 min (log some sets)"}{" "}
-                              • Rest per set: {restSec}s
-                            </div>
-
-                            <div className="mt8" style={{ maxWidth: 180 }}>
-                              <div className="label">
-                                Actual minutes (optional)
+                          {block.isExtra && (
+                            <div className="row space mt4">
+                              <div className="muted mini">
+                                One-day extra movement
                               </div>
-                              <Input
-                                type="number"
-                                min={0}
-                                step={0.5}
-                                value={actualMinutes}
-                                onChange={(v) =>
-                                  updateDurationForBlock(block.id, {
-                                    minutes: v,
-                                  })
-                                }
-                                placeholder={
-                                  estimatedMinutes > 0
-                                    ? String(estimatedMinutes)
-                                    : ""
-                                }
-                              />
+                              <SecondaryButton
+                                className="btnSmall"
+                                onClick={() => removeExtraMovement(block.id)}
+                              >
+                                Remove
+                              </SecondaryButton>
                             </div>
+                          )}
+
+                          <div className="muted mini mt8">
+                            Estimated time:{" "}
+                            {estimatedMinutes > 0
+                              ? `${estimatedMinutes} min`
+                              : "0 min (log some sets)"}{" "}
+                            • Rest per set: {restSec}s
                           </div>
-                        );
-                      })}
+
+                          <div className="mt8" style={{ maxWidth: 180 }}>
+                            <div className="label">
+                              Actual minutes (optional)
+                            </div>
+                            <Input
+                              type="number"
+                              min={0}
+                              step={0.5}
+                              value={actualMinutes}
+                              onChange={(v) =>
+                                updateDurationForBlock(block.id, {
+                                  minutes: v,
+                                })
+                              }
+                              placeholder={
+                                estimatedMinutes > 0
+                                  ? String(estimatedMinutes)
+                                  : ""
+                              }
+                            />
+                          </div>
+
+                          {/* Movements grid */}
+                          {block.movements.map((planMov) => {
+                            const mov = planMov;
+                            const movementSets = Array.isArray(
+                              setsByMovement[mov.id]
+                            )
+                              ? setsByMovement[mov.id]
+                              : [];
+
+                            // Number of rows:
+                            // - at least planned sets
+                            // - plus any user-added sets
+                            const basePlannedSets = mov.sets || 3;
+                            const rowCount = Math.max(
+                              basePlannedSets,
+                              movementSets.length || 0
+                            );
+
+                            const rows = [];
+
+                            // --- Target logic for this movement ---
+                            const lastSets = findLastMovementSetsInHistory(
+                              allLogs,
+                              activeProfileId,
+                              mov.id
+                            );
+
+                            const targetInfo = buildTargetInfoForMovement({
+                              movement: mov,
+                              lastSets,
+                              plannedRepsText: mov.reps,
+                            });
+
+                            for (let i = 0; i < rowCount; i++) {
+                              const set = movementSets[i] || {};
+                              const baseSet = {
+                                reps: "",
+                                weight: "",
+                                timeSeconds: "",
+                                ...set,
+                              };
+
+                              const didSomething =
+                                !!baseSet.reps ||
+                                !!baseSet.weight ||
+                                !!baseSet.timeSeconds;
+
+                              const rowClass = didSomething
+                                ? "mt12 setRowSimple setRowSimple-complete"
+                                : "mt12 setRowSimple";
+
+                              rows.push(
+                                <div key={i} className={rowClass}>
+                                  {/* Set title – OUTSIDE any input box */}
+                                  <div className="setLabel">
+                                    Set {i + 1}
+                                  </div>
+
+                                  {/* Inputs grid */}
+                                  <div className="grid3 mt4">
+                                    <div>
+                                      <div className="label">Reps</div>
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        value={
+                                          baseSet.reps != null
+                                            ? baseSet.reps
+                                            : ""
+                                        }
+                                        onChange={(v) => {
+                                          const nextSets = [...movementSets];
+                                          nextSets[i] = {
+                                            ...baseSet,
+                                            reps: v,
+                                          };
+                                          updateStrengthSetsForMovement(
+                                            block.id,
+                                            mov.id,
+                                            nextSets
+                                          );
+                                        }}
+                                      />
+                                    </div>
+
+                                    {mov.trackWeight && (
+                                      <div>
+                                        <div className="label">
+                                          Weight (kg)
+                                        </div>
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          value={
+                                            baseSet.weight != null
+                                              ? baseSet.weight
+                                              : ""
+                                          }
+                                          onChange={(v) => {
+                                            const nextSets = [...movementSets];
+                                            nextSets[i] = {
+                                              ...baseSet,
+                                              weight: v,
+                                            };
+                                            updateStrengthSetsForMovement(
+                                              block.id,
+                                              mov.id,
+                                              nextSets
+                                            );
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+
+                                    {mov.trackDuration && (
+                                      <div>
+                                        <div className="label">
+                                          Time (sec)
+                                        </div>
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          value={
+                                            baseSet.timeSeconds != null
+                                              ? baseSet.timeSeconds
+                                              : ""
+                                          }
+                                          onChange={(v) => {
+                                            const nextSets = [...movementSets];
+                                            nextSets[i] = {
+                                              ...baseSet,
+                                              timeSeconds: v,
+                                            };
+                                            updateStrengthSetsForMovement(
+                                              block.id,
+                                              mov.id,
+                                              nextSets
+                                            );
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div key={mov.id} className="mt12">
+                                <div className="movementHeader">
+                                  <div className="movementName">
+                                    {mov.name}
+                                  </div>
+                                  {mov.coachNote ? (
+                                    <div className="movementCoachNote">
+                                      {mov.coachNote}
+                                    </div>
+                                  ) : null}
+                                  <div className="movementTarget">
+                                    {targetInfo?.text ||
+                                      "Log once to generate targets."}
+                                  </div>
+                                </div>
+
+                                {rows}
+
+                                <div className="mt8">
+                                  <SecondaryButton
+                                    onClick={() => {
+                                      const nextSets = [
+                                        ...(Array.isArray(
+                                          setsByMovement[mov.id]
+                                        )
+                                          ? setsByMovement[mov.id]
+                                          : []),
+                                        {
+                                          reps: "",
+                                          weight: "",
+                                          timeSeconds: "",
+                                        },
+                                      ];
+                                      updateStrengthSetsForMovement(
+                                        block.id,
+                                        mov.id,
+                                        nextSets
+                                      );
+                                    }}
+                                  >
+                                    + Add set
+                                  </SecondaryButton>
+                                </div>
+                                <div className="movementDivider" />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-
               
 {/* Cardio blocks log */}
 {plannedBlocksForSelectedDay.some(
