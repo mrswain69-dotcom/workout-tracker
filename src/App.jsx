@@ -1266,6 +1266,10 @@ useEffect(() => {
   const [oneOffKindDraft, setOneOffKindDraft] = useState("custom");
   const [extraMovNameDraft, setExtraMovNameDraft] = useState("");
   const [extraMovModeDraft, setExtraMovModeDraft] = useState("strength");
+  const [extraMovRepsDraft, setExtraMovRepsDraft] = useState("");
+  const [extraMovTrackWeightDraft, setExtraMovTrackWeightDraft] =
+  useState(true);
+  const [extraMovCoachNoteDraft, setExtraMovCoachNoteDraft] = useState("");
   const loadDayLogReqRef = useRef(0);
   const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
 
@@ -2918,57 +2922,128 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     await saveLog(next);
   }
 
-  async function addExtraMovementForToday(name, mode) {
-    const trimmed = (name || "").trim();
-    if (!trimmed) return;
+async function addExtraMovementForToday(draft) {
+  const name = (draft?.name || "").trim();
+  if (!name) return;
 
-    const mMode = mode === "time" ? "time" : "strength";
+  const mode = draft?.mode === "time" ? "time" : "strength";
+  const repsText = (draft?.reps || "").trim();
+  const coachNote = (draft?.coachNote || "").trim();
+  const trackWeight = !!draft?.trackWeight;
 
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = { ...(next.meta || {}) };
-    const list = Array.isArray(meta.extraMovements)
-      ? meta.extraMovements.slice()
-      : [];
+  // Start from today’s log with a blocks snapshot
+  const baseLog = ensureBlocksSnapshot(
+    logForDay ? { ...logForDay } : blankLogForDay()
+  );
 
-    list.push({
-      id: uid(),
-      name: trimmed,
-      mode: mMode,
-      allowWeight: mMode === "strength",
-      allowCount: mMode === "time",
-    });
+  const existingBlocks = Array.isArray(baseLog.blocks)
+    ? baseLog.blocks.slice()
+    : [];
 
-    meta.extraMovements = list;
-    next.meta = meta;
-    await saveLog(next);
+  const blockId = uid();
+  const movementId = uid();
+
+  const movement = {
+    id: movementId,
+    name,
+    // How many sets are "planned" for the grid
+    sets: 3,
+    // Text target – can be reps, “30s x 8”, etc.
+    reps: repsText,
+    // Strength vs time flavour
+    trackWeight,
+    trackDuration: mode === "time",
+    initialTarget: repsText,
+    coachNote,
+  };
+
+  const newBlock = {
+    id: blockId,
+    typeId: "strength",      // stays in Strength / HIIT lane
+    isExtra: true,           // flag so we know it’s one-day-only
+    label: "",               // no block-level label by default
+    note: "",                // you could wire a block-level note later
+    movements: [movement],
+    sets: {},                // sets will be filled via updateStrengthSetsForMovement
+    cardio: {
+      distanceKm: "",
+      durationMin: "",
+      avgSpeedKmh: "",
+    },
+    duration: {
+      minutes: "",
+    },
+  };
+
+  const nextLog = {
+    ...baseLog,
+    blocks: [...existingBlocks, newBlock],
+  };
+
+  // Optional: keep a lightweight history entry under meta.extraMovements
+  const meta = { ...(nextLog.meta || {}) };
+  const prevList = Array.isArray(meta.extraMovements)
+    ? meta.extraMovements
+    : [];
+  meta.extraMovements = [
+    ...prevList,
+    {
+      id: blockId,
+      name,
+      mode,
+    },
+  ];
+  nextLog.meta = meta;
+
+  await saveLog(nextLog);
+}
+  
+// Click handler for the "+ Add extra movement" button on the Log tab
+async function addExtraMovement() {
+  const name = (extraMovNameDraft || "").trim();
+  if (!name) return;
+
+  const draft = {
+    name,
+    mode: extraMovModeDraft || "strength",
+    reps: extraMovRepsDraft || "",
+    trackWeight: extraMovTrackWeightDraft,
+    coachNote: extraMovCoachNoteDraft || "",
+  };
+
+  await addExtraMovementForToday(draft);
+
+  // Clear the draft inputs after saving
+  setExtraMovNameDraft("");
+  setExtraMovModeDraft("strength");
+  setExtraMovRepsDraft("");
+  setExtraMovTrackWeightDraft(true);
+  setExtraMovCoachNoteDraft("");
+}
+
+  // Remove an extra movement block from today's log
+async function removeExtraMovement(blockId) {
+  const baseLog = logForDay ? { ...logForDay } : blankLogForDay();
+
+  const blocks = Array.isArray(baseLog.blocks) ? baseLog.blocks : [];
+  const nextBlocks = blocks.filter(
+    (b) => !b || !b.isExtra || b.id !== blockId
+  );
+
+  const nextLog = {
+    ...baseLog,
+    blocks: nextBlocks,
+  };
+
+  // Keep meta.extraMovements in sync if we’re still using it
+  const meta = { ...(nextLog.meta || {}) };
+  if (Array.isArray(meta.extraMovements)) {
+    meta.extraMovements = meta.extraMovements.filter((m) => m.id !== blockId);
   }
+  nextLog.meta = meta;
 
-  // Click handler for the "+ Add extra movement" button on the Log tab
-  async function addExtraMovement() {
-    const name = (extraMovNameDraft || "").trim();
-    if (!name) return;
-
-    const mode = extraMovModeDraft || "strength";
-
-    await addExtraMovementForToday(name, mode);
-
-    // Clear the draft inputs after saving
-    setExtraMovNameDraft("");
-    setExtraMovModeDraft("strength");
-  }
-
-  // Remove an extra movement from today's log
-  async function removeExtraMovement(id) {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
-    const meta = { ...(next.meta || {}) };
-    const list = Array.isArray(meta.extraMovements)
-      ? meta.extraMovements.slice()
-      : [];
-
-    meta.extraMovements = list.filter((m) => m.id !== id);
-    next.meta = meta;
-    await saveLog(next);
-  }
+  await saveLog(nextLog);
+}
 
   async function removeOneOffActivity(id) {
     const next = logForDay ? { ...logForDay } : blankLogForDay();
@@ -3581,28 +3656,16 @@ const cardioProgress = useMemo(() => {
                 {formatDate(selectedDate)} • <b>{planDay.name}</b>
               </div>
 
+              
+
                                {/* --- V3 block-based logging panels --- */}
 
                 {/* Strength / HIIT / Box blocks log */}
-                {plannedBlocksForSelectedDay.some(
-                  (b) =>
-                    b &&
-                    (b.typeId === "strength" ||
-                      b.typeId === "hiit" ||
-                      b.typeId === "box")
-                ) && (
+                {hasAnyStrengthBlocks && (
                   <div className="panel mt16">
                     <div className="h2">Strength / HIIT log</div>
 
-                    {plannedBlocksForSelectedDay
-                      .filter(
-                        (b) =>
-                          b &&
-                          (b.typeId === "strength" ||
-                            b.typeId === "hiit" ||
-                            b.typeId === "box")
-                      )
-                      .map((block) => {
+                    {allStrengthBlocksForDay.map((block) => {
                         const blockLog = getBlockLog(logForDay, block.id) || {};
                         const setsByMovement =
                           blockLog.sets && typeof blockLog.sets === "object"
@@ -3636,6 +3699,32 @@ const cardioProgress = useMemo(() => {
                             ? blockLog.duration.minutes
                             : "";
 
+                        const strengthLikePlannedBlocks = plannedBlocksForSelectedDay.filter(
+  (b) =>
+    b &&
+    (b.typeId === "strength" ||
+      b.typeId === "hiit" ||
+      b.typeId === "box")
+);
+
+const strengthLikeExtraBlocks = Array.isArray(logForDay?.blocks)
+  ? logForDay.blocks.filter(
+      (b) =>
+        b &&
+        b.isExtra &&
+        (b.typeId === "strength" ||
+          b.typeId === "hiit" ||
+          b.typeId === "box")
+    )
+  : [];
+
+const allStrengthBlocksForDay = [
+  ...strengthLikePlannedBlocks,
+  ...strengthLikeExtraBlocks,
+];
+
+const hasAnyStrengthBlocks = allStrengthBlocksForDay.length > 0;
+
                         return (
   <div key={block.id} className="mt12">
     {block.label ? (
@@ -3645,6 +3734,26 @@ const cardioProgress = useMemo(() => {
       <div className="muted mt4">{block.note}</div>
     ) : null}
 
+    <div key={block.id} className="mt12">
+  {block.label ? (
+    <div className="h3">{block.label}</div>
+  ) : null}
+  {block.note ? (
+    <div className="muted mt4">{block.note}</div>
+  ) : null}
+
+  {block.isExtra && (
+    <div className="row space mt4">
+      <div className="muted mini">One-day extra movement</div>
+      <SecondaryButton
+        className="btnSmall"
+        onClick={() => removeExtraMovement(block.id)}
+      >
+        Remove
+      </SecondaryButton>
+    </div>
+  )}
+    
 {block.movements.map((planMov) => {
   const mov = planMov;
   const movementSets = Array.isArray(setsByMovement[mov.id])
@@ -4074,65 +4183,69 @@ const initialTarget = {
 {/* Extra movements + One-off activities (legacy, still useful) */}
 <div className="stack mt16">
   {/* Extra movements for this specific date */}
-  <div className="panel">
-    <div className="h2">Extra movements for today</div>
-    <div className="muted mt4">
-      Use this for extra strength or timed blocks that aren’t in the weekly plan.
-    </div>
-    <div className="row mt8">
-      <div style={{ flex: 1 }}>
-        <div className="label">Name</div>
-        <Input
-          value={extraMovNameDraft}
-          onChange={setExtraMovNameDraft}
-          placeholder="e.g. Extra push-ups"
-        />
-      </div>
-      <div style={{ width: 8 }} />
-      <div style={{ minWidth: 160 }}>
-        <div className="label">Mode</div>
-        <Select
-          value={extraMovModeDraft}
-          onChange={setExtraMovModeDraft}
-          options={[
-            { value: "strength", label: "Strength (reps + weight)" },
-            { value: "time", label: "Timed (seconds + count)" },
-          ]}
-        />
-      </div>
-    </div>
-    <PrimaryButton className="mt8" onClick={addExtraMovement}>
-      + Add extra movement
-    </PrimaryButton>
-
-    {/* Existing extra movements list */}
-    {Array.isArray(logForDay?.meta?.extraMovements) &&
-      logForDay.meta.extraMovements.length > 0 && (
-        <div className="stack mt12">
-          {logForDay.meta.extraMovements.map((mov) => (
-            <div key={mov.id} className="panel subtle">
-              <div className="row space">
-                <div>
-                  <div className="label">{mov.name}</div>
-                  <div className="muted mini">
-                    {mov.mode === "strength"
-                      ? "Reps + weight"
-                      : "Seconds + count"}
-                  </div>
-                </div>
-                <SecondaryButton
-                  className="btnSmall"
-                  onClick={() => removeExtraMovement(mov.id)}
-                >
-                  Remove
-                </SecondaryButton>
-              </div>
-              {/* existing per-movement sets inputs stay as-is */}
-            </div>
-          ))}
-        </div>
-      )}
+<div className="panel">
+  <div className="h2">Extra movements for today</div>
+  <div className="muted mt4">
+    Use this to add a one-day strength movement that will appear in the
+    Strength / HIIT log below.
   </div>
+
+  <div className="row mt8">
+    <div style={{ flex: 1 }}>
+      <div className="label">Name</div>
+      <Input
+        value={extraMovNameDraft}
+        onChange={setExtraMovNameDraft}
+        placeholder="e.g. Extra push-ups"
+      />
+    </div>
+    <div style={{ width: 8 }} />
+    <div style={{ minWidth: 180 }}>
+      <div className="label">Mode</div>
+      <Select
+        value={extraMovModeDraft}
+        onChange={setExtraMovModeDraft}
+        options={[
+          { value: "strength", label: "Strength (reps + weight)" },
+          { value: "time", label: "Timed (seconds + count)" },
+        ]}
+      />
+    </div>
+  </div>
+
+  <div className="row mt8">
+    <div style={{ flex: 1 }}>
+      <div className="label">Target (reps / duration)</div>
+      <Input
+        value={extraMovRepsDraft}
+        onChange={setExtraMovRepsDraft}
+        placeholder="e.g. 3 x 10, or 30s x 8"
+      />
+    </div>
+    <div style={{ width: 8 }} />
+    <label className="checkbox mt24">
+      <input
+        type="checkbox"
+        checked={extraMovTrackWeightDraft}
+        onChange={(e) => setExtraMovTrackWeightDraft(e.target.checked)}
+      />
+      <span className="ml4">Track weight</span>
+    </label>
+  </div>
+
+  <div className="mt8">
+    <div className="label">Coach note (optional)</div>
+    <Textarea
+      value={extraMovCoachNoteDraft}
+      onChange={setExtraMovCoachNoteDraft}
+      placeholder="Any cues or notes for this extra movement..."
+    />
+  </div>
+
+  <PrimaryButton className="mt8" onClick={addExtraMovement}>
+    + Add extra movement
+  </PrimaryButton>
+</div>
 </div>
               {/* One-off activities for this specific date */}
               <div className="panel mt16">
