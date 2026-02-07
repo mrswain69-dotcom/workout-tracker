@@ -125,6 +125,72 @@ function safeNumber(v) {
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
+// Build a simple target string for a strength movement given:
+// - the movement config
+// - the last logged sets in history
+// - any planned reps text from the plan
+function buildTargetInfoForMovement({ movement, lastSets, plannedRepsText }) {
+  const baseText = (plannedRepsText || "").trim();
+
+  // If there is no history yet, just show the plan text (if any)
+  if (!lastSets || !Array.isArray(lastSets) || lastSets.length === 0) {
+    return {
+      text: baseText || "",
+    };
+  }
+
+  // Take the last non-empty values we can find
+  let lastReps = null;
+  let lastWeight = null;
+  let lastTime = null;
+
+  for (const s of lastSets) {
+    if (!s) continue;
+    if (s.reps !== undefined && s.reps !== null && s.reps !== "") {
+      lastReps = s.reps;
+    }
+    if (s.weight !== undefined && s.weight !== null && s.weight !== "") {
+      lastWeight = s.weight;
+    }
+    if (
+      s.timeSeconds !== undefined &&
+      s.timeSeconds !== null &&
+      s.timeSeconds !== ""
+    ) {
+      lastTime = s.timeSeconds;
+    }
+  }
+
+  // Build a human-readable "last time" summary
+  let historyBits = [];
+
+  if (movement.trackDuration && lastTime != null) {
+    historyBits.push(`${lastTime}s`);
+  }
+  if (lastReps != null) {
+    historyBits.push(`${lastReps} reps`);
+  }
+  if (movement.trackWeight && lastWeight != null) {
+    historyBits.push(`${lastWeight} kg`);
+  }
+
+  const historyText = historyBits.length
+    ? `Last: ${historyBits.join(" @ ")}`
+    : "";
+
+  // Combine plan text with history, if both exist
+  if (baseText && historyText) {
+    return { text: `${baseText} — ${historyText}` };
+  }
+  if (baseText) {
+    return { text: baseText };
+  }
+  if (historyText) {
+    return { text: historyText };
+  }
+
+  return { text: "" };
+}
 // ----- V3 BLOCK MODEL HELPERS -----
 
 function createStrengthBlock() {
