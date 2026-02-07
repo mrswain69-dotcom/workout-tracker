@@ -3799,18 +3799,18 @@ const cardioProgress = useMemo(() => {
 
                             const rows = [];
 
-                            // --- Target logic for this movement ---
-                            const lastSets = findLastMovementSetsInHistory(
-                              allLogs,
-                              activeProfileId,
-                              mov.id
-                            );
+// --- Target logic for this movement ---
+const lastSets = findLastMovementSets(
+  allLogs,
+  mov.id,
+  ymd(selectedDate)
+);
 
-                            const targetInfo = buildTargetInfoForMovement({
-                              movement: mov,
-                              lastSets,
-                              plannedRepsText: mov.reps,
-                            });
+const targetInfo = buildTargetInfoForMovement({
+  movement: mov,
+  lastSets,
+  plannedRepsText: mov.reps,
+});
 
                             for (let i = 0; i < rowCount; i++) {
                               const set = movementSets[i] || {};
