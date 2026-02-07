@@ -578,6 +578,16 @@ function findLastMovementSets(allLogs, movementId, beforeYmd) {
   return null;
 }
 
+// Backwards-compatible wrapper for older calls.
+// Some parts of the app may still call findLastMovementSetsInHistory,
+// so we forward those to the new helper.
+function findLastMovementSetsInHistory(allLogs, profileId, movementId) {
+  // We ignore profileId here because allLogs is already filtered
+  // to the active profile in our stats fetch.
+  // Use a "far future" date so we consider all historical logs.
+  return findLastMovementSets(allLogs, movementId, "9999-12-31");
+}
+
 function summarizeStrengthSets(sets) {
   if (!Array.isArray(sets) || !sets.length) return "—";
   const reps = sets.map((s) => (Number.isFinite(Number(s?.reps)) ? Number(s.reps) : 0)).filter((x) => x > 0);
