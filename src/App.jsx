@@ -2982,14 +2982,6 @@ async function updateCardioForBlock(blockId, cardioPatch) {
       ? nextSetsForMovement.map((s) => ({ ...s }))
       : [];
 
-    // Remove trailing completely empty sets
-    while (
-      normalised.length > 0 &&
-      !setDidSomething(normalised[normalised.length - 1])
-    ) {
-      normalised.pop();
-    }
-
     const nextSetsMap = {
       ...existingSets,
       [movementId]: normalised,
@@ -4271,6 +4263,18 @@ const targetInfo = buildTargetInfoForMovement({
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
+
+          {block.isExtra && (
+            <div className="row space mt4">
+              <div className="muted mini">One-day extra cardio</div>
+              <SecondaryButton
+                className="btnSmall"
+                onClick={() => removeExtraMovement(block.id)}
+              >
+                Remove
+              </SecondaryButton>
+            </div>
+          )}
             <div className="grid3 mt8">
               <div>
 <div className="label">Distance (km)</div>
@@ -4349,6 +4353,19 @@ const targetInfo = buildTargetInfoForMovement({
             {block.note ? (
               <div className="muted mt4">{block.note}</div>
             ) : null}
+
+            {block.isExtra && (
+              <div className="row space mt4">
+                <div className="muted mini">One-day extra duration</div>
+                <SecondaryButton
+                  className="btnSmall"
+                  onClick={() => removeExtraMovement(block.id)}
+                >
+                  Remove
+                </SecondaryButton>
+              </div>
+            )}
+
             <div className="grid3 mt8">
               <div>
                 <div className="label">Minutes</div>
