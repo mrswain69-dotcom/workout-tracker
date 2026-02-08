@@ -4519,95 +4519,106 @@ const targetInfo = buildTargetInfoForMovement({
 )}
 
 {/* Tasks blocks log */}
-hasAnyTasksBlocks && (
+{hasAnyTasksBlocks && (
   <div className="panel mt16">
     <div className="h2">Tasks log</div>
 
     {allTasksBlocksForDay.map((block) => {
-        const blockLog = getBlockLog(logForDay, block.id) || {};
-        const tasksDone = blockLog.tasksDone || {};
-        const label = block.label || "Tasks block";
-        const tasks = Array.isArray(block.tasks) ? block.tasks : [];
+      const blockLog = getBlockLog(logForDay, block.id) || {};
+      const tasksDone = blockLog.tasksDone || {};
+      const label = block.label || "Tasks block";
+      const tasks = Array.isArray(block.tasks) ? block.tasks : [];
 
-return (
-  <div key={block.id} className="mt12">
-    <div className="h3">{label}</div>
-    {block.note ? (
-      <div className="muted mt4">{block.note}</div>
-    ) : null}
-
-    {block.isExtra && (
-      <div className="row space mt4">
-        <div className="muted mini">One-day extra activity</div>
-        <SecondaryButton
-          className="btnSmall"
-          onClick={() => removeExtraMovement(block.id)}
-        >
-          Remove
-        </SecondaryButton>
-      </div>
-    )}
-
-    {tasks.length === 0 ? (
-              <div className="muted mt4">
-                No tasks configured for this block yet.
-              </div>
-            ) : (
-              <div className="stack mt8">
-                {tasks.map((t) => {
-  const done = !!tasksDone[t.id];
-
-  return (
-    <label key={t.id} className="check">
-      <input
-        type="checkbox"
-        checked={done}
-        onChange={(e) =>
-          toggleTaskForBlock(block.id, t.id, e.target.checked)
-        }
-      />
-      <div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 8,
-          }}
-        >
-          <span>{t.label || "Untitled task"}</span>
-          {typeof t.xpValue === "number" && t.xpValue > 0 ? (
-            <span
-              className="muted mini"
-              style={{
-                padding: "2px 8px",
-                borderRadius: 999,
-                fontSize: 11,
-                fontWeight: 600,
-              }}
-            >
-              {t.xpValue} XP
-            </span>
+      return (
+        <div key={block.id} className="mt12">
+          <div className="h3">{label}</div>
+          {block.note ? (
+            <div className="muted mt4">{block.note}</div>
           ) : null}
-        </div>
 
-        {t.coachNote ? (
-          <div
-            className="muted mt4"
-            style={{ fontWeight: 400, marginTop: 4 }}
-          >
-            {t.coachNote}
-          </div>
-        ) : null}
-      </div>
-    </label>
-  );
-})}
-              </div>
-            )}
-          </div>
-        );
-      })}
+          {block.isExtra && (
+            <div className="row space mt4">
+              <div className="muted mini">One-day extra activity</div>
+              <SecondaryButton
+                className="btnSmall"
+                onClick={() => removeExtraMovement(block.id)}
+              >
+                Remove
+              </SecondaryButton>
+            </div>
+          )}
+
+          {tasks.length === 0 ? (
+            <div className="muted mt4">
+              No tasks configured for this block yet.
+            </div>
+          ) : (
+            <div className="stack mt8">
+              {tasks.map((t) => {
+                const done = !!tasksDone[t.id];
+
+                return (
+                  <label key={t.id} className="check">
+                    <input
+                      type="checkbox"
+                      checked={done}
+                      onChange={(e) =>
+                        toggleTaskForBlock(
+                          block.id,
+                          t.id,
+                          e.target.checked
+                        )
+                      }
+                    />
+                    <div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: 8,
+                        }}
+                      >
+                        <span>
+                          {/* prefer label for plan-tasks, name for extras */}
+                          {t.label || t.name || "Untitled task"}
+                        </span>
+                        {typeof t.xpValue === "number" &&
+                        t.xpValue > 0 ? (
+                          <span
+                            className="muted mini"
+                            style={{
+                              padding: "2px 8px",
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {t.xpValue} XP
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {t.coachNote ? (
+                        <div
+                          className="muted mt4"
+                          style={{
+                            fontWeight: 400,
+                            marginTop: 4,
+                          }}
+                        >
+                          {t.coachNote}
+                        </div>
+                      ) : null}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    })}
   </div>
 )}
 
@@ -4825,102 +4836,6 @@ return (
   </PrimaryButton>
 </div>
 </div>
-              {/* One-off activities for this specific date */}
-              <div className="panel mt16">
-                <div className="rowBetween">
-                  <div>
-                    <div className="h3">One-off activities today</div>
-                    <div className="muted mt4">
-                      Use this for PE, football matches, bonus walks, or extra workouts that aren’t in the weekly plan.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt12">
-                  <div className="label">Add one-off</div>
-                  <div className="row mt4">
-                    <div style={{ flex: 1 }}>
-                      <input
-                        className="input"
-                        list="oneoff-name-options"
-                        value={oneOffNameDraft}
-                        onChange={(e) => setOneOffNameDraft(e.target.value)}
-                        placeholder="e.g. Extra run, PE lesson, Football match"
-                      />
-                      <datalist id="oneoff-name-options">
-                        {knownOneOffNames.map((n) => (
-                          <option key={n} value={n} />
-                        ))}
-                      </datalist>
-                    </div>
-                    <div style={{ width: 8 }} />
-                    <div style={{ minWidth: 170 }}>
-                      <Select
-                        value={oneOffKindDraft}
-                        onChange={setOneOffKindDraft}
-                        options={[
-                          { value: "strength", label: "Strength / sets" },
-                          { value: "cardio", label: "Cardio (run / bike / swim)" },
-                          { value: "custom", label: "Tick-box task / habit" },
-                        ]}
-                      />
-                    </div>
-                    <div style={{ width: 8 }} />
-                    <PrimaryButton
-                      onClick={async () => {
-                        await addOneOffActivity(oneOffNameDraft, oneOffKindDraft);
-                        setOneOffNameDraft("");
-                      }}
-                    >
-                      + Add
-                    </PrimaryButton>
-                  </div>
-                </div>
-
-                <div className="stack mt12">
-                  {getOneOffActivities(logForDay).length === 0 ? (
-                    <div className="muted">
-                      No one-off activities logged yet.
-                    </div>
-                  ) : (
-                    getOneOffActivities(logForDay).map((a) => (
-                      <div key={a.id} className="oneOffRow">
-                        <div className="rowBetween">
-                          <label className="check">
-                            <input
-                              type="checkbox"
-                              checked={!!a.done}
-                              onChange={(e) =>
-                                updateOneOffActivity(a.id, { done: e.target.checked })
-                              }
-                            />
-                            <span>{a.name}</span>
-                          </label>
-                          <div className="mini">
-                            <div className="muted">
-                              Kind: {a.kind || "custom"}
-                            </div>
-                            <div className="row mt4">
-                              <SecondaryButton onClick={() => addOneOffToWeeklyPlan(a)}>
-                                Add to weekly plan
-                              </SecondaryButton>
-                              <div style={{ width: 6 }} />
-                              <SecondaryButton onClick={() => removeOneOffActivity(a.id)}>
-                                Remove
-                              </SecondaryButton>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="muted mt8">
-                  Tip: if this becomes a regular thing, tap <b>“Add to weekly plan”</b>
-                  to turn it into a recurring movement.
-                </div>
-              </div>
               
             </Card>
 
