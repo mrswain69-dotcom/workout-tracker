@@ -1346,6 +1346,22 @@ useEffect(() => {
   const [extraMovTrackWeightDraft, setExtraMovTrackWeightDraft] =
   useState(true);
   const [extraMovCoachNoteDraft, setExtraMovCoachNoteDraft] = useState("");
+    // Extra block type selection for today-only blocks
+  const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration"
+
+  // Cardio extra-block drafts
+  const [extraCardioNameDraft, setExtraCardioNameDraft] = useState("");
+  const [extraCardioTypeDraft, setExtraCardioTypeDraft] = useState("run");
+  const [extraCardioTargetDraft, setExtraCardioTargetDraft] = useState("");
+  const [extraCardioCoachNoteDraft, setExtraCardioCoachNoteDraft] =
+    useState("");
+
+  // Duration extra-block drafts
+  const [extraDurationNameDraft, setExtraDurationNameDraft] = useState("");
+  const [extraDurationMinutesDraft, setExtraDurationMinutesDraft] =
+    useState("");
+  const [extraDurationCoachNoteDraft, setExtraDurationCoachNoteDraft] =
+    useState("");
   const loadDayLogReqRef = useRef(0);
   const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
 
@@ -1375,6 +1391,51 @@ useEffect(() => {
   ];
 
   const hasAnyStrengthBlocks = allStrengthBlocksForDay.length > 0;
+
+    // Cardio blocks (planned + extra for this day)
+  const cardioPlannedBlocks = plannedBlocksForSelectedDay.filter(
+    (b) =>
+      b &&
+      (b.typeId === "run" ||
+        b.typeId === "swim" ||
+        b.typeId === "cardio")
+  );
+
+  const cardioExtraBlocks = Array.isArray(logForDay?.blocks)
+    ? logForDay.blocks.filter(
+        (b) =>
+          b &&
+          b.isExtra &&
+          (b.typeId === "cardio" ||
+            b.typeId === "run" ||
+            b.typeId === "swim")
+      )
+    : [];
+
+  const allCardioBlocksForDay = [
+    ...cardioPlannedBlocks,
+    ...cardioExtraBlocks,
+  ];
+
+  const hasAnyCardioBlocks = allCardioBlocksForDay.length > 0;
+
+  // Duration blocks (planned + extra for this day)
+  const durationPlannedBlocks = plannedBlocksForSelectedDay.filter(
+    (b) => b && b.typeId === "duration"
+  );
+
+  const durationExtraBlocks = Array.isArray(logForDay?.blocks)
+    ? logForDay.blocks.filter(
+        (b) => b && b.isExtra && b.typeId === "duration"
+      )
+    : [];
+
+  const allDurationBlocksForDay = [
+    ...durationPlannedBlocks,
+    ...durationExtraBlocks,
+  ];
+
+  const hasAnyDurationBlocks = allDurationBlocksForDay.length > 0;
   
   function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
@@ -3100,28 +3161,155 @@ async function addExtraMovementForToday(draft) {
 
   await saveLog(nextLog);
 }
-  
-// Click handler for the "+ Add extra movement" button on the Log tab
-async function addExtraMovement() {
-  const name = (extraMovNameDraft || "").trim();
+
+async function addExtraCardioBlockForToday(draft) {
+  const name = (draft?.name || "").trim();
   if (!name) return;
 
-  const draft = {
-    name,
-    mode: extraMovModeDraft || "strength",
-    reps: extraMovRepsDraft || "",
-    trackWeight: extraMovTrackWeightDraft,
-    coachNote: extraMovCoachNoteDraft || "",
+  const cardioType = draft?.cardioType || "run";
+  const targetText = (draft?.targetText || "").trim();
+  const coachNote = (draft?.coachNote || "").trim();
+
+  const baseLog = ensureBlocksSnapshot(
+    logForDay ? { ...logForDay } : blankLogForDay()
+  );
+
+  const existingBlocks = Array.isArray(baseLog.blocks)
+    ? baseLog.blocks.slice()
+    : [];
+
+  const blockId = uid();
+
+  const newBlock = {
+    id: blockId,
+    typeId: "cardio",
+    isExtra: true,
+    label: name || "Cardio block",
+    note: coachNote,
+    cardioType,
+    cardioTypeOtherLabel: "",
+    targetText,
+    cardio: {
+      distanceKm: "",
+      durationMin: "",
+      avgSpeedKmh: "",
+    },
+    duration: {
+      minutes: "",
+    },
   };
 
-  await addExtraMovementForToday(draft);
+  const nextLog = {
+    ...baseLog,
+    blocks: [...existingBlocks, newBlock],
+  };
 
-  // Clear the draft inputs after saving
-  setExtraMovNameDraft("");
-  setExtraMovModeDraft("strength");
-  setExtraMovRepsDraft("");
-  setExtraMovTrackWeightDraft(true);
-  setExtraMovCoachNoteDraft("");
+  await saveLog(nextLog);
+}
+
+async function addExtraDurationBlockForToday(draft) {
+  const name = (draft?.name || "").trim();
+  if (!name) return;
+
+  const plannedMinutes = draft?.plannedMinutes || "";
+  const coachNote = (draft?.coachNote || "").trim();
+
+  const baseLog = ensureBlocksSnapshot(
+    logForDay ? { ...logForDay } : blankLogForDay()
+  );
+
+  const existingBlocks = Array.isArray(baseLog.blocks)
+    ? baseLog.blocks.slice()
+    : [];
+
+  const blockId = uid();
+
+  const newBlock = {
+    id: blockId,
+    typeId: "duration",
+    isExtra: true,
+    label: name || "Duration block",
+    note: coachNote,
+    plannedMinutes,
+    cardio: {
+      distanceKm: "",
+      durationMin: "",
+      avgSpeedKmh: "",
+    },
+    duration: {
+      minutes: "",
+    },
+  };
+
+  const nextLog = {
+    ...baseLog,
+    blocks: [...existingBlocks, newBlock],
+  };
+
+  await saveLog(nextLog);
+}
+  
+// Click handler for the "+ Add extra block" button on the Log tab
+async function addExtraMovement() {
+  if (extraBlockKind === "strength") {
+    const name = (extraMovNameDraft || "").trim();
+    if (!name) return;
+
+    const draft = {
+      name,
+      mode: extraMovModeDraft || "strength",
+      reps: extraMovRepsDraft || "",
+      trackWeight: extraMovTrackWeightDraft,
+      coachNote: extraMovCoachNoteDraft || "",
+    };
+
+    await addExtraMovementForToday(draft);
+
+    setExtraMovNameDraft("");
+    setExtraMovModeDraft("strength");
+    setExtraMovRepsDraft("");
+    setExtraMovTrackWeightDraft(true);
+    setExtraMovCoachNoteDraft("");
+    return;
+  }
+
+  if (extraBlockKind === "cardio") {
+    const name = (extraCardioNameDraft || "").trim();
+    if (!name) return;
+
+    const draft = {
+      name,
+      cardioType: extraCardioTypeDraft || "run",
+      targetText: extraCardioTargetDraft || "",
+      coachNote: extraCardioCoachNoteDraft || "",
+    };
+
+    await addExtraCardioBlockForToday(draft);
+
+    setExtraCardioNameDraft("");
+    setExtraCardioTypeDraft("run");
+    setExtraCardioTargetDraft("");
+    setExtraCardioCoachNoteDraft("");
+    return;
+  }
+
+  if (extraBlockKind === "duration") {
+    const name = (extraDurationNameDraft || "").trim();
+    if (!name) return;
+
+    const draft = {
+      name,
+      plannedMinutes: extraDurationMinutesDraft || "",
+      coachNote: extraDurationCoachNoteDraft || "",
+    };
+
+    await addExtraDurationBlockForToday(draft);
+
+    setExtraDurationNameDraft("");
+    setExtraDurationMinutesDraft("");
+    setExtraDurationCoachNoteDraft("");
+    return;
+  }
 }
 
   // Remove an extra movement block from today's log
@@ -4057,46 +4245,32 @@ const targetInfo = buildTargetInfoForMovement({
                 )}
               
 {/* Cardio blocks log */}
-{plannedBlocksForSelectedDay.some(
-  (b) =>
-    b &&
-    (b.typeId === "run" ||
-      b.typeId === "swim" ||
-      b.typeId === "cardio")
-) && (
+{hasAnyCardioBlocks && (
   <div className="panel mt16">
     <div className="h2">Cardio log</div>
 
-    {plannedBlocksForSelectedDay
-      .filter(
-        (b) =>
-          b &&
-          (b.typeId === "run" ||
-            b.typeId === "swim" ||
-            b.typeId === "cardio")
-      )
-      .map((block) => {
-        const blockLog = getBlockLog(logForDay, block.id);
-        const cardio =
-          (blockLog && blockLog.cardio) || {
-            distanceKm: "",
-            durationMin: "",
-            avgSpeedKmh: "",
-          };
-        const label =
-          block.label ||
-          (block.typeId === "run"
-            ? "Run block"
-            : block.typeId === "swim"
-            ? "Swim block"
-            : "Cardio block");
+    {allCardioBlocksForDay.map((block) => {
+      const blockLog = getBlockLog(logForDay, block.id);
+      const cardio =
+        (blockLog && blockLog.cardio) || {
+          distanceKm: "",
+          durationMin: "",
+          avgSpeedKmh: "",
+        };
+      const label =
+        block.label ||
+        (block.typeId === "run"
+          ? "Run block"
+          : block.typeId === "swim"
+          ? "Swim block"
+          : "Cardio block");
 
-        return (
-          <div key={block.id} className="mt12">
-            <div className="h3">{label}</div>
-            {block.note ? (
-              <div className="muted mt4">{block.note}</div>
-            ) : null}
+      return (
+        <div key={block.id} className="mt12">
+          <div className="h3">{label}</div>
+          {block.note ? (
+            <div className="muted mt4">{block.note}</div>
+          ) : null}
             <div className="grid3 mt8">
               <div>
 <div className="label">Distance (km)</div>
@@ -4157,21 +4331,19 @@ const targetInfo = buildTargetInfoForMovement({
 )}
 
 {/* Duration blocks log */}
-{plannedBlocksForSelectedDay.some((b) => b && b.typeId === "duration") && (
+{hasAnyDurationBlocks && (
   <div className="panel mt16">
     <div className="h2">Duration log</div>
 
-    {plannedBlocksForSelectedDay
-      .filter((b) => b && b.typeId === "duration")
-      .map((block) => {
-        const blockLog = getBlockLog(logForDay, block.id);
-        const duration =
-          (blockLog && blockLog.duration) || {
-            minutes: "",
-          };
-        const label = block.label || "Duration block";
+    {allDurationBlocksForDay.map((block) => {
+      const blockLog = getBlockLog(logForDay, block.id);
+      const duration =
+        (blockLog && blockLog.duration) || {
+          minutes: "",
+        };
+      const label = block.label || "Duration block";
 
-        return (
+      return (
           <div key={block.id} className="mt12">
             <div className="h3">{label}</div>
             {block.note ? (
@@ -4288,68 +4460,176 @@ const targetInfo = buildTargetInfoForMovement({
 
 {/* Extra movements + One-off activities (legacy, still useful) */}
 <div className="stack mt16">
-  {/* Extra movements for this specific date */}
+{/* Extra blocks for this specific date */}
 <div className="panel">
-  <div className="h2">Extra movements for today</div>
+  <div className="h2">Extra block for today</div>
   <div className="muted mt4">
-    Use this to add a one-day strength movement that will appear in the
-    Strength / HIIT log below.
+    Add a one-day-only Strength, Cardio or Duration block that shows in today&apos;s log
+    but doesn&apos;t change the weekly plan.
   </div>
 
+  {/* Block type selector */}
   <div className="row mt8">
-    <div style={{ flex: 1 }}>
-      <div className="label">Name</div>
-      <Input
-        value={extraMovNameDraft}
-        onChange={setExtraMovNameDraft}
-        placeholder="e.g. Extra push-ups"
-      />
-    </div>
-    <div style={{ width: 8 }} />
-    <div style={{ minWidth: 180 }}>
-      <div className="label">Mode</div>
+    <div style={{ minWidth: 220 }}>
+      <div className="label">Block type</div>
       <Select
-        value={extraMovModeDraft}
-        onChange={setExtraMovModeDraft}
+        value={extraBlockKind}
+        onChange={setExtraBlockKind}
         options={[
-          { value: "strength", label: "Strength (reps + weight)" },
-          { value: "time", label: "Timed (seconds + count)" },
+          { value: "strength", label: "Strength / HIIT / Box" },
+          { value: "cardio", label: "Cardio (run / bike / swim)" },
+          { value: "duration", label: "Duration (minutes only)" },
         ]}
       />
     </div>
   </div>
 
-  <div className="row mt8">
-    <div style={{ flex: 1 }}>
-      <div className="label">Target (reps / duration)</div>
-      <Input
-        value={extraMovRepsDraft}
-        onChange={setExtraMovRepsDraft}
-        placeholder="e.g. 3 x 10, or 30s x 8"
-      />
-    </div>
-    <div style={{ width: 8 }} />
-    <label className="checkbox mt24">
-      <input
-        type="checkbox"
-        checked={extraMovTrackWeightDraft}
-        onChange={(e) => setExtraMovTrackWeightDraft(e.target.checked)}
-      />
-      <span className="ml4">Track weight</span>
-    </label>
-  </div>
+  {/* Strength extra form */}
+  {extraBlockKind === "strength" && (
+    <>
+      <div className="row mt8">
+        <div style={{ flex: 1 }}>
+          <div className="label">Name</div>
+          <Input
+            value={extraMovNameDraft}
+            onChange={setExtraMovNameDraft}
+            placeholder="e.g. Extra push-ups"
+          />
+        </div>
+        <div style={{ width: 8 }} />
+        <div style={{ minWidth: 180 }}>
+          <div className="label">Mode</div>
+          <Select
+            value={extraMovModeDraft}
+            onChange={setExtraMovModeDraft}
+            options={[
+              { value: "strength", label: "Strength (reps + weight)" },
+              { value: "time", label: "Timed (seconds + count)" },
+            ]}
+          />
+        </div>
+      </div>
 
-  <div className="mt8">
-    <div className="label">Coach note (optional)</div>
-    <Textarea
-      value={extraMovCoachNoteDraft}
-      onChange={setExtraMovCoachNoteDraft}
-      placeholder="Any cues or notes for this extra movement..."
-    />
-  </div>
+      <div className="row mt8">
+        <div style={{ flex: 1 }}>
+          <div className="label">Target (reps / duration)</div>
+          <Input
+            value={extraMovRepsDraft}
+            onChange={setExtraMovRepsDraft}
+            placeholder="e.g. 3 x 10, or 30s x 8"
+          />
+        </div>
+        <div style={{ width: 8 }} />
+        <label className="checkbox mt24">
+          <input
+            type="checkbox"
+            checked={extraMovTrackWeightDraft}
+            onChange={(e) => setExtraMovTrackWeightDraft(e.target.checked)}
+          />
+          <span className="ml4">Track weight</span>
+        </label>
+      </div>
+
+      <div className="mt8">
+        <div className="label">Coach note (optional)</div>
+        <Textarea
+          value={extraMovCoachNoteDraft}
+          onChange={setExtraMovCoachNoteDraft}
+          placeholder="Any cues or notes for this extra movement..."
+        />
+      </div>
+    </>
+  )}
+
+  {/* Cardio extra form */}
+  {extraBlockKind === "cardio" && (
+    <>
+      <div className="row mt8">
+        <div style={{ flex: 1 }}>
+          <div className="label">Name</div>
+          <Input
+            value={extraCardioNameDraft}
+            onChange={setExtraCardioNameDraft}
+            placeholder="e.g. Extra run"
+          />
+        </div>
+        <div style={{ width: 8 }} />
+        <div style={{ minWidth: 180 }}>
+          <div className="label">Cardio type</div>
+          <Select
+            value={extraCardioTypeDraft}
+            onChange={setExtraCardioTypeDraft}
+            options={[
+              { value: "run", label: "Run" },
+              { value: "bike", label: "Bike" },
+              { value: "swim", label: "Swim" },
+              { value: "other", label: "Other" },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div className="mt8">
+        <div className="label">Target (optional)</div>
+        <Input
+          value={extraCardioTargetDraft}
+          onChange={setExtraCardioTargetDraft}
+          placeholder='e.g. "2 km easy"'
+        />
+      </div>
+
+      <div className="mt8">
+        <div className="label">Coach note (optional)</div>
+        <Textarea
+          value={extraCardioCoachNoteDraft}
+          onChange={setExtraCardioCoachNoteDraft}
+          placeholder="Any cues or notes for this extra cardio block..."
+        />
+      </div>
+    </>
+  )}
+
+  {/* Duration extra form */}
+  {extraBlockKind === "duration" && (
+    <>
+      <div className="row mt8">
+        <div style={{ flex: 1 }}>
+          <div className="label">Name</div>
+          <Input
+            value={extraDurationNameDraft}
+            onChange={setExtraDurationNameDraft}
+            placeholder="e.g. Extra yoga session"
+          />
+        </div>
+      </div>
+
+      <div className="row mt8">
+        <div style={{ maxWidth: 180 }}>
+          <div className="label">Target minutes (optional)</div>
+          <Input
+            type="number"
+            min={0}
+            step={0.5}
+            value={extraDurationMinutesDraft}
+            onChange={setExtraDurationMinutesDraft}
+            placeholder="e.g. 20"
+          />
+        </div>
+      </div>
+
+      <div className="mt8">
+        <div className="label">Coach note (optional)</div>
+        <Textarea
+          value={extraDurationCoachNoteDraft}
+          onChange={setExtraDurationCoachNoteDraft}
+          placeholder="Any cues or notes for this duration block..."
+        />
+      </div>
+    </>
+  )}
 
   <PrimaryButton className="mt8" onClick={addExtraMovement}>
-    + Add extra movement
+    + Add extra block
   </PrimaryButton>
 </div>
 </div>
