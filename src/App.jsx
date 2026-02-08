@@ -1362,6 +1362,11 @@ useEffect(() => {
     useState("");
   const [extraDurationCoachNoteDraft, setExtraDurationCoachNoteDraft] =
     useState("");
+  // Activity / task extra-block drafts
+const [extraActivityNameDraft, setExtraActivityNameDraft] = useState("");
+const [extraActivityXpDraft, setExtraActivityXpDraft] = useState("");
+const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
+  useState("");
   const loadDayLogReqRef = useRef(0);
   const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
 
@@ -1436,6 +1441,24 @@ useEffect(() => {
   ];
 
   const hasAnyDurationBlocks = allDurationBlocksForDay.length > 0;
+
+  // Tasks blocks (planned + extra for this day)
+const tasksPlannedBlocks = plannedBlocksForSelectedDay.filter(
+  (b) => b && b.typeId === "tasks"
+);
+
+const tasksExtraBlocks = Array.isArray(logForDay?.blocks)
+  ? logForDay.blocks.filter(
+      (b) => b && b.isExtra && b.typeId === "tasks"
+    )
+  : [];
+
+const allTasksBlocksForDay = [
+  ...tasksPlannedBlocks,
+  ...tasksExtraBlocks,
+];
+
+const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
   
   function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
@@ -3240,6 +3263,72 @@ async function addExtraDurationBlockForToday(draft) {
 
   await saveLog(nextLog);
 }
+
+async function addExtraActivityBlockForToday(draft) {
+  const name = (draft?.name || "").trim();
+  if (!name) return;
+
+  const rawXp = draft?.xpValue;
+  const xpValue =
+    rawXp === "" || rawXp === null || rawXp === undefined
+      ? 0
+      : Number(rawXp) || 0;
+  const coachNote = (draft?.coachNote || "").trim();
+
+  const baseLog = ensureBlocksSnapshot(
+    logForDay ? { ...logForDay } : blankLogForDay()
+  );
+
+  const existingBlocks = Array.isArray(baseLog.blocks)
+    ? baseLog.blocks.slice()
+    : [];
+
+  // Reuse a single extra tasks block if it already exists
+  let extraTasksBlock = existingBlocks.find(
+    (b) => b && b.isExtra && b.typeId === "tasks"
+  );
+
+  if (!extraTasksBlock) {
+    extraTasksBlock = {
+      id: uid(),
+      typeId: "tasks",
+      isExtra: true,
+      label: "Extra activities",
+      note: "",
+      tasks: [],
+    };
+    existingBlocks.push(extraTasksBlock);
+  }
+
+  const currentTasks = Array.isArray(extraTasksBlock.tasks)
+    ? extraTasksBlock.tasks.slice()
+    : [];
+
+  const taskId = uid();
+
+  currentTasks.push({
+    id: taskId,
+    name,
+    xpValue,
+    coachNote,
+  });
+
+  const updatedBlock = {
+    ...extraTasksBlock,
+    tasks: currentTasks,
+  };
+
+  const nextBlocks = existingBlocks.map((b) =>
+    b && b.id === updatedBlock.id ? updatedBlock : b
+  );
+
+  const nextLog = {
+    ...baseLog,
+    blocks: nextBlocks,
+  };
+
+  await saveLog(nextLog);
+}
   
 // Click handler for the "+ Add extra block" button on the Log tab
 async function addExtraMovement() {
@@ -3300,6 +3389,24 @@ async function addExtraMovement() {
     setExtraDurationNameDraft("");
     setExtraDurationMinutesDraft("");
     setExtraDurationCoachNoteDraft("");
+    return;
+  }
+
+  if (extraBlockKind === "activity") {
+    const name = (extraActivityNameDraft || "").trim();
+    if (!name) return;
+
+    const draft = {
+      name,
+      xpValue: extraActivityXpDraft,
+      coachNote: extraActivityCoachNoteDraft || "",
+    };
+
+    await addExtraActivityBlockForToday(draft);
+
+    setExtraActivityNameDraft("");
+    setExtraActivityXpDraft("");
+    setExtraActivityCoachNoteDraft("");
     return;
   }
 }
@@ -4201,31 +4308,49 @@ const targetInfo = buildTargetInfoForMovement({
 
                                 {rows}
 
-                                <div className="mt8">
-                                  <SecondaryButton
-                                    onClick={() => {
-                                      const nextSets = [
-                                        ...(Array.isArray(
-                                          setsByMovement[mov.id]
-                                        )
-                                          ? setsByMovement[mov.id]
-                                          : []),
-                                        {
-                                          reps: "",
-                                          weight: "",
-                                          timeSeconds: "",
-                                        },
-                                      ];
-                                      updateStrengthSetsForMovement(
-                                        block.id,
-                                        mov.id,
-                                        nextSets
-                                      );
-                                    }}
-                                  >
-                                    + Add set
-                                  </SecondaryButton>
-                                </div>
+<div className="mt8 row gap8">
+  <SecondaryButton
+    onClick={() => {
+      const nextSets = [
+        ...(Array.isArray(setsByMovement[mov.id])
+          ? setsByMovement[mov.id]
+          : []),
+        {
+          reps: "",
+          weight: "",
+          timeSeconds: "",
+        },
+      ];
+      updateStrengthSetsForMovement(
+        block.id,
+        mov.id,
+        nextSets
+      );
+    }}
+  >
+    + Add set
+  </SecondaryButton>
+  {Array.isArray(setsByMovement[mov.id]) &&
+    setsByMovement[mov.id].length > (mov.sets || 3) && (
+      <SecondaryButton
+        className="btnSmall"
+        onClick={() => {
+          const existing = Array.isArray(setsByMovement[mov.id])
+            ? setsByMovement[mov.id]
+            : [];
+          if (!existing.length) return;
+          const nextSets = existing.slice(0, existing.length - 1);
+          updateStrengthSetsForMovement(
+            block.id,
+            mov.id,
+            nextSets
+          );
+        }}
+      >
+        Remove last set
+      </SecondaryButton>
+    )}
+</div>
                                 <div className="movementDivider" />
                               </div>
                             );
@@ -4394,25 +4519,36 @@ const targetInfo = buildTargetInfoForMovement({
 )}
 
 {/* Tasks blocks log */}
-{plannedBlocksForSelectedDay.some((b) => b && b.typeId === "tasks") && (
+hasAnyTasksBlocks && (
   <div className="panel mt16">
     <div className="h2">Tasks log</div>
 
-    {plannedBlocksForSelectedDay
-      .filter((b) => b && b.typeId === "tasks")
-      .map((block) => {
+    {allTasksBlocksForDay.map((block) => {
         const blockLog = getBlockLog(logForDay, block.id) || {};
         const tasksDone = blockLog.tasksDone || {};
         const label = block.label || "Tasks block";
         const tasks = Array.isArray(block.tasks) ? block.tasks : [];
 
-        return (
-          <div key={block.id} className="mt12">
-            <div className="h3">{label}</div>
-            {block.note ? (
-              <div className="muted mt4">{block.note}</div>
-            ) : null}
-            {tasks.length === 0 ? (
+return (
+  <div key={block.id} className="mt12">
+    <div className="h3">{label}</div>
+    {block.note ? (
+      <div className="muted mt4">{block.note}</div>
+    ) : null}
+
+    {block.isExtra && (
+      <div className="row space mt4">
+        <div className="muted mini">One-day extra activity</div>
+        <SecondaryButton
+          className="btnSmall"
+          onClick={() => removeExtraMovement(block.id)}
+        >
+          Remove
+        </SecondaryButton>
+      </div>
+    )}
+
+    {tasks.length === 0 ? (
               <div className="muted mt4">
                 No tasks configured for this block yet.
               </div>
@@ -4494,8 +4630,9 @@ const targetInfo = buildTargetInfoForMovement({
         onChange={setExtraBlockKind}
         options={[
           { value: "strength", label: "Strength / HIIT / Box" },
-          { value: "cardio", label: "Cardio (run / bike / swim)" },
-          { value: "duration", label: "Duration (minutes only)" },
+    { value: "cardio", label: "Cardio (run / bike / swim)" },
+    { value: "duration", label: "Duration (minutes only)" },
+    { value: "activity", label: "Activity / task" },
         ]}
       />
     </div>
@@ -4644,6 +4781,44 @@ const targetInfo = buildTargetInfoForMovement({
       </div>
     </>
   )}
+
+  {extraBlockKind === "activity" && (
+  <>
+    <div className="row mt8">
+      <div style={{ flex: 1 }}>
+        <div className="label">Activity name</div>
+        <Input
+          value={extraActivityNameDraft}
+          onChange={setExtraActivityNameDraft}
+          placeholder="e.g. Extra PE lesson, bonus walk"
+        />
+      </div>
+    </div>
+
+    <div className="row mt8">
+      <div style={{ maxWidth: 160 }}>
+        <div className="label">XP (optional)</div>
+        <Input
+          type="number"
+          min={0}
+          step={5}
+          value={extraActivityXpDraft}
+          onChange={setExtraActivityXpDraft}
+          placeholder="e.g. 20"
+        />
+      </div>
+    </div>
+
+    <div className="mt8">
+      <div className="label">Coach note (optional)</div>
+      <Textarea
+        value={extraActivityCoachNoteDraft}
+        onChange={setExtraActivityCoachNoteDraft}
+        placeholder="Any notes or context for this activity..."
+      />
+    </div>
+  </>
+)}
 
   <PrimaryButton className="mt8" onClick={addExtraMovement}>
     + Add extra block
