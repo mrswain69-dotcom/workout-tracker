@@ -6053,7 +6053,10 @@ const targetInfo = buildTargetInfoForMovement({
                 <SummaryStat label="Level" value={level} />
                 <SummaryStat label="XP" value={xp} />
                 <SummaryStat label="XP to next" value={xpToNext} />
-                <SummaryStat label="Unlocked" value={`${unlocked.arcade ? "Arcade " : ""}${unlocked.chill ? "Chill" : ""}`.trim() || "—"} />
+                <SummaryStat
+  label="Unlocked"
+  value={`${unlocked.arcade ? "Arcade " : ""}${unlocked.chill ? "Chill" : ""}`.trim() || "—"}
+/>
               </div>
 
               <div className="panel mt12">
