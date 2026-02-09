@@ -4649,50 +4649,58 @@ const targetInfo = buildTargetInfoForMovement({
             <div className="grid3 mt8">
   <div>
     <div className="label">Distance (km)</div>
-    <Input
+    <input
+      className="input"
       type="number"
       min={0}
       step={0.01}
-      value={cardio.distanceKm ?? ""}
-      onChange={(v) =>
+      defaultValue={cardio.distanceKm ?? ""}
+      onChange={(e) =>
         updateCardioForBlock(block.id, {
-          distanceKm: v,
+          distanceKm: e.target.value,
         })
       }
       placeholder="e.g. 2.50"
     />
   </div>
+
   <div>
     <div className="label">Time (minutes)</div>
-    <Input
+    <input
+      className="input"
       type="number"
       min={0}
       step={0.5}
-      value={cardio.durationMin ?? ""}
-      onChange={(v) =>
+      defaultValue={cardio.durationMin ?? ""}
+      onChange={(e) =>
         updateCardioForBlock(block.id, {
-          durationMin: v,
+          durationMin: e.target.value,
         })
       }
       placeholder="e.g. 14.5"
     />
   </div>
+
   <div>
     <div className="label">Avg speed (km/h)</div>
-    <Input
+    <input
+      className="input"
       type="number"
       min={0}
       step={0.1}
-      value={cardio.avgSpeedKmh ?? ""}
-      onChange={(v) =>
+      // key forces React to recreate the input when the
+      // auto-calculated speed changes, so the defaultValue updates
+      key={cardio.avgSpeedKmh ?? "empty"}
+      defaultValue={cardio.avgSpeedKmh ?? ""}
+      onChange={(e) =>
         updateCardioForBlock(block.id, {
-          avgSpeedKmh: v,
+          avgSpeedKmh: e.target.value,
         })
       }
       placeholder="auto or manual"
     />
     <div className="muted mini mt4">
-      Leave blank to auto-calc from distance & time.
+      Leave blank to auto-calc from distance &amp; time.
     </div>
   </div>
 </div>
@@ -4750,23 +4758,24 @@ const targetInfo = buildTargetInfoForMovement({
               </div>
             )}
 
-            <div className="grid3 mt8">
-              <div>
-                <div className="label">Minutes</div>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={duration.minutes}
-                  onChange={(v) =>
-                    updateDurationForBlock(block.id, {
-                      minutes: v,
-                    })
-                  }
-                  placeholder="e.g. 30"
-                />
-              </div>
-            </div>
+<div className="grid3 mt8">
+  <div>
+    <div className="label">Minutes</div>
+    <input
+      className="input"
+      type="number"
+      min={0}
+      step={0.5}
+      defaultValue={duration.minutes ?? ""}
+      onChange={(e) =>
+        updateDurationForBlock(block.id, {
+          minutes: e.target.value,
+        })
+      }
+      placeholder="e.g. 30"
+    />
+  </div>
+</div>
           </div>
         );
       })}
