@@ -2663,6 +2663,10 @@ const todayPlanStatus = useMemo(() => {
     );
   }
 
+  function removeMovementFromBlock(blockId, movementId) {
+  removeMovement(blockId, movementId);
+}
+
   function updateMovementField(blockId, movementId, field, value) {
     updatePlanBlocksForCurrentDay("Update movement", (blocks) =>
       blocks.map((b) => {
@@ -3108,7 +3112,13 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
-  async function toggleBlockCancelled(blockId, cancelled) {
+async function toggleBlockCancelled(blockId, cancelled) {
+  // Turning ON requires the parent PIN; turning OFF is free.
+  if (cancelled) {
+    const ok = await ensureUnlocked("mark this block as cancelled");
+    if (!ok) return;
+  }
+
   const base = ensureBlocksSnapshot(
     logForDay ? { ...logForDay } : blankLogForDay()
   );
@@ -4210,20 +4220,28 @@ const cardioProgress = useMemo(() => {
                           : "";
 
                       return (
-                        <div key={block.id} className="mt12">
-                          {block.label ? (
-                            <div className="h3">{block.label}</div>
-                          ) : null}
-                          {block.note ? (
-                            <div className="muted mt4">{block.note}</div>
-                          ) : null}
+  <div key={block.id} className="mt12">
+    <div className="row between" style={{ alignItems: "center" }}>
+      {block.label ? (
+        <div
+          className="h3"
+          style={{ opacity: isCancelled ? 1 : 0.7 }}
+        >
+          {block.label}
+        </div>
+      ) : (
+        <div className="h3 muted" style={{ opacity: isCancelled ? 1 : 0.7 }}>
+          Untitled block
+        </div>
+      )}
 
-                          {/* Cancelled toggle */}
-    <div className="row between mt4">
-      <div className="muted small">
-        {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
-      </div>
-      <label className="mini">
+      <label
+        className="mini"
+        style={{
+          opacity: isCancelled ? 1 : 0.5,
+        }}
+        title="Mark this block as cancelled when it was impossible to do (e.g. weather, cancelled match). It won’t block your streak."
+      >
         <input
           type="checkbox"
           checked={isCancelled}
@@ -4232,6 +4250,10 @@ const cardioProgress = useMemo(() => {
         <span>Cancelled</span>
       </label>
     </div>
+
+    {block.note ? (
+      <div className="muted mt4">{block.note}</div>
+    ) : null}
 
                           {block.isExtra && (
                             <div className="row space mt4">
@@ -5510,20 +5532,20 @@ const targetInfo = buildTargetInfoForMovement({
                             <div className="movementRow">
                               <div className="row">
                                 <div className="field flex1">
-                                  <div className="label">Movement</div>
-                                  <Input
-                                    value={m.label || ""}
-                                    onChange={(v) =>
-                                      updateMovementField(
-                                        block.id,
-                                        m.id,
-                                        "label",
-                                        v
-                                      )
-                                    }
-                                    placeholder="e.g. Squats"
-                                  />
-                                </div>
+  <div className="label">Movement</div>
+  <Input
+    value={m.name || ""}
+    onChange={(v) =>
+      updateMovementField(
+        block.id,
+        m.id,
+        "name",
+        v
+      )
+    }
+    placeholder="e.g. Squats"
+  />
+</div>
                                 <div className="field w120">
                                   <div className="label">Sets</div>
                                   <Input
