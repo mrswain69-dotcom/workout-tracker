@@ -5780,7 +5780,7 @@ const targetInfo = buildTargetInfoForMovement({
     </div>
   </>
 )}
-            </div>
+            
           );
         })}
       </div>
