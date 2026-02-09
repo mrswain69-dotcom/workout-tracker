@@ -4647,58 +4647,55 @@ const targetInfo = buildTargetInfoForMovement({
             </div>
           )}
             <div className="grid3 mt8">
-              <div>
-<div className="label">Distance (km)</div>
-<input
-  className="input"
-  type="number"
-  min={0}
-  step={0.01}
-  value={cardio.distanceKm ?? ""}
-  onChange={(e) =>
-    updateCardioForBlock(block.id, {
-      distanceKm: e.target.value,
-    })
-  }
-  placeholder="e.g. 2.50"
-/>
-              </div>
-              <div>
-<div className="label">Time (minutes)</div>
-<input
-  className="input"
-  type="number"
-  min={0}
-  step={0.5}
-  value={cardio.durationMin ?? ""}
-  onChange={(e) =>
-    updateCardioForBlock(block.id, {
-      durationMin: e.target.value,
-    })
-  }
-  placeholder="e.g. 14.5"
-/>
-              </div>
-              <div>
-<div className="label">Avg speed (km/h)</div>
-<input
-  className="input"
-  type="number"
-  min={0}
-  step={0.1}
-  value={cardio.avgSpeedKmh ?? ""}
-  onChange={(e) =>
-    updateCardioForBlock(block.id, {
-      avgSpeedKmh: e.target.value,
-    })
-  }
-  placeholder="auto or manual"
-/>
-                <div className="muted mini mt4">
-                  Leave blank to auto-calc from distance & time.
-                </div>
-              </div>
-            </div>
+  <div>
+    <div className="label">Distance (km)</div>
+    <Input
+      type="number"
+      min={0}
+      step={0.01}
+      value={cardio.distanceKm ?? ""}
+      onChange={(v) =>
+        updateCardioForBlock(block.id, {
+          distanceKm: v,
+        })
+      }
+      placeholder="e.g. 2.50"
+    />
+  </div>
+  <div>
+    <div className="label">Time (minutes)</div>
+    <Input
+      type="number"
+      min={0}
+      step={0.5}
+      value={cardio.durationMin ?? ""}
+      onChange={(v) =>
+        updateCardioForBlock(block.id, {
+          durationMin: v,
+        })
+      }
+      placeholder="e.g. 14.5"
+    />
+  </div>
+  <div>
+    <div className="label">Avg speed (km/h)</div>
+    <Input
+      type="number"
+      min={0}
+      step={0.1}
+      value={cardio.avgSpeedKmh ?? ""}
+      onChange={(v) =>
+        updateCardioForBlock(block.id, {
+          avgSpeedKmh: v,
+        })
+      }
+      placeholder="auto or manual"
+    />
+    <div className="muted mini mt4">
+      Leave blank to auto-calc from distance & time.
+    </div>
+  </div>
+</div>
           </div>
         );
       })}
