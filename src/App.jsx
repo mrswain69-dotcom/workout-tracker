@@ -5584,7 +5584,7 @@ const targetInfo = buildTargetInfoForMovement({
                 </div>
               )}
               
-              {/* Common: name + coach note */}
+              {/* Common: name + coach  note */}
               <div className="mt12">
                 <div className="label">Name</div>
                 <Input
