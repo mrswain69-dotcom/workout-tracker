@@ -259,61 +259,6 @@ function createTasksBlock() {
   };
 }
 
-function cloneBlockForPlan(block) {
-  if (!block) return null;
-
-  const cloned = {
-    ...block,
-    id: uid(),
-  };
-
-  if (Array.isArray(block.movements)) {
-    cloned.movements = block.movements.map((m) => ({
-      ...m,
-      id: uid(),
-    }));
-  }
-
-  if (Array.isArray(block.tasks)) {
-    cloned.tasks = block.tasks.map((t) => ({
-      ...t,
-      id: uid(),
-    }));
-  }
-
-  return cloned;
-}
-
-async function duplicateBlockToOtherWeekdays(blockId, targetWeekdays) {
-  if (!Array.isArray(targetWeekdays) || !targetWeekdays.length) return;
-
-  const base = getPlanWithBlocks(); // you already have this helper
-  const currentBlocks = getBlocksForPlanWeekday(base, planWeekday) || [];
-  const sourceBlock = currentBlocks.find((b) => b && b.id === blockId);
-  if (!sourceBlock) return;
-
-  const nextBlocksByWeekday = { ...(base.blocksByWeekday || {}) };
-
-  for (const wd of targetWeekdays) {
-    if (!wd) continue;
-    const dayBlocks = Array.isArray(nextBlocksByWeekday[wd])
-      ? [...nextBlocksByWeekday[wd]]
-      : [];
-    const cloned = cloneBlockForPlan(sourceBlock);
-    if (cloned) {
-      dayBlocks.push(cloned);
-      nextBlocksByWeekday[wd] = dayBlocks;
-    }
-  }
-
-  const nextPlan = {
-    ...base,
-    blocksByWeekday: nextBlocksByWeekday,
-  };
-
-  await savePlan(nextPlan);
-}
-
 function ensureBlocksByWeekday(plan) {
   const base = plan || {};
   const existing = base.blocksByWeekday || {};
@@ -1197,6 +1142,7 @@ export default function App() {
   const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
 
   const [tab, setTab] = useState("log");
+  const [copyDialog, setCopyDialog] = useState(null); // { blockId, days: string[] }
 
   // --- Rotating Motivation & Health tip (changes on tab switch) ---
 const MOTIVATION_QUOTES = [
@@ -2561,6 +2507,61 @@ const todayPlanStatus = useMemo(() => {
     await savePlan(nextPlan);
   }
 
+    function cloneBlockForPlan(block) {
+    if (!block) return null;
+
+    const cloned = {
+      ...block,
+      id: uid(),
+    };
+
+    if (Array.isArray(block.movements)) {
+      cloned.movements = block.movements.map((m) => ({
+        ...m,
+        id: uid(),
+      }));
+    }
+
+    if (Array.isArray(block.tasks)) {
+      cloned.tasks = block.tasks.map((t) => ({
+        ...t,
+        id: uid(),
+      }));
+    }
+
+    return cloned;
+  }
+
+  async function duplicateBlockToOtherWeekdays(blockId, targetWeekdays) {
+    if (!Array.isArray(targetWeekdays) || !targetWeekdays.length) return;
+
+    const base = getPlanWithBlocks();
+    const currentBlocks = getBlocksForPlanWeekday(base, planWeekday) || [];
+    const sourceBlock = currentBlocks.find((b) => b && b.id === blockId);
+    if (!sourceBlock) return;
+
+    const nextBlocksByWeekday = { ...(base.blocksByWeekday || {}) };
+
+    for (const wd of targetWeekdays) {
+      if (!wd) continue;
+      const dayBlocks = Array.isArray(nextBlocksByWeekday[wd])
+        ? [...nextBlocksByWeekday[wd]]
+        : [];
+      const cloned = cloneBlockForPlan(sourceBlock);
+      if (cloned) {
+        dayBlocks.push(cloned);
+        nextBlocksByWeekday[wd] = dayBlocks;
+      }
+    }
+
+    const nextPlan = {
+      ...base,
+      blocksByWeekday: nextBlocksByWeekday,
+    };
+
+    await savePlan(nextPlan, "Copy block to other days");
+  }
+
   function addBlockToDay(typeId) {
     let newBlock;
 
@@ -2601,21 +2602,89 @@ const todayPlanStatus = useMemo(() => {
   }
 
   function moveBlockInDay(blockId, direction) {
-  // direction: -1 for up, +1 for down
-  updatePlanBlocksForCurrentDay("Move block", (blocks) => {
-    const safeBlocks = Array.isArray(blocks) ? blocks : [];
-    const idx = safeBlocks.findIndex((b) => b && b.id === blockId);
-    if (idx === -1) return safeBlocks;
+    // direction: -1 for up, +1 for down
+    updatePlanBlocksForCurrentDay("Move block", (blocks) => {
+      const safeBlocks = Array.isArray(blocks) ? blocks : [];
+      const idx = safeBlocks.findIndex((b) => b && b.id === blockId);
+      if (idx === -1) return safeBlocks;
 
-    const target = idx + direction;
-    if (target < 0 || target >= safeBlocks.length) return safeBlocks;
+      const target = idx + direction;
+      if (target < 0 || target >= safeBlocks.length) return safeBlocks;
 
-    const next = [...safeBlocks];
-    const [item] = next.splice(idx, 1);
-    next.splice(target, 0, item);
-    return next;
-  });
-}
+      const next = [...safeBlocks];
+      const [item] = next.splice(idx, 1);
+      next.splice(target, 0, item);
+      return next;
+    });
+  }
+
+  function cloneBlockForPlan(block) {
+    if (!block) return null;
+
+    const cloned = {
+      ...block,
+      id: uid(),
+    };
+
+    if (Array.isArray(block.movements)) {
+      cloned.movements = block.movements.map((m) => ({
+        ...m,
+        id: uid(),
+      }));
+    }
+
+    if (Array.isArray(block.tasks)) {
+      cloned.tasks = block.tasks.map((t) => ({
+        ...t,
+        id: uid(),
+      }));
+    }
+
+    return cloned;
+  }
+
+  async function duplicateBlockToOtherWeekdays(blockId, targetWeekdays) {
+    if (!Array.isArray(targetWeekdays) || !targetWeekdays.length) return;
+
+    const base = getPlanWithBlocks();
+    const currentBlocks = getBlocksForPlanWeekday(base, planWeekday) || [];
+    const sourceBlock = currentBlocks.find((b) => b && b.id === blockId);
+    if (!sourceBlock) return;
+
+    const nextBlocksByWeekday = { ...(base.blocksByWeekday || {}) };
+
+    for (const wd of targetWeekdays) {
+      if (!wd) continue;
+      const dayBlocks = Array.isArray(nextBlocksByWeekday[wd])
+        ? [...nextBlocksByWeekday[wd]]
+        : [];
+      const cloned = cloneBlockForPlan(sourceBlock);
+      if (cloned) {
+        dayBlocks.push(cloned);
+        nextBlocksByWeekday[wd] = dayBlocks;
+      }
+    }
+
+    const nextPlan = {
+      ...base,
+      blocksByWeekday: nextBlocksByWeekday,
+    };
+
+    await savePlan(nextPlan, "Copy block to other days");
+  }
+
+  function toggleCopyDialogDay(day) {
+    setCopyDialog((prev) => {
+      if (!prev) return prev;
+      const has = prev.days.includes(day);
+      return {
+        ...prev,
+        days: has
+          ? prev.days.filter((d) => d !== day)
+          : [...prev.days, day],
+      };
+    });
+  }
 
   function addMovement(blockId) {
     const newMovement = {
@@ -2931,9 +3000,13 @@ function updateBlockLog(log, blockId, patch) {
 }
   
 async function claimDailyBonus() {
-  const qualifies = isDayComplete(logForDay, planDay);
+  const qualifies =
+    isDayGreen(logForDay) || isDayComplete(logForDay, planDay);
+
   if (!qualifies) {
-    window.alert("Finish logging today’s plan first (fill in your sets), then claim the bonus!");
+    window.alert(
+      "Finish logging today’s plan first (fill in your sets / movements), then claim the bonus!"
+    );
     return;
   }
   if (logForDay?.meta?.challengeClaimed) return;
@@ -4581,7 +4654,7 @@ const targetInfo = buildTargetInfoForMovement({
   type="number"
   min={0}
   step={0.01}
-  defaultValue={cardio.distanceKm ?? ""}
+  value={cardio.distanceKm ?? ""}
   onChange={(e) =>
     updateCardioForBlock(block.id, {
       distanceKm: e.target.value,
@@ -4597,7 +4670,7 @@ const targetInfo = buildTargetInfoForMovement({
   type="number"
   min={0}
   step={0.5}
-  defaultValue={cardio.durationMin ?? ""}
+  value={cardio.durationMin ?? ""}
   onChange={(e) =>
     updateCardioForBlock(block.id, {
       durationMin: e.target.value,
@@ -4613,7 +4686,7 @@ const targetInfo = buildTargetInfoForMovement({
   type="number"
   min={0}
   step={0.1}
-  defaultValue={cardio.avgSpeedKmh ?? ""}
+  value={cardio.avgSpeedKmh ?? ""}
   onChange={(e) =>
     updateCardioForBlock(block.id, {
       avgSpeedKmh: e.target.value,
@@ -5433,19 +5506,11 @@ const targetInfo = buildTargetInfoForMovement({
                     className="btnSmall"
                     type="button"
                     onClick={() => {
-                      const input = window.prompt(
-                        "Copy this block to which days? Use codes like Mon,Tue,Wed,Fri,Sat"
+                      setCopyDialog((prev) =>
+                        prev && prev.blockId === block.id
+                          ? null
+                          : { blockId: block.id, days: [] }
                       );
-                      if (!input) return;
-                      const targetDays = input
-                        .split(",")
-                        .map((s) => s.trim())
-                        .filter((s) =>
-                          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].includes(s)
-                        );
-                      if (targetDays.length) {
-                        duplicateBlockToOtherWeekdays(block.id, targetDays);
-                      }
                     }}
                   >
                     Copy
@@ -5459,6 +5524,66 @@ const targetInfo = buildTargetInfoForMovement({
                 </div>
               </div>
 
+              {copyDialog && copyDialog.blockId === block.id && (
+                <div className="mt8">
+                  <div className="label">Copy this block to days</div>
+                  <div
+                    className="row"
+                    style={{ flexWrap: "wrap", gap: 6, marginTop: 4 }}
+                  >
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                      (day) => {
+                        const selected =
+                          copyDialog.days &&
+                          copyDialog.days.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            className="pill"
+                            style={{
+                              opacity: selected ? 1 : 0.6,
+                              fontWeight: selected ? 600 : 400,
+                            }}
+                            onClick={() => toggleCopyDialogDay(day)}
+                          >
+                            {day} {selected ? "✓" : ""}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                  <div className="row mt8" style={{ gap: 8 }}>
+                    <PrimaryButton
+                      className="btnSmall"
+                      disabled={
+                        !copyDialog.days || copyDialog.days.length === 0
+                      }
+                      onClick={async () => {
+                        if (
+                          !copyDialog.days ||
+                          copyDialog.days.length === 0
+                        )
+                          return;
+                        await duplicateBlockToOtherWeekdays(
+                          block.id,
+                          copyDialog.days
+                        );
+                        setCopyDialog(null);
+                      }}
+                    >
+                      Copy
+                    </PrimaryButton>
+                    <SecondaryButton
+                      className="btnSmall"
+                      onClick={() => setCopyDialog(null)}
+                    >
+                      Cancel
+                    </SecondaryButton>
+                  </div>
+                </div>
+              )}
+              
               {/* Common: name + coach note */}
               <div className="mt12">
                 <div className="label">Name</div>
