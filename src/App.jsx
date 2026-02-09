@@ -259,6 +259,61 @@ function createTasksBlock() {
   };
 }
 
+function cloneBlockForPlan(block) {
+  if (!block) return null;
+
+  const cloned = {
+    ...block,
+    id: uid(),
+  };
+
+  if (Array.isArray(block.movements)) {
+    cloned.movements = block.movements.map((m) => ({
+      ...m,
+      id: uid(),
+    }));
+  }
+
+  if (Array.isArray(block.tasks)) {
+    cloned.tasks = block.tasks.map((t) => ({
+      ...t,
+      id: uid(),
+    }));
+  }
+
+  return cloned;
+}
+
+async function duplicateBlockToOtherWeekdays(blockId, targetWeekdays) {
+  if (!Array.isArray(targetWeekdays) || !targetWeekdays.length) return;
+
+  const base = getPlanWithBlocks(); // you already have this helper
+  const currentBlocks = getBlocksForPlanWeekday(base, planWeekday) || [];
+  const sourceBlock = currentBlocks.find((b) => b && b.id === blockId);
+  if (!sourceBlock) return;
+
+  const nextBlocksByWeekday = { ...(base.blocksByWeekday || {}) };
+
+  for (const wd of targetWeekdays) {
+    if (!wd) continue;
+    const dayBlocks = Array.isArray(nextBlocksByWeekday[wd])
+      ? [...nextBlocksByWeekday[wd]]
+      : [];
+    const cloned = cloneBlockForPlan(sourceBlock);
+    if (cloned) {
+      dayBlocks.push(cloned);
+      nextBlocksByWeekday[wd] = dayBlocks;
+    }
+  }
+
+  const nextPlan = {
+    ...base,
+    blocksByWeekday: nextBlocksByWeekday,
+  };
+
+  await savePlan(nextPlan);
+}
+
 function ensureBlocksByWeekday(plan) {
   const base = plan || {};
   const existing = base.blocksByWeekday || {};
@@ -1100,6 +1155,11 @@ function isDayGreen(log) {
   for (const block of log.blocks) {
     if (!block) continue;
 
+    // NEW: cancelled blocks do not count, and also don’t block the day.
+    if (block.cancelled) {
+      continue;
+    }
+    
     const typeId = block.typeId;
 
     // Ignore pure task blocks for day-complete logic and streaks
@@ -2540,6 +2600,23 @@ const todayPlanStatus = useMemo(() => {
     );
   }
 
+  function moveBlockInDay(blockId, direction) {
+  // direction: -1 for up, +1 for down
+  updatePlanBlocksForCurrentDay("Move block", (blocks) => {
+    const safeBlocks = Array.isArray(blocks) ? blocks : [];
+    const idx = safeBlocks.findIndex((b) => b && b.id === blockId);
+    if (idx === -1) return safeBlocks;
+
+    const target = idx + direction;
+    if (target < 0 || target >= safeBlocks.length) return safeBlocks;
+
+    const next = [...safeBlocks];
+    const [item] = next.splice(idx, 1);
+    next.splice(target, 0, item);
+    return next;
+  });
+}
+
   function addMovement(blockId) {
     const newMovement = {
       id: uid(),
@@ -3030,6 +3107,16 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     await saveLog(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
+
+  async function toggleBlockCancelled(blockId, cancelled) {
+  const base = ensureBlocksSnapshot(
+    logForDay ? { ...logForDay } : blankLogForDay()
+  );
+
+  const next = updateBlockLog(base, blockId, { cancelled });
+  await saveLog(next);
+  setLogForDay(next);
+}
 
   async function updateStrengthSetsForMovement(
     blockId,
@@ -4070,22 +4157,6 @@ const cardioProgress = useMemo(() => {
     style={{ background: selectedDayDotColor }}
   />
   <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
-  <label
-    className="mini"
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 4,
-      marginLeft: 12,
-    }}
-  >
-    <input
-      type="checkbox"
-      checked={!!logForDay?.meta?.streakSaved}
-      onChange={(e) => toggleStreakSaver(e.target.checked)}
-    />
-    <span>Streak saver (PIN)</span>
-  </label>
 </div>
 
               </div>
@@ -4105,6 +4176,7 @@ const cardioProgress = useMemo(() => {
 
                     {allStrengthBlocksForDay.map((block) => {
                       const blockLog = getBlockLog(logForDay, block.id) || {};
+                      const isCancelled = !!blockLog.cancelled;
                       const setsByMovement =
                         blockLog.sets && typeof blockLog.sets === "object"
                           ? blockLog.sets
@@ -4145,6 +4217,21 @@ const cardioProgress = useMemo(() => {
                           {block.note ? (
                             <div className="muted mt4">{block.note}</div>
                           ) : null}
+
+                          {/* Cancelled toggle */}
+    <div className="row between mt4">
+      <div className="muted small">
+        {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
+      </div>
+      <label className="mini">
+        <input
+          type="checkbox"
+          checked={isCancelled}
+          onChange={(e) => toggleBlockCancelled(block.id, e.target.checked)}
+        />
+        <span>Cancelled</span>
+      </label>
+    </div>
 
                           {block.isExtra && (
                             <div className="row space mt4">
@@ -4416,6 +4503,7 @@ const targetInfo = buildTargetInfoForMovement({
 
     {allCardioBlocksForDay.map((block) => {
       const blockLog = getBlockLog(logForDay, block.id);
+      const isCancelled = !!blockLog.cancelled;
       const cardio =
         (blockLog && blockLog.cardio) || {
           distanceKm: "",
@@ -4436,6 +4524,21 @@ const targetInfo = buildTargetInfoForMovement({
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
+
+          {/* Cancelled toggle */}
+    <div className="row between mt4">
+      <div className="muted small">
+        {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
+      </div>
+      <label className="mini">
+        <input
+          type="checkbox"
+          checked={isCancelled}
+          onChange={(e) => toggleBlockCancelled(block.id, e.target.checked)}
+        />
+        <span>Cancelled</span>
+      </label>
+    </div>
 
           {block.isExtra && (
             <div className="row space mt4">
@@ -4514,6 +4617,7 @@ const targetInfo = buildTargetInfoForMovement({
 
     {allDurationBlocksForDay.map((block) => {
       const blockLog = getBlockLog(logForDay, block.id);
+      const isCancelled = !!blockLog.cancelled;
       const duration =
         (blockLog && blockLog.duration) || {
           minutes: "",
@@ -4526,6 +4630,21 @@ const targetInfo = buildTargetInfoForMovement({
             {block.note ? (
               <div className="muted mt4">{block.note}</div>
             ) : null}
+
+            {/* Cancelled toggle */}
+    <div className="row between mt4">
+      <div className="muted small">
+        {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
+      </div>
+      <label className="mini">
+        <input
+          type="checkbox"
+          checked={isCancelled}
+          onChange={(e) => toggleBlockCancelled(block.id, e.target.checked)}
+        />
+        <span>Cancelled</span>
+      </label>
+    </div>
 
             {block.isExtra && (
               <div className="row space mt4">
@@ -4995,6 +5114,35 @@ const targetInfo = buildTargetInfoForMovement({
                   {bonusPop ? <div key={bonusPop} className="confettiBurst" aria-hidden="true" /> : null}
                 </div>
               </Card>
+
+              <Card className="pad mt12">
+  <div className="h3">Streak saver</div>
+  <div className="muted small">
+    Use this only if the planned activity was genuinely impossible (e.g. weather, cancelled match) 
+    but an equivalent extra movement was done. It will keep your streak for this day.
+  </div>
+
+  <div className="row mt8" style={{ alignItems: "center", justifyContent: "space-between" }}>
+    <label
+      className="check"
+      style={{
+        opacity: logForDay?.meta?.streakSaved ? 1 : 0.6,
+        fontSize: 12,
+      }}
+      title="Tap to save today’s streak when the plan couldn’t happen, but you did a replacement movement."
+    >
+      <input
+        type="checkbox"
+        checked={!!logForDay?.meta?.streakSaved}
+        onChange={(e) => toggleStreakSaver(e.target.checked)}
+      />
+      <span className={logForDay?.meta?.streakSaved ? "" : "muted"}>
+        Save streak (PIN)
+      </span>
+    </label>
+  </div>
+</Card>
+              
             </div>
           </div>
         )}
@@ -5244,14 +5392,49 @@ const targetInfo = buildTargetInfoForMovement({
                     />
                   ) : null}
                 </div>
-                <SecondaryButton
-                  className="btnSmall"
-                  onClick={() => removeBlockFromDay(block.id)}
-                >
-                  Remove
-                </SecondaryButton>
-              </div>
+                      <div className="row" style={{ gap: 4 }}>
+        <button
+          className="btnSmall"
+          type="button"
+          onClick={() => moveBlockInDay(block.id, -1)}
+        >
+          ↑
+        </button>
+        <button
+          className="btnSmall"
+          type="button"
+          onClick={() => moveBlockInDay(block.id, +1)}
+        >
+          ↓
+        </button>
 
+        <button
+          className="btnSmall"
+          type="button"
+          onClick={() => {
+            const input = window.prompt(
+              "Copy this block to which days? Use codes like Mon,Tue,Wed,Fri,Sat"
+            );
+            if (!input) return;
+            const targetDays = input
+              .split(",")
+              .map((s) => s.trim())
+              .filter((s) => ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].includes(s));
+            if (targetDays.length) {
+              duplicateBlockToOtherWeekdays(block.id, targetDays);
+            }
+          }}
+        >
+          Copy
+        </button>
+                        
+        <SecondaryButton
+          className="btnSmall"
+          onClick={() => removeBlockFromDay(block.id)}
+        >
+          Remove
+        </SecondaryButton>
+      </div>
               {/* Common: name + coach note */}
               <div className="mt12">
                 <div className="label">Name</div>
