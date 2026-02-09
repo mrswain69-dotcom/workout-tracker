@@ -4524,7 +4524,7 @@ const targetInfo = buildTargetInfoForMovement({
     <div className="h2">Cardio log</div>
 
     {allCardioBlocksForDay.map((block) => {
-      const blockLog = getBlockLog(logForDay, block.id);
+      const blockLog = getBlockLog(logForDay, block.id) || {};
       const isCancelled = !!blockLog.cancelled;
       const cardio =
         (blockLog && blockLog.cardio) || {
@@ -4638,7 +4638,7 @@ const targetInfo = buildTargetInfoForMovement({
     <div className="h2">Duration log</div>
 
     {allDurationBlocksForDay.map((block) => {
-      const blockLog = getBlockLog(logForDay, block.id);
+      const blockLog = getBlockLog(logForDay, block.id) || {};
       const isCancelled = !!blockLog.cancelled;
       const duration =
         (blockLog && blockLog.duration) || {
