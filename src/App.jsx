@@ -5701,72 +5701,76 @@ const targetInfo = buildTargetInfoForMovement({
 )}
 
 
- {typeId === "tasks" && (
+{typeId === "tasks" && (
   <>
     <div className="mt12">
       <div className="label">Tasks</div>
-            <div className="stack mt8">
-        {(block.tasks || []).map((t) => (
+      <div className="stack mt8">
+        {(block.tasks || []).map((t, idx) => (
           <React.Fragment key={t.id}>
-          <div className="taskRow">
-            <div className="row">
-                      <div className="field flex1">
-          <div className="label">Task</div>
-          <Input
-            value={t.label || ""}
-            onChange={(v) =>
-              updateTaskField(block.id, t.id, "label", v)
-            }
-            placeholder="Task name (e.g. 30 mins reading)"
-          />
-        </div>
-              <div className="field w120">
-                <div className="label">XP</div>
-                <Input
-  type="number"
-  min={0}
-  step={1}
-  value={t.xpValue ?? 0}
-  onChange={(v) =>
-    updateTaskField(
-      block.id,
-      t.id,
-      "xpValue",
-      Number(v || 0)
-    )
-  }
-/>
+            <div className="taskRow">
+              <div className="row">
+                <div className="field flex1">
+                  <div className="label">Task</div>
+                  <Input
+                    value={t.label || ""}
+                    onChange={(v) =>
+                      updateTaskField(block.id, t.id, "label", v)
+                    }
+                    placeholder="Task name (e.g. 30 mins reading)"
+                  />
+                </div>
+                <div className="field w120">
+                  <div className="label">XP</div>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={
+                      t.xp === "" || t.xp == null ? "" : String(t.xp)
+                    }
+                    onChange={(v) => {
+                      const cleaned =
+                        v === "" ? "" : Math.max(0, parseInt(v, 10) || 0);
+                      updateTaskField(block.id, t.id, "xp", cleaned);
+                    }}
+                    placeholder="10"
+                  />
+                </div>
               </div>
-              <SecondaryButton
-                className="btnSmall ml8"
-                onClick={() =>
-                  removeTaskFromBlock(block.id, t.id)
-                }
-              >
-                Remove
-              </SecondaryButton>
+
+              {/* Coach note for this task */}
+              <div className="mt4">
+                <div className="label">Coach note (optional)</div>
+                <Textarea
+                  rows={2}
+                  value={t.coachNote || ""}
+                  onChange={(v) =>
+                    updateTaskField(block.id, t.id, "coachNote", v)
+                  }
+                  placeholder="Coaching notes or reminders for this task"
+                />
+              </div>
+
+              <div className="row mt4">
+                <SecondaryButton
+                  className="btnSmall"
+                  onClick={() =>
+                    removeTaskFromBlock(block.id, t.id)
+                  }
+                >
+                  Remove
+                </SecondaryButton>
+              </div>
             </div>
 
-{/* Coach note for this task */}
-<div className="mt4">
-  <div className="label">Coach note (optional)</div>
-  <Textarea
-    rows={2}
-    value={t.coachNote || ""}
-    onChange={(v) =>
-      updateTaskField(block.id, t.id, "coachNote", v)
-    }
-    placeholder="Coaching notes or reminders for this task"
-  />
-</div>
-            </div>
             {/* Divider between tasks */}
-      {idx < (block.tasks || []).length - 1 && (
-        <div className="movementDivider" />
-      )}
-    </React.Fragment>
+            {idx < (block.tasks || []).length - 1 && (
+              <div className="movementDivider" />
+            )}
+          </React.Fragment>
         ))}
       </div>
+
       <PrimaryButton
         className="mt8"
         onClick={() => addTaskToBlock(block.id)}
