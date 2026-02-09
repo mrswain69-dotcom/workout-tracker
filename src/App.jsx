@@ -101,7 +101,12 @@ function getCurrentPlanStreak(records, todayYmd) {
 
   while (true) {
     const log = map.get(cursor);
-    if (!log || !isDayGreen(log)) break;
+    if (!log) break;
+
+    const streakDay =
+      isDayGreen(log) || (log.meta && log.meta.streakSaved);
+    if (!streakDay) break;
+
     streak += 1;
 
     const d = new Date(cursor + "T00:00:00");
@@ -1570,9 +1575,9 @@ const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
 }, [family?.id, activeProfileId]);
 
 
-  // --- Load day log ---
-  useEffect(() => {
-   // Wait until we actually have a plan for this profile/day
+// --- Load day log ---
+useEffect(() => {
+  // Wait until we actually have a plan for this profile/day
   if (!family?.id || !activeProfileId || !selectedDate || !plan) return;
 
   const cacheKey = makeLogCacheKey(family.id, activeProfileId, selectedDate);
@@ -1584,7 +1589,11 @@ const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
   const reqId = ++loadDayLogReqRef.current;
 
   (async () => {
-    const { data, error } = await getLog(family.id, activeProfileId, selectedDate);
+    const { data, error } = await getLog(
+      family.id,
+      activeProfileId,
+      selectedDate
+    );
     if (reqId !== loadDayLogReqRef.current) return;
 
     if (error) {
@@ -1596,8 +1605,21 @@ const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
     const row = Array.isArray(data) ? data[0] : data;
     const fromDb = row?.log_json || null;
 
-    const latest = cached || fromDb;
+    // Prefer the latest from the database, fall back to cached, or null.
+    const latest = fromDb || cached || null;
     setLogForDay(latest);
+
+    // Keep the cache in sync with whatever we decided is latest.
+    if (cacheKey) {
+      const prev = lastLogByDateRef.current || {};
+      if (latest) {
+        lastLogByDateRef.current = { ...prev, [cacheKey]: latest };
+      } else {
+        const copy = { ...prev };
+        delete copy[cacheKey];
+        lastLogByDateRef.current = copy;
+      }
+    }
   })().catch((e) => {
     if (reqId !== loadDayLogReqRef.current) return;
     console.error("getLog exception", e);
@@ -2926,8 +2948,34 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     logForDay ? { ...logForDay } : blankLogForDay()
   );
 
+  // Find the existing block so we can merge current cardio values
+  const blocks = Array.isArray(base.blocks) ? base.blocks : [];
+  const existingBlock = blocks.find((b) => b && b.id === blockId);
+
+  const baseCardio =
+    existingBlock && existingBlock.cardio && typeof existingBlock.cardio === "object"
+      ? existingBlock.cardio
+      : { distanceKm: "", durationMin: "", avgSpeedKmh: "" };
+
+  const mergedCardio = { ...baseCardio, ...(cardioPatch || {}) };
+
+  const distance = safeNumber(mergedCardio.distanceKm);
+  const minutes = safeNumber(mergedCardio.durationMin);
+
+  // Only auto-calc average speed if the user hasn't explicitly set it
+  if (cardioPatch.avgSpeedKmh === undefined) {
+    if (distance > 0 && minutes > 0) {
+      const hours = minutes / 60;
+      const spd = hours > 0 ? distance / hours : 0;
+      mergedCardio.avgSpeedKmh = spd ? spd.toFixed(2) : "";
+    } else {
+      // If either distance or time is cleared, clear the speed too
+      mergedCardio.avgSpeedKmh = "";
+    }
+  }
+
   // Patch the specific block’s cardio data
-  const next = updateBlockLog(base, blockId, { cardio: cardioPatch });
+  const next = updateBlockLog(base, blockId, { cardio: mergedCardio });
 
   // Keep the day-level cardio summary in sync for stats / summary panel
   if (Array.isArray(next.blocks) && next.blocks.length) {
@@ -2953,9 +3001,9 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     }
   }
 
-    await saveLog(next);
-    if (ctx) playBling(ctx, 1, victoryTheme);
-  }
+  await saveLog(next);
+  if (ctx) playBling(ctx, 1, victoryTheme);
+}
 
     async function updateDurationForBlock(blockId, durationPatch) {
     const ctx = await ensureAudio();
