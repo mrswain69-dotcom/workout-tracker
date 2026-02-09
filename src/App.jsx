@@ -4681,26 +4681,19 @@ const targetInfo = buildTargetInfoForMovement({
     />
   </div>
 
-  <div>
+    <div>
     <div className="label">Avg speed (km/h)</div>
     <input
       className="input"
       type="number"
       min={0}
       step={0.1}
-      // key forces React to recreate the input when the
-      // auto-calculated speed changes, so the defaultValue updates
-      key={cardio.avgSpeedKmh ?? "empty"}
-      defaultValue={cardio.avgSpeedKmh ?? ""}
-      onChange={(e) =>
-        updateCardioForBlock(block.id, {
-          avgSpeedKmh: e.target.value,
-        })
-      }
-      placeholder="auto or manual"
+      value={cardio.avgSpeedKmh ?? ""}
+      readOnly
+      placeholder="auto from distance & time"
     />
     <div className="muted mini mt4">
-      Leave blank to auto-calc from distance &amp; time.
+      Auto-calculated from distance &amp; time.
     </div>
   </div>
 </div>
