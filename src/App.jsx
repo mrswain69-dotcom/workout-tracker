@@ -5780,10 +5780,6 @@ const targetInfo = buildTargetInfoForMovement({
     </div>
   </>
 )}
-           </div> 
-          );
-        })}
-      </div>
 
       {/* Block add buttons */}
       <div className="mt16">
