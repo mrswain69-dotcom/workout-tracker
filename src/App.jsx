@@ -5392,49 +5392,51 @@ const targetInfo = buildTargetInfoForMovement({
                     />
                   ) : null}
                 </div>
-                      <div className="row" style={{ gap: 4 }}>
-        <button
-          className="btnSmall"
-          type="button"
-          onClick={() => moveBlockInDay(block.id, -1)}
-        >
-          ↑
-        </button>
-        <button
-          className="btnSmall"
-          type="button"
-          onClick={() => moveBlockInDay(block.id, +1)}
-        >
-          ↓
-        </button>
+                <div className="row" style={{ gap: 4 }}>
+                  <button
+                    className="btnSmall"
+                    type="button"
+                    onClick={() => moveBlockInDay(block.id, -1)}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    className="btnSmall"
+                    type="button"
+                    onClick={() => moveBlockInDay(block.id, +1)}
+                  >
+                    ↓
+                  </button>
+                  <button
+                    className="btnSmall"
+                    type="button"
+                    onClick={() => {
+                      const input = window.prompt(
+                        "Copy this block to which days? Use codes like Mon,Tue,Wed,Fri,Sat"
+                      );
+                      if (!input) return;
+                      const targetDays = input
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter((s) =>
+                          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].includes(s)
+                        );
+                      if (targetDays.length) {
+                        duplicateBlockToOtherWeekdays(block.id, targetDays);
+                      }
+                    }}
+                  >
+                    Copy
+                  </button>
+                  <SecondaryButton
+                    className="btnSmall"
+                    onClick={() => removeBlockFromDay(block.id)}
+                  >
+                    Remove
+                  </SecondaryButton>
+                </div>
+              </div>
 
-        <button
-          className="btnSmall"
-          type="button"
-          onClick={() => {
-            const input = window.prompt(
-              "Copy this block to which days? Use codes like Mon,Tue,Wed,Fri,Sat"
-            );
-            if (!input) return;
-            const targetDays = input
-              .split(",")
-              .map((s) => s.trim())
-              .filter((s) => ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].includes(s));
-            if (targetDays.length) {
-              duplicateBlockToOtherWeekdays(block.id, targetDays);
-            }
-          }}
-        >
-          Copy
-        </button>
-                        
-        <SecondaryButton
-          className="btnSmall"
-          onClick={() => removeBlockFromDay(block.id)}
-        >
-          Remove
-        </SecondaryButton>
-      </div>
               {/* Common: name + coach note */}
               <div className="mt12">
                 <div className="label">Name</div>
@@ -5484,302 +5486,286 @@ const targetInfo = buildTargetInfoForMovement({
                       }
                       onChange={(v) =>
                         updateBlockInDay(block.id, () => ({
-                          restSec: safeNumber(v),
+                          restSec: safeNumber(v) ?? 60,
                         }))
                       }
                     />
                   </div>
 
                   <div className="mt12">
-                    <div className="label">Movements</div>
-                    <div className="stack mt8">
-                      {(block.movements || []).map((m) => (
-                        <React.Fragment key={m.id}>
-                        <div className="movementRow">
-                          <div className="row movementRowTop">
-                                    <div className="field flex1">
-          <div className="label">Movement</div>
-          <Input
-            value={m.name || ""}
-            onChange={(v) =>
-              updateMovementField(
-                block.id,
-                m.id,
-                "name",
-                v
-              )
-            }
-            placeholder="e.g. Push-ups"
-          />
-        </div>
-                            <div className="field w80">
-                              <div className="label">Sets</div>
-                              <Input
-                                type="number"
-                                min={1}
-                                max={20}
-                                value={m.sets || 3}
-                                onChange={(v) =>
-                                  updateMovementField(
-                                    block.id,
-                                    m.id,
-                                    "sets",
-                                    safeNumber(v) || 1
-                                  )
-                                }
-                              />
-                            </div>
-                            <div className="field w120">
-                              <div className="label">Reps / duration</div>
-                              <Input
-                                value={m.reps || ""}
-                                onChange={(v) =>
-                                  updateMovementField(
-                                    block.id,
-                                    m.id,
-                                    "reps",
-                                    v
-                                  )
-                                }
-                                placeholder="e.g. 10–12 or 30s"
-                              />
-                            </div>
-                          </div>
-                          <div className="row mt4 movementRowBottom">
-                            <label className="checkboxLabel">
-                              <input
-                                type="checkbox"
-                                checked={!!m.trackWeight}
-                                onChange={(e) =>
-                                  updateMovementField(
-                                    block.id,
-                                    m.id,
-                                    "trackWeight",
-                                    e.target.checked
-                                  )
-                                }
-                              />
-                              Track weight
-                            </label>
-                            <label className="checkboxLabel ml12">
-                              <input
-                                type="checkbox"
-                                checked={!!m.trackDuration}
-                                onChange={(e) =>
-                                  updateMovementField(
-                                    block.id,
-                                    m.id,
-                                    "trackDuration",
-                                    e.target.checked
-                                  )
-                                }
-                              />
-                              Track duration
-                            </label>
-
-                            <SecondaryButton
-                              className="btnTiny mlAuto"
-                              onClick={() =>
-                                removeMovement(block.id, m.id)
-                              }
-                            >
-                              Remove
-                            </SecondaryButton>
-                          </div>
-                          {/* Coach note for this movement */}
-    <div className="mt4">
-      <div className="label">Coach note (optional)</div>
-      <Textarea
-        rows={2}
-        value={m.coachNote || ""}
-        onChange={(v) =>
-          updateMovementField(
-            block.id,
-            m.id,
-            "coachNote",
-            v
-          )
-        }
-        placeholder="Coaching cues or reminders for this movement"
-      />
-    </div>
-                         </div>
-                  {/* Divider between movements */}
-      {idx < (block.movements || []).length - 1 && (
-        <div className="movementDivider" />
-      )}
-    </React.Fragment>
-                      ))}
+                    <div className="row between">
+                      <div className="label">Movements</div>
+                      <SecondaryButton
+                        className="btnSmall"
+                        onClick={() => addMovementToBlock(block.id)}
+                      >
+                        + Add movement
+                      </SecondaryButton>
                     </div>
 
-                    <PrimaryButton
-                      className="btnSmall mt8"
-                      onClick={() => addMovementToBlock(block.id)}
-                    >
-                      + Add movement
-                    </PrimaryButton>
+                    {block.movements && block.movements.length > 0 ? (
+                      <div className="stack mt8">
+                        {block.movements.map((m, idx) => (
+                          <React.Fragment key={m.id}>
+                            <div className="movementRow">
+                              <div className="row">
+                                <div className="field flex1">
+                                  <div className="label">Movement</div>
+                                  <Input
+                                    value={m.label || ""}
+                                    onChange={(v) =>
+                                      updateMovementField(
+                                        block.id,
+                                        m.id,
+                                        "label",
+                                        v
+                                      )
+                                    }
+                                    placeholder="e.g. Squats"
+                                  />
+                                </div>
+                                <div className="field w120">
+                                  <div className="label">Sets</div>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    max={20}
+                                    value={m.sets || 3}
+                                    onChange={(v) =>
+                                      updateMovementField(
+                                        block.id,
+                                        m.id,
+                                        "sets",
+                                        safeNumber(v) || 1
+                                      )
+                                    }
+                                  />
+                                </div>
+                                <div className="field w120">
+                                  <div className="label">Reps / duration</div>
+                                  <Input
+                                    value={m.reps || ""}
+                                    onChange={(v) =>
+                                      updateMovementField(
+                                        block.id,
+                                        m.id,
+                                        "reps",
+                                        v
+                                      )
+                                    }
+                                    placeholder="e.g. 10–12 or 30s"
+                                  />
+                                </div>
+                              </div>
+                              <div className="row mt4 movementRowBottom">
+                                <label className="checkboxLabel">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!m.trackWeight}
+                                    onChange={(e) =>
+                                      updateMovementField(
+                                        block.id,
+                                        m.id,
+                                        "trackWeight",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  Track weight
+                                </label>
+                                <label className="checkboxLabel ml12">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!m.trackDuration}
+                                    onChange={(e) =>
+                                      updateMovementField(
+                                        block.id,
+                                        m.id,
+                                        "trackDuration",
+                                        e.target.checked
+                                      )
+                                    }
+                                  />
+                                  Track duration
+                                </label>
+
+                                <SecondaryButton
+                                  className="btnTiny mlAuto"
+                                  onClick={() =>
+                                    removeMovementFromBlock(block.id, m.id)
+                                  }
+                                >
+                                  Remove movement
+                                </SecondaryButton>
+                              </div>
+                            </div>
+
+                            {/* Divider between movements */}
+                            {idx < (block.movements || []).length - 1 && (
+                              <div className="movementDivider" />
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="muted mt4">
+                        No movements yet. Add your first movement above.
+                      </div>
+                    )}
                   </div>
                 </>
               )}
 
-{typeId === "cardio" && (
-  <>
-    <div className="mt12">
-      <div className="label">Cardio type</div>
-      <Select
-        value={block.cardioType || "run"}
-        onChange={(v) =>
-          updateBlockInDay(block.id, () => ({
-            cardioType: v,
-            cardioTypeOtherLabel:
-              v === "other" ? block.cardioTypeOtherLabel || "" : "",
-          }))
-        }
-        options={[
-          { value: "run", label: "Run" },
-          { value: "bike", label: "Bike" },
-          { value: "swim", label: "Swim" },
-          { value: "other", label: "Other" },
-        ]}
-      />
-    </div>
+              {typeId === "cardio" && (
+                <>
+                  <div className="mt12">
+                    <div className="label">Cardio type</div>
+                    <Select
+                      value={block.cardioType || "run"}
+                      onChange={(v) =>
+                        updateBlockInDay(block.id, () => ({
+                          cardioType: v,
+                          cardioTypeOtherLabel:
+                            v === "other" ? block.cardioTypeOtherLabel || "" : "",
+                        }))
+                      }
+                      options={[
+                        { value: "run", label: "Run" },
+                        { value: "bike", label: "Bike" },
+                        { value: "swim", label: "Swim" },
+                        { value: "other", label: "Other" },
+                      ]}
+                    />
+                  </div>
 
-    {block.cardioType === "other" && (
-      <div className="mt8">
-        <div className="label">Other cardio name</div>
-        <Input
-          value={block.cardioTypeOtherLabel || ""}
-          onChange={(v) =>
-            updateBlockInDay(block.id, () => ({
-              cardioTypeOtherLabel: v,
-            }))
-          }
-          placeholder="e.g. Row, Cross-trainer, Football match…"
-        />
-      </div>
-    )}
+                  {block.cardioType === "other" && (
+                    <div className="mt8">
+                      <div className="label">Other cardio name</div>
+                      <Input
+                        value={block.cardioTypeOtherLabel || ""}
+                        onChange={(v) =>
+                          updateBlockInDay(block.id, () => ({
+                            cardioTypeOtherLabel: v,
+                          }))
+                        }
+                        placeholder="e.g. Row, Cross-trainer, Football match…"
+                      />
+                    </div>
+                  )}
 
-    <div className="mt8">
-      <div className="label">Target</div>
-      <Input
-        value={block.targetText || ""}
-        onChange={(v) =>
-          updateBlockInDay(block.id, () => ({
-            targetText: v,
-          }))
-        }
-        placeholder='e.g. "2 km easy" or "3 × 400m fast"'
-      />
-    </div>
-  </>
-)}
+                  <div className="mt8">
+                    <div className="label">Target</div>
+                    <Input
+                      value={block.targetText || ""}
+                      onChange={(v) =>
+                        updateBlockInDay(block.id, () => ({
+                          targetText: v,
+                        }))
+                      }
+                      placeholder='e.g. "2 km easy" or "3 × 400m fast"'
+                    />
+                  </div>
+                </>
+              )}
 
- {typeId === "duration" && (
-  <>
-    <div className="mt12">
-      <div className="label">Planned minutes (optional)</div>
-      <Input
-        type="number"
-        min={0}
-        value={
-          block.plannedMinutes === "" || block.plannedMinutes == null
-            ? ""
-            : String(block.plannedMinutes)
-        }
-        onChange={(v) => {
-          const cleaned =
-            v === "" ? "" : Math.max(0, parseInt(v, 10) || 0);
+              {typeId === "duration" && (
+                <>
+                  <div className="mt12">
+                    <div className="label">Planned minutes (optional)</div>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={
+                        block.plannedMinutes === "" || block.plannedMinutes == null
+                          ? ""
+                          : String(block.plannedMinutes)
+                      }
+                      onChange={(v) => {
+                        const cleaned =
+                          v === "" ? "" : Math.max(0, parseInt(v, 10) || 0);
 
-          updateBlockInDay(block.id, () => ({
-            plannedMinutes: cleaned,
-          }));
-        }}
-        placeholder="e.g. 20"
-      />
-    </div>
-  </>
-)}
+                        updateBlockInDay(block.id, () => ({
+                          plannedMinutes: cleaned,
+                        }));
+                      }}
+                      placeholder="e.g. 20"
+                    />
+                  </div>
+                </>
+              )}
 
+              {typeId === "tasks" && (
+                <>
+                  <div className="mt12">
+                    <div className="label">Tasks</div>
+                    <div className="stack mt8">
+                      {(block.tasks || []).map((t) => (
+                        <React.Fragment key={t.id}>
+                          <div className="taskRow">
+                            <div className="row">
+                              <div className="field flex1">
+                                <div className="label">Task</div>
+                                <Input
+                                  value={t.label || ""}
+                                  onChange={(v) =>
+                                    updateTaskField(block.id, t.id, "label", v)
+                                  }
+                                  placeholder="Task name (e.g. 30 mins reading)"
+                                />
+                              </div>
+                              <div className="field w120">
+                                <div className="label">XP</div>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={1}
+                                  value={t.xpValue ?? 0}
+                                  onChange={(v) =>
+                                    updateTaskField(
+                                      block.id,
+                                      t.id,
+                                      "xpValue",
+                                      Number(v || 0)
+                                    )
+                                  }
+                                />
+                              </div>
+                              <SecondaryButton
+                                className="btnSmall ml8"
+                                onClick={() =>
+                                  removeTaskFromBlock(block.id, t.id)
+                                }
+                              >
+                                Remove
+                              </SecondaryButton>
+                            </div>
 
-{typeId === "tasks" && (
-  <>
-    <div className="mt12">
-      <div className="label">Tasks</div>
-      <div className="stack mt8">
-        {(block.tasks || []).map((t, idx) => (
-          <React.Fragment key={t.id}>
-            <div className="taskRow">
-              <div className="row">
-                <div className="field flex1">
-                  <div className="label">Task</div>
-                  <Input
-                    value={t.label || ""}
-                    onChange={(v) =>
-                      updateTaskField(block.id, t.id, "label", v)
-                    }
-                    placeholder="Task name (e.g. 30 mins reading)"
-                  />
-                </div>
-                <div className="field w120">
-                  <div className="label">XP</div>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={
-                      t.xp === "" || t.xp == null ? "" : String(t.xp)
-                    }
-                    onChange={(v) => {
-                      const cleaned =
-                        v === "" ? "" : Math.max(0, parseInt(v, 10) || 0);
-                      updateTaskField(block.id, t.id, "xp", cleaned);
-                    }}
-                    placeholder="10"
-                  />
-                </div>
-              </div>
+                            {/* Coach note for this task */}
+                            <div className="mt4">
+                              <div className="label">Coach note (optional)</div>
+                              <Textarea
+                                rows={2}
+                                value={t.coachNote || ""}
+                                onChange={(v) =>
+                                  updateTaskField(block.id, t.id, "coachNote", v)
+                                }
+                                placeholder="Coaching notes or reminders for this task"
+                              />
+                            </div>
+                          </div>
+                        </React.Fragment>
+                      ))}
+                    </div>
 
-              {/* Coach note for this task */}
-              <div className="mt4">
-                <div className="label">Coach note (optional)</div>
-                <Textarea
-                  rows={2}
-                  value={t.coachNote || ""}
-                  onChange={(v) =>
-                    updateTaskField(block.id, t.id, "coachNote", v)
-                  }
-                  placeholder="Coaching notes or reminders for this task"
-                />
-              </div>
-
-              <div className="row mt4">
-                <SecondaryButton
-                  className="btnSmall"
-                  onClick={() =>
-                    removeTaskFromBlock(block.id, t.id)
-                  }
-                >
-                  Remove
-                </SecondaryButton>
-              </div>
-            </div>
-
-            {/* Divider between tasks */}
-            {idx < (block.tasks || []).length - 1 && (
-              <div className="movementDivider" />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-
-      <PrimaryButton
-        className="mt8"
-        onClick={() => addTaskToBlock(block.id)}
-      >
-        + Add task
-      </PrimaryButton>
-       </div>
-  </>
-)}
+                    <PrimaryButton
+                      className="mt8"
+                      onClick={() => addTaskToBlock(block.id)}
+                    >
+                      + Add task
+                    </PrimaryButton>
+                  </div>
+                </>
+              )}
             </div>
           );
         })}
