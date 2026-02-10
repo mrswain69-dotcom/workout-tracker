@@ -1298,7 +1298,7 @@ function computeTotalMinutesForDay(log) {
   const workPerSetMin = 1; // quick heuristic
   const est =
     setsLogged * workPerSetMin +
-    Math.max(0, setsLogged - 1) * (restSec / 60);
+    Math.max(0, setsLogged) * (restSec / 60);
 
   return Math.round(est * 10) / 10;
 }
