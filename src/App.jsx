@@ -779,20 +779,45 @@ function isCardioImproved(current, last) {
 
   return false;
 }
+
+function formatPaceFromMinutes(minPerUnit) {
+  const n = Number(minPerUnit);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const totalSec = Math.round(n * 60);
+  const min = Math.floor(totalSec / 60);
+  const sec = String(totalSec % 60).padStart(2, "0");
+  return `${min}:${sec}`;
+}
+
+function getPaceFromSpeedKmh(speedKmh) {
+  const s = safeNumber(speedKmh);
+  if (!s) return null;
+
+  // Pace per km
+  const minPerKm = 60 / s;
+
+  // Pace per mile (km/h -> mph then 60 / mph)
+  const mph = s * 0.621371;
+  const minPerMile = 60 / mph;
+
+  const perKm = formatPaceFromMinutes(minPerKm);
+  const perMile = formatPaceFromMinutes(minPerMile);
+
+  if (!perKm && !perMile) return null;
+  return { perKm, perMile };
+}
+
 function summarizeCardio(c) {
   if (!c) return "—";
 
-  // Distance + time
   const d = safeNumber(c.distanceKm);
   const t = safeNumber(c.durationMin);
 
-  // Prefer to compute avg speed from distance & time so old buggy stored values are corrected
+  // Derive avg speed from distance + time when possible
   let s = 0;
   if (d > 0 && t > 0) {
-    // km/h
-    s = d / (t / 60);
+    s = d / (t / 60); // km/h
   } else {
-    // Fallback to stored avg speed if we don't have enough info
     s = safeNumber(c.avgSpeedKmh);
   }
 
@@ -805,12 +830,13 @@ function summarizeCardio(c) {
 }
 
 function suggestCardioTarget({ lastCardio }) {
-  if (!lastCardio) return { text: "Log once to generate targets." };
+  if (!lastCardio) {
+    return { text: "Log once to generate targets.", targetSpeedKmh: null };
+  }
 
   const d = safeNumber(lastCardio.distanceKm);
   const t = safeNumber(lastCardio.durationMin);
 
-  // Same logic as summarizeCardio: derive speed from distance & time when possible
   let s = 0;
   if (d > 0 && t > 0) {
     s = d / (t / 60); // km/h
@@ -819,22 +845,28 @@ function suggestCardioTarget({ lastCardio }) {
   }
 
   if (s > 0) {
+    const targetSpeedKmh = s + 0.2;
     return {
-      text: `Try +0.2 km/h avg speed (≈ ${(s + 0.2).toFixed(1)} km/h)`,
-    };
-  }
-  if (d > 0) {
-    return {
-      text: `Try +0.1 km distance (≈ ${(d + 0.1).toFixed(1)} km)`,
-    };
-  }
-  if (t > 0) {
-    return {
-      text: `Try +1 min duration (≈ ${t + 1} min)`,
+      text: `Try +0.2 km/h avg speed (≈ ${targetSpeedKmh.toFixed(1)} km/h)`,
+      targetSpeedKmh,
     };
   }
 
-  return { text: "Aim to beat last time." };
+  if (d > 0) {
+    return {
+      text: `Try +0.1 km distance (≈ ${(d + 0.1).toFixed(1)} km)`,
+      targetSpeedKmh: null,
+    };
+  }
+
+  if (t > 0) {
+    return {
+      text: `Try +1 min duration (≈ ${t + 1} min)`,
+      targetSpeedKmh: null,
+    };
+  }
+
+  return { text: "Aim to beat last time.", targetSpeedKmh: null };
 }
 
 function isDayComplete(log, planDay) {
@@ -5458,33 +5490,42 @@ const targetInfo = buildTargetInfoForMovement({
                       );
                     })
                   ) : planDay.kind === "cardio" ? (
-(() => {
-  const last = findLastCardio(allLogs, ymd(selectedDate));
-  const lastTxt = summarizeCardio(last);
-  const t = suggestCardioTarget({ lastCardio: last });
-  const intervalHint =
-    plan?.cardioTargetByWeekday?.[selectedWeekday] ||
-    plan?.runSettings?.[selectedWeekday]?.text ||
-    "";
+  (() => {
+    const last = findLastCardio(allLogs, ymd(selectedDate));
+    const lastTxt = summarizeCardio(last);
+    const t = suggestCardioTarget({ lastCardio: last });
 
-  return (
-    <div className="mini">
-      <div className="label">Cardio</div>
-      <div className="muted">Last: {lastTxt}</div>
-      <div>
-        <b>Target:</b>{" "}
+    const intervalHint =
+      plan?.cardioTargetByWeekday?.[selectedWeekday] ||
+      plan?.runSettings?.[selectedWeekday]?.text ||
+      "";
+
+    // Derive smartwatch-style pace from the target speed, if we have one
+    const pace =
+      t && t.targetSpeedKmh ? getPaceFromSpeedKmh(t.targetSpeedKmh) : null;
+
+    return (
+      <div className="mini">
+        <div className="label">Cardio</div>
+        <div className="muted">Last: {lastTxt}</div>
+
+        <div>
+          <b>Target:</b> {t.text}
+        </div>
+
+        {pace ? (
+          <div className="muted mt4">
+            Smartwatch target: ~{pace.perKm} /km or {pace.perMile} /mile
+          </div>
+        ) : null}
+
         {intervalHint ? (
-          <>
-            {t.text} or {intervalHint}
-          </>
-        ) : (
-          t.text
-        )}
+          <div className="muted mt8">{intervalHint}</div>
+        ) : null}
       </div>
-    </div>
-  );
-})()
-                  ) : (
+    );
+  })()
+) : (
                     <div className="muted">Log your session and keep your streak alive.</div>
                   )}
                       {plannedBlocksForSelectedDay.length > 0 && (
