@@ -2897,15 +2897,11 @@ function blankLogForDay() {
   };
 }
 
-  function ensureBlocksSnapshot(baseLog) {
+function ensureBlocksSnapshot(baseLog) {
   // If we don't have a log, or no plan / weekday, just return as-is
   if (!baseLog || !plan || !selectedWeekday) return baseLog;
 
   const existingBlocks = Array.isArray(baseLog.blocks) ? baseLog.blocks : [];
-  if (existingBlocks.length > 0) {
-    // Already has per-block snapshot
-    return baseLog;
-  }
 
   // Rebuild the per-block snapshot from the current plan for this weekday
   const plannedBlocks =
@@ -2914,23 +2910,81 @@ function blankLogForDay() {
       selectedWeekday
     ) || [];
 
-  return {
-    ...baseLog,
-    blocks: plannedBlocks.map((b) => ({
-      id: b.id,
-      typeId: b.typeId,
-      label: b.label || "",
-      note: b.note || "",
-      cardio: {
-        distanceKm: "",
-        durationMin: "",
-        avgSpeedKmh: "",
-      },
-      duration: {
-        minutes: "",
-      },
-    })),
-  };
+  // Index existing blocks by id so we can merge
+  const existingById = new Map();
+  for (const b of existingBlocks) {
+    if (b && b.id) {
+      existingById.set(b.id, b);
+    }
+  }
+
+  const mergedBlocks = [];
+
+  // 1) Ensure every planned block has a corresponding block in the log
+  for (const pb of plannedBlocks) {
+    if (!pb || !pb.id) continue;
+
+    const existing = existingById.get(pb.id);
+
+    const baseCardio =
+      existing && existing.cardio && typeof existing.cardio === "object"
+        ? existing.cardio
+        : {
+            distanceKm: "",
+            durationMin: "",
+            avgSpeedKmh: "",
+          };
+
+    const baseDuration =
+      existing && existing.duration && typeof existing.duration === "object"
+        ? existing.duration
+        : { minutes: "" };
+
+    mergedBlocks.push({
+      ...(existing || {}),
+      id: pb.id,
+      typeId: pb.typeId,
+      label: pb.label || (existing && existing.label) || "",
+      note:
+        typeof pb.note === "string"
+          ? pb.note
+          : typeof existing?.note === "string"
+          ? existing.note
+          : "",
+      cardio: baseCardio,
+      duration: baseDuration,
+      movements: Array.isArray(pb.movements)
+        ? pb.movements
+        : existing?.movements || [],
+      tasks: Array.isArray(pb.tasks) ? pb.tasks : existing?.tasks || [],
+    });
+
+    // Mark as consumed so we know what’s left over (extras)
+    existingById.delete(pb.id);
+  }
+
+  // 2) Carry over any blocks that aren’t part of the plan (extras etc.)
+  for (const [id, b] of existingById.entries()) {
+    if (!b) continue;
+
+    const baseCardio =
+      b.cardio && typeof b.cardio === "object"
+        ? b.cardio
+        : { distanceKm: "", durationMin: "", avgSpeedKmh: "" };
+
+    const baseDuration =
+      b.duration && typeof b.duration === "object"
+        ? b.duration
+        : { minutes: "" };
+
+    mergedBlocks.push({
+      ...b,
+      cardio: baseCardio,
+      duration: baseDuration,
+    });
+  }
+
+  return { ...baseLog, blocks: mergedBlocks };
 }
 
 // --- Per-block log helpers (Plan V2, Stage 2) ---
@@ -3748,6 +3802,24 @@ async function removeExtraMovement(blockId) {
     await saveLog(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
+
+    function countSetsLoggedInLog(log) {
+    if (!log || !Array.isArray(log.blocks)) return 0;
+
+    let total = 0;
+    for (const b of log.blocks) {
+      if (!b || !b.sets || typeof b.sets !== "object") continue;
+
+      const setsByMovement = b.sets;
+      for (const key of Object.keys(setsByMovement)) {
+        const arr = Array.isArray(setsByMovement[key])
+          ? setsByMovement[key]
+          : [];
+        total += arr.filter(setDidSomething).length;
+      }
+    }
+    return total;
+  }
   
   function computeTotalMinutesForDay(log) {
     if (!log) return null;
@@ -3768,9 +3840,7 @@ async function removeExtraMovement(blockId) {
       safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) ||
       60;
 
-    const setsLogged = Object.values(log?.entries || {})
-      .flat()
-      .filter(setDidSomething).length;
+    const setsLogged = countSetsLoggedInLog(log);
 
     if (setsLogged <= 0) return null;
 
@@ -4242,13 +4312,7 @@ const cardioProgress = useMemo(() => {
   <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
 </div>
 
-              </div>
-
-                            <div className="muted mt8">
-                {formatDate(selectedDate)} • <b>{planDay.name}</b>
-              </div>
-
-              
+              </div>        
 
                                {/* --- V3 block-based logging panels --- */}
 
@@ -5109,7 +5173,10 @@ const targetInfo = buildTargetInfoForMovement({
 
                 <div className="grid2 mt12">
                   <SummaryStat label="Total minutes" value={computeTotalMinutesForDay(logForDay) ?? "—"} />
-                  <SummaryStat label="Sets logged" value={Object.values(logForDay?.entries || {}).flat().filter(setDidSomething).length} />
+                  <SummaryStat
+  label="Sets logged"
+  value={countSetsLoggedInLog(logForDay) || 0}
+/>
                   <SummaryStat label="Cardio km" value={safeNumber(logForDay?.cardio?.distanceKm) ? Number(logForDay.cardio.distanceKm).toFixed(2) : "—"} />
                 </div>
 
@@ -5744,6 +5811,17 @@ const targetInfo = buildTargetInfoForMovement({
                                   Remove movement
                                 </SecondaryButton>
                               </div>
+                                        <div className="mt4">
+            <div className="label">Coach note (optional)</div>
+            <Textarea
+              rows={2}
+              value={m.coachNote || ""}
+              onChange={(v) =>
+                updateMovementField(block.id, m.id, "coachNote", v)
+              }
+              placeholder="Coaching notes or reminders for this movement"
+            />
+          </div>
                             </div>
 
                             {/* Divider between movements */}
