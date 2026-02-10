@@ -5029,12 +5029,12 @@ const targetInfo = buildTargetInfoForMovement({
           ? `${(avgSpeedKmh * 0.621371).toFixed(2)} mph`
           : "— mph"}
       </div>
-      <div className="muted mini mt4">
+      <div className="mt4 small">
         {paceFromSpeed?.perKm
           ? `Average time per km: ${paceFromSpeed.perKm}`
           : "Average time per km: —"}
       </div>
-      <div className="muted mini">
+      <div className="mt4 small">
         {paceFromSpeed?.perMile
           ? `Average time per mile: ${paceFromSpeed.perMile}`
           : "Average time per mile: —"}
