@@ -2449,6 +2449,29 @@ const todayPlanStatus = useMemo(() => {
     return false;
   }
 
+    async function ensurePinForProfileSwitch() {
+    if (!family?.id) return false;
+    if (!family?.pin_hash) return true;
+
+    const pin = window.prompt("Enter PIN to switch profile:");
+    if (pin === null) return false;
+
+    const h = await sha256Hex(`${pin}:${family.id}`);
+    if (h === family.pin_hash) {
+      // IMPORTANT: do NOT set pinUnlockedUntil here.
+      // We want a PIN prompt on every profile switch.
+      return true;
+    }
+    window.alert("Incorrect PIN.");
+    return false;
+  }
+
+  const handleProfileChange = async (id) => {
+  const ok = await ensurePinForProfileSwitch();
+  if (!ok) return;
+  setActiveProfileId(id);
+};
+
   async function applyPlan(nextPlan, label = "Plan applied") {
     if (!(await ensureUnlocked("apply changes"))) return;
     setUndoPlan(plan || null);
@@ -3054,8 +3077,7 @@ function updateBlockLog(log, blockId, patch) {
 }
   
 async function claimDailyBonus() {
-  const qualifies =
-    isDayGreen(logForDay) || isDayComplete(logForDay, planDay);
+  const qualifies = isDayGreen(logForDay);
 
   if (!qualifies) {
     window.alert(
@@ -3859,6 +3881,8 @@ async function removeExtraMovement(blockId) {
   let totalStrengthVolume = 0; // here: total completed strength sets
   let bestCardioSpeed = 0;
   let bestCardioDistance = 0;
+  let mostActiveDayMinutes = 0;
+  let mostActiveWeekMinutes = 0;
 
   const weekly = new Map();
   const monthToStrength = new Map();
@@ -3882,10 +3906,12 @@ async function removeExtraMovement(blockId) {
         cardioBlocks: 0,
         durationBlocks: 0,
         tasksBlocks: 0,
+        totalMinutes: 0, // NEW: total estimated workout minutes in this week
       };
 
     let didAnything = false;
     let dayStrengthSets = 0;
+    let dayDurationMin = 0; // NEW: cardio/duration minutes for this day
 
     for (const b of blocks) {
       if (!b) continue;
@@ -3921,6 +3947,7 @@ async function removeExtraMovement(blockId) {
           }
           if (min > 0) {
             w.durationMin += min;
+            dayDurationMin += min;
           }
           w.cardioBlocks += 1;
         }
@@ -3930,6 +3957,7 @@ async function removeExtraMovement(blockId) {
           didAnything = true;
           w.durationMin += mins;
           w.durationBlocks += 1;
+          dayDurationMin += mins;
         }
       } else if (typeId === "tasks") {
         const done = b.tasksDone || {};
@@ -3953,7 +3981,39 @@ async function removeExtraMovement(blockId) {
       sessionDays.add(d);
     }
 
+    // Estimate total minutes for this day:
+    // - Strength sets → minutes via simple heuristic
+    // - Plus any logged cardio/duration minutes
+    let dayMinutes = 0;
+    const restSec =
+      safeNumber(log?.meta?.restSec) || 60; // default 60s between sets
+    const workPerSetMin = 0.5; // rough 30s work per set
+
+    if (dayStrengthSets > 0) {
+      const estStrengthMin =
+        dayStrengthSets * workPerSetMin +
+        Math.max(0, dayStrengthSets - 1) * (restSec / 60);
+      dayMinutes += estStrengthMin;
+    }
+
+    dayMinutes += dayDurationMin;
+
+    if (dayMinutes > 0) {
+      if (dayMinutes > mostActiveDayMinutes) {
+        mostActiveDayMinutes = dayMinutes;
+      }
+      w.totalMinutes += dayMinutes;
+    }
+
     weekly.set(wk, w);
+  }
+
+  // Most active week: max totalMinutes across all weeks
+  for (const [, v] of weekly.entries()) {
+    const wkMin = v.totalMinutes || 0;
+    if (wkMin > mostActiveWeekMinutes) {
+      mostActiveWeekMinutes = wkMin;
+    }
   }
 
     // Longest daily activity streak (all-time),
@@ -3989,16 +4049,6 @@ async function removeExtraMovement(blockId) {
     }
   }
     
-  // streak (consecutive training days, i.e. any activity on that day)
-  let streak = 0;
-  let cur = new Date();
-  for (let i = 0; i < 365; i++) {
-    const d = ymd(cur);
-    if (sessionDays.has(d)) streak += 1;
-    else break;
-    cur.setDate(cur.getDate() - 1);
-  }
-
   const weeklyChart = Array.from(weekly.entries())
     .sort((a, b) => (a[0] < b[0] ? -1 : 1))
     .slice(-16)
@@ -4008,16 +4058,6 @@ async function removeExtraMovement(blockId) {
       cardioKm: Number((v.cardioKm || 0).toFixed(2)),
       sessions: v.sessions,
     }));
-
-  // top effort day = day with most strength sets
-  let topEffortDay = null;
-  let topEffortValue = 0;
-  for (const [d, v] of strengthByDay.entries()) {
-    if (v > topEffortValue) {
-      topEffortValue = v;
-      topEffortDay = d;
-    }
-  }
 
   // improved this month vs last (strength volume)
   const now = new Date();
@@ -4031,10 +4071,13 @@ async function removeExtraMovement(blockId) {
   ).padStart(2, "0")}`;
   const thisVol = monthToStrength.get(thisMk) || 0;
   const lastVol = monthToStrength.get(lastMk) || 0;
-  const improved =
+    const improved =
     lastVol > 0 ? Math.round(((thisVol - lastVol) / lastVol) * 100) : null;
 
-    return {
+  // Plan-based streak (same as the Plan Streak tile, includes streak saver)
+  const streak = getCurrentPlanStreak(allLogs, todayYmd);
+
+  return {
     totalMinutes: "",
     totalSessions,
     totalStrengthVolume,
@@ -4044,11 +4087,12 @@ async function removeExtraMovement(blockId) {
     streak,
     longestActivityStreak,
     improved,
-    topEffortDay,
-    topEffortValue,
+    // fields we’ll adjust in the next section
+    mostActiveDayMinutes,
+    mostActiveWeekMinutes,
     bestByExercise,
   };
-}, [allLogs]);
+}, [allLogs, todayYmd]);
 
   const exerciseOptions = useMemo(() => {
     // collect movement ids + names from plan movements
@@ -4262,7 +4306,7 @@ const cardioProgress = useMemo(() => {
       <div className="selectWide">
         <Select
           value={activeProfileId}
-          onChange={setActiveProfileId}
+          onChange={handleProfileChange}
           options={profiles.map((p) => ({ value: p.id, label: p.name }))}
         />
       </div>
@@ -5326,8 +5370,22 @@ const targetInfo = buildTargetInfoForMovement({
               <div className="h2">Highlights</div>
               <div className="grid2 mt12">
                 <SummaryStat label="Streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} />
-                <SummaryStat label="Top effort day" value={stats.topEffortDay || "—"} />
-                <SummaryStat label="Top effort volume" value={stats.topEffortDay ? Math.round(stats.topEffortValue).toLocaleString() : "—"} />
+<SummaryStat
+  label="Most active day"
+  value={
+    stats.mostActiveDayMinutes
+      ? `${Math.round(stats.mostActiveDayMinutes)} min`
+      : "—"
+  }
+/>
+<SummaryStat
+  label="Most active week"
+  value={
+    stats.mostActiveWeekMinutes
+      ? `${Math.round(stats.mostActiveWeekMinutes)} min`
+      : "—"
+  }
+/>
                 <SummaryStat label="Best cardio speed" value={stats.bestCardioSpeed ? `${stats.bestCardioSpeed.toFixed(2)} km/h` : "—"} />
                 <SummaryStat label="Best cardio distance" value={stats.bestCardioDistance ? `${stats.bestCardioDistance.toFixed(2)} km` : "—"} />
               </div>
