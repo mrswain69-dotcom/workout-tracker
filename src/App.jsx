@@ -4591,36 +4591,6 @@ const cardioProgress = useMemo(() => {
                             </div>
                           )}
 
-                          <div className="muted mini mt8">
-                            Estimated time:{" "}
-                            {estimatedMinutes > 0
-                              ? `${estimatedMinutes} min`
-                              : "0 min (log some sets)"}{" "}
-                            • Rest per set: {restSec}s
-                          </div>
-
-                          <div className="mt8" style={{ maxWidth: 180 }}>
-                            <div className="label">
-                              Actual minutes (optional)
-                            </div>
-                            <Input
-                              type="number"
-                              min={0}
-                              step={0.5}
-                              value={actualMinutes}
-                              onChange={(v) =>
-                                updateDurationForBlock(block.id, {
-                                  minutes: v,
-                                })
-                              }
-                              placeholder={
-                                estimatedMinutes > 0
-                                  ? String(estimatedMinutes)
-                                  : ""
-                              }
-                            />
-                          </div>
-
                           {/* Movements grid */}
                           {block.movements.map((planMov) => {
                             const mov = planMov;
@@ -4831,6 +4801,35 @@ const targetInfo = buildTargetInfoForMovement({
     )}
 </div>
                                 <div className="movementDivider" />
+                                <div className="muted mini mt8">
+                            Estimated time:{" "}
+                            {estimatedMinutes > 0
+                              ? `${estimatedMinutes} min`
+                              : "0 min (log some sets)"}{" "}
+                            • Rest per set: {restSec}s
+                          </div>
+
+                          <div className="mt8" style={{ maxWidth: 180 }}>
+                            <div className="label">
+                              Actual minutes (optional)
+                            </div>
+                            <Input
+                              type="number"
+                              min={0}
+                              step={0.5}
+                              value={actualMinutes}
+                              onChange={(v) =>
+                                updateDurationForBlock(block.id, {
+                                  minutes: v,
+                                })
+                              }
+                              placeholder={
+                                estimatedMinutes > 0
+                                  ? String(estimatedMinutes)
+                                  : ""
+                              }
+                            />
+                          </div>
                               </div>
                             );
                           })}
