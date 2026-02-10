@@ -877,11 +877,31 @@ function estimateCalories({ kind, bodyWeightKg, log }) {
   let minutes = 0;
   if (kind === "cardio") minutes = safeNumber(log?.cardio?.durationMin);
   else if (kind === "custom") minutes = safeNumber(log?.custom?.durationMin);
-  else {
+    else {
     const started = log?.startedAt ? new Date(log.startedAt) : null;
     const finished = log?.finishedAt ? new Date(log.finishedAt) : null;
-    if (started && finished && finished > started) minutes = (finished - started) / 60000;
-    else minutes = (Object.values(log?.entries || {}).flat().filter(setDidSomething).length) * 1.5;
+
+    if (started && finished && finished > started) {
+      // If a manual session window was logged, trust that
+      minutes = (finished - started) / 60000;
+    } else if (Array.isArray(log?.blocks)) {
+      // New model: derive minutes from per-block sets
+      let sets = 0;
+      for (const b of log.blocks) {
+        if (!b || !b.sets || typeof b.sets !== "object") continue;
+        for (const key of Object.keys(b.sets)) {
+          const arr = Array.isArray(b.sets[key]) ? b.sets[key] : [];
+          sets += arr.filter(setDidSomething).length;
+        }
+      }
+      minutes = sets ? sets * 1.5 : 0;
+    } else {
+      // Legacy fallback for old logs
+      minutes =
+        (Object.values(log?.entries || {})
+          .flat()
+          .filter(setDidSomething).length) * 1.5;
+    }
   }
   if (!minutes) return null;
   const kcalPerMin = (met * 3.5 * bw) / 200;
@@ -5328,7 +5348,7 @@ const targetInfo = buildTargetInfoForMovement({
                       </label>
                     </div>
                   </div>
-                  <Challenge text="Complete today’s plan" done={isDayComplete(logForDay, planDay)} />
+                  <Challenge text="Complete today’s plan" done={isDayGreen(logForDay)} />
                   <Challenge text="Hit a combo streak (5 sets in a row)" done={(logForDay?.gamify?.comboMax || 0) >= 5} />
                   <Challenge text="XP to next level" done={xpToNext <= 25} />
                   {bonusPop ? <div key={bonusPop} className="confettiBurst" aria-hidden="true" /> : null}
