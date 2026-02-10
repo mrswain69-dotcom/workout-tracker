@@ -870,85 +870,40 @@ function awardXpForDay(log, planDay) {
   const combo = clamp(log?.gamify?.comboMax || 0, 0, 30);
   return base + completion + combo;
 }
-
-function computeTotalMinutesForDay(log) {
-  if (!log) return null;
-
-  // 1) Manual override wins
-  const manualDay = safeNumber(log?.meta?.dayManualMin);
-  if (manualDay > 0) return manualDay;
-
-  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
-
-  // 2) New-model: sum minutes from per-block cardio + duration
-  let blockCardioMin = 0;
-  let blockDurationMin = 0;
-
-  if (blocks.length) {
-    for (const b of blocks) {
-      if (!b) continue;
-
-      if (b.cardio && typeof b.cardio === "object") {
-        blockCardioMin += safeNumber(b.cardio.durationMin);
-      }
-
-      if (b.duration && typeof b.duration === "object") {
-        // duration blocks use duration.minutes
-        blockDurationMin += safeNumber(b.duration.minutes);
-      }
-    }
-  }
-
-  if (blockCardioMin > 0 || blockDurationMin > 0) {
-    // e.g. 5 km / 25 min run + 20 min yoga = 45
-    return blockCardioMin + blockDurationMin;
-  }
-
-  // 3) Legacy fallback ONLY if we have no blocks snapshot
-  // (old logs that just had log.cardio/log.custom)
-  if (!blocks.length) {
-    const cardioMin = safeNumber(log?.cardio?.durationMin);
-    const customMin = safeNumber(log?.custom?.durationMin);
-    const totalDur = cardioMin + customMin;
-    if (totalDur > 0) return totalDur;
-  }
-
-  // 4) Finally, estimate from sets + rest interval
-  const restSec =
-    safeNumber(log?.meta?.restSec) ||
-    safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) ||
-    60;
-
-  const setsLogged = countSetsLoggedInLog(log);
-  if (setsLogged <= 0) return null;
-
-  const workPerSetMin = 1; // quick heuristic
-  const est =
-    setsLogged * workPerSetMin +
-    Math.max(0, setsLogged) * (restSec / 60);
-
-  return Math.round(est * 10) / 10;
-}
-
 function estimateCalories({ kind, bodyWeightKg, log }) {
   const bw = safeNumber(bodyWeightKg);
   if (!bw) return null;
+  const met = kind === "cardio" ? 8.3 : kind === "time" ? 8.0 : kind === "strength" ? 6.0 : 3.0;
+  let minutes = 0;
+  if (kind === "cardio") minutes = safeNumber(log?.cardio?.durationMin);
+  else if (kind === "custom") minutes = safeNumber(log?.custom?.durationMin);
+    else {
+    const started = log?.startedAt ? new Date(log.startedAt) : null;
+    const finished = log?.finishedAt ? new Date(log.finishedAt) : null;
 
-  // Intensity: still driven by the plan day kind
-  const met =
-    kind === "cardio"
-      ? 8.3
-      : kind === "time"
-      ? 8.0
-      : kind === "strength"
-      ? 6.0
-      : 3.0;
-
-  // Minutes: always use the same logic as Today summary
-  const minutes = computeTotalMinutesForDay(log);
-
+    if (started && finished && finished > started) {
+      // If a manual session window was logged, trust that
+      minutes = (finished - started) / 60000;
+    } else if (Array.isArray(log?.blocks)) {
+      // New model: derive minutes from per-block sets
+      let sets = 0;
+      for (const b of log.blocks) {
+        if (!b || !b.sets || typeof b.sets !== "object") continue;
+        for (const key of Object.keys(b.sets)) {
+          const arr = Array.isArray(b.sets[key]) ? b.sets[key] : [];
+          sets += arr.filter(setDidSomething).length;
+        }
+      }
+      minutes = sets ? sets * 1.5 : 0;
+    } else {
+      // Legacy fallback for old logs
+      minutes =
+        (Object.values(log?.entries || {})
+          .flat()
+          .filter(setDidSomething).length) * 1.5;
+    }
+  }
   if (!minutes) return null;
-
   const kcalPerMin = (met * 3.5 * bw) / 200;
   return Math.round(kcalPerMin * minutes);
 }
@@ -3910,6 +3865,65 @@ async function removeExtraMovement(blockId) {
     }
     return total;
   }
+  
+function computeTotalMinutesForDay(log) {
+  if (!log) return null;
+
+  // 1) Manual override wins
+  const manualDay = safeNumber(log?.meta?.dayManualMin);
+  if (manualDay > 0) return manualDay;
+
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+
+  // 2) New-model: sum minutes from per-block cardio + duration
+  let blockCardioMin = 0;
+  let blockDurationMin = 0;
+
+  if (blocks.length) {
+    for (const b of blocks) {
+      if (!b) continue;
+
+      if (b.cardio && typeof b.cardio === "object") {
+        blockCardioMin += safeNumber(b.cardio.durationMin);
+      }
+
+      if (b.duration && typeof b.duration === "object") {
+        // duration blocks use duration.minutes
+        blockDurationMin += safeNumber(b.duration.minutes);
+      }
+    }
+  }
+
+  if (blockCardioMin > 0 || blockDurationMin > 0) {
+    // e.g. 5 km / 25 min run + 20 min yoga = 45
+    return blockCardioMin + blockDurationMin;
+  }
+
+  // 3) Legacy fallback ONLY if we have no blocks snapshot
+  // (old logs that just had log.cardio/log.custom)
+  if (!blocks.length) {
+    const cardioMin = safeNumber(log?.cardio?.durationMin);
+    const customMin = safeNumber(log?.custom?.durationMin);
+    const totalDur = cardioMin + customMin;
+    if (totalDur > 0) return totalDur;
+  }
+
+  // 4) Finally, estimate from sets + rest interval
+  const restSec =
+    safeNumber(log?.meta?.restSec) ||
+    safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) ||
+    60;
+
+  const setsLogged = countSetsLoggedInLog(log);
+  if (setsLogged <= 0) return null;
+
+  const workPerSetMin = 1; // quick heuristic
+  const est =
+    setsLogged * workPerSetMin +
+    Math.max(0, setsLogged) * (restSec / 60);
+
+  return Math.round(est * 10) / 10;
+}
 
 function computeCardioKmForDay(log) {
   if (!log) return null;
