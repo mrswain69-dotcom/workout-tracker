@@ -3232,6 +3232,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   }
 
   await saveLog(next);
+  setLogForDay(next);
   if (ctx) playBling(ctx, 1, victoryTheme);
 }
 
@@ -3258,6 +3259,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     }
 
     await saveLog(next);
+    setLogForDay(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -3309,6 +3311,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
     });
 
     await saveLog(nextLog);
+    setLogForDay(nextLog);
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
