@@ -1610,9 +1610,10 @@ useEffect(() => {
   const [extraMovModeDraft, setExtraMovModeDraft] = useState("strength");
   const [extraMovRepsDraft, setExtraMovRepsDraft] = useState("");
   const [extraMovTrackWeightDraft, setExtraMovTrackWeightDraft] =
-  useState(true);
+    useState(true);
   const [extraMovCoachNoteDraft, setExtraMovCoachNoteDraft] = useState("");
-    // Extra block type selection for today-only blocks
+  // Extra block type selection for today-only blocks
+  const [showExtraBlockForm, setShowExtraBlockForm] = useState(false);
   const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration"
 
   // Cardio extra-block drafts
@@ -5244,6 +5245,16 @@ const targetInfo = buildTargetInfoForMovement({
     but doesn&apos;t change the weekly plan.
   </div>
 
+  <button
+    type="button"
+    className="btn secondary mt8"
+    onClick={() => setShowExtraBlockForm((v) => !v)}
+  >
+    {showExtraBlockForm ? "Hide extra block form" : "+ Extra block for today"}
+  </button>
+
+  {showExtraBlockForm && (
+    <>
   {/* Block type selector */}
   <div className="row mt8">
     <div style={{ minWidth: 220 }}>
@@ -5446,6 +5457,8 @@ const targetInfo = buildTargetInfoForMovement({
   <PrimaryButton className="mt8" onClick={addExtraMovement}>
     + Add extra block
   </PrimaryButton>
+</>
+  )}
 </div>
 </div>
               
@@ -6986,7 +6999,7 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
         )}
 
-        <footer className="footer">Online build: Account + Profiles • fully custom weekly plan • charts • rewards.</footer>
+               <footer className="footer">Workout Tracker beta: custom plans • XP, streaks &amp; rewards.</footer>
       </div>
 
       <StyleTag />
