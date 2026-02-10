@@ -870,40 +870,111 @@ function awardXpForDay(log, planDay) {
   const combo = clamp(log?.gamify?.comboMax || 0, 0, 30);
   return base + completion + combo;
 }
-function estimateCalories({ kind, bodyWeightKg, log }) {
-  const bw = safeNumber(bodyWeightKg);
-  if (!bw) return null;
-  const met = kind === "cardio" ? 8.3 : kind === "time" ? 8.0 : kind === "strength" ? 6.0 : 3.0;
-  let minutes = 0;
-  if (kind === "cardio") minutes = safeNumber(log?.cardio?.durationMin);
-  else if (kind === "custom") minutes = safeNumber(log?.custom?.durationMin);
-    else {
-    const started = log?.startedAt ? new Date(log.startedAt) : null;
-    const finished = log?.finishedAt ? new Date(log.finishedAt) : null;
 
-    if (started && finished && finished > started) {
-      // If a manual session window was logged, trust that
-      minutes = (finished - started) / 60000;
-    } else if (Array.isArray(log?.blocks)) {
-      // New model: derive minutes from per-block sets
-      let sets = 0;
-      for (const b of log.blocks) {
-        if (!b || !b.sets || typeof b.sets !== "object") continue;
-        for (const key of Object.keys(b.sets)) {
-          const arr = Array.isArray(b.sets[key]) ? b.sets[key] : [];
-          sets += arr.filter(setDidSomething).length;
+function getCaloriesKindForLog(log) {
+  if (!log) return "other";
+
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+
+  let hasCardio = false;
+  let hasStrength = false;
+  let hasDuration = false;
+
+  if (blocks.length) {
+    // New blocks model
+    for (const b of blocks) {
+      if (!b) continue;
+      const typeId = b.typeId;
+
+      // Cardio blocks (run / bike / swim / other)
+      if (
+        typeId === "cardio" ||
+        typeId === "run" ||
+        typeId === "swim"
+      ) {
+        const c = b.cardio || {};
+        const cardioHasData =
+          safeNumber(c.durationMin) > 0 ||
+          safeNumber(c.distanceKm) > 0;
+        if (cardioHasData) hasCardio = true;
+      }
+
+      // Strength / HIIT style blocks
+      if (
+        typeId === "strength" ||
+        typeId === "hiit" ||
+        typeId === "box"
+      ) {
+        if (b.sets && typeof b.sets === "object") {
+          for (const key of Object.keys(b.sets)) {
+            const arr = Array.isArray(b.sets[key]) ? b.sets[key] : [];
+            if (arr.some(setDidSomething)) {
+              hasStrength = true;
+              break;
+            }
+          }
         }
       }
-      minutes = sets ? sets * 1.5 : 0;
-    } else {
-      // Legacy fallback for old logs
-      minutes =
-        (Object.values(log?.entries || {})
-          .flat()
-          .filter(setDidSomething).length) * 1.5;
+
+      // Duration-only blocks (yoga, mobility, etc.)
+      if (typeId === "duration") {
+        const d = b.duration || {};
+        if (safeNumber(d.minutes) > 0) hasDuration = true;
+      }
+    }
+  } else {
+    // Legacy logs with no blocks snapshot yet
+    if (
+      safeNumber(log?.cardio?.durationMin) > 0 ||
+      safeNumber(log?.cardio?.distanceKm) > 0
+    ) {
+      hasCardio = true;
+    }
+
+    if (safeNumber(log?.custom?.durationMin) > 0) {
+      hasDuration = true;
+    }
+
+    const legacySets =
+      (Object.values(log?.entries || {})
+        .flat()
+        .filter(setDidSomething).length);
+
+    if (legacySets > 0) {
+      hasStrength = true;
     }
   }
+
+  // Priority: cardio > strength > duration-only
+  if (hasCardio) return "cardio";
+  if (hasStrength) return "strength";
+  if (hasDuration) return "time";
+
+  return "other";
+}
+
+function estimateCalories({ bodyWeightKg, log }) {
+  const bw = safeNumber(bodyWeightKg);
+  if (!bw) return null;
+
+  // Use the same minutes as Today summary (cardio + duration + strength)
+  const minutes = computeTotalMinutesForDay(log);
   if (!minutes) return null;
+
+  // Infer an intensity kind from the actual blocks logged
+  const kind = getCaloriesKindForLog(log);
+
+  let met;
+  if (kind === "cardio") {
+    met = 8.3; // moderate run / bike
+  } else if (kind === "strength") {
+    met = 6.0; // strength / HIIT average
+  } else if (kind === "time") {
+    met = 4.0; // yoga / mobility / light activity
+  } else {
+    met = 5.0; // mixed / other
+  }
+
   const kcalPerMin = (met * 3.5 * bw) / 200;
   return Math.round(kcalPerMin * minutes);
 }
@@ -5317,13 +5388,18 @@ const targetInfo = buildTargetInfoForMovement({
                 </div>
 
                 <div className="mini mt12">
-                  <div className="label">Estimated calories</div>
-                  <div className="big">
-                    {(() => {
-                      const kcal = estimateCalories({ kind: planDay.kind, bodyWeightKg: activeProfile?.body_weight_kg, log: logForDay });
-                      return kcal === null ? "Record activity or Add bodyweight in Settings" : `${kcal} kcal`;
-                    })()}
-                  </div>
+                <div className="label">Estimated calories</div>
+<div className="big">
+  {(() => {
+    const kcal = estimateCalories({
+      bodyWeightKg: activeProfile?.body_weight_kg,
+      log: logForDay,
+    });
+    return kcal === null
+      ? "Record activity or Add bodyweight in Settings"
+      : `${kcal} kcal`;
+  })()}
+</div>
                   <div className="muted">Estimate only.</div>
                 </div>
               </Card>
