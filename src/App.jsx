@@ -5022,19 +5022,19 @@ const targetInfo = buildTargetInfoForMovement({
 
       <div>
     <div className="label">Average speeds:</div>
-    <div className="mt4 small">
+    <div className="muted mt4">
       <div>{avgSpeedKmh ? `${avgSpeedKmh.toFixed(2)} km/h` : "— km/h"}</div>
       <div>
         {avgSpeedKmh
           ? `${(avgSpeedKmh * 0.621371).toFixed(2)} mph`
           : "— mph"}
       </div>
-      <div className="mt4 small">
+      <div className="muted mt4">
         {paceFromSpeed?.perKm
           ? `Average time per km: ${paceFromSpeed.perKm}`
           : "Average time per km: —"}
       </div>
-      <div className="mt4 small">
+      <div className="muted mt4">
         {paceFromSpeed?.perMile
           ? `Average time per mile: ${paceFromSpeed.perMile}`
           : "Average time per mile: —"}
