@@ -873,37 +873,22 @@ function awardXpForDay(log, planDay) {
 function estimateCalories({ kind, bodyWeightKg, log }) {
   const bw = safeNumber(bodyWeightKg);
   if (!bw) return null;
-  const met = kind === "cardio" ? 8.3 : kind === "time" ? 8.0 : kind === "strength" ? 6.0 : 3.0;
-  let minutes = 0;
-  if (kind === "cardio") minutes = safeNumber(log?.cardio?.durationMin);
-  else if (kind === "custom") minutes = safeNumber(log?.custom?.durationMin);
-    else {
-    const started = log?.startedAt ? new Date(log.startedAt) : null;
-    const finished = log?.finishedAt ? new Date(log.finishedAt) : null;
 
-    if (started && finished && finished > started) {
-      // If a manual session window was logged, trust that
-      minutes = (finished - started) / 60000;
-    } else if (Array.isArray(log?.blocks)) {
-      // New model: derive minutes from per-block sets
-      let sets = 0;
-      for (const b of log.blocks) {
-        if (!b || !b.sets || typeof b.sets !== "object") continue;
-        for (const key of Object.keys(b.sets)) {
-          const arr = Array.isArray(b.sets[key]) ? b.sets[key] : [];
-          sets += arr.filter(setDidSomething).length;
-        }
-      }
-      minutes = sets ? sets * 1.5 : 0;
-    } else {
-      // Legacy fallback for old logs
-      minutes =
-        (Object.values(log?.entries || {})
-          .flat()
-          .filter(setDidSomething).length) * 1.5;
-    }
-  }
+  // Intensity: still driven by the plan day kind
+  const met =
+    kind === "cardio"
+      ? 8.3
+      : kind === "time"
+      ? 8.0
+      : kind === "strength"
+      ? 6.0
+      : 3.0;
+
+  // Minutes: always use the same logic as Today summary
+  const minutes = computeTotalMinutesForDay(log);
+
   if (!minutes) return null;
+
   const kcalPerMin = (met * 3.5 * bw) / 200;
   return Math.round(kcalPerMin * minutes);
 }
