@@ -4932,6 +4932,20 @@ const targetInfo = buildTargetInfoForMovement({
           ? "Swim block"
           : "Cardio block");
 
+      const distKm = safeNumber(cardio.distanceKm);
+      const timeMin = safeNumber(cardio.durationMin);
+
+      let avgSpeedKmh = 0;
+      if (distKm > 0 && timeMin > 0) {
+        // derive avg speed from distance + time
+        avgSpeedKmh = distKm / (timeMin / 60);
+      } else {
+        // fallback to stored avgSpeed if present
+        avgSpeedKmh = safeNumber(cardio.avgSpeedKmh);
+      }
+
+      const paceFromSpeed = getPaceFromSpeedKmh(avgSpeedKmh);
+
       return (
         <div key={block.id} className="mt12">
           <div className="h3">{label}</div>
@@ -5006,19 +5020,25 @@ const targetInfo = buildTargetInfoForMovement({
     />
   </div>
 
-    <div>
-    <div className="label">Avg speed (km/h)</div>
-    <input
-      className="input"
-      type="number"
-      min={0}
-      step={0.1}
-      value={cardio.avgSpeedKmh ?? ""}
-      readOnly
-      placeholder="auto from distance & time"
-    />
-    <div className="muted mini mt4">
-      Auto-calculated from distance &amp; time.
+      <div>
+    <div className="label">Average speeds:</div>
+    <div className="mt4 small">
+      <div>{avgSpeedKmh ? `${avgSpeedKmh.toFixed(2)} km/h` : "— km/h"}</div>
+      <div>
+        {avgSpeedKmh
+          ? `${(avgSpeedKmh * 0.621371).toFixed(2)} mph`
+          : "— mph"}
+      </div>
+      <div className="muted mini mt4">
+        {paceFromSpeed?.perKm
+          ? `Average time per km: ${paceFromSpeed.perKm}`
+          : "Average time per km: —"}
+      </div>
+      <div className="muted mini">
+        {paceFromSpeed?.perMile
+          ? `Average time per mile: ${paceFromSpeed.perMile}`
+          : "Average time per mile: —"}
+      </div>
     </div>
   </div>
 </div>
