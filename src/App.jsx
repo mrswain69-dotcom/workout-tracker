@@ -781,23 +781,59 @@ function isCardioImproved(current, last) {
 }
 function summarizeCardio(c) {
   if (!c) return "—";
-  const d = Number(c.distanceKm || 0);
-  const t = Number(c.durationMin || 0);
-  const s = Number(c.avgSpeedKmh || 0);
+
+  // Distance + time
+  const d = safeNumber(c.distanceKm);
+  const t = safeNumber(c.durationMin);
+
+  // Prefer to compute avg speed from distance & time so old buggy stored values are corrected
+  let s = 0;
+  if (d > 0 && t > 0) {
+    // km/h
+    s = d / (t / 60);
+  } else {
+    // Fallback to stored avg speed if we don't have enough info
+    s = safeNumber(c.avgSpeedKmh);
+  }
+
   const bits = [];
   if (d) bits.push(`${d}km`);
   if (t) bits.push(`${t}min`);
   if (s) bits.push(`${s.toFixed(1)}km/h`);
+
   return bits.join(" • ") || "—";
 }
+
 function suggestCardioTarget({ lastCardio }) {
   if (!lastCardio) return { text: "Log once to generate targets." };
-  const d = Number(lastCardio.distanceKm || 0);
-  const t = Number(lastCardio.durationMin || 0);
-  const s = Number(lastCardio.avgSpeedKmh || 0);
-  if (s) return { text: `Try +0.2 km/h avg speed (≈ ${(s + 0.2).toFixed(1)} km/h)` };
-  if (d) return { text: `Try +0.1 km distance (≈ ${(d + 0.1).toFixed(1)} km)` };
-  if (t) return { text: `Try +1 min duration (≈ ${t + 1} min)` };
+
+  const d = safeNumber(lastCardio.distanceKm);
+  const t = safeNumber(lastCardio.durationMin);
+
+  // Same logic as summarizeCardio: derive speed from distance & time when possible
+  let s = 0;
+  if (d > 0 && t > 0) {
+    s = d / (t / 60); // km/h
+  } else {
+    s = safeNumber(lastCardio.avgSpeedKmh);
+  }
+
+  if (s > 0) {
+    return {
+      text: `Try +0.2 km/h avg speed (≈ ${(s + 0.2).toFixed(1)} km/h)`,
+    };
+  }
+  if (d > 0) {
+    return {
+      text: `Try +0.1 km distance (≈ ${(d + 0.1).toFixed(1)} km)`,
+    };
+  }
+  if (t > 0) {
+    return {
+      text: `Try +1 min duration (≈ ${t + 1} min)`,
+    };
+  }
+
   return { text: "Aim to beat last time." };
 }
 
@@ -5422,20 +5458,32 @@ const targetInfo = buildTargetInfoForMovement({
                       );
                     })
                   ) : planDay.kind === "cardio" ? (
-                    (() => {
-                      const last = findLastCardio(allLogs, ymd(selectedDate));
-                      const lastTxt = summarizeCardio(last);
-                      const t = suggestCardioTarget({ lastCardio: last });
-                      const intervalHint = plan?.cardioTargetByWeekday?.[selectedWeekday] || plan?.runSettings?.[selectedWeekday]?.text || "";
-                      return (
-                        <div className="mini">
-                          <div className="label">Cardio</div>
-                          <div className="muted">Last: {lastTxt}</div>
-                          <div><b>Target:</b> {t.text}</div>
-                          {intervalHint ? <div className="muted mt8">{intervalHint}</div> : null}
-                        </div>
-                      );
-                    })()
+(() => {
+  const last = findLastCardio(allLogs, ymd(selectedDate));
+  const lastTxt = summarizeCardio(last);
+  const t = suggestCardioTarget({ lastCardio: last });
+  const intervalHint =
+    plan?.cardioTargetByWeekday?.[selectedWeekday] ||
+    plan?.runSettings?.[selectedWeekday]?.text ||
+    "";
+
+  return (
+    <div className="mini">
+      <div className="label">Cardio</div>
+      <div className="muted">Last: {lastTxt}</div>
+      <div>
+        <b>Target:</b>{" "}
+        {intervalHint ? (
+          <>
+            {t.text} or {intervalHint}
+          </>
+        ) : (
+          t.text
+        )}
+      </div>
+    </div>
+  );
+})()
                   ) : (
                     <div className="muted">Log your session and keep your streak alive.</div>
                   )}
