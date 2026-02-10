@@ -3866,36 +3866,85 @@ async function removeExtraMovement(blockId) {
     return total;
   }
   
-  function computeTotalMinutesForDay(log) {
-    if (!log) return null;
+function computeTotalMinutesForDay(log) {
+  if (!log) return null;
 
-    const manualDay = safeNumber(log?.meta?.dayManualMin);
-    if (manualDay > 0) return manualDay;
+  // 1) Manual override wins
+  const manualDay = safeNumber(log?.meta?.dayManualMin);
+  if (manualDay > 0) return manualDay;
 
-    // Prefer explicit cardio/custom durations if present
-    const cardioMin = safeNumber(log?.cardio?.durationMin);
-    if (cardioMin > 0) return cardioMin;
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
 
-    const customMin = safeNumber(log?.custom?.durationMin);
-    if (customMin > 0) return customMin;
+  // 2) New-model: sum minutes from per-block cardio + duration
+  let blockCardioMin = 0;
+  let blockDurationMin = 0;
 
-    // Estimate from sets + rest interval (rough, motivation-only)
-    const restSec =
-      safeNumber(log?.meta?.restSec) ||
-      safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) ||
-      60;
+  if (blocks.length) {
+    for (const b of blocks) {
+      if (!b) continue;
 
-    const setsLogged = countSetsLoggedInLog(log);
+      if (b.cardio && typeof b.cardio === "object") {
+        blockCardioMin += safeNumber(b.cardio.durationMin);
+      }
 
-    if (setsLogged <= 0) return null;
-
-    const workPerSetMin = 1; // quick heuristic
-    const est =
-      setsLogged * workPerSetMin +
-      Math.max(0, setsLogged) * (restSec / 60);
-
-    return Math.round(est * 10) / 10;
+      if (b.duration && typeof b.duration === "object") {
+        // duration blocks use duration.minutes
+        blockDurationMin += safeNumber(b.duration.minutes);
+      }
+    }
   }
+
+  if (blockCardioMin > 0 || blockDurationMin > 0) {
+    // e.g. 5 km / 25 min run + 20 min yoga = 45
+    return blockCardioMin + blockDurationMin;
+  }
+
+  // 3) Legacy fallback ONLY if we have no blocks snapshot
+  // (old logs that just had log.cardio/log.custom)
+  if (!blocks.length) {
+    const cardioMin = safeNumber(log?.cardio?.durationMin);
+    const customMin = safeNumber(log?.custom?.durationMin);
+    const totalDur = cardioMin + customMin;
+    if (totalDur > 0) return totalDur;
+  }
+
+  // 4) Finally, estimate from sets + rest interval
+  const restSec =
+    safeNumber(log?.meta?.restSec) ||
+    safeNumber(plan?.restSecByWeekday?.[selectedWeekday]) ||
+    60;
+
+  const setsLogged = countSetsLoggedInLog(log);
+  if (setsLogged <= 0) return null;
+
+  const workPerSetMin = 1; // quick heuristic
+  const est =
+    setsLogged * workPerSetMin +
+    Math.max(0, setsLogged) * (restSec / 60);
+
+  return Math.round(est * 10) / 10;
+}
+
+function computeCardioKmForDay(log) {
+  if (!log) return null;
+
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+
+  let totalKm = 0;
+
+  if (blocks.length) {
+    // New model – trust per-block cardio distances
+    for (const b of blocks) {
+      if (!b || !b.cardio || typeof b.cardio !== "object") continue;
+      totalKm += safeNumber(b.cardio.distanceKm);
+    }
+    return totalKm > 0 ? Number(totalKm.toFixed(2)) : null;
+  }
+
+  // Legacy fallback (no blocks snapshot at all)
+  const legacyKm = safeNumber(log?.cardio?.distanceKm);
+  return legacyKm > 0 ? Number(legacyKm.toFixed(2)) : null;
+}
 
   // -------- Stats from allLogs ----------
   const stats = useMemo(() => {
@@ -5256,7 +5305,15 @@ const targetInfo = buildTargetInfoForMovement({
   label="Sets logged"
   value={countSetsLoggedInLog(logForDay) || 0}
 />
-                  <SummaryStat label="Cardio km" value={safeNumber(logForDay?.cardio?.distanceKm) ? Number(logForDay.cardio.distanceKm).toFixed(2) : "—"} />
+                    <SummaryStat
+    label="Cardio km"
+    value={
+      (() => {
+        const km = computeCardioKmForDay(logForDay);
+        return km != null ? km.toFixed(2) : "—";
+      })()
+    }
+  />
                 </div>
 
                 <div className="mini mt12">
