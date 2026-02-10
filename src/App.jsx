@@ -4802,7 +4802,8 @@ const targetInfo = buildTargetInfoForMovement({
 </div>
                                 <div className="movementDivider" />
                               </div>
-                            );
+                            );    
+                          })}
 
 {/* estimated and actual time block for strength */}
                                                               <div className="muted mini mt8">
@@ -4835,7 +4836,6 @@ const targetInfo = buildTargetInfoForMovement({
                             />
                           </div>
     
-                          })}
                         </div>
                       );
                     })}
