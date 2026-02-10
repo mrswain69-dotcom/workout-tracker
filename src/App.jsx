@@ -4689,7 +4689,13 @@ const targetInfo = buildTargetInfoForMovement({
       <div className="muted small">
         {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
       </div>
-      <label className="mini">
+      <label
+        className="mini"
+        style={{
+          opacity: isCancelled ? 1 : 0.5,
+        }}
+        title="Mark this block as cancelled when it was impossible to do (e.g. weather, cancelled match). It won’t block your streak."
+      >
         <input
           type="checkbox"
           checked={isCancelled}
@@ -4793,7 +4799,13 @@ const targetInfo = buildTargetInfoForMovement({
       <div className="muted small">
         {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
       </div>
-      <label className="mini">
+      <label
+        className="mini"
+        style={{
+          opacity: isCancelled ? 1 : 0.5,
+        }}
+        title="Mark this block as cancelled when it was impossible to do (e.g. weather, cancelled match). It won’t block your streak."
+      >
         <input
           type="checkbox"
           checked={isCancelled}
