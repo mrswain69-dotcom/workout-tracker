@@ -3889,7 +3889,7 @@ async function removeExtraMovement(blockId) {
 
     if (setsLogged <= 0) return null;
 
-    const workPerSetMin = 0.5; // quick heuristic
+    const workPerSetMin = 1; // quick heuristic
     const est =
       setsLogged * workPerSetMin +
       Math.max(0, setsLogged - 1) * (restSec / 60);
