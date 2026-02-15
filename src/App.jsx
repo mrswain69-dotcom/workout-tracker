@@ -1595,6 +1595,13 @@ useEffect(() => {
   const [logForDay, setLogForDay] = useState(null);
   const [allLogs, setAllLogs] = useState([]); // for stats
 
+  // --- History pill / modal ---
+const [historyModal, setHistoryModal] = useState(null); 
+// shape: { kind: "movement" | "cardio", id: string, title: string }
+
+const [historyRange, setHistoryRange] = useState("8w"); // "4w" | "8w" | "12w" | "6m"
+const [historySeries, setHistorySeries] = useState([]); // [{ x:"YYYY-MM-DD", y:number }]
+
   const [soundOn, setSoundOn] = useState(true);
   const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
   const [xp, setXp] = useState(0);
@@ -3618,6 +3625,147 @@ async function toggleBlockCancelled(blockId, cancelled) {
       playBling(ctx, 1, victoryTheme);
     }
   }
+
+  // ---------------- History helpers ----------------
+const historyRangeDays = (r) => {
+  if (r === "4w") return 28;
+  if (r === "12w") return 84;
+  if (r === "6m") return 183;
+  return 56; // default 8w
+};
+
+const ymdMinusDays = (ymdStr, days) => {
+  // ymdStr like "2026-02-13"
+  const d = new Date(ymdStr + "T00:00:00");
+  d.setDate(d.getDate() - days);
+  return ymd(d);
+};
+
+const extractMovementSetsFromLog = (log, movementId) => {
+  if (!log) return null;
+
+  // V2 legacy
+  const legacy = log?.entries?.[movementId];
+  if (Array.isArray(legacy) && legacy.some(setDidSomething)) return legacy;
+
+  // V3 blocks
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+  for (const b of blocks) {
+    const setsByMovement = b?.sets && typeof b.sets === "object" ? b.sets : null;
+    if (!setsByMovement) continue;
+    const s = setsByMovement[movementId];
+    if (Array.isArray(s) && s.some(setDidSomething)) return s;
+  }
+  return null;
+};
+
+const metricForStrengthSets = (sets) => {
+  // Prefer weight if any weight exists, else reps, else timeSeconds
+  let maxW = 0;
+  let maxR = 0;
+  let maxT = 0;
+  for (const s of sets || []) {
+    maxW = Math.max(maxW, safeNumber(s.weight));
+    maxR = Math.max(maxR, safeNumber(s.reps));
+    maxT = Math.max(maxT, safeNumber(s.timeSeconds));
+  }
+  if (maxW > 0) return { label: "Best weight (kg)", y: maxW };
+  if (maxR > 0) return { label: "Best reps", y: maxR };
+  return { label: "Best time (sec)", y: maxT };
+};
+
+const extractCardioFromLogByBlockId = (log, blockId) => {
+  if (!log) return null;
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+  const b = blocks.find((x) => x?.id === blockId);
+  if (!b || !b.cardio) return null;
+  const distKm = safeNumber(b.cardio.distanceKm);
+  const min = safeNumber(b.cardio.durationMin);
+  if (distKm <= 0 || min <= 0) return null;
+  return { distKm, min };
+};
+
+const paceMinPerKm = (distKm, min) => {
+  if (distKm <= 0 || min <= 0) return null;
+  return min / distKm; // numeric minutes per km
+};
+
+// Build a quick “has history?” index so we only show the pill when data exists
+const historyIndex = useMemo(() => {
+  const movementHas = {};
+  const cardioHas = {};
+
+  for (const row of Array.isArray(allLogs) ? allLogs : []) {
+    const log = row?.log;
+    if (!log) continue;
+
+    // Strength: mark movement IDs that have any sets
+    const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+    for (const b of blocks) {
+      const setsByMovement = b?.sets && typeof b.sets === "object" ? b.sets : null;
+      if (setsByMovement) {
+        for (const [mid, sets] of Object.entries(setsByMovement)) {
+          if (Array.isArray(sets) && sets.some(setDidSomething)) {
+            movementHas[mid] = true;
+          }
+        }
+      }
+
+      // Cardio: mark block IDs that have cardio dist+time
+      if (b?.id && b?.cardio) {
+        const dist = safeNumber(b.cardio.distanceKm);
+        const min = safeNumber(b.cardio.durationMin);
+        if (dist > 0 && min > 0) cardioHas[b.id] = true;
+      }
+    }
+
+    // Legacy strength entries
+    const entries = log?.entries && typeof log.entries === "object" ? log.entries : null;
+    if (entries) {
+      for (const [mid, sets] of Object.entries(entries)) {
+        if (Array.isArray(sets) && sets.some(setDidSomething)) {
+          movementHas[mid] = true;
+        }
+      }
+    }
+  }
+
+  return { movementHas, cardioHas };
+}, [allLogs]);
+
+// When modal opens or range changes, rebuild chart series
+useEffect(() => {
+  if (!historyModal) return;
+
+  const days = historyRangeDays(historyRange);
+  const cutoff = ymdMinusDays(ymd(new Date()), days);
+  const next = [];
+
+  if (historyModal.kind === "movement") {
+    for (const row of Array.isArray(allLogs) ? allLogs : []) {
+      const d = row?.date_ymd || row?.date;
+      if (!d || d < cutoff) continue;
+      const sets = extractMovementSetsFromLog(row.log, historyModal.id);
+      if (!sets) continue;
+      const m = metricForStrengthSets(sets);
+      if (m?.y > 0) next.push({ x: d, y: m.y });
+    }
+  }
+
+  if (historyModal.kind === "cardio") {
+    for (const row of Array.isArray(allLogs) ? allLogs : []) {
+      const d = row?.date_ymd || row?.date;
+      if (!d || d < cutoff) continue;
+      const c = extractCardioFromLogByBlockId(row.log, historyModal.id);
+      if (!c) continue;
+      const pace = paceMinPerKm(c.distKm, c.min);
+      if (pace) next.push({ x: d, y: pace });
+    }
+  }
+
+  next.sort((a, b) => (a.x < b.x ? -1 : 1));
+  setHistorySeries(next);
+}, [historyModal, historyRange, allLogs]);
   
   // --- One-off activities on the Log page ---
 
@@ -4809,10 +4957,23 @@ const targetInfo = buildTargetInfoForMovement({
 
                             return (
                               <div key={mov.id} className="mt12">
-                                <div className="movementHeader">
-                                  <div className="movementName">
-                                    {mov.name}
-                                  </div>
+                               <div className="movementHeader">
+  <div className="movementHeaderTop">
+    <div className="movementName">{mov.name}</div>
+
+    {historyIndex?.movementHas?.[mov.id] && (
+      <button
+        type="button"
+        className="historyPill"
+        onClick={() => {
+          setHistoryRange("8w");
+          setHistoryModal({ kind: "movement", id: mov.id, title: mov.name });
+        }}
+      >
+        History
+      </button>
+    )}
+  </div>
                                   {mov.coachNote ? (
                                     <div className="movementCoachNote">
                                       {mov.coachNote}
@@ -4949,7 +5110,22 @@ const targetInfo = buildTargetInfoForMovement({
 
       return (
         <div key={block.id} className="mt12">
-          <div className="h3">{label}</div>
+          <div className="rowBetween">
+  <div className="h3">{label}</div>
+
+  {historyIndex?.cardioHas?.[block.id] && (
+    <button
+      type="button"
+      className="historyPill"
+      onClick={() => {
+        setHistoryRange("12w");
+        setHistoryModal({ kind: "cardio", id: block.id, title: label });
+      }}
+    >
+      History
+    </button>
+  )}
+</div>
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
@@ -6999,6 +7175,82 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
         )}
 
+              {historyModal && (
+  <div
+    className="historyOverlay"
+    role="dialog"
+    aria-modal="true"
+    onClick={() => setHistoryModal(null)}
+  >
+    <div className="historyModal" onClick={(e) => e.stopPropagation()}>
+      <div className="historyModalTop">
+        <div>
+          <div className="historyTitle">{historyModal.title}</div>
+          <div className="muted small">
+            {historyModal.kind === "movement" ? "Strength trend" : "Cardio pace trend"}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="iconBtn"
+          onClick={() => setHistoryModal(null)}
+          aria-label="Close"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="historyRanges">
+        {[
+          ["4w", "4W"],
+          ["8w", "8W"],
+          ["12w", "12W"],
+          ["6m", "6M"],
+        ].map(([k, txt]) => (
+          <button
+            key={k}
+            type="button"
+            className={"pillToggleBtn " + (historyRange === k ? "active" : "")}
+            onClick={() => setHistoryRange(k)}
+          >
+            {txt}
+          </button>
+        ))}
+      </div>
+
+      <div className="chart" style={{ height: 240 }}>
+        {historySeries.length === 0 ? (
+          <div className="dashed" style={{ padding: 18 }}>
+            No history in this range yet.
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={historySeries} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="x" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip
+                formatter={(val) => {
+                  const n = Number(val);
+                  if (historyModal.kind === "cardio") {
+                    // show pace as mm:ss per km
+                    const totalSec = Math.round(n * 60);
+                    const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+                    const ss = String(totalSec % 60).padStart(2, "0");
+                    return [`${mm}:${ss} /km`, "Pace"];
+                  }
+                  return [n, "Value"];
+                }}
+              />
+              <Line type="monotone" dataKey="y" dot={false} strokeWidth={3} />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  </div>
+)}
                <footer className="footer">Workout Tracker beta: custom plans • XP, streaks &amp; rewards.</footer>
       </div>
 
@@ -7268,6 +7520,60 @@ function StyleTag() {
       .h2{font-size:18px;font-weight:900;color:#64748b}        /* section titles muted */
       .h3{font-size:14px;font-weight:900}                      /* block titles */
       .movementName{font-size:16px;font-weight:800;color:#0f172a;margin-top:12px;margin-bottom:4px}
+      .movementHeaderTop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+
+.historyPill{
+  border-radius:999px;
+  border:1px solid #e2e8f0;
+  background:rgba(255,255,255,0.6);
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:700;
+  color:#64748b;
+  cursor:pointer;
+}
+.historyPill:hover{background:#fff;color:#0f172a}
+
+.historyOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,0.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:9999;
+}
+
+.historyModal{
+  width:min(720px, 100%);
+  background:#fff;
+  border-radius:18px;
+  border:1px solid #e2e8f0;
+  box-shadow:0 12px 35px rgba(15,23,42,.18);
+  padding:14px;
+}
+
+.historyModalTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.historyTitle{
+  font-size:16px;
+  font-weight:900;
+  color:#0f172a;
+}
+
+.historyRanges{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+  margin-bottom:10px;
+}
       .movementTarget{font-size:13px;font-weight:500;color:#64748b;margin-top:4px;margin-bottom:4px}
       .mt8{margin-top:8px}
       .mt12{margin-top:12px}
