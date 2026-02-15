@@ -1616,151 +1616,11 @@ useEffect(() => {
   const [showExtraBlockForm, setShowExtraBlockForm] = useState(false);
   const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration"
 
-  // --- History (per-movement / per-activity mini chart on Log page) ---
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyTitle, setHistoryTitle] = useState("");
-  const [historyKind, setHistoryKind] = useState(null); // "strength" | "cardio"
-  const [historyKey, setHistoryKey] = useState(""); // movementId or blockId
-  const [historyRange, setHistoryRange] = useState("8w"); // "4w" | "8w" | "12w" | "6m"
-  const [historyData, setHistoryData] = useState([]);
-  const [historyMetric, setHistoryMetric] = useState({ label: "", unit: "" });
-
-
   // Cardio extra-block drafts
   const [extraCardioNameDraft, setExtraCardioNameDraft] = useState("");
   const [extraCardioTypeDraft, setExtraCardioTypeDraft] = useState("run");
   const [extraCardioTargetDraft, setExtraCardioTargetDraft] = useState("");
   const [extraCardioCoachNoteDraft, setExtraCardioCoachNoteDraft] =
-
-  const historyRangeDays = (range) => {
-    switch (range) {
-      case "4w": return 28;
-      case "8w": return 56;
-      case "12w": return 84;
-      case "6m": return 183;
-      default: return 56;
-    }
-  };
-
-  const ymdToDateSafe = (s) => {
-    if (!s) return null;
-    const d = new Date(`${s}T00:00:00`);
-    return Number.isNaN(d.getTime()) ? null : d;
-  };
-
-  const buildStrengthHistory = (movementId) => {
-    const days = historyRangeDays(historyRange);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-
-    const points = [];
-    let sawWeight = false;
-    for (const row of allLogs || []) {
-      const d = ymdToDateSafe(row?.date_ymd);
-      if (!d || d < cutoff) continue;
-      const log = row?.log;
-      const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
-      let bestReps = 0;
-      let bestWeight = 0;
-      for (const b of blocks) {
-        const setsObj = b?.sets && typeof b.sets === "object" ? b.sets : null;
-        if (!setsObj) continue;
-        const mSets = Array.isArray(setsObj[movementId]) ? setsObj[movementId] : [];
-        for (const s of mSets) {
-          const r = safeNumber(s?.reps);
-          const w = safeNumber(s?.weight);
-          if (w > 0) {
-            sawWeight = true;
-            if (w > bestWeight) bestWeight = w;
-          }
-          if (r > bestReps) bestReps = r;
-        }
-      }
-      if (bestReps > 0 || bestWeight > 0) {
-        points.push({
-          date: row.date_ymd,
-          reps: bestReps,
-          weight: bestWeight,
-          value: sawWeight ? bestWeight : bestReps,
-        });
-      }
-    }
-    points.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-    setHistoryMetric(sawWeight ? { label: "Best weight", unit: "kg" } : { label: "Best reps", unit: "" });
-    setHistoryData(points);
-  };
-
-  const buildCardioHistory = (blockId) => {
-    const days = historyRangeDays(historyRange);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-
-    const points = [];
-    for (const row of allLogs || []) {
-      const d = ymdToDateSafe(row?.date_ymd);
-      if (!d || d < cutoff) continue;
-      const log = row?.log;
-      const b = (Array.isArray(log?.blocks) ? log.blocks : []).find((x) => x?.id === blockId);
-      if (!b || b.cancelled) continue;
-      const cardio = b.cardio && typeof b.cardio === "object" ? b.cardio : null;
-      const distKm = safeNumber(cardio?.distanceKm);
-      const durMin = safeNumber(cardio?.durationMin);
-      if (!(distKm > 0 && durMin > 0)) continue;
-      const pace = durMin / distKm; // minutes per km
-      points.push({ date: row.date_ymd, pace });
-    }
-    points.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-    setHistoryMetric({ label: "Pace", unit: "min/km" });
-    setHistoryData(points);
-  };
-
-  const hasStrengthHistory = (movementId) => {
-    for (const row of allLogs || []) {
-      const log = row?.log;
-      const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
-      for (const b of blocks) {
-        const setsObj = b?.sets && typeof b.sets === "object" ? b.sets : null;
-        if (!setsObj) continue;
-        const mSets = Array.isArray(setsObj[movementId]) ? setsObj[movementId] : [];
-        if (mSets.some(setDidSomething)) return true;
-      }
-    }
-    return false;
-  };
-
-  const hasCardioHistory = (blockId) => {
-    for (const row of allLogs || []) {
-      const log = row?.log;
-      const b = (Array.isArray(log?.blocks) ? log.blocks : []).find((x) => x?.id === blockId);
-      if (!b || b.cancelled) continue;
-      const cardio = b.cardio && typeof b.cardio === "object" ? b.cardio : null;
-      const distKm = safeNumber(cardio?.distanceKm);
-      const durMin = safeNumber(cardio?.durationMin);
-      if (distKm > 0 && durMin > 0) return true;
-    }
-    return false;
-  };
-
-  const openStrengthHistory = (movement) => {
-    setHistoryKind("strength");
-    setHistoryKey(movement.id);
-    setHistoryTitle(movement.name || "Movement history");
-    setHistoryOpen(true);
-  };
-
-  const openCardioHistory = (block, label) => {
-    setHistoryKind("cardio");
-    setHistoryKey(block.id);
-    setHistoryTitle(label || "Cardio history");
-    setHistoryOpen(true);
-  };
-
-  useEffect(() => {
-    if (!historyOpen || !historyKind || !historyKey) return;
-    if (historyKind === "strength") buildStrengthHistory(historyKey);
-    if (historyKind === "cardio") buildCardioHistory(historyKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [historyOpen, historyKind, historyKey, historyRange]);
     useState("");
 
   // Duration extra-block drafts
@@ -4950,28 +4810,8 @@ const targetInfo = buildTargetInfoForMovement({
                             return (
                               <div key={mov.id} className="mt12">
                                 <div className="movementHeader">
-                                  <div className="row between" style={{ alignItems: "center", gap: 8 }}>
-                                    <div className="movementName">{mov.name}</div>
-                                    {hasStrengthHistory(mov.id) && (
-                                      <button
-                                        type="button"
-                                        onClick={() => openStrengthHistory(mov)}
-                                        className="btnGhost"
-                                        style={{
-                                          padding: "6px 10px",
-                                          borderRadius: 999,
-                                          fontSize: 12,
-                                          opacity: 0.6,
-                                          border: "1px solid rgba(255,255,255,0.25)",
-                                          background: "transparent",
-                                          color: "white",
-                                          cursor: "pointer",
-                                        }}
-                                        title="View recent history for this movement"
-                                      >
-                                        History
-                                      </button>
-                                    )}
+                                  <div className="movementName">
+                                    {mov.name}
                                   </div>
                                   {mov.coachNote ? (
                                     <div className="movementCoachNote">
@@ -5109,29 +4949,7 @@ const targetInfo = buildTargetInfoForMovement({
 
       return (
         <div key={block.id} className="mt12">
-          <div className="row between" style={{ alignItems: "center", gap: 8 }}>
-            <div className="h3">{label}</div>
-            {hasCardioHistory(block.id) && (
-              <button
-                type="button"
-                onClick={() => openCardioHistory(block, label)}
-                className="btnGhost"
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: 999,
-                  fontSize: 12,
-                  opacity: 0.6,
-                  border: "1px solid rgba(255,255,255,0.25)",
-                  background: "transparent",
-                  color: "white",
-                  cursor: "pointer",
-                }}
-                title="View recent history for this activity"
-              >
-                History
-              </button>
-            )}
-          </div>
+          <div className="h3">{label}</div>
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
@@ -7181,115 +6999,6 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
         )}
 
-
-        {/* --- History modal (movement/activity charts) --- */}
-        {historyOpen && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            onClick={() => setHistoryOpen(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.55)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 16,
-              zIndex: 9999,
-            }}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                width: "min(720px, 96vw)",
-                borderRadius: 16,
-                border: "1px solid rgba(255,255,255,0.15)",
-                background: "rgba(10,12,18,0.98)",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
-                padding: 16,
-              }}
-            >
-              <div className="row between" style={{ alignItems: "center", gap: 12 }}>
-                <div>
-                  <div className="h3" style={{ margin: 0 }}>{historyTitle}</div>
-                  <div className="muted mini mt4">{historyMetric.label}{historyMetric.unit ? ` (${historyMetric.unit})` : ""}</div>
-                </div>
-                <SecondaryButton className="btnSmall" onClick={() => setHistoryOpen(false)}>
-                  Close
-                </SecondaryButton>
-              </div>
-
-              <div className="row gap8 mt12" style={{ flexWrap: "wrap" }}>
-                {[
-                  { id: "4w", label: "4W" },
-                  { id: "8w", label: "8W" },
-                  { id: "12w", label: "12W" },
-                  { id: "6m", label: "6M" },
-                ].map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setHistoryRange(r.id)}
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 999,
-                      fontSize: 12,
-                      border: "1px solid rgba(255,255,255,0.18)",
-                      background: historyRange === r.id ? "rgba(255,255,255,0.12)" : "transparent",
-                      color: "white",
-                      opacity: historyRange === r.id ? 1 : 0.75,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-
-              {historyData.length === 0 ? (
-                <div className="muted mt16">No history yet for this one.</div>
-              ) : (
-                <div style={{ width: "100%", height: 260 }} className="mt12">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={historyData}>
-                      <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                      <XAxis dataKey="date" hide />
-                      <YAxis
-                        width={40}
-                        tick={{ fontSize: 12, opacity: 0.8 }}
-                        tickFormatter={(v) =>
-                          historyKind === "cardio" ? formatPaceFromMinutes(v) : v
-                        }
-                      />
-                      <Tooltip
-                        formatter={(value) =>
-                          historyKind === "cardio"
-                            ? `${formatPaceFromMinutes(value)} /km`
-                            : historyMetric.unit
-                            ? `${value} ${historyMetric.unit}`
-                            : `${value}`
-                        }
-                        labelFormatter={(label) => `Date: ${label}`}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey={historyKind === "cardio" ? "pace" : "value"}
-                        dot={false}
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              <div className="muted mini mt12">
-                Tip: tap History before logging to see your recent trend and set a target for today.
-              </div>
-            </div>
-          </div>
-        )}
-
                <footer className="footer">Workout Tracker beta: custom plans • XP, streaks &amp; rewards.</footer>
       </div>
 
@@ -7844,3 +7553,4 @@ const boxRounds = (names) =>
     },
   ];
 };
+
