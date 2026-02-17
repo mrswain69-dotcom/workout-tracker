@@ -56,6 +56,113 @@ function getTodayYMD() {
   return `${y}-${m}-${day}`;
 }
 
+// -------- Rewards & Badges (V1) ----------
+// NOTE: V1 stores "claimed" state inside log.meta.claimedRewards so it syncs across devices.
+// Earned rewards are computed from historical logs.
+
+const REWARD_IDS = {
+  // Badges
+  RUN_5K_1: "badge:run:5k:1",
+  RUN_5K_2: "badge:run:5k:2",
+  RUN_10K_1: "badge:run:10k:1",
+  // Avatar unlock packs (tied to XP milestones)
+  AVATAR_PACK_1: "avatarpack:1k:1",
+};
+
+const BADGE_DEFS = [
+  {
+    id: REWARD_IDS.RUN_5K_1,
+    kind: "badge",
+    icon: "🏅",
+    title: "First 5K Run",
+    desc: "Log a run of 5.0 km or more.",
+  },
+  {
+    id: REWARD_IDS.RUN_5K_2,
+    kind: "badge",
+    icon: "🥈",
+    title: "5K Run × 2",
+    desc: "Log 2 runs of 5.0 km or more.",
+  },
+  {
+    id: REWARD_IDS.RUN_10K_1,
+    kind: "badge",
+    icon: "🏆",
+    title: "First 10K Run",
+    desc: "Log a run of 10.0 km or more.",
+  },
+];
+
+function getClaimedRewardIdsFromLogs(records) {
+  const out = new Set();
+  if (!Array.isArray(records)) return out;
+  for (const r of records) {
+    const log = r?.log;
+    const list = log?.meta?.claimedRewards;
+    if (!Array.isArray(list)) continue;
+    for (const id of list) {
+      if (typeof id === "string" && id) out.add(id);
+    }
+  }
+  return out;
+}
+
+function collectCardioSessions(records) {
+  const sessions = [];
+  if (!Array.isArray(records)) return sessions;
+
+  for (const r of records) {
+    const date = r?.date_ymd || r?.date;
+    const log = r?.log;
+    const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+    for (const b of blocks) {
+      if (!b || b.typeId !== "cardio") continue;
+      const c = b.cardio || {};
+      const km = safeNumber(c.distanceKm);
+      const min = safeNumber(c.durationMin);
+      if (!(km > 0) && !(min > 0)) continue;
+      sessions.push({
+        date,
+        cardioType: b.cardioType || "run",
+        otherLabel: b.cardioTypeOtherLabel || "",
+        distanceKm: km,
+        durationMin: min,
+      });
+    }
+  }
+
+  return sessions;
+}
+
+function computeEarnedRewardIds(records, xpValue) {
+  const earned = new Set();
+
+  // Avatar pack 1: claimable once XP >= 1000
+  if (safeNumber(xpValue) >= 1000) earned.add(REWARD_IDS.AVATAR_PACK_1);
+
+  const sessions = collectCardioSessions(records);
+
+  const run5 = sessions.filter((s) => s.cardioType === "run" && s.distanceKm >= 5).length;
+  const run10 = sessions.filter((s) => s.cardioType === "run" && s.distanceKm >= 10).length;
+
+  if (run5 >= 1) earned.add(REWARD_IDS.RUN_5K_1);
+  if (run5 >= 2) earned.add(REWARD_IDS.RUN_5K_2);
+  if (run10 >= 1) earned.add(REWARD_IDS.RUN_10K_1);
+
+  return earned;
+}
+
+function isRewardClaimed(claimedSet, rewardId) {
+  return claimedSet && claimedSet.has(rewardId);
+}
+
+function formatRewardTitle(defOrId) {
+  const def = BADGE_DEFS.find((d) => d.id === defOrId);
+  if (def) return def.title;
+  if (defOrId === REWARD_IDS.AVATAR_PACK_1) return "Avatar Pack 1 (1,000 XP)";
+  return "Reward";
+}
+
 // Counts consecutive *green* days up to today (inclusive), using block-based day status.
 function getCurrentPlanStreak(records, todayYmd) {
   if (!Array.isArray(records) || !records.length) return 0;
@@ -1061,16 +1168,16 @@ function Pill({ children, onClick }) {
   }
   return <span className="pill">{children}</span>;
 }
-function PrimaryButton({ children, onClick, disabled }) {
+function PrimaryButton({ children, onClick, disabled, className = "" }) {
   return (
-    <button className={`btn btn-primary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
+    <button className={`btn btn-primary ${disabled ? "btn-disabled" : ""} ${className}`} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );
 }
-function SecondaryButton({ children, onClick, disabled }) {
+function SecondaryButton({ children, onClick, disabled, className = "" }) {
   return (
-    <button className={`btn btn-secondary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
+    <button className={`btn btn-secondary ${disabled ? "btn-disabled" : ""} ${className}`} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );
@@ -1397,6 +1504,8 @@ export default function App() {
   const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
 
   const [tab, setTab] = useState("log");
+  const [rewardsSubTab, setRewardsSubTab] = useState("badges");
+  const [rewardToast, setRewardToast] = useState(null); // { title, icon }
   const [copyDialog, setCopyDialog] = useState(null); // { blockId, days: string[] }
 
   // --- Rotating Motivation & Health tip (changes on tab switch) ---
@@ -2627,6 +2736,35 @@ const xpDebugRows = useMemo(
   [allLogs, plan]
 );
 
+
+// ---- Rewards / Badges (computed) ----
+const claimedRewardIds = useMemo(() => getClaimedRewardIdsFromLogs(allLogs), [allLogs]);
+
+const earnedRewardIds = useMemo(() => computeEarnedRewardIds(allLogs, xp), [allLogs, xp]);
+
+const pendingRewardIds = useMemo(() => {
+  const out = [];
+  for (const id of earnedRewardIds) {
+    if (!claimedRewardIds.has(id)) out.push(id);
+  }
+  // stable order: badges first, then avatar packs
+  out.sort((a, b) => (a < b ? -1 : 1));
+  return out;
+}, [earnedRewardIds, claimedRewardIds]);
+
+// Avatar selection (client-side for now)
+const avatarKey = useMemo(() => (activeProfileId ? `wt_avatar_${activeProfileId}` : ""), [activeProfileId]);
+
+const selectedAvatarEmoji = useMemo(() => {
+  if (!avatarKey) return "🙂";
+  try {
+    const v = localStorage.getItem(avatarKey);
+    return v || "🙂";
+  } catch {
+    return "🙂";
+  }
+}, [avatarKey, rewardToast, activeProfileId]);
+
   const records = useMemo(() => {
     const base = {
       bestXpDay: null,
@@ -2748,7 +2886,70 @@ const todayPlanStatus = useMemo(() => {
     return false;
   }
 
-  const handleProfileChange = async (id) => {
+  
+  // ----- Claim rewards (badges / avatar packs) -----
+  async function claimReward(rewardId) {
+    if (!rewardId) return;
+    if (!family?.id || !activeProfileId) return;
+
+    const date = todayYmd || getTodayYMD();
+    const existingRec = Array.isArray(allLogs)
+      ? allLogs.find((r) => (r?.date_ymd || r?.date) === date)
+      : null;
+
+    const baseLog = existingRec?.log || {
+      weekday: weekdayFromYMD(date),
+      blocks: [],
+      meta: {},
+    };
+
+    const prev = Array.isArray(baseLog?.meta?.claimedRewards)
+      ? baseLog.meta.claimedRewards
+      : [];
+
+    if (prev.includes(rewardId)) return;
+
+    const nextLog = {
+      ...baseLog,
+      weekday: baseLog.weekday || weekdayFromYMD(date),
+      meta: {
+        ...(baseLog.meta || {}),
+        claimedRewards: [...prev, rewardId],
+      },
+    };
+
+    const { error } = await upsertLog(family.id, activeProfileId, date, nextLog);
+    if (error) {
+      window.alert(error.message || String(error));
+      return;
+    }
+
+    // Local celebration UI
+    const title = formatRewardTitle(rewardId);
+    const icon =
+      BADGE_DEFS.find((d) => d.id === rewardId)?.icon ||
+      (rewardId === REWARD_IDS.AVATAR_PACK_1 ? "🧬" : "✨");
+
+    setRewardToast({ title, icon });
+
+    // Refresh logs so the badge instantly moves from Pending -> Earned
+    await refreshAll();
+  }
+
+  function closeRewardToast() {
+    setRewardToast(null);
+  }
+
+  function setAvatarEmoji(emoji) {
+    if (!activeProfileId) return;
+    try {
+      localStorage.setItem(`wt_avatar_${activeProfileId}`, emoji);
+    } catch {}
+    // force re-render of memo
+    setRewardToast((t) => (t ? { ...t } : null));
+  }
+
+const handleProfileChange = async (id) => {
   const ok = await ensurePinForProfileSwitch();
   if (!ok) return;
   setActiveProfileId(id);
@@ -4723,7 +4924,7 @@ const cardioProgress = useMemo(() => {
   </div>
 
   <div className="headerBottom">
-    <h1 className="title">{activeProfile?.name || "Profile"}</h1>
+    <h1 className="title"><span className="avatarChip" title="Avatar">{selectedAvatarEmoji}</span>{activeProfile?.name || "Profile"}</h1>
 
     <div className="header-right">
       <div className="selectWide">
@@ -6942,34 +7143,159 @@ const targetInfo = buildTargetInfoForMovement({
   </div>
 </div>
 
-              <div className="mt16">
-                <div className="h3">Rewards shop</div>
-                <div className="muted">Pick a victory sound theme. Unlock more as you level up.</div>
-                <div className="stack mt12">
-                  <RewardItem title="Classic" desc="Default sounds" active={victoryTheme === "classic"} locked={false} onPick={() => setVictoryTheme("classic")} />
-                  <RewardItem title="Arcade" desc="8-bit vibes" active={victoryTheme === "arcade"} locked={!unlocked.arcade} onPick={() => unlocked.arcade && setVictoryTheme("arcade")} />
-                  <RewardItem title="Chill" desc="Softer sounds" active={victoryTheme === "chill"} locked={!unlocked.chill} onPick={() => unlocked.chill && setVictoryTheme("chill")} />
-                </div>
-                <div className="mini mt12">Unlock rules: Level 3 = Arcade, Level 5 = Chill. (100 XP per level)</div>
-              </div>
               <div className="panel mt16">
-  <div className="h3">Badges (coming alive later)</div>
-  <div className="mini muted mt4">
-    These are long-term goals; later they’ll turn into real, collectable badges.
+  <div className="rowBetween">
+    <div>
+      <div className="h3">Badges + Rewards</div>
+      <div className="mini muted mt4">
+        Earn rewards by logging workouts. Tap <b>Claim</b> to make them yours.
+      </div>
+    </div>
+
+    <div className="tabs mini">
+      <button
+        type="button"
+        className={"tabPill " + (rewardsSubTab === "badges" ? "active" : "")}
+        onClick={() => setRewardsSubTab("badges")}
+      >
+        Badges
+      </button>
+      <button
+        type="button"
+        className={"tabPill " + (rewardsSubTab === "avatars" ? "active" : "")}
+        onClick={() => setRewardsSubTab("avatars")}
+      >
+        Avatars
+      </button>
+      <button
+        type="button"
+        className={"tabPill " + (rewardsSubTab === "shop" ? "active" : "")}
+        onClick={() => setRewardsSubTab("shop")}
+      >
+        Shop
+      </button>
+    </div>
   </div>
-  <div className="stack mt8 mini">
-    <div>🏅 First 5K logged</div>
-    <div>🏅 First 10K logged</div>
-    <div>🏅 Speed star: average speed over 8 km/h</div>
-    <div>🏅 Early bird: cardio logged before 8am</div>
-    <div>🏅 Night owl: cardio logged after 7pm</div>
-    <div>🏅 7-day daily activity streak</div>
-    <div>🏅 30-day daily activity streak</div>
-    <div>🏅 100-day daily activity streak</div>
-    <div>🏅 100 strength sets logged</div>
-    <div>🏅 1,000 strength sets logged</div>
-    <div>🏅 100 cardio sessions logged</div>
-  </div>
+
+  {rewardsSubTab === "badges" && (
+    <div className="mt12">
+      {pendingRewardIds.filter((id) => id.startsWith("badge:")).length > 0 ? (
+        <>
+          <div className="label">Ready to claim</div>
+          <div className="badgeGrid mt8">
+            {pendingRewardIds
+              .filter((id) => id.startsWith("badge:"))
+              .map((id) => {
+                const def = BADGE_DEFS.find((d) => d.id === id);
+                if (!def) return null;
+                return (
+                  <div key={id} className="badgeTile pending">
+                    <div className="badgeIcon">{def.icon}</div>
+                    <div className="badgeMeta">
+                      <div className="badgeTitle">{def.title}</div>
+                      <div className="badgeDesc">{def.desc}</div>
+                    </div>
+                    <PrimaryButton className="btnTiny" onClick={() => claimReward(id)}>
+                      Claim
+                    </PrimaryButton>
+                  </div>
+                );
+              })}
+          </div>
+        </>
+      ) : (
+        <div className="muted mt8">No new badges to claim right now. Keep going 💪</div>
+      )}
+
+      <div className="mt16">
+        <div className="label">Earned</div>
+        <div className="badgeGrid mt8">
+          {BADGE_DEFS.map((def) => {
+            const earned = earnedRewardIds.has(def.id);
+            const claimed = claimedRewardIds.has(def.id);
+            const locked = !earned;
+            return (
+              <div
+                key={def.id}
+                className={"badgeTile " + (locked ? "locked" : claimed ? "claimed" : "pending")}
+              >
+                <div className="badgeIcon">{def.icon}</div>
+                <div className="badgeMeta">
+                  <div className="badgeTitle">
+                    {def.title} {claimed ? <span className="mini muted">✓</span> : null}
+                  </div>
+                  <div className="badgeDesc">{def.desc}</div>
+                </div>
+                {!locked && !claimed ? (
+                  <SecondaryButton className="btnTiny" onClick={() => claimReward(def.id)}>
+                    Claim
+                  </SecondaryButton>
+                ) : (
+                  <div className="mini muted">{locked ? "Locked" : "Owned"}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  )}
+
+  {rewardsSubTab === "avatars" && (
+    <div className="mt12">
+      <div className="label">Avatar unlocks</div>
+
+      {earnedRewardIds.has(REWARD_IDS.AVATAR_PACK_1) && !claimedRewardIds.has(REWARD_IDS.AVATAR_PACK_1) ? (
+        <div className="avatarUnlock mt8">
+          <div className="rowBetween">
+            <div>
+              <div className="h3">🧬 Avatar Pack 1 unlocked!</div>
+              <div className="mini muted mt4">You hit 1,000 XP. Claim it to unlock new avatars.</div>
+            </div>
+            <PrimaryButton onClick={() => claimReward(REWARD_IDS.AVATAR_PACK_1)}>Claim</PrimaryButton>
+          </div>
+        </div>
+      ) : null}
+
+      {claimedRewardIds.has(REWARD_IDS.AVATAR_PACK_1) ? (
+        <>
+          <div className="mini muted mt8">Pick an avatar (you can change it any time):</div>
+          <div className="avatarRow mt8">
+            {["🐺","🦊","🐉","🦁","🐼","🐸","🦈","🦅"].map((emo) => (
+              <button
+                key={emo}
+                type="button"
+                className={"avatarPick " + (selectedAvatarEmoji === emo ? "active" : "")}
+                onClick={() => setAvatarEmoji(emo)}
+                aria-label={`Select avatar ${emo}`}
+              >
+                {emo}
+              </button>
+            ))}
+          </div>
+          <div className="mini muted mt8">
+            (We’ll swap these to your custom graphics later — this is the “looks cool tomorrow” version.)
+          </div>
+        </>
+      ) : (
+        <div className="muted mt8">Reach 1,000 XP to unlock Avatar Pack 1.</div>
+      )}
+    </div>
+  )}
+
+  {rewardsSubTab === "shop" && (
+    <div className="mt12">
+      <div className="h3">Rewards shop</div>
+      <div className="muted">Pick a victory sound theme. Unlock more as you level up.</div>
+      <div className="stack mt12">
+        <RewardItem title="Classic" desc="Default sounds" active={victoryTheme === "classic"} locked={false} onPick={() => setVictoryTheme("classic")} />
+        <RewardItem title="Arcade" desc="8-bit vibes" active={victoryTheme === "arcade"} locked={!unlocked.arcade} onPick={() => unlocked.arcade && setVictoryTheme("arcade")} />
+        <RewardItem title="Chill" desc="Softer sounds" active={victoryTheme === "chill"} locked={!unlocked.chill} onPick={() => unlocked.chill && setVictoryTheme("chill")} />
+      </div>
+      <div className="mini mt12">Unlock rules: Level 3 = Arcade, Level 5 = Chill. (100 XP per level)</div>
+    </div>
+  )}
+</div>
 </div>
                             {/* XP rules – how XP is earned */}
               <div className="panel mt16">
@@ -7271,7 +7597,21 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
         )}
 
-              {historyModal && (
+              
+              {rewardToast && (
+                <div className="rewardOverlay" role="dialog" aria-modal="true" onClick={closeRewardToast}>
+                  <div className="rewardModal" onClick={(e) => e.stopPropagation()}>
+                    <div className="rewardIcon">{rewardToast.icon}</div>
+                    <div className="h2">Reward claimed!</div>
+                    <div className="mt8">{rewardToast.title}</div>
+                    <div className="mt16">
+                      <PrimaryButton onClick={closeRewardToast}>Awesome</PrimaryButton>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+{historyModal && (
   <div
     className="historyOverlay"
     role="dialog"
@@ -7714,6 +8054,38 @@ function StyleTag() {
       .pillBtn:hover{background:#e2e8f0}
       .header-right{display:flex;flex-direction:column;gap:10px}
       @media(min-width:900px){.header-right{flex-direction:row;align-items:center}}
+
+      /* Avatar chip in header */
+      .avatarChip{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;margin-right:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:18px}
+
+      /* Rewards sub-tabs */
+      .tabPill{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:inherit;border-radius:999px;padding:6px 10px;cursor:pointer}
+      .tabPill.active{background:rgba(46,204,113,.18);border-color:rgba(46,204,113,.35)}
+
+      /* Badge tiles */
+      .badgeGrid{display:grid;grid-template-columns:1fr;gap:10px}
+      @media(min-width:900px){.badgeGrid{grid-template-columns:1fr 1fr}}
+      .badgeTile{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06)}
+      .badgeTile.locked{opacity:.55;filter:saturate(.2)}
+      .badgeTile.claimed{background:rgba(46,204,113,.10)}
+      .badgeTile.pending{background:rgba(243,156,18,.10)}
+      .badgeIcon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.12)}
+      .badgeMeta{flex:1;min-width:0}
+      .badgeTitle{font-weight:800}
+      .badgeDesc{opacity:.85;font-size:12px;margin-top:2px}
+      .btnTiny{padding:8px 10px;font-size:12px}
+
+      /* Avatar picker */
+      .avatarUnlock{padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,.14);background:rgba(142,68,173,.12)}
+      .avatarRow{display:flex;flex-wrap:wrap;gap:10px}
+      .avatarPick{width:48px;height:48px;border-radius:16px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:inherit;cursor:pointer;font-size:22px}
+      .avatarPick.active{background:rgba(52,152,219,.18);border-color:rgba(52,152,219,.35)}
+
+      /* Reward claim modal */
+      .rewardOverlay{position:fixed;inset:0;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+      .rewardModal{max-width:420px;width:100%;border-radius:22px;padding:18px;background:rgba(20,20,20,.92);border:1px solid rgba(255,255,255,.16);box-shadow:0 30px 120px rgba(0,0,0,.5);text-align:center;animation:popIn .16s ease-out}
+      .rewardIcon{font-size:44px;margin-bottom:8px}
+      @keyframes popIn{from{transform:scale(.96);opacity:.0}to{transform:scale(1);opacity:1}}
       .tabs{display:flex;flex-wrap:wrap;gap:8px}
       /* Prevent button text wrapping */
       .btn, button { white-space: nowrap; }
