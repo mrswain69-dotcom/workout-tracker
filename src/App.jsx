@@ -1470,36 +1470,18 @@ function getRunKmFromBlock(block) {
 }
 
 function computeEarnedBadgesFromLogs(allLogs) {
-  // Count by *days* (not blocks) to avoid double-counting if a day has multiple cardio blocks.
-  const run5Dates = new Set();
-  const run10Dates = new Set();
+  let run5Count = 0;
+  let run10Count = 0;
 
   for (const r of allLogs || []) {
-    const date = r?.date_ymd || r?.date;
     const log = r?.log;
-    if (!date || !log) continue;
-
     const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
-
-    let has5 = false;
-    let has10 = false;
-
     for (const b of blocks) {
       const km = getRunKmFromBlock(b);
-      if (km >= 10) {
-        has10 = true;
-        has5 = true; // 10k implies 5k
-      } else if (km >= 5) {
-        has5 = true;
-      }
+      if (km >= 5) run5Count += 1;
+      if (km >= 10) run10Count += 1;
     }
-
-    if (has5) run5Dates.add(date);
-    if (has10) run10Dates.add(date);
   }
-
-  const run5Count = run5Dates.size;
-  const run10Count = run10Dates.size;
 
   const earned = new Set();
   if (run5Count >= 1) earned.add("badge_run_5k_1");
