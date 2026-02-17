@@ -1597,11 +1597,24 @@ useEffect(() => {
 
   // --- History pill / modal ---
 const [historyModal, setHistoryModal] = useState(null); 
-// shape: { kind: "movement" | "cardio", id: string, title: string }
+// shape: { kind: "movement" | "cardio" | "duration" | "task", id: string, title: string }
 
 const [historyRange, setHistoryRange] = useState("8w"); // "4w" | "8w" | "12w" | "6m"
 const [historySeries, setHistorySeries] = useState([]); // [{ x:"YYYY-MM-DD", y:number }]
 
+  // Strength chart toggles (multi-line)
+const [historyStrengthShow, setHistoryStrengthShow] = useState({
+  weight: true,
+  reps: true,
+  time: false,
+});
+
+// Cardio chart toggles
+const [historyCardioMetric, setHistoryCardioMetric] = useState("pace"); 
+// "pace" | "distance" | "time" | "speed"
+
+const [historyCardioUnit, setHistoryCardioUnit] = useState("km"); 
+// "km" | "mi"
   const [soundOn, setSoundOn] = useState(true);
   const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
   const [xp, setXp] = useState(0);
@@ -3659,19 +3672,19 @@ const extractMovementSetsFromLog = (log, movementId) => {
   return null;
 };
 
-const metricForStrengthSets = (sets) => {
-  // Prefer weight if any weight exists, else reps, else timeSeconds
-  let maxW = 0;
-  let maxR = 0;
-  let maxT = 0;
+const strengthPointForSets = (sets) => {
+  // Return all three metrics (max per day)
+  let weight = 0;
+  let reps = 0;
+  let timeSec = 0;
+
   for (const s of sets || []) {
-    maxW = Math.max(maxW, safeNumber(s.weight));
-    maxR = Math.max(maxR, safeNumber(s.reps));
-    maxT = Math.max(maxT, safeNumber(s.timeSeconds));
+    weight = Math.max(weight, safeNumber(s.weight));
+    reps = Math.max(reps, safeNumber(s.reps));
+    timeSec = Math.max(timeSec, safeNumber(s.timeSeconds));
   }
-  if (maxW > 0) return { label: "Best weight (kg)", y: maxW };
-  if (maxR > 0) return { label: "Best reps", y: maxR };
-  return { label: "Best time (sec)", y: maxT };
+
+  return { weight, reps, timeSec };
 };
 
 const extractCardioFromLogByBlockId = (log, blockId) => {
@@ -3690,10 +3703,36 @@ const paceMinPerKm = (distKm, min) => {
   return min / distKm; // numeric minutes per km
 };
 
+const extractDurationFromLogByBlockId = (log, blockId) => {
+  if (!log) return null;
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+  const b = blocks.find((x) => x?.id === blockId);
+  const minutes = safeNumber(b?.duration?.minutes);
+  if (minutes <= 0) return null;
+  return { minutes };
+};
+
+const extractTaskDoneFromLog = (log, blockId, taskId) => {
+  if (!log) return false;
+  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+  const b = blocks.find((x) => x?.id === blockId);
+  const tasksDone = b?.tasksDone && typeof b.tasksDone === "object" ? b.tasksDone : null;
+  return !!tasksDone?.[taskId];
+};
+
+// simple date iterator for task streak charts (0/1 per day)
+const ymdAddDays = (ymdStr, days) => {
+  const d = new Date(ymdStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return ymd(d);
+};
+
 // Build a quick “has history?” index so we only show the pill when data exists
 const historyIndex = useMemo(() => {
   const movementHas = {};
   const cardioHas = {};
+  const durationHas = {};
+  const taskHas = {};
 
   for (const row of Array.isArray(allLogs) ? allLogs : []) {
     const log = row?.log;
@@ -3719,6 +3758,19 @@ const historyIndex = useMemo(() => {
       }
     }
 
+    // Duration: mark block IDs with duration minutes
+if (b?.id && b?.duration) {
+  const mins = safeNumber(b.duration.minutes);
+  if (mins > 0) durationHas[b.id] = true;
+}
+
+// Tasks: mark individual task IDs that have been completed
+if (b?.id && b?.tasksDone && typeof b.tasksDone === "object") {
+  for (const [tid, val] of Object.entries(b.tasksDone)) {
+    if (val) taskHas[`${b.id}::${tid}`] = true;
+  }
+}
+
     // Legacy strength entries
     const entries = log?.entries && typeof log.entries === "object" ? log.entries : null;
     if (entries) {
@@ -3730,7 +3782,7 @@ const historyIndex = useMemo(() => {
     }
   }
 
-  return { movementHas, cardioHas };
+  return { movementHas, cardioHas, durationHas, taskHas };
 }, [allLogs]);
 
 // When modal opens or range changes, rebuild chart series
@@ -3738,17 +3790,25 @@ useEffect(() => {
   if (!historyModal) return;
 
   const days = historyRangeDays(historyRange);
-  const cutoff = ymdMinusDays(ymd(new Date()), days);
+  const today = ymd(new Date());
+  const cutoff = ymdMinusDays(today, days);
+
+  // For most charts we only add points where data exists.
+  // For task charts we add a point for EVERY day so missed days show clearly.
   const next = [];
 
   if (historyModal.kind === "movement") {
     for (const row of Array.isArray(allLogs) ? allLogs : []) {
       const d = row?.date_ymd || row?.date;
       if (!d || d < cutoff) continue;
+
       const sets = extractMovementSetsFromLog(row.log, historyModal.id);
       if (!sets) continue;
-      const m = metricForStrengthSets(sets);
-      if (m?.y > 0) next.push({ x: d, y: m.y });
+
+      const p = strengthPointForSets(sets);
+      if ((p.weight || 0) > 0 || (p.reps || 0) > 0 || (p.timeSec || 0) > 0) {
+        next.push({ x: d, weight: p.weight, reps: p.reps, timeSec: p.timeSec });
+      }
     }
   }
 
@@ -3756,10 +3816,55 @@ useEffect(() => {
     for (const row of Array.isArray(allLogs) ? allLogs : []) {
       const d = row?.date_ymd || row?.date;
       if (!d || d < cutoff) continue;
+
       const c = extractCardioFromLogByBlockId(row.log, historyModal.id);
       if (!c) continue;
-      const pace = paceMinPerKm(c.distKm, c.min);
-      if (pace) next.push({ x: d, y: pace });
+
+      const distKm = c.distKm;
+      const min = c.min;
+
+      const paceKm = paceMinPerKm(distKm, min);
+      const distMi = distKm * 0.621371;
+      const paceMi = distMi > 0 ? (min / distMi) : null;
+
+      const speedKmh = distKm > 0 ? (distKm / (min / 60)) : null;
+      const speedMph = distMi > 0 ? (distMi / (min / 60)) : null;
+
+      next.push({
+        x: d,
+        pace_km: paceKm,
+        pace_mi: paceMi,
+        dist_km: distKm,
+        dist_mi: distMi,
+        time_min: min,
+        speed_kmh: speedKmh,
+        speed_mph: speedMph,
+      });
+    }
+  }
+
+  if (historyModal.kind === "duration") {
+    for (const row of Array.isArray(allLogs) ? allLogs : []) {
+      const d = row?.date_ymd || row?.date;
+      if (!d || d < cutoff) continue;
+
+      const dur = extractDurationFromLogByBlockId(row.log, historyModal.id);
+      if (!dur) continue;
+
+      next.push({ x: d, minutes: dur.minutes });
+    }
+  }
+
+  if (historyModal.kind === "task") {
+    const [blockId, taskId] = String(historyModal.id).split("::");
+    // Iterate all days in range so gaps show as 0
+    let cur = cutoff;
+    while (cur <= today) {
+      // find that day's log row
+      const row = (Array.isArray(allLogs) ? allLogs : []).find((r) => (r?.date_ymd || r?.date) === cur);
+      const done = row?.log ? extractTaskDoneFromLog(row.log, blockId, taskId) : false;
+      next.push({ x: cur, done: done ? 1 : 0 });
+      cur = ymdAddDays(cur, 1);
     }
   }
 
@@ -5241,7 +5346,22 @@ const targetInfo = buildTargetInfoForMovement({
 
       return (
           <div key={block.id} className="mt12">
-            <div className="h3">{label}</div>
+            <div className="rowBetween">
+  <div className="h3">{label}</div>
+
+  {historyIndex?.durationHas?.[block.id] && (
+    <button
+      type="button"
+      className="historyPill"
+      onClick={() => {
+        setHistoryRange("12w");
+        setHistoryModal({ kind: "duration", id: block.id, title: label });
+      }}
+    >
+      History
+    </button>
+  )}
+</div>
             {block.note ? (
               <div className="muted mt4">{block.note}</div>
             ) : null}
@@ -5369,9 +5489,25 @@ const targetInfo = buildTargetInfoForMovement({
                         }}
                       >
                         <span>
-                          {/* prefer label for plan-tasks, name for extras */}
-                          {t.label || t.name || "Untitled task"}
-                        </span>
+  {t.label || t.name || "Untitled task"}
+</span>
+
+{historyIndex?.taskHas?.[`${block.id}::${t.id}`] && (
+  <button
+    type="button"
+    className="historyPill"
+    onClick={() => {
+      setHistoryRange("12w");
+      setHistoryModal({
+        kind: "task",
+        id: `${block.id}::${t.id}`,
+        title: t.label || t.name || "Task history",
+      });
+    }}
+  >
+    History
+  </button>
+)}
                         {typeof t.xpValue === "number" &&
                         t.xpValue > 0 ? (
                           <span
@@ -7187,7 +7323,13 @@ const targetInfo = buildTargetInfoForMovement({
         <div>
           <div className="historyTitle">{historyModal.title}</div>
           <div className="muted small">
-            {historyModal.kind === "movement" ? "Strength trend" : "Cardio pace trend"}
+            {historyModal.kind === "movement"
+  ? "Strength trend"
+  : historyModal.kind === "cardio"
+  ? "Cardio trend"
+  : historyModal.kind === "duration"
+  ? "Duration trend"
+  : "Task consistency"}
           </div>
         </div>
 
@@ -7219,6 +7361,65 @@ const targetInfo = buildTargetInfoForMovement({
         ))}
       </div>
 
+      {historyModal.kind === "movement" && (
+  <div className="historyRanges" style={{ marginTop: 6 }}>
+    {[
+      ["weight", "Weight"],
+      ["reps", "Reps"],
+      ["time", "Time"],
+    ].map(([k, label]) => (
+      <button
+        key={k}
+        type="button"
+        className={"pillToggleBtn " + (historyStrengthShow[k] ? "active" : "")}
+        onClick={() =>
+          setHistoryStrengthShow((s) => ({ ...s, [k]: !s[k] }))
+        }
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+)}
+
+{historyModal.kind === "cardio" && (
+  <>
+    <div className="historyRanges" style={{ marginTop: 6 }}>
+      {[
+        ["pace", "Pace"],
+        ["distance", "Distance"],
+        ["time", "Time"],
+        ["speed", "Speed"],
+      ].map(([k, label]) => (
+        <button
+          key={k}
+          type="button"
+          className={"pillToggleBtn " + (historyCardioMetric === k ? "active" : "")}
+          onClick={() => setHistoryCardioMetric(k)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+
+    <div className="historyRanges" style={{ marginTop: 6 }}>
+      {[
+        ["km", "KM"],
+        ["mi", "Miles"],
+      ].map(([u, label]) => (
+        <button
+          key={u}
+          type="button"
+          className={"pillToggleBtn " + (historyCardioUnit === u ? "active" : "")}
+          onClick={() => setHistoryCardioUnit(u)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  </>
+)}
+
       <div className="chart" style={{ height: 240 }}>
         {historySeries.length === 0 ? (
           <div className="dashed" style={{ padding: 18 }}>
@@ -7226,26 +7427,90 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={historySeries} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="x" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip
-                formatter={(val) => {
-                  const n = Number(val);
-                  if (historyModal.kind === "cardio") {
-                    // show pace as mm:ss per km
-                    const totalSec = Math.round(n * 60);
-                    const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
-                    const ss = String(totalSec % 60).padStart(2, "0");
-                    return [`${mm}:${ss} /km`, "Pace"];
-                  }
-                  return [n, "Value"];
-                }}
-              />
-              <Line type="monotone" dataKey="y" dot={false} strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
+  <LineChart data={historySeries} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis dataKey="x" tick={{ fontSize: 12 }} />
+    <YAxis tick={{ fontSize: 12 }} />
+
+    <Tooltip
+      formatter={(val, key) => {
+        const n = Number(val);
+
+        if (historyModal.kind === "movement") {
+          if (key === "weight") return [n, "Weight (kg)"];
+          if (key === "reps") return [n, "Reps"];
+          if (key === "timeSec") return [n, "Time (sec)"];
+          return [n, key];
+        }
+
+        if (historyModal.kind === "duration") {
+          return [n, "Minutes"];
+        }
+
+        if (historyModal.kind === "task") {
+          return [n === 1 ? "Done" : "Missed", "Task"];
+        }
+
+        // cardio
+        if (historyModal.kind === "cardio") {
+          if (key === "pace_km" || key === "pace_mi") {
+            const totalSec = Math.round(n * 60);
+            const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+            const ss = String(totalSec % 60).padStart(2, "0");
+            const unit = key === "pace_mi" ? "/mi" : "/km";
+            return [`${mm}:${ss} ${unit}`, "Pace"];
+          }
+          if (key === "dist_km") return [n.toFixed(2), "Distance (km)"];
+          if (key === "dist_mi") return [n.toFixed(2), "Distance (mi)"];
+          if (key === "time_min") return [n.toFixed(0), "Time (min)"];
+          if (key === "speed_kmh") return [n.toFixed(2), "Speed (km/h)"];
+          if (key === "speed_mph") return [n.toFixed(2), "Speed (mph)"];
+        }
+
+        return [n, key];
+      }}
+    />
+
+    {/* Strength: multi-line */}
+    {historyModal.kind === "movement" && (
+      <>
+        {historyStrengthShow.weight && (
+          <Line type="monotone" dataKey="weight" dot={false} strokeWidth={3} stroke="#0ea5e9" connectNulls />
+        )}
+        {historyStrengthShow.reps && (
+          <Line type="monotone" dataKey="reps" dot={false} strokeWidth={3} stroke="#22c55e" connectNulls />
+        )}
+        {historyStrengthShow.time && (
+          <Line type="monotone" dataKey="timeSec" dot={false} strokeWidth={3} stroke="#f59e0b" connectNulls />
+        )}
+      </>
+    )}
+
+    {/* Duration: single line */}
+    {historyModal.kind === "duration" && (
+      <Line type="monotone" dataKey="minutes" dot={false} strokeWidth={3} />
+    )}
+
+    {/* Task: single line (0/1) */}
+    {historyModal.kind === "task" && (
+      <Line type="stepAfter" dataKey="done" dot={false} strokeWidth={3} />
+    )}
+
+    {/* Cardio: single line based on metric + unit */}
+    {historyModal.kind === "cardio" && (() => {
+      const key =
+        historyCardioMetric === "pace"
+          ? (historyCardioUnit === "mi" ? "pace_mi" : "pace_km")
+          : historyCardioMetric === "distance"
+          ? (historyCardioUnit === "mi" ? "dist_mi" : "dist_km")
+          : historyCardioMetric === "speed"
+          ? (historyCardioUnit === "mi" ? "speed_mph" : "speed_kmh")
+          : "time_min";
+
+      return <Line type="monotone" dataKey={key} dot={false} strokeWidth={3} />;
+    })()}
+  </LineChart>
+</ResponsiveContainer>
         )}
       </div>
     </div>
@@ -7531,6 +7796,7 @@ function StyleTag() {
   font-weight:700;
   color:#64748b;
   cursor:pointer;
+  line-height:1;
 }
 .historyPill:hover{background:#fff;color:#0f172a}
 
