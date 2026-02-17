@@ -2074,12 +2074,12 @@ useEffect(() => {
     const familyId = family.id;
     const profileId = activeProfileId;
 
-    // 1) Try local cached copy first (includes extra activities)
-  const cached = getCachedPlan(profileId);
-  if (cached) {
-    setAndCachePlan(profileId, cached);
-    return; // 👈 IMPORTANT: do not immediately overwrite with DB
-  }
+// 1) Try local cached copy first (fast), BUT still fetch DB after (authoritative)
+const cached = getCachedPlan(profileId);
+if (cached) {
+  setAndCachePlan(profileId, cached);
+  // DO NOT return — we still want to fetch the DB plan to catch updates from other devices
+}
 
     // 2) Always try the DB plan (authoritative for extras)
     (async () => {
@@ -2094,11 +2094,17 @@ useEffect(() => {
         return;
       }
 
-      if (data?.plan_json) {
-        // Use the DB copy as the source of truth and refresh cache
-        setAndCachePlan(profileId, data.plan_json);
-        return;
-      }
+if (data?.plan_json) {
+  const dbPlan = normalisePlanForRuntime(data.plan_json);
+
+  // Only overwrite if it’s actually different
+  const cachedStr = cached ? JSON.stringify(cached) : "";
+  const dbStr = dbPlan ? JSON.stringify(dbPlan) : "";
+
+  if (!cached || cachedStr !== dbStr) {
+    setAndCachePlan(profileId, dbPlan);
+  }
+}
 
       // 3) If DB has no plan yet, fall back to profile row plan_json
       //    but only if we didn't already load a cached plan
@@ -2806,61 +2812,6 @@ const todayPlanStatus = useMemo(() => {
     await savePlan(nextPlan);
   }
 
-    function cloneBlockForPlan(block) {
-    if (!block) return null;
-
-    const cloned = {
-      ...block,
-      id: uid(),
-    };
-
-    if (Array.isArray(block.movements)) {
-      cloned.movements = block.movements.map((m) => ({
-        ...m,
-        id: uid(),
-      }));
-    }
-
-    if (Array.isArray(block.tasks)) {
-      cloned.tasks = block.tasks.map((t) => ({
-        ...t,
-        id: uid(),
-      }));
-    }
-
-    return cloned;
-  }
-
-  async function duplicateBlockToOtherWeekdays(blockId, targetWeekdays) {
-    if (!Array.isArray(targetWeekdays) || !targetWeekdays.length) return;
-
-    const base = getPlanWithBlocks();
-    const currentBlocks = getBlocksForPlanWeekday(base, planWeekday) || [];
-    const sourceBlock = currentBlocks.find((b) => b && b.id === blockId);
-    if (!sourceBlock) return;
-
-    const nextBlocksByWeekday = { ...(base.blocksByWeekday || {}) };
-
-    for (const wd of targetWeekdays) {
-      if (!wd) continue;
-      const dayBlocks = Array.isArray(nextBlocksByWeekday[wd])
-        ? [...nextBlocksByWeekday[wd]]
-        : [];
-      const cloned = cloneBlockForPlan(sourceBlock);
-      if (cloned) {
-        dayBlocks.push(cloned);
-        nextBlocksByWeekday[wd] = dayBlocks;
-      }
-    }
-
-    const nextPlan = {
-      ...base,
-      blocksByWeekday: nextBlocksByWeekday,
-    };
-
-    await savePlan(nextPlan, "Copy block to other days");
-  }
-
   function addBlockToDay(typeId) {
     let newBlock;
 
@@ -2917,30 +2868,39 @@ const todayPlanStatus = useMemo(() => {
     });
   }
 
-  function cloneBlockForPlan(block) {
-    if (!block) return null;
+function cloneBlockForPlan(block) {
+  // Used when creating a genuinely new block (new IDs)
+  if (!block) return null;
 
-    const cloned = {
-      ...block,
-      id: uid(),
-    };
+  const cloned = { ...block, id: uid() };
 
-    if (Array.isArray(block.movements)) {
-      cloned.movements = block.movements.map((m) => ({
-        ...m,
-        id: uid(),
-      }));
-    }
-
-    if (Array.isArray(block.tasks)) {
-      cloned.tasks = block.tasks.map((t) => ({
-        ...t,
-        id: uid(),
-      }));
-    }
-
-    return cloned;
+  if (Array.isArray(block.movements)) {
+    cloned.movements = block.movements.map((m) => ({ ...m, id: uid() }));
   }
+
+  if (Array.isArray(block.tasks)) {
+    cloned.tasks = block.tasks.map((t) => ({ ...t, id: uid() }));
+  }
+
+  return cloned;
+}
+
+function cloneBlockForPlanPreserveIds(block) {
+  // Used when copying the "same logical block" to other days (keep IDs stable)
+  if (!block) return null;
+
+  const cloned = { ...block }; // keep block.id
+
+  if (Array.isArray(block.movements)) {
+    cloned.movements = block.movements.map((m) => ({ ...m })); // keep movement.id
+  }
+
+  if (Array.isArray(block.tasks)) {
+    cloned.tasks = block.tasks.map((t) => ({ ...t })); // keep task.id
+  }
+
+  return cloned;
+}
 
   async function duplicateBlockToOtherWeekdays(blockId, targetWeekdays) {
     if (!Array.isArray(targetWeekdays) || !targetWeekdays.length) return;
@@ -2957,7 +2917,7 @@ const todayPlanStatus = useMemo(() => {
       const dayBlocks = Array.isArray(nextBlocksByWeekday[wd])
         ? [...nextBlocksByWeekday[wd]]
         : [];
-      const cloned = cloneBlockForPlan(sourceBlock);
+      const cloned = cloneBlockForPlanPreserveIds(sourceBlock);
       if (cloned) {
         dayBlocks.push(cloned);
         nextBlocksByWeekday[wd] = dayBlocks;
