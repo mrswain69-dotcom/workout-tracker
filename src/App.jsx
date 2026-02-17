@@ -7291,7 +7291,7 @@ const targetInfo = buildTargetInfoForMovement({
                 <div><b>Progression bonuses:</b> beat your last time/effort(+20 XP for Cardio blocks and +10 XP for Strength movements</div>
                 <div><b>Streak bonuses:</b> keep days green 🔥</div>
                 <div><b>Badges:</b> claimable rewards add XP (see Badges tab)</div>
-                <div><b>Day complete:</b> +10 XP when all workout blocks (not tasks) for that day are logged.
+                <div><b>Day complete:</b> +10 XP when all workout blocks (not tasks) for that day are logged.</div>
               </div>
             )}
           </div>
