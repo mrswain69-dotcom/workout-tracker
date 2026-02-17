@@ -7288,10 +7288,11 @@ const targetInfo = buildTargetInfoForMovement({
                 <div><b>Cardio:</b> XP from time + distance (auto) (1 XP per 2 minutes and 2 XP per 0.5 km (rounded up), plus 5 XP per logged cardio block)</div>
                 <div><b>Duration:</b> XP from minutes (2 XP per 10 minutes, plus 5 XP per logged duration block)</div>
                 <div><b>Tasks:</b> XP per task completed (as shown on the task log)</div>
-                <div><b>Progression bonuses:</b> beat your last time/effort(+20 XP for Cardio blocks and +10 XP for Strength movements</div>
-                <div><b>Streak bonuses:</b> keep days green 🔥</div>
+                <div><b>Progression bonuses:</b> beat your last time/effort (+20 XP for Cardio blocks and +10 XP for Strength movements)</div>
+                <div><b>Streak bonuses:</b> keep days green 🔥 (2→5XP, 3→10XP, 5→20XP, 10→50XP,
+                      30→100XP, 60→200XP, 90→300XP, 180→600XP, 365→2000XP)</div>
                 <div><b>Badges:</b> claimable rewards add XP (see Badges tab)</div>
-                <div><b>Day complete:</b> +10 XP when all workout blocks (not tasks) for that day are logged.</div>
+                <div><b>Day complete:</b> +10 XP when all workout blocks (not tasks) for that day are logged</div>
               </div>
             )}
           </div>
