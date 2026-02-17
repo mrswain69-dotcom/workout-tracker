@@ -1392,6 +1392,87 @@ function computeCardioKmForDay(log) {
   return legacyKm > 0 ? Number(legacyKm.toFixed(2)) : null;
 }
 
+// ---- Rewards: Badges + Avatars (V1) ----
+// NOTE: Graphics are optional. We use emoji placeholders until you add PNG/SVG assets.
+
+const BADGE_DEFS = [
+  {
+    key: "badge_run_5k_1",
+    title: "First 5K Run",
+    desc: "Log a run of 5.0km or more",
+    emoji: "🏅",
+    xp: 25,
+  },
+  {
+    key: "badge_run_5k_2",
+    title: "5K Run ×2",
+    desc: "Log two runs of 5.0km or more",
+    emoji: "🏅",
+    xp: 25,
+  },
+  {
+    key: "badge_run_10k_1",
+    title: "First 10K Run",
+    desc: "Log a run of 10.0km or more",
+    emoji: "🏅",
+    xp: 40,
+  },
+];
+
+const AVATAR_PACKS = [
+  {
+    key: "avatar_pack_1",
+    title: "Avatar Pack 1",
+    desc: "Unlock at 1,000 XP",
+    unlockAtXp: 1000,
+    // Emoji placeholders (swap later for images)
+    avatars: [
+      { id: "emoji_rocket", label: "🚀" },
+      { id: "emoji_bolt", label: "⚡" },
+      { id: "emoji_tiger", label: "🐯" },
+      { id: "emoji_dragon", label: "🐉" },
+      { id: "emoji_fire", label: "🔥" },
+      { id: "emoji_star", label: "⭐" },
+    ],
+  },
+];
+
+function badgeStatusLabel(status) {
+  if (status === "claimed") return "Claimed";
+  if (status === "claimable") return "Claim";
+  return "Locked";
+}
+
+function getRunKmFromBlock(block) {
+  if (!block || block.typeId !== "cardio") return 0;
+  const type = block.cardioType || "run";
+  if (type !== "run") return 0;
+  const km = safeNumber(block?.cardio?.distanceKm ?? block?.distanceKm);
+  return km > 0 ? km : 0;
+}
+
+function computeEarnedBadgesFromLogs(allLogs) {
+  let run5Count = 0;
+  let run10Count = 0;
+
+  for (const r of allLogs || []) {
+    const log = r?.log;
+    const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+    for (const b of blocks) {
+      const km = getRunKmFromBlock(b);
+      if (km >= 5) run5Count += 1;
+      if (km >= 10) run10Count += 1;
+    }
+  }
+
+  const earned = new Set();
+  if (run5Count >= 1) earned.add("badge_run_5k_1");
+  if (run5Count >= 2) earned.add("badge_run_5k_2");
+  if (run10Count >= 1) earned.add("badge_run_10k_1");
+
+  return earned;
+}
+
 // -------- Main app ----------
 export default function App() {
   const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
@@ -2256,90 +2337,6 @@ const XP_RULES = {
     365: 2000,
   },
 };
-
-
-
-// ---- Rewards: Badges + Avatars (V1) ----
-// NOTE: Graphics are optional. We use emoji placeholders until you add PNG/SVG assets.
-
-const BADGE_DEFS = [
-  {
-    key: "badge_run_5k_1",
-    title: "First 5K Run",
-    desc: "Log a run of 5.0km or more",
-    emoji: "🏅",
-    xp: 25,
-  },
-  {
-    key: "badge_run_5k_2",
-    title: "5K Run ×2",
-    desc: "Log two runs of 5.0km or more",
-    emoji: "🏅",
-    xp: 25,
-  },
-  {
-    key: "badge_run_10k_1",
-    title: "First 10K Run",
-    desc: "Log a run of 10.0km or more",
-    emoji: "🏅",
-    xp: 40,
-  },
-];
-
-const AVATAR_PACKS = [
-  {
-    key: "avatar_pack_1",
-    title: "Avatar Pack 1",
-    desc: "Unlock at 1,000 XP",
-    unlockAtXp: 1000,
-    // Emoji placeholders (swap later for images)
-    avatars: [
-      { id: "emoji_rocket", label: "🚀" },
-      { id: "emoji_bolt", label: "⚡" },
-      { id: "emoji_tiger", label: "🐯" },
-      { id: "emoji_dragon", label: "🐉" },
-      { id: "emoji_fire", label: "🔥" },
-      { id: "emoji_star", label: "⭐" },
-    ],
-  },
-];
-
-function badgeStatusLabel(status) {
-  if (status === "claimed") return "Claimed";
-  if (status === "claimable") return "Claim";
-  return "Locked";
-}
-
-function getRunKmFromBlock(block) {
-  if (!block || block.typeId !== "cardio") return 0;
-  const type = block.cardioType || "run";
-  if (type !== "run") return 0;
-  const km = safeNumber(block.distanceKm);
-  return km > 0 ? km : 0;
-}
-
-function computeEarnedBadgesFromLogs(allLogs) {
-  let run5Count = 0;
-  let run10Count = 0;
-
-  for (const r of allLogs || []) {
-    const log = r?.log;
-    const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
-    for (const b of blocks) {
-      const km = getRunKmFromBlock(b);
-      if (km >= 5) run5Count += 1;
-      if (km >= 10) run10Count += 1;
-    }
-  }
-
-  const earned = new Set();
-  if (run5Count >= 1) earned.add("badge_run_5k_1");
-  if (run5Count >= 2) earned.add("badge_run_5k_2");
-  if (run10Count >= 1) earned.add("badge_run_10k_1");
-
-  return earned;
-}
-
 
 
 // Count completed sets in a single block (any reps/weight/time/etc)
