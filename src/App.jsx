@@ -1399,25 +1399,43 @@ const BADGE_DEFS = [
   {
     key: "badge_run_5k_1",
     title: "First 5K Run",
-    desc: "Log a run of 5.0km or more",
+    desc: "Log a run day of 5.0km or more",
     emoji: "🏅",
     xp: 25,
   },
   {
     key: "badge_run_5k_2",
     title: "5K Run ×2",
-    desc: "Log two runs of 5.0km or more",
-    emoji: "🏅",
+    desc: "Log 5K+ on two different days",
+    emoji: "🥈",
     xp: 25,
+  },
+  {
+    key: "badge_run_5k_3",
+    title: "5K Run ×3",
+    desc: "Log 5K+ on three different days",
+    emoji: "🥇",
+    xp: 30,
   },
   {
     key: "badge_run_10k_1",
     title: "First 10K Run",
-    desc: "Log a run of 10.0km or more",
-    emoji: "🏅",
+    desc: "Log a run day of 10.0km or more",
+    emoji: "🏆",
     xp: 40,
   },
 ];
+
+function computeClaimedRewardsXp(plan) {
+  const claimed = Array.isArray(plan?.meta?.claimedRewards) ? plan.meta.claimedRewards : [];
+  let sum = 0;
+  for (const key of claimed) {
+    const def = BADGE_DEFS.find((b) => b.key === key);
+    if (def && def.xp) sum += safeNumber(def.xp);
+  }
+  return sum;
+}
+
 
 const AVATAR_PACKS = [
   {
@@ -1452,22 +1470,41 @@ function getRunKmFromBlock(block) {
 }
 
 function computeEarnedBadgesFromLogs(allLogs) {
-  let run5Count = 0;
-  let run10Count = 0;
+  // Count by *days* (not blocks) to avoid double-counting if a day has multiple cardio blocks.
+  const run5Dates = new Set();
+  const run10Dates = new Set();
 
   for (const r of allLogs || []) {
+    const date = r?.date_ymd || r?.date;
     const log = r?.log;
+    if (!date || !log) continue;
+
     const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+
+    let has5 = false;
+    let has10 = false;
+
     for (const b of blocks) {
       const km = getRunKmFromBlock(b);
-      if (km >= 5) run5Count += 1;
-      if (km >= 10) run10Count += 1;
+      if (km >= 10) {
+        has10 = true;
+        has5 = true; // 10k implies 5k
+      } else if (km >= 5) {
+        has5 = true;
+      }
     }
+
+    if (has5) run5Dates.add(date);
+    if (has10) run10Dates.add(date);
   }
+
+  const run5Count = run5Dates.size;
+  const run10Count = run10Dates.size;
 
   const earned = new Set();
   if (run5Count >= 1) earned.add("badge_run_5k_1");
   if (run5Count >= 2) earned.add("badge_run_5k_2");
+  if (run5Count >= 3) earned.add("badge_run_5k_3");
   if (run10Count >= 1) earned.add("badge_run_10k_1");
 
   return earned;
@@ -2719,7 +2756,9 @@ const buildXpDebugRows = (records, plan) => {
 
 const computeXpFromLogs = (records, plan) => {
   const rows = buildXpDebugRows(records, plan);
-  return rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
+  const logXp = rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
+  const rewardXp = computeClaimedRewardsXp(plan);
+  return logXp + rewardXp;
 };
 
 useEffect(() => {
@@ -2879,7 +2918,7 @@ const todayPlanStatus = useMemo(() => {
     await upsertProfilePlan(family.id, activeProfileId, prev);
   }
 
-    async function savePlan(nextPlan) {
+      async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
 
     // Normalise once so DB + cache both store the same canonical shape
@@ -2890,39 +2929,34 @@ const todayPlanStatus = useMemo(() => {
 
     // Persist to Supabase
     if (!family?.id || !activeProfileId) return;
-  
+    await upsertProfilePlan(family.id, activeProfileId, normalised);
+  }
 
-// Save ONLY meta fields to the profile plan without requiring the PIN unlock.
-// We store rewards/avatars in plan.meta so it syncs across devices.
-async function savePlanMetaNoPin(metaPatch) {
-  if (!family?.id || !activeProfileId) return;
-  const current = plan || buildDefaultPlan();
-  const next = normalisePlanForRuntime({
-    ...current,
-    meta: { ...(current.meta || {}), ...(metaPatch || {}) },
-  });
+  // Save ONLY meta fields to the profile plan without requiring the PIN unlock.
+  // We store rewards/avatars in plan.meta so it syncs across devices.
+  async function savePlanMetaNoPin(metaPatch) {
+    if (!family?.id || !activeProfileId) return;
+    const current = plan || buildDefaultPlan();
+    const next = normalisePlanForRuntime({
+      ...current,
+      meta: { ...(current.meta || {}), ...(metaPatch || {}) },
+    });
 
-  // Update state + cache
-  setAndCachePlan(activeProfileId, next);
+    // Update state + cache
+    setAndCachePlan(activeProfileId, next);
 
-  // Persist
-  await upsertProfilePlan(family.id, activeProfileId, next);
-}
+    // Persist
+    await upsertProfilePlan(family.id, activeProfileId, next);
+  }
 
-async function claimRewardKey(rewardKey, xpAward = 0) {
-  const currentClaimed = Array.isArray(plan?.meta?.claimedRewards)
-    ? plan.meta.claimedRewards
-    : [];
-  if (currentClaimed.includes(rewardKey)) return;
+  async function claimRewardKey(rewardKey) {
+    const currentClaimed = Array.isArray(plan?.meta?.claimedRewards)
+      ? plan.meta.claimedRewards
+      : [];
+    if (currentClaimed.includes(rewardKey)) return;
 
-  const nextClaimed = [...currentClaimed, rewardKey];
-
-  // NOTE: XP is calculated from logs, so awarding XP here would require a DB place to store it.
-  // For V1, we keep XP as log-derived. The "xpAward" is used only for UI messaging.
-  await savePlanMetaNoPin({ claimedRewards: nextClaimed });
-}
-
-  await upsertProfilePlan(family.id, activeProfileId, normalised);
+    const nextClaimed = [...currentClaimed, rewardKey];
+    await savePlanMetaNoPin({ claimedRewards: nextClaimed });
   }
 
     // ---------- V3 PLAN BLOCK EDIT HELPERS ----------
@@ -4902,7 +4936,7 @@ const cardioProgress = useMemo(() => {
 
 
         {tab === "log" && (
-          <div className="gridLog">
+          <div className="gridLog" key={`${activeProfileId}_${selectedDate}`}>
             <Card className="pad">
               <div className="row logTopRow">
                 <div className="rowLeft">
@@ -7122,10 +7156,10 @@ const targetInfo = buildTargetInfoForMovement({
                           type="button"
                           className="btn"
                           onClick={async () => {
-                            await claimRewardKey(b.key, b.xp);
+                            await claimRewardKey(b.key);
                             setClaimModal({
                               title: "Badge claimed!",
-                              desc: `${b.title} unlocked.`,
+                              desc: `${b.title} unlocked. +${b.xp} XP`,
                             });
                           }}
                         >
@@ -7274,9 +7308,54 @@ const targetInfo = buildTargetInfoForMovement({
                 <div>• Tasks: XP per task completed</div>
                 <div>• Progression bonuses: beat your last time/effort</div>
                 <div>• Streak bonuses: keep days green 🔥</div>
+                <div>• Badges: claimable rewards add XP (see Badges tab)</div>
               </div>
             )}
           </div>
+
+          <div className="panel mt16">
+            <div className="rowBetween">
+              <div>
+                <div className="h3">XP Ledger</div>
+                <div className="muted mt4">
+                  This is the XP “receipt”. It shows XP earned per day from logs, plus claimed badge XP.
+                </div>
+              </div>
+              <div className="pill">Claimed badge XP: +{computeClaimedRewardsXp(plan)}</div>
+            </div>
+
+            <div className="mt12" style={{ maxHeight: 360, overflow: "auto" }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th style={{ textAlign: "right" }}>Total</th>
+                    <th style={{ textAlign: "right" }}>Base</th>
+                    <th style={{ textAlign: "right" }}>Prog</th>
+                    <th style={{ textAlign: "right" }}>Cardio</th>
+                    <th style={{ textAlign: "right" }}>Streak</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(xpDebugRows || []).slice(0, 21).map((r) => (
+                    <tr key={r.date}>
+                      <td>{r.date}</td>
+                      <td style={{ textAlign: "right" }}><b>{r.totalXp || 0}</b></td>
+                      <td style={{ textAlign: "right" }}>{r.baseXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{(r.progressXp || 0) + (r.cardioProgressXp || 0)}</td>
+                      <td style={{ textAlign: "right" }}>{r.extraXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.streakXp || 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mini muted mt8">
+              Tip: if something looks off, open that date in the Log tab and check what was marked complete or cancelled.
+            </div>
+          </div>
+
         </div>
       )}
     </Card>
