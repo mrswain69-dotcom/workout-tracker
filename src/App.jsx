@@ -7284,13 +7284,14 @@ const targetInfo = buildTargetInfoForMovement({
 
             {showXpRules && (
               <div className="stack mt8 mini" style={{ maxHeight: 420, overflow: "auto" }}>
-                <div>• Strength / HIIT: +{XP_RULES.strengthSet} XP per completed set</div>
-                <div>• Cardio: XP from time + distance (auto)</div>
-                <div>• Duration: XP from minutes</div>
-                <div>• Tasks: XP per task completed</div>
-                <div>• Progression bonuses: beat your last time/effort</div>
-                <div>• Streak bonuses: keep days green 🔥</div>
-                <div>• Badges: claimable rewards add XP (see Badges tab)</div>
+                <div><b>Strength / HIIT:</b> +2 XP per completed set, +5 XP when the block is logged</div>
+                <div><b>Cardio:</b> XP from time + distance (auto) (1 XP per 2 minutes and 2 XP per 0.5 km (rounded up), plus 5 XP per logged cardio block)</div>
+                <div><b>Duration:</b> XP from minutes (2 XP per 10 minutes, plus 5 XP per logged duration block)</div>
+                <div><b>Tasks:</b> XP per task completed (as shown on the task log)</div>
+                <div><b>Progression bonuses:</b> beat your last time/effort(+20 XP for Cardio blocks and +10 XP for Strength movements</div>
+                <div><b>Streak bonuses:</b> keep days green 🔥</div>
+                <div><b>Badges:</b> claimable rewards add XP (see Badges tab)</div>
+                <div><b>Day complete:</b> +10 XP when all workout blocks (not tasks) for that day are logged.
               </div>
             )}
           </div>
