@@ -3740,34 +3740,34 @@ const historyIndex = useMemo(() => {
 
     // Strength: mark movement IDs that have any sets
     const blocks = Array.isArray(log.blocks) ? log.blocks : [];
-    for (const b of blocks) {
-      const setsByMovement = b?.sets && typeof b.sets === "object" ? b.sets : null;
-      if (setsByMovement) {
-        for (const [mid, sets] of Object.entries(setsByMovement)) {
-          if (Array.isArray(sets) && sets.some(setDidSomething)) {
-            movementHas[mid] = true;
-          }
-        }
-      }
-
-      // Cardio: mark block IDs that have cardio dist+time
-      if (b?.id && b?.cardio) {
-        const dist = safeNumber(b.cardio.distanceKm);
-        const min = safeNumber(b.cardio.durationMin);
-        if (dist > 0 && min > 0) cardioHas[b.id] = true;
+   for (const b of blocks) {
+  const setsByMovement = b?.sets && typeof b.sets === "object" ? b.sets : null;
+  if (setsByMovement) {
+    for (const [mid, sets] of Object.entries(setsByMovement)) {
+      if (Array.isArray(sets) && sets.some(setDidSomething)) {
+        movementHas[mid] = true;
       }
     }
+  }
 
-    // Duration: mark block IDs with duration minutes
-if (b?.id && b?.duration) {
-  const mins = safeNumber(b.duration.minutes);
-  if (mins > 0) durationHas[b.id] = true;
-}
+  // Cardio: mark block IDs that have cardio dist+time
+  if (b?.id && b?.cardio) {
+    const dist = safeNumber(b.cardio.distanceKm);
+    const min = safeNumber(b.cardio.durationMin);
+    if (dist > 0 && min > 0) cardioHas[b.id] = true;
+  }
 
-// Tasks: mark individual task IDs that have been completed
-if (b?.id && b?.tasksDone && typeof b.tasksDone === "object") {
-  for (const [tid, val] of Object.entries(b.tasksDone)) {
-    if (val) taskHas[`${b.id}::${tid}`] = true;
+  // Duration: mark block IDs with duration minutes
+  if (b?.id && b?.duration) {
+    const mins = safeNumber(b.duration.minutes);
+    if (mins > 0) durationHas[b.id] = true;
+  }
+
+  // Tasks: mark individual task IDs that have been completed
+  if (b?.id && b?.tasksDone && typeof b.tasksDone === "object") {
+    for (const [tid, val] of Object.entries(b.tasksDone)) {
+      if (val) taskHas[`${b.id}::${tid}`] = true;
+    }
   }
 }
 
