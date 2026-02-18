@@ -2829,6 +2829,7 @@ rows.push({
   durationXp,
   tasksXp,
   dayCompleteXp,
+  dailyBonusXp,
   // Bonuses
   strengthProgressXp,
   cardioProgressXp,
@@ -3693,7 +3694,7 @@ function updateBlockLog(log, blockId, patch) {
   return { ...log, blocks: nextBlocks };
 }
   
-async function claimDailyBonus() {
+async function claimDailyBonus(e, fromEl = null) {
   const qualifies = isDayGreen(logForDay);
 
   if (!qualifies) {
@@ -3704,14 +3705,51 @@ async function claimDailyBonus() {
   }
   if (logForDay?.meta?.challengeClaimed) return;
 
-  const ctx = await ensureAudio();
+  // Mark claimed in the log (this is what drives the +15 XP in totals + ledger)
   const next = logForDay ? { ...logForDay } : blankLogForDay();
   next.meta = { ...(next.meta || {}), challengeClaimed: true };
   await saveLog(next);
 
-  setBonusPop(Date.now());
-  if (ctx) playBling(ctx, 6, victoryTheme);
+  // Epic claim FX (reuse badge claim overlay)
+  const rect = fromEl?.getBoundingClientRect ? fromEl.getBoundingClientRect() : null;
+  const confetti = Array.from({ length: 22 }).map((_, i) => ({
+    id: i,
+    x: Math.random() * 160 - 80,
+    y: Math.random() * 90 - 120,
+    r: Math.random() * 360,
+    d: 750 + Math.random() * 500,
+  }));
+
+  const xpFrom = safeNumber(xp);
+  const xpTo = xpFrom + 15;
+
+  playBuildUpSound();
+
+  setClaimModal({
+    kind: "badge",
+    stage: "shake",
+    title: "Daily bonus claimed!",
+    desc: "Nice one — +15 XP",
+    badgeKey: "daily_bonus_15",
+    emoji: "🎁",
+    xpAward: 15,
+    xpFrom,
+    xpTo,
+    fromRect: rect ? { x: rect.left, y: rect.top, w: rect.width, h: rect.height } : null,
+    confetti,
+  });
+
+  setTimeout(() => {
+    playRewardSound();
+    setClaimModal((prev) => (prev ? { ...prev, stage: "boom" } : prev));
+  }, 260);
+
+  // Force immediate XP recompute (ledger + totals) without needing a refresh
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 250);
 }
+
+
 
 async function resetDay() {
   await resetSelectedDayLog();
@@ -6251,14 +6289,20 @@ const targetInfo = buildTargetInfoForMovement({
                       Claim daily bonus <span className="muted">(15 XP)</span>
                     </div>
                     <div className="row">
-                      <label className="check">
-                        <input
-                          type="checkbox"
-                          checked={!!logForDay?.meta?.challengeClaimed}
-                          onChange={() => claimDailyBonus()}
-                        />
-                        Done
-                      </label>
+                      {(() => {
+                        const qualifies = isDayGreen(logForDay);
+                        const claimed = !!logForDay?.meta?.challengeClaimed;
+                        return (
+                          <button
+                            type="button"
+                            className={"btn " + (claimed ? "" : qualifies ? "primary" : "disabled")}
+                            disabled={claimed || !qualifies}
+                            onClick={(e) => claimDailyBonus(e, e.currentTarget)}
+                          >
+                            {claimed ? "Claimed" : "Claim"}
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                   <Challenge text="Complete today’s plan" done={isDayGreen(logForDay)} />
@@ -7643,7 +7687,7 @@ const targetInfo = buildTargetInfoForMovement({
         onClick={() => setClaimModal(null)}
       >
         {claimModal.kind === "badge" ? (
-          <div className="claimStage">
+          <div className={"claimStage" + (claimModal.stage ? " " + claimModal.stage : "")}>
             <button
               type="button"
               className="iconBtn claimClose"
@@ -8442,6 +8486,7 @@ function StyleTag() {
 }
 .claimBadge.shake{ animation: claimShake 260ms ease-in-out; }
 .claimBadge.boom{ animation: claimBoom 520ms cubic-bezier(.2,.95,.2,1); }
+.claimStage.shake{ animation: screenShake 260ms ease-in-out; }
 
 @keyframes claimShake{
   0%{transform:translateX(0) rotate(0)}
