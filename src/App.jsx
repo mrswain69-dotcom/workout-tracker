@@ -1426,14 +1426,44 @@ const BADGE_DEFS = [
   },
 ];
 
+
+function normaliseClaimedRewards(meta) {
+  // Supports legacy format: ["badge_key", ...]
+  // New format: [{ key: "badge_key", claimedAtYmd: "YYYY-MM-DD" }, ...]
+  const raw = Array.isArray(meta?.claimedRewards) ? meta.claimedRewards : [];
+  const out = [];
+  for (const item of raw) {
+    if (!item) continue;
+    if (typeof item === "string") {
+      out.push({ key: item, claimedAtYmd: null });
+    } else if (typeof item === "object" && typeof item.key === "string") {
+      out.push({ key: item.key, claimedAtYmd: typeof item.claimedAtYmd === "string" ? item.claimedAtYmd : null });
+    }
+  }
+  return out;
+}
+
 function computeClaimedRewardsXp(plan) {
-  const claimed = Array.isArray(plan?.meta?.claimedRewards) ? plan.meta.claimedRewards : [];
+  const claimed = normaliseClaimedRewards(plan?.meta);
   let sum = 0;
-  for (const key of claimed) {
-    const def = BADGE_DEFS.find((b) => b.key === key);
+  for (const c of claimed) {
+    const def = BADGE_DEFS.find((b) => b.key === c.key);
     if (def && def.xp) sum += safeNumber(def.xp);
   }
   return sum;
+}
+
+function computeClaimedRewardsXpByDate(plan) {
+  const claimed = normaliseClaimedRewards(plan?.meta);
+  const map = {}; // date => xp
+  for (const c of claimed) {
+    if (!c.claimedAtYmd) continue;
+    const def = BADGE_DEFS.find((b) => b.key === c.key);
+    const xp = def && def.xp ? safeNumber(def.xp) : 0;
+    if (!xp) continue;
+    map[c.claimedAtYmd] = (map[c.claimedAtYmd] || 0) + xp;
+  }
+  return map;
 }
 
 
@@ -1500,6 +1530,8 @@ export default function App() {
   const [copyDialog, setCopyDialog] = useState(null); // { blockId, days: string[] }
   const [rewardsSubTab, setRewardsSubTab] = useState("badges"); // "badges" | "avatars" | "shop" | "info"
   const [claimModal, setClaimModal] = useState(null); // { title, desc }
+  const [showXpLedger, setShowXpLedger] = useState(false);
+  const [lastClaimedKey, setLastClaimedKey] = useState("");
 
   // --- Rotating Motivation & Health tip (changes on tab switch) ---
 const MOTIVATION_QUOTES = [
@@ -2264,8 +2296,14 @@ if (data?.plan_json) {
   const xpToNextAvatar = nextAvatarAt - xp;
 
 // Rewards meta (stored in profile plan JSON so it syncs across devices)
-const claimedRewardsArr = Array.isArray(plan?.meta?.claimedRewards) ? plan.meta.claimedRewards : [];
-const claimedRewardsSet = useMemo(() => new Set(claimedRewardsArr), [claimedRewardsArr.join("|")]);
+const claimedRewardsNorm = useMemo(
+  () => normaliseClaimedRewards(plan?.meta),
+  [JSON.stringify(plan?.meta?.claimedRewards || [])]
+);
+const claimedRewardsSet = useMemo(
+  () => new Set((claimedRewardsNorm || []).map((c) => c.key)),
+  [claimedRewardsNorm]
+);
 
 const unlockedAvatarPacksArr = Array.isArray(plan?.meta?.unlockedAvatarPacks) ? plan.meta.unlockedAvatarPacks : [];
 const unlockedAvatarPacksSet = useMemo(() => new Set(unlockedAvatarPacksArr), [unlockedAvatarPacksArr.join("|")]);
@@ -2590,17 +2628,26 @@ const buildXpDebugRows = (records, plan) => {
     let customMin = 0;
     let tasksDone = 0;
 
-    let setsXp = 0;
-    let movementsXp = 0; // not used in V3 but kept for compatibility
-    let extraXp = 0;
+    
+let setsXp = 0;
+let movementsXp = 0; // not used in V3 but kept for compatibility
+let extraXp = 0;
 
-    let baseXp = 0;
-    let progressXp = 0;
-    let cardioProgressXp = 0;
+// XP buckets (so ledger can show exactly where XP came from)
+let strengthXp = 0;
+let cardioXp = 0;
+let durationXp = 0;
+let tasksXp = 0;
+let dayCompleteXp = 0;
 
-    let progressCount = 0;
+// Bonuses
+let strengthProgressXp = 0;
+let cardioProgressXp = 0;
 
-    // Walk all blocks once and accumulate stats / XP
+let progressCount = 0;
+
+// Walk all blocks once and accumulate stats / XP
+
     for (const block of blocks) {
       if (!block) continue;
 
@@ -2633,7 +2680,7 @@ const buildXpDebugRows = (records, plan) => {
           }
 
           const blockXp = xpForStrengthBlock(block);
-          baseXp += blockXp;
+          strengthXp += blockXp;
           setsXp += blockXp; // treat all base strength XP as "sets XP"
           break;
         }
@@ -2646,7 +2693,7 @@ const buildXpDebugRows = (records, plan) => {
           customMin += min;
 
           const blockXp = xpForCardioBlock(block);
-          baseXp += blockXp;
+          cardioXp += blockXp;
           break;
         }
 
@@ -2656,7 +2703,7 @@ const buildXpDebugRows = (records, plan) => {
           customMin += mins;
 
           const blockXp = xpForDurationBlock(block);
-          baseXp += blockXp;
+          durationXp += blockXp;
           break;
         }
 
@@ -2665,7 +2712,7 @@ const buildXpDebugRows = (records, plan) => {
           tasksDone += Object.values(done).filter(Boolean).length;
 
           const blockXp = xpForTasksBlock(block, plan);
-          baseXp += blockXp;
+          tasksXp += blockXp;
           break;
         }
 
@@ -2675,7 +2722,7 @@ const buildXpDebugRows = (records, plan) => {
     }
 
         if (progressCount > 0) {
-      progressXp = progressCount * XP_RULES.progression;
+      strengthProgressXp = progressCount * XP_RULES.progression;
     }
 
     // Cardio progression: compare today's summed cardio vs previous
@@ -2698,37 +2745,59 @@ const buildXpDebugRows = (records, plan) => {
       }
     }
 
-    const dayCompleteXp = completionBonusForLog(log);
+    dayCompleteXp = completionBonusForLog(log);
+
     const streakXp = streakXpByDate[date] || 0;
 
-    const baseXpWithProgress =
-      baseXp + progressXp + cardioProgressXp + extraXp + dayCompleteXp;
+const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(plan);
+const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
 
-    const totalXp = baseXpWithProgress + streakXp;
+const nonBonusXp = strengthXp + cardioXp + durationXp + tasksXp + dayCompleteXp;
+const progXp = strengthProgressXp + cardioProgressXp;
 
-    rows.push({
-      date,
-      weekday,
-      kind: "blocks",
-      complete,
-      baseXp: baseXpWithProgress,
-      bonus: dayCompleteXp,
-      streakXp,
-      oneOffDone: false,
-      oneOffXp: 0,
-      setsXp,
-      movementsXp,
-      dayCompleteXp,
-      progressXp,
-      cardioProgressXp,
-      extraXp,
-      tasksDone,
-      tasksXp: 0, // kept for compatibility; tasks XP is in baseXp
-      totalXp,
-      setsLogged,
-      cardioKm,
-      customMin,
-    });
+const totalXp = nonBonusXp + progXp + streakXp + badgeClaimXp;
+
+rows.push({
+  date,
+  weekday,
+  kind: "blocks",
+  complete,
+  // Totals
+  totalXp,
+  nonBonusXp,
+  // Base buckets
+  strengthXp,
+  cardioXp,
+  durationXp,
+  tasksXp,
+  dayCompleteXp,
+  // Bonuses
+  strengthProgressXp,
+  cardioProgressXp,
+  progXp,
+  streakXp,
+  badgeClaimXp,
+
+  // Kept for older bits of UI that expect these names
+  baseXp: nonBonusXp,
+  progressXp: strengthProgressXp,
+  cardioProgressXp,
+  extraXp: cardioXp, // legacy column used as "cardio" previously
+  bonus: dayCompleteXp,
+
+  oneOffDone: false,
+  oneOffXp: 0,
+
+  setsXp,
+  movementsXp,
+
+  tasksDone,
+  tasksXp_legacy: 0,
+
+  setsLogged,
+  cardioKm,
+  customMin,
+});
   }
 
   // newest first
@@ -2736,11 +2805,11 @@ const buildXpDebugRows = (records, plan) => {
   return rows;
 };
 
+
 const computeXpFromLogs = (records, plan) => {
   const rows = buildXpDebugRows(records, plan);
-  const logXp = rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
-  const rewardXp = computeClaimedRewardsXp(plan);
-  return logXp + rewardXp;
+  // rows already include badgeClaimXp per day (based on claim date)
+  return rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
 };
 
 useEffect(() => {
@@ -2931,15 +3000,44 @@ const todayPlanStatus = useMemo(() => {
     await upsertProfilePlan(family.id, activeProfileId, next);
   }
 
-  async function claimRewardKey(rewardKey) {
-    const currentClaimed = Array.isArray(plan?.meta?.claimedRewards)
-      ? plan.meta.claimedRewards
-      : [];
-    if (currentClaimed.includes(rewardKey)) return;
+  
 
-    const nextClaimed = [...currentClaimed, rewardKey];
-    await savePlanMetaNoPin({ claimedRewards: nextClaimed });
+
+function playRewardSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.08);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.14);
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 0.16);
+    o.onended = () => ctx.close();
+  } catch {
+    // ignore
   }
+}
+
+async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
+  const claimed = normaliseClaimedRewards(plan?.meta);
+  if (claimed.some((c) => c.key === rewardKey)) return;
+
+  const next = [
+    ...claimed,
+    { key: rewardKey, claimedAtYmd: typeof claimedAtYmd === "string" ? claimedAtYmd : null },
+  ];
+
+  // Store in meta (syncs across devices)
+  await savePlanMetaNoPin({ claimedRewards: next });
+}
 
     // ---------- V3 PLAN BLOCK EDIT HELPERS ----------
 
@@ -7120,7 +7218,7 @@ const targetInfo = buildTargetInfoForMovement({
               const status = claimed ? "claimed" : earned ? "claimable" : "locked";
 
               return (
-                <div key={b.key} className={"panel badgeCard " + status}>
+                <div key={b.key} className={"panel badgeCard " + status + (lastClaimedKey === b.key ? " flash" : "")}>
                   <div className="rowBetween">
                     <div className="row" style={{ gap: 10 }}>
                       <div className="badgeIcon" aria-hidden="true">
@@ -7138,7 +7236,11 @@ const targetInfo = buildTargetInfoForMovement({
                           type="button"
                           className="btn"
                           onClick={async () => {
-                            await claimRewardKey(b.key);
+                            playRewardSound();
+                            await claimRewardKey(b.key, getTodayYMD());
+                            setLastClaimedKey(b.key);
+                            setTimeout(() => setLastClaimedKey(""), 600);
+
                             setClaimModal({
                               title: "Badge claimed!",
                               desc: `${b.title} unlocked. +${b.xp} XP`,
@@ -7302,41 +7404,58 @@ const targetInfo = buildTargetInfoForMovement({
               <div>
                 <div className="h3">XP Ledger</div>
                 <div className="muted mt4">
-                  This is the XP “receipt”. It shows XP earned per day from logs, plus claimed badge XP.
+                  This is the XP “receipt”. It shows XP earned per day from logs. Badge XP appears on the day you claim it.
                 </div>
               </div>
-              <div className="pill">Claimed badge XP: +{computeClaimedRewardsXp(plan)}</div>
+              <button type="button" className="btn" onClick={() => setShowXpLedger(v => !v)}>
+                {showXpLedger ? "Hide XP ledger" : "Show XP ledger"}
+              </button>
             </div>
 
+            {showXpLedger && (
             <div className="mt12" style={{ maxHeight: 360, overflow: "auto" }}>
               <table className="table">
-                <thead>
+                
+<thead>
                   <tr>
                     <th>Date</th>
                     <th style={{ textAlign: "right" }}>Total</th>
-                    <th style={{ textAlign: "right" }}>Base</th>
-                    <th style={{ textAlign: "right" }}>Prog</th>
+                    <th style={{ textAlign: "right" }}>Non‑bonus</th>
+                    <th style={{ textAlign: "right" }}>Strength</th>
                     <th style={{ textAlign: "right" }}>Cardio</th>
+                    <th style={{ textAlign: "right" }}>Duration</th>
+                    <th style={{ textAlign: "right" }}>Tasks</th>
+                    <th style={{ textAlign: "right" }}>Day</th>
+                    <th style={{ textAlign: "right" }}>Prog</th>
                     <th style={{ textAlign: "right" }}>Streak</th>
+                    <th style={{ textAlign: "right" }}>Badges</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(xpDebugRows || []).slice(0, 21).map((r) => (
-                    <tr key={r.date}>
+                    
+<tr key={r.date}>
                       <td>{r.date}</td>
                       <td style={{ textAlign: "right" }}><b>{r.totalXp || 0}</b></td>
-                      <td style={{ textAlign: "right" }}>{r.baseXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{(r.progressXp || 0) + (r.cardioProgressXp || 0)}</td>
-                      <td style={{ textAlign: "right" }}>{r.extraXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.nonBonusXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.strengthXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.cardioXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.durationXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.tasksXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.dayCompleteXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.progXp || 0}</td>
                       <td style={{ textAlign: "right" }}>{r.streakXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.badgeClaimXp || 0}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            )}
+
 
             <div className="mini muted mt8">
-              Tip: if something looks off, open that date in the Log tab and check what was marked complete or cancelled.
+              Tip: “Non‑bonus” = Strength + Cardio + Duration + Tasks + Day. Bonuses are Prog, Streak and Badges.
             </div>
           </div>
 
@@ -7368,7 +7487,7 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
 
           <div className="panel mt12">
-            <div className="bigNumber" style={{ textAlign: "center" }}>
+            <div className="bigNumber rewardBoom" style={{ textAlign: "center" }}>
               🎉
             </div>
             <div className="mini muted mt8" style={{ textAlign: "center" }}>
@@ -7996,7 +8115,13 @@ function StyleTag() {
 .badgeCard.claimable:hover{transform:translateY(-1px)}
 .badgeCard.locked{opacity:.55;filter:grayscale(1)}
 .badgeCard.claimed{opacity:1}
-.badgeIcon{font-size:22px;line-height:1}
+.badgeIcon{font-size:44px;line-height:1}
+.badgeCard .h3{font-size:16px}
+.badgeCard .mini{font-size:12px}
+.badgeCard.flash{animation:rewardPop .55s ease}
+@keyframes rewardPop{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(1)}}
+.rewardBoom{animation:boom .6s ease}
+@keyframes boom{0%{transform:scale(.6);opacity:.2}50%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
 .pill{
   padding:6px 10px;border-radius:999px;
   font-size:12px;background: rgba(0,0,0,0.18);
