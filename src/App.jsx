@@ -48,6 +48,10 @@ function weekdayFromYMD(ymd) {
   }
 }
 
+function getWeekdayKey(ymd) {
+  return weekdayFromYMD(ymd);
+}
+
 function getTodayYMD() {
   const d = new Date();
   const y = d.getFullYear();
@@ -2863,7 +2867,7 @@ rows.push({
     if (_existingDates.has(d)) continue;
     rows.push({
       date: d,
-      weekday: getWeekdayKey(d),
+      weekday: weekdayFromYMD(d),
       kind: "badge_claim",
       complete: false,
       totalXp: xp,
