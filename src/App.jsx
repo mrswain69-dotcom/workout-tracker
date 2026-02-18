@@ -1669,6 +1669,9 @@ useEffect(() => {
   }, [activeProfileId]);
 
   const [plan, setPlan] = useState(null);
+  
+  // Keep a ref to the latest plan (used by async reward/XP recompute callbacks)
+useEffect(() => { planRef.current = plan; }, [plan]);
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
   const selectedWeekday = weekdayFromYMD(selectedDate);
@@ -1754,8 +1757,6 @@ const [historyCardioUnit, setHistoryCardioUnit] = useState("km");
   const [soundOn, setSoundOn] = useState(true);
   const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
   const [xp, setXp] = useState(0);
-const planRef = useRef(plan);
-useEffect(() => { planRef.current = plan; }, [plan]);
 
 useEffect(() => {
   if (!claimModal || claimModal.kind !== "badge") return;
@@ -7345,6 +7346,7 @@ const targetInfo = buildTargetInfoForMovement({
 
                     <div className="badgeDesc">{b.desc}</div>
                   </div>
+                );
             })}
           </div>
 
