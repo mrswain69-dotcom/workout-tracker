@@ -1784,6 +1784,32 @@ useEffect(() => {
   const [showXpRules, setShowXpRules] = useState(false);
 
   const audioCtxRef = useRef(null);
+  function playBuildUpSound() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = audioCtxRef.current || new AudioContext();
+    audioCtxRef.current = ctx;
+
+    const now = ctx.currentTime;
+
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+
+    o.type = "sine";
+    o.frequency.setValueAtTime(220, now);
+    o.frequency.exponentialRampToValueAtTime(520, now + 0.22);
+
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.12, now + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+
+    o.connect(g);
+    g.connect(ctx.destination);
+
+    o.start(now);
+    o.stop(now + 0.26);
+  } catch {}
+}
   // Draft inputs for one-off activities on the Log tab
   const [oneOffNameDraft, setOneOffNameDraft] = useState("");
   const [oneOffKindDraft, setOneOffKindDraft] = useState("custom");
@@ -7302,7 +7328,7 @@ const targetInfo = buildTargetInfoForMovement({
                               const xpFrom = xp;
                               const xpTo = xpFrom + safeNumber(b.xp);
 
-                              playRewardSound();
+                              playBuildUpSound();
                               await claimRewardKey(b.key, getTodayYMD());
 
                               // Force immediate XP recompute (so the counter/ledger updates without refresh)
@@ -7322,6 +7348,7 @@ const targetInfo = buildTargetInfoForMovement({
 
                               setClaimModal({
                                 kind: "badge",
+                                stage: "shake",
                                 title: "Badge claimed!",
                                 desc: `${b.title} unlocked`,
                                 badgeKey: b.key,
@@ -7334,6 +7361,10 @@ const targetInfo = buildTargetInfoForMovement({
                                   : null,
                                 confetti,
                               });
+                                setTimeout(() => {
+                                playRewardSound(); // boom sound at the right moment
+                                setClaimModal((prev) => (prev ? { ...prev, stage: "boom" } : prev));
+                              }, 260);
                             }}
                           >
                             Claim
@@ -7562,7 +7593,7 @@ const targetInfo = buildTargetInfoForMovement({
         onClick={() => setClaimModal(null)}
       >
         {claimModal.kind === "badge" ? (
-          <div className="claimStage" onClick={(e) => e.stopPropagation()}>
+          <div className="claimStage">
             <button
               type="button"
               className="iconBtn claimClose"
@@ -7591,15 +7622,10 @@ const targetInfo = buildTargetInfoForMovement({
               ))}
             </div>
 
-            <div
-              className="claimBadgeFly"
-              aria-hidden="true"
-              style={{
-                left: claimModal.fromRect ? claimModal.fromRect.x + claimModal.fromRect.w / 2 : "50%",
-                top: claimModal.fromRect ? claimModal.fromRect.y + claimModal.fromRect.h / 2 : "45%",
-              }}
-            >
-              <div className="claimBadge">{claimModal.emoji}</div>
+            <div className="claimBadgeFly" aria-hidden="true">
+              <div className={"claimBadge" + (claimModal.stage ? " " + claimModal.stage : "")}>
+  {claimModal.emoji}
+</div>
             </div>
 
             <div className="claimCopy">
@@ -8363,6 +8389,23 @@ function StyleTag() {
   border: 1px solid rgba(255,255,255,0.22);
   box-shadow: 0 20px 70px rgba(0,0,0,0.35);
   backdrop-filter: blur(6px);
+}
+.claimBadge.shake{ animation: claimShake 260ms ease-in-out; }
+.claimBadge.boom{ animation: claimBoom 520ms cubic-bezier(.2,.95,.2,1); }
+
+@keyframes claimShake{
+  0%{transform:translateX(0) rotate(0)}
+  20%{transform:translateX(-6px) rotate(-4deg)}
+  40%{transform:translateX(6px) rotate(4deg)}
+  60%{transform:translateX(-4px) rotate(-3deg)}
+  80%{transform:translateX(4px) rotate(3deg)}
+  100%{transform:translateX(0) rotate(0)}
+}
+
+@keyframes claimBoom{
+  0%{transform:scale(.6)}
+  55%{transform:scale(1.18)}
+  100%{transform:scale(1)}
 }
 @keyframes badgeFlyIn{
   0%{transform:translate(-50%,-50%) scale(0.6)}
