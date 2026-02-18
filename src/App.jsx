@@ -2808,11 +2808,12 @@ let progressCount = 0;
 
 const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(plan);
 const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
+const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;
 
 const nonBonusXp = strengthXp + cardioXp + durationXp + tasksXp + dayCompleteXp;
 const progXp = strengthProgressXp + cardioProgressXp;
 
-const totalXp = nonBonusXp + progXp + streakXp + badgeClaimXp;
+const totalXp = nonBonusXp + progXp + streakXp + dailyBonusXp + badgeClaimXp;
 
 rows.push({
   date,
@@ -2877,6 +2878,7 @@ rows.push({
       durationXp: 0,
       tasksXp: 0,
       dayCompleteXp: 0,
+      dailyBonusXp: 0,
       strengthProgressXp: 0,
       cardioProgressXp: 0,
       progXp: 0,
@@ -7594,6 +7596,7 @@ const targetInfo = buildTargetInfoForMovement({
                     <th style={{ textAlign: "right" }}>Duration</th>
                     <th style={{ textAlign: "right" }}>Tasks</th>
                     <th style={{ textAlign: "right" }}>Day</th>
+                    <th style={{ textAlign: "right" }}>Daily</th>
                     <th style={{ textAlign: "right" }}>Prog</th>
                     <th style={{ textAlign: "right" }}>Streak</th>
                     <th style={{ textAlign: "right" }}>Badges</th>
@@ -7611,6 +7614,7 @@ const targetInfo = buildTargetInfoForMovement({
                       <td style={{ textAlign: "right" }}>{r.durationXp || 0}</td>
                       <td style={{ textAlign: "right" }}>{r.tasksXp || 0}</td>
                       <td style={{ textAlign: "right" }}>{r.dayCompleteXp || 0}</td>
+                      <td style={{ textAlign: "right" }}>{r.dailyBonusXp || 0}</td>
                       <td style={{ textAlign: "right" }}>{r.progXp || 0}</td>
                       <td style={{ textAlign: "right" }}>{r.streakXp || 0}</td>
                       <td style={{ textAlign: "right" }}>{r.badgeClaimXp || 0}</td>
@@ -7623,7 +7627,7 @@ const targetInfo = buildTargetInfoForMovement({
 
 
             <div className="mini muted mt8">
-              Tip: “Non‑bonus” = Strength + Cardio + Duration + Tasks + Day. Bonuses are Prog, Streak and Badges.
+              Tip: “Non‑bonus” = Strength + Cardio + Duration + Tasks + Day. Bonuses are Daily, Prog, Streak and Badges.
             </div>
           </div>
 
