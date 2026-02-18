@@ -1530,6 +1530,8 @@ export default function App() {
   const [copyDialog, setCopyDialog] = useState(null); // { blockId, days: string[] }
   const [rewardsSubTab, setRewardsSubTab] = useState("badges"); // "badges" | "avatars" | "shop" | "info"
   const [claimModal, setClaimModal] = useState(null); // { title, desc }
+const [claimFx, setClaimFx] = useState(null); // reserved for future
+const [claimXpDisplay, setClaimXpDisplay] = useState(null);
   const [showXpLedger, setShowXpLedger] = useState(false);
   const [lastClaimedKey, setLastClaimedKey] = useState("");
 
@@ -1752,6 +1754,30 @@ const [historyCardioUnit, setHistoryCardioUnit] = useState("km");
   const [soundOn, setSoundOn] = useState(true);
   const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
   const [xp, setXp] = useState(0);
+const planRef = useRef(plan);
+useEffect(() => { planRef.current = plan; }, [plan]);
+
+useEffect(() => {
+  if (!claimModal || claimModal.kind !== "badge") return;
+  const from = safeNumber(claimModal.xpFrom);
+  const to = safeNumber(claimModal.xpTo);
+  setClaimXpDisplay(from);
+
+  const start = performance.now();
+  const dur = 900;
+  let raf = 0;
+
+  const tick = (t) => {
+    const p = Math.min(1, (t - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(from + (to - from) * eased);
+    setClaimXpDisplay(val);
+    if (p < 1) raf = requestAnimationFrame(tick);
+  };
+
+  raf = requestAnimationFrame(tick);
+  return () => cancelAnimationFrame(raf);
+}, [claimModal]);
   const [bonusPop, setBonusPop] = useState(0);
   const [showXpLog, setShowXpLog] = useState(false);
   const [showXpRules, setShowXpRules] = useState(false);
@@ -3008,23 +3034,52 @@ function playRewardSound() {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = "triangle";
-    o.frequency.setValueAtTime(880, ctx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.08);
-    g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.14);
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.start();
-    o.stop(ctx.currentTime + 0.16);
-    o.onended = () => ctx.close();
+
+    const now = ctx.currentTime;
+
+    // Main "pop"
+    const o1 = ctx.createOscillator();
+    const g1 = ctx.createGain();
+    o1.type = "triangle";
+    o1.frequency.setValueAtTime(520, now);
+    o1.frequency.exponentialRampToValueAtTime(1040, now + 0.10);
+    g1.gain.setValueAtTime(0.0001, now);
+    g1.gain.exponentialRampToValueAtTime(0.22, now + 0.02);
+    g1.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+    o1.connect(g1);
+    g1.connect(ctx.destination);
+
+    // Sparkle "ding"
+    const o2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    o2.type = "sine";
+    o2.frequency.setValueAtTime(1560, now + 0.02);
+    o2.frequency.exponentialRampToValueAtTime(2200, now + 0.18);
+    g2.gain.setValueAtTime(0.0001, now + 0.02);
+    g2.gain.exponentialRampToValueAtTime(0.12, now + 0.06);
+    g2.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+    o2.connect(g2);
+    g2.connect(ctx.destination);
+
+    o1.start(now);
+    o2.start(now);
+
+    const stopAt = now + 0.28;
+    o1.stop(stopAt);
+    o2.stop(stopAt);
+
+    let ended = 0;
+    const done = () => {
+      ended += 1;
+      if (ended >= 2) ctx.close();
+    };
+    o1.onended = done;
+    o2.onended = done;
   } catch {
     // ignore
   }
 }
+
 
 async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
   const claimed = normaliseClaimedRewards(plan?.meta);
@@ -7218,44 +7273,78 @@ const targetInfo = buildTargetInfoForMovement({
               const status = claimed ? "claimed" : earned ? "claimable" : "locked";
 
               return (
-                <div key={b.key} className={"panel badgeCard " + status + (lastClaimedKey === b.key ? " flash" : "")}>
-                  <div className="rowBetween">
-                    <div className="row" style={{ gap: 10 }}>
-                      <div className="badgeIcon" aria-hidden="true">
+                <div
+                    key={b.key}
+                    className={
+                      "panel badgeCard " +
+                      status +
+                      (lastClaimedKey === b.key ? " flash" : "") +
+                      (status === "claimed" ? " lit" : "")
+                    }
+                  >
+                    <div className="badgeTitle">{b.title}</div>
+
+                    <div className="badgeMid">
+                      <div className={"badgeBig " + (status === "claimed" ? "on" : "off")} aria-hidden="true">
                         {b.emoji}
                       </div>
-                      <div>
-                        <div className="h3">{b.title}</div>
-                        <div className="mini muted mt4">{b.desc}</div>
+
+                      <div className="badgeAction">
+                        {status === "claimable" ? (
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={async (e) => {
+                              const card = e.currentTarget.closest(".badgeCard");
+                              const rect = card ? card.getBoundingClientRect() : null;
+
+                              const xpFrom = xp;
+                              const xpTo = xpFrom + safeNumber(b.xp);
+
+                              playRewardSound();
+                              await claimRewardKey(b.key, getTodayYMD());
+
+                              // Force immediate XP recompute (so the counter/ledger updates without refresh)
+                              setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
+                              setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
+
+                              setLastClaimedKey(b.key);
+                              setTimeout(() => setLastClaimedKey(""), 900);
+
+                              const confetti = Array.from({ length: 18 }).map((_, i) => ({
+                                id: i,
+                                x: Math.random() * 140 - 70,
+                                y: Math.random() * 80 - 110,
+                                r: Math.random() * 360,
+                                d: 700 + Math.random() * 450,
+                              }));
+
+                              setClaimModal({
+                                kind: "badge",
+                                title: "Badge claimed!",
+                                desc: `${b.title} unlocked`,
+                                badgeKey: b.key,
+                                emoji: b.emoji,
+                                xpAward: safeNumber(b.xp),
+                                xpFrom,
+                                xpTo,
+                                fromRect: rect
+                                  ? { x: rect.left, y: rect.top, w: rect.width, h: rect.height }
+                                  : null,
+                                confetti,
+                              });
+                            }}
+                          >
+                            Claim
+                          </button>
+                        ) : (
+                          <div className="pill">{badgeStatusLabel(status)}</div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="row" style={{ gap: 8 }}>
-                      {status === "claimable" ? (
-                        <button
-                          type="button"
-                          className="btn"
-                          onClick={async () => {
-                            playRewardSound();
-                            await claimRewardKey(b.key, getTodayYMD());
-                            setLastClaimedKey(b.key);
-                            setTimeout(() => setLastClaimedKey(""), 600);
-
-                            setClaimModal({
-                              title: "Badge claimed!",
-                              desc: `${b.title} unlocked. +${b.xp} XP`,
-                            });
-                          }}
-                        >
-                          Claim
-                        </button>
-                      ) : (
-                        <div className="pill">{badgeStatusLabel(status)}</div>
-                      )}
-                    </div>
+                    <div className="badgeDesc">{b.desc}</div>
                   </div>
-                </div>
-              );
             })}
           </div>
 
@@ -7465,36 +7554,90 @@ const targetInfo = buildTargetInfoForMovement({
 
     {claimModal && (
       <div
-        className="historyOverlay"
+        className={"claimOverlay" + (claimModal.kind === "badge" ? " claimOverlayBadge" : "")}
         role="dialog"
         aria-modal="true"
         onClick={() => setClaimModal(null)}
       >
-        <div className="historyModal" onClick={(e) => e.stopPropagation()}>
-          <div className="historyModalTop">
-            <div>
-              <div className="historyTitle">{claimModal.title}</div>
-              <div className="muted small mt4">{claimModal.desc}</div>
-            </div>
+        {claimModal.kind === "badge" ? (
+          <div className="claimStage" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
-              className="iconBtn"
+              className="iconBtn claimClose"
               onClick={() => setClaimModal(null)}
               aria-label="Close"
             >
               ✕
             </button>
-          </div>
 
-          <div className="panel mt12">
-            <div className="bigNumber rewardBoom" style={{ textAlign: "center" }}>
-              🎉
+            <div className="claimDim" />
+            <div className="claimFlash" />
+            <div className="claimRing" />
+
+            <div className="claimConfetti" aria-hidden="true">
+              {(claimModal.confetti || []).map((p) => (
+                <div
+                  key={p.id}
+                  className="confetti"
+                  style={{
+                    "--dx": `${p.x}px`,
+                    "--dy": `${p.y}px`,
+                    "--rot": `${p.r}deg`,
+                    "--dur": `${p.d}ms`,
+                  }}
+                />
+              ))}
             </div>
-            <div className="mini muted mt8" style={{ textAlign: "center" }}>
-              Nice work. Keep going for the next one.
+
+            <div
+              className="claimBadgeFly"
+              aria-hidden="true"
+              style={{
+                left: claimModal.fromRect ? claimModal.fromRect.x + claimModal.fromRect.w / 2 : "50%",
+                top: claimModal.fromRect ? claimModal.fromRect.y + claimModal.fromRect.h / 2 : "45%",
+              }}
+            >
+              <div className="claimBadge">{claimModal.emoji}</div>
+            </div>
+
+            <div className="claimCopy">
+              <div className="claimTitle">{claimModal.title}</div>
+              <div className="claimSub">{claimModal.desc}</div>
+
+              <div className="claimXpRow">
+                <div className="claimXpPlus">+{safeNumber(claimModal.xpAward)} XP</div>
+                <div className="claimXpTotal">
+                  XP: <span className="mono">{claimXpDisplay ?? safeNumber(claimModal.xpTo) ?? xp}</span>
+                </div>
+              </div>
+
+              <div className="mini muted mt8">Tap anywhere to close.</div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="historyModal" onClick={(e) => e.stopPropagation()}>
+            <div className="historyModalTop">
+              <div>
+                <div className="historyTitle">{claimModal.title}</div>
+                <div className="muted small mt4">{claimModal.desc}</div>
+              </div>
+              <button
+                type="button"
+                className="iconBtn"
+                onClick={() => setClaimModal(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="panel mt12">
+              <div className="bigNumber rewardBoom" style={{ textAlign: "center" }}>
+                🎉
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )}
   </div>
@@ -8111,22 +8254,173 @@ function StyleTag() {
   border: 1px solid rgba(255,255,255,0.15);
   font-size:16px;
 }
-.badgeCard{transition:transform .12s ease}
+
+/* Badge cards (kids-first: big badge, small text) */
+.badgeCard{transition:transform .12s ease; display:flex; flex-direction:column; gap:10px}
 .badgeCard.claimable:hover{transform:translateY(-1px)}
-.badgeCard.locked{opacity:.55;filter:grayscale(1)}
-.badgeCard.claimed{opacity:1}
-.badgeIcon{font-size:44px;line-height:1}
-.badgeCard .h3{font-size:16px}
-.badgeCard .mini{font-size:12px}
-.badgeCard.flash{animation:rewardPop .55s ease}
-@keyframes rewardPop{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(1)}}
-.rewardBoom{animation:boom .6s ease}
-@keyframes boom{0%{transform:scale(.6);opacity:.2}50%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
-.pill{
-  padding:6px 10px;border-radius:999px;
-  font-size:12px;background: rgba(0,0,0,0.18);
-  border: 1px solid rgba(255,255,255,0.12);
+.badgeTitle{font-weight:800; font-size:16px}
+.badgeMid{display:flex; align-items:center; justify-content:space-between; gap:14px}
+.badgeAction{display:flex; align-items:center; justify-content:flex-end; min-width:88px}
+.badgeBig{
+  width:86px;height:86px;border-radius:22px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:50px; line-height:1;
+  background: rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.08);
+  position:relative;
+  overflow:hidden;
 }
+.badgeBig.off{opacity:.22; filter:saturate(0) contrast(0.9) brightness(1.05)}
+.badgeCard.claimable .badgeBig.off{opacity:.45}
+.badgeCard.locked .badgeBig.off{opacity:.18}
+.badgeBig.on{
+  opacity:1;
+  filter:none;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.35) inset, 0 10px 30px rgba(0,0,0,0.08);
+}
+.badgeDesc{
+  width:100%;
+  background: rgba(0,0,0,0.04);
+  border:1px solid rgba(0,0,0,0.06);
+  border-radius:14px;
+  padding:10px 12px;
+  font-size:12px;
+  color: rgba(0,0,0,0.65);
+}
+
+/* "Ignite" flash on the badge card */
+.badgeCard.flash{animation:badgePop .85s cubic-bezier(.2,.9,.2,1)}
+.badgeCard.flash .badgeBig{animation:badgeShine .9s ease}
+@keyframes badgePop{
+  0%{transform:scale(1)}
+  22%{transform:scale(1.04) rotate(-1deg)}
+  45%{transform:scale(0.99) rotate(0.5deg)}
+  100%{transform:scale(1)}
+}
+@keyframes badgeShine{
+  0%{filter:brightness(1)}
+  30%{filter:brightness(1.35)}
+  100%{filter:brightness(1)}
+}
+
+/* Epic claim overlay */
+.claimOverlay{
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  z-index:2000;
+}
+.claimOverlayBadge{cursor:pointer}
+.claimStage{position:absolute; inset:0}
+.claimDim{
+  position:absolute; inset:0;
+  background: rgba(0,0,0,0.42);
+  animation:dimIn .22s ease forwards;
+}
+@keyframes dimIn{from{opacity:0}to{opacity:1}}
+.claimFlash{
+  position:absolute; inset:0;
+  background: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.65), rgba(255,255,255,0) 55%);
+  opacity:0;
+  animation:flashPulse .9s ease forwards;
+}
+@keyframes flashPulse{
+  0%{opacity:0}
+  18%{opacity:1}
+  55%{opacity:.25}
+  100%{opacity:0}
+}
+.claimRing{
+  position:absolute;
+  left:50%; top:45%;
+  width:18px; height:18px;
+  border-radius:999px;
+  border: 3px solid rgba(255,255,255,0.9);
+  transform:translate(-50%,-50%) scale(0.4);
+  opacity:0;
+  animation:ringOut .9s ease forwards;
+}
+@keyframes ringOut{
+  0%{opacity:0; transform:translate(-50%,-50%) scale(0.4)}
+  18%{opacity:1}
+  100%{opacity:0; transform:translate(-50%,-50%) scale(26)}
+}
+
+.claimBadgeFly{
+  position:fixed;
+  transform:translate(-50%,-50%);
+  animation:badgeFlyIn 0.95s cubic-bezier(.2,.95,.2,1) forwards;
+  pointer-events:none;
+  left:50%; top:45%;
+}
+.claimBadge{
+  width:130px; height:130px;
+  border-radius:34px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:78px; line-height:1;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 20px 70px rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+}
+@keyframes badgeFlyIn{
+  0%{transform:translate(-50%,-50%) scale(0.6)}
+  35%{transform:translate(-50%,-50%) scale(1.2)}
+  60%{transform:translate(-50%,-50%) scale(1)}
+  100%{transform:translate(-50%,-50%) scale(1)}
+}
+
+.claimConfetti{position:absolute; inset:0; pointer-events:none}
+.confetti{
+  position:absolute;
+  left:50%; top:45%;
+  width:10px; height:14px;
+  border-radius:3px;
+  background: rgba(255,255,255,0.9);
+  transform:translate(-50%,-50%);
+  animation:confettiFly var(--dur) ease-out forwards;
+  opacity:0.95;
+}
+@keyframes confettiFly{
+  0%{transform:translate(-50%,-50%) rotate(0deg) scale(0.9); opacity:1}
+  100%{transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(0.6); opacity:0}
+}
+
+.claimCopy{
+  position:fixed;
+  left:50%; top:68%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  color:white;
+  width:min(520px, calc(100vw - 28px));
+  animation:copyIn .45s ease forwards;
+}
+@keyframes copyIn{from{opacity:0; transform:translate(-50%,-50%) translateY(10px)}to{opacity:1; transform:translate(-50%,-50%) translateY(0)}}
+.claimTitle{font-size:26px; font-weight:900; letter-spacing:0.2px}
+.claimSub{margin-top:6px; font-size:14px; opacity:0.9}
+.claimXpRow{margin-top:14px; display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap}
+.claimXpPlus{
+  padding:10px 14px;
+  border-radius:999px;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.25);
+  font-weight:800;
+}
+.claimXpTotal{
+  padding:10px 14px;
+  border-radius:999px;
+  background: rgba(0,0,0,0.24);
+  border: 1px solid rgba(255,255,255,0.18);
+  font-weight:800;
+}
+.claimClose{
+  position:fixed;
+  right:18px; top:18px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: white;
+}
+
+/* avatar picker */
 .avatarPick{
   min-width:44px;height:44px;border-radius:14px;
   display:inline-flex;align-items:center;justify-content:center;
@@ -8138,6 +8432,7 @@ function StyleTag() {
   border:1px solid rgba(255,255,255,0.35);
   background: rgba(255,255,255,0.08);
 }
+
 
       .page{min-height:100vh;background:#f8fafc}
       .wrap{max-width:1200px;margin:0 auto;padding:16px}
