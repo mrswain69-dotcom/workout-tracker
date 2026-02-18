@@ -2853,7 +2853,49 @@ rows.push({
 });
   }
 
-  // newest first
+  
+  // Add synthetic rows for badge-claims on days with no log record,
+  // so XP totals and the ledger still reflect the claim immediately.
+  const _claimedBadgeXpByDateAll = computeClaimedRewardsXpByDate(plan);
+  const _existingDates = new Set(rows.map((r) => r.date));
+  for (const [d, xp] of Object.entries(_claimedBadgeXpByDateAll)) {
+    if (!xp) continue;
+    if (_existingDates.has(d)) continue;
+    rows.push({
+      date: d,
+      weekday: getWeekdayKey(d),
+      kind: "badge_claim",
+      complete: false,
+      totalXp: xp,
+      nonBonusXp: 0,
+      strengthXp: 0,
+      cardioXp: 0,
+      durationXp: 0,
+      tasksXp: 0,
+      dayCompleteXp: 0,
+      strengthProgressXp: 0,
+      cardioProgressXp: 0,
+      progXp: 0,
+      streakXp: 0,
+      badgeClaimXp: xp,
+      // legacy fields
+      baseXp: 0,
+      progressXp: 0,
+      extraXp: 0,
+      bonus: 0,
+      oneOffDone: false,
+      oneOffXp: 0,
+      setsXp: 0,
+      movementsXp: 0,
+      tasksDone: 0,
+      tasksXp_legacy: 0,
+      setsLogged: 0,
+      cardioKm: 0,
+      customMin: 0,
+    });
+  }
+
+// newest first
   rows.sort((a, b) => (a.date < b.date ? 1 : -1));
   return rows;
 };
@@ -8647,6 +8689,8 @@ function StyleTag() {
       }
       .notes{grid-column:1/-1}
       .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+      @media(max-width:720px){.tabs{overflow-x:auto;-webkit-overflow-scrolling:touch} .tabs::-webkit-scrollbar{display:none}}
       .grid3{display:grid;grid-template-columns:1fr;gap:10px}
       @media(min-width:900px){.grid3{grid-template-columns:1fr 1fr 1fr}}
       .stat{border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:12px}
