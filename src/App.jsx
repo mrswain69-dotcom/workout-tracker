@@ -2464,6 +2464,37 @@ function countCompletedSetsInBlock(block) {
   return count;
 }
 
+function playSparkleSound() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = audioCtxRef.current || new AudioContext();
+    audioCtxRef.current = ctx;
+
+    const now = ctx.currentTime;
+
+    // A quick cluster of high "sparkle" pings
+    const freqs = [880, 1046.5, 1318.5, 1568];
+    freqs.forEach((f, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+
+      o.type = "triangle";
+      o.frequency.setValueAtTime(f, now + i * 0.03);
+
+      g.gain.setValueAtTime(0.0001, now + i * 0.03);
+      g.gain.exponentialRampToValueAtTime(0.08, now + i * 0.03 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.03 + 0.12);
+
+      o.connect(g);
+      g.connect(ctx.destination);
+
+      o.start(now + i * 0.03);
+      o.stop(now + i * 0.03 + 0.14);
+    });
+  } catch {}
+}
+
+
 function blockHasData(block) {
   if (!block) return false;
   const typeId = block.typeId;
@@ -2829,7 +2860,6 @@ rows.push({
   durationXp,
   tasksXp,
   dayCompleteXp,
-  dailyBonusXp,
   // Bonuses
   strengthProgressXp,
   cardioProgressXp,
@@ -3694,7 +3724,7 @@ function updateBlockLog(log, blockId, patch) {
   return { ...log, blocks: nextBlocks };
 }
   
-async function claimDailyBonus(e, fromEl = null) {
+async function claimDailyBonus(e, anchorEl) {
   const qualifies = isDayGreen(logForDay);
 
   if (!qualifies) {
@@ -3705,31 +3735,34 @@ async function claimDailyBonus(e, fromEl = null) {
   }
   if (logForDay?.meta?.challengeClaimed) return;
 
-  // Mark claimed in the log (this is what drives the +15 XP in totals + ledger)
-  const next = logForDay ? { ...logForDay } : blankLogForDay();
-  next.meta = { ...(next.meta || {}), challengeClaimed: true };
-  await saveLog(next);
+  const rect = anchorEl ? anchorEl.getBoundingClientRect() : null;
 
-  // Epic claim FX (reuse badge claim overlay)
-  const rect = fromEl?.getBoundingClientRect ? fromEl.getBoundingClientRect() : null;
-  const confetti = Array.from({ length: 22 }).map((_, i) => ({
-    id: i,
-    x: Math.random() * 160 - 80,
-    y: Math.random() * 90 - 120,
-    r: Math.random() * 360,
-    d: 750 + Math.random() * 500,
-  }));
-
-  const xpFrom = safeNumber(xp);
+  const xpFrom = xp;
   const xpTo = xpFrom + 15;
 
   playBuildUpSound();
 
+  const next = logForDay ? { ...logForDay } : blankLogForDay();
+  next.meta = { ...(next.meta || {}), challengeClaimed: true };
+  await saveLog(next);
+
+  // Force immediate XP recompute (so the counter/ledger updates without refresh)
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
+
+  const confetti = Array.from({ length: 22 }).map((_, i) => ({
+    id: i,
+    x: Math.random() * 160 - 80,
+    y: Math.random() * 95 - 120,
+    r: Math.random() * 360,
+    d: 750 + Math.random() * 520,
+  }));
+
   setClaimModal({
     kind: "badge",
     stage: "shake",
-    title: "Daily bonus claimed!",
-    desc: "Nice one — +15 XP",
+    title: "Daily Bonus Claimed!",
+    desc: "+15 XP Loot!",
     badgeKey: "daily_bonus_15",
     emoji: "🎁",
     xpAward: 15,
@@ -3741,15 +3774,12 @@ async function claimDailyBonus(e, fromEl = null) {
 
   setTimeout(() => {
     playRewardSound();
+    playSparkleSound();
     setClaimModal((prev) => (prev ? { ...prev, stage: "boom" } : prev));
   }, 260);
 
-  // Force immediate XP recompute (ledger + totals) without needing a refresh
-  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
-  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 250);
+  setBonusPop(Date.now());
 }
-
-
 
 async function resetDay() {
   await resetSelectedDayLog();
@@ -6285,26 +6315,24 @@ const targetInfo = buildTargetInfoForMovement({
                 <div className="h3">Mini challenges</div>
                 <div className="stack mt12">
                   <div className="challenge">
-                    <div>
-                      Claim daily bonus <span className="muted">(15 XP)</span>
-                    </div>
-                    <div className="row">
-                      {(() => {
-                        const qualifies = isDayGreen(logForDay);
-                        const claimed = !!logForDay?.meta?.challengeClaimed;
-                        return (
-                          <button
-                            type="button"
-                            className={"btn " + (claimed ? "" : qualifies ? "primary" : "disabled")}
-                            disabled={claimed || !qualifies}
-                            onClick={(e) => claimDailyBonus(e, e.currentTarget)}
-                          >
-                            {claimed ? "Claimed" : "Claim"}
-                          </button>
-                        );
-                      })()}
-                    </div>
-                  </div>
+  <div>
+    Daily Bonus <span className="muted">(+15 XP)</span>
+  </div>
+  <div className="row" style={{ gap: 10 }}>
+    {logForDay?.meta?.challengeClaimed ? (
+      <div className="pill">Claimed</div>
+    ) : (
+      <button
+        type="button"
+        className={"btn " + (isDayGreen(logForDay) ? "" : "btnDisabled")}
+        disabled={!isDayGreen(logForDay)}
+        onClick={(e) => claimDailyBonus(e, e.currentTarget)}
+      >
+        Claim
+      </button>
+    )}
+  </div>
+</div>
                   <Challenge text="Complete today’s plan" done={isDayGreen(logForDay)} />
                   <Challenge text="Hit a combo streak (5 sets in a row)" done={(logForDay?.gamify?.comboMax || 0) >= 5} />
                   <Challenge text="XP to next level" done={xpToNext <= 25} />
@@ -7455,6 +7483,7 @@ const targetInfo = buildTargetInfoForMovement({
                               });
                                 setTimeout(() => {
                                 playRewardSound(); // boom sound at the right moment
+                                playSparkleSound();
                                 setClaimModal((prev) => (prev ? { ...prev, stage: "boom" } : prev));
                               }, 260);
                             }}
@@ -7687,7 +7716,7 @@ const targetInfo = buildTargetInfoForMovement({
         onClick={() => setClaimModal(null)}
       >
         {claimModal.kind === "badge" ? (
-          <div className={"claimStage" + (claimModal.stage ? " " + claimModal.stage : "")}>
+          <div className="claimStage">
             <button
               type="button"
               className="iconBtn claimClose"
@@ -8486,7 +8515,6 @@ function StyleTag() {
 }
 .claimBadge.shake{ animation: claimShake 260ms ease-in-out; }
 .claimBadge.boom{ animation: claimBoom 520ms cubic-bezier(.2,.95,.2,1); }
-.claimStage.shake{ animation: screenShake 260ms ease-in-out; }
 
 @keyframes claimShake{
   0%{transform:translateX(0) rotate(0)}
@@ -8605,6 +8633,8 @@ function StyleTag() {
       .card{border:1px solid #e2e8f0;background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.06)}
       .pad{padding:16px}
       .btn{border-radius:14px;padding:10px 14px;font-weight:800;border:1px solid #e2e8f0;background:#fff;color:#0f172a}
+      .btnDisabled{opacity:.45;filter:grayscale(1);cursor:not-allowed}
+      .btn:disabled{opacity:.45;filter:grayscale(1);cursor:not-allowed}
       .btn-primary{background:#0f172a;color:#fff;border-color:#0f172a}
       .btn-secondary{background:#fff}
       .btn:hover{filter:brightness(0.98)}
