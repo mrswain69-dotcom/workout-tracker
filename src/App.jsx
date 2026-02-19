@@ -1333,6 +1333,8 @@ function AuthScreen({ onAuthed }) {
             </div>
           </div>
         )}
+      </div>
+    )}
 
 
     </div>
