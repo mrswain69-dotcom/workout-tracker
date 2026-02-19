@@ -8181,10 +8181,10 @@ const targetInfo = buildTargetInfoForMovement({
     </div>
   </div>
 )}
-               <footer className="footer">Workout Tracker beta: custom plans • XP, streaks &amp; rewards.</footer>
+      <footer className="footer">Workout Tracker beta: custom plans • XP, streaks &amp; rewards.</footer>
       </div>
 
-      <StyleTag />
+
     </div>
   );
 }
@@ -9002,4 +9002,3 @@ const boxRounds = (names) =>
     },
   ];
 };
-
