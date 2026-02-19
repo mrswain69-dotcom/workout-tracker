@@ -1249,6 +1249,92 @@ function AuthScreen({ onAuthed }) {
         </Card>
       </div>
       <StyleTag />
+
+
+
+    {claimModal && (
+      <div
+        className={"claimOverlay" + (claimModal.kind === "badge" ? " claimOverlayBadge" : "")}
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setClaimModal(null)}
+      >
+        {claimModal.kind === "badge" ? (
+          <div className="claimStage">
+            <button
+              type="button"
+              className="iconBtn claimClose"
+              onClick={() => setClaimModal(null)}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            <div className="claimDim" />
+            <div className="claimFlash" />
+            <div className="claimRing" />
+
+            <div className="claimConfetti" aria-hidden="true">
+              {(claimModal.confetti || []).map((p) => (
+                <div
+                  key={p.id}
+                  className="confetti"
+                  style={{
+                    "--dx": `${p.x}px`,
+                    "--dy": `${p.y}px`,
+                    "--rot": `${p.r}deg`,
+                    "--dur": `${p.d}ms`,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="claimBadgeFly" aria-hidden="true">
+              <div className={"claimBadge" + (claimModal.stage ? " " + claimModal.stage : "")}>
+  {claimModal.emoji}
+</div>
+            </div>
+
+            <div className="claimCopy">
+              <div className="claimTitle">{claimModal.title}</div>
+              <div className="claimSub">{claimModal.desc}</div>
+
+              <div className="claimXpRow">
+                <div className="claimXpPlus">+{safeNumber(claimModal.xpAward)} XP</div>
+                <div className="claimXpTotal">
+                  XP: <span className="mono">{claimXpDisplay ?? safeNumber(claimModal.xpTo) ?? xp}</span>
+                </div>
+              </div>
+
+              <div className="mini muted mt8">Tap anywhere to close.</div>
+            </div>
+          </div>
+        ) : (
+          <div className="historyModal" onClick={(e) => e.stopPropagation()}>
+            <div className="historyModalTop">
+              <div>
+                <div className="historyTitle">{claimModal.title}</div>
+                <div className="muted small mt4">{claimModal.desc}</div>
+              </div>
+              <button
+                type="button"
+                className="iconBtn"
+                onClick={() => setClaimModal(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="panel mt12">
+              <div className="bigNumber rewardBoom" style={{ textAlign: "center" }}>
+                🎉
+              </div>
+            </div>
+          </div>
+        )}
+
+
     </div>
   );
 }
@@ -1793,6 +1879,7 @@ useEffect(() => {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const ctx = audioCtxRef.current || new AudioContext();
     audioCtxRef.current = ctx;
+    if (ctx.state === "suspended") ctx.resume();
 
     const now = ctx.currentTime;
 
@@ -2469,6 +2556,7 @@ function playSparkleSound() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const ctx = audioCtxRef.current || new AudioContext();
     audioCtxRef.current = ctx;
+    if (ctx.state === "suspended") ctx.resume();
 
     const now = ctx.currentTime;
 
@@ -3139,7 +3227,9 @@ function playRewardSound() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    const ctx = audioCtxRef.current || new AudioCtx();
+    audioCtxRef.current = ctx;
+    if (ctx.state === "suspended") ctx.resume();
 
     const now = ctx.currentTime;
 
@@ -3508,12 +3598,12 @@ async function saveLog(nextLog) {
 
   // 4) Refresh logs list (used for stats + XP)
   const { data } = await listLogs(family.id, activeProfileId, 2000);
-  setAllLogs(
-    (data || []).map((r) => ({
-      date_ymd: r.date_ymd,
-      log: r.log_json,
-    }))
-  );
+  const mapped = (data || []).map((r) => ({
+    date_ymd: r.date_ymd,
+    log: r.log_json,
+  }));
+  setAllLogs(mapped);
+  return mapped;
 }
 
 function blankLogForDay() {
@@ -3744,11 +3834,11 @@ async function claimDailyBonus(e, anchorEl) {
 
   const next = logForDay ? { ...logForDay } : blankLogForDay();
   next.meta = { ...(next.meta || {}), challengeClaimed: true };
-  await saveLog(next);
+  const refreshedLogs = await saveLog(next);
 
-  // Force immediate XP recompute (so the counter/ledger updates without refresh)
-  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
-  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
+  // Immediate XP recompute using refreshed logs (state may lag a tick)
+  const logsForXp = refreshedLogs || allLogs;
+  setXp(computeXpFromLogs(logsForXp, planRef.current));
 
   const confetti = Array.from({ length: 22 }).map((_, i) => ({
     id: i,
@@ -7707,88 +7797,6 @@ const targetInfo = buildTargetInfoForMovement({
         </div>
       )}
     </Card>
-
-    {claimModal && (
-      <div
-        className={"claimOverlay" + (claimModal.kind === "badge" ? " claimOverlayBadge" : "")}
-        role="dialog"
-        aria-modal="true"
-        onClick={() => setClaimModal(null)}
-      >
-        {claimModal.kind === "badge" ? (
-          <div className="claimStage">
-            <button
-              type="button"
-              className="iconBtn claimClose"
-              onClick={() => setClaimModal(null)}
-              aria-label="Close"
-            >
-              ✕
-            </button>
-
-            <div className="claimDim" />
-            <div className="claimFlash" />
-            <div className="claimRing" />
-
-            <div className="claimConfetti" aria-hidden="true">
-              {(claimModal.confetti || []).map((p) => (
-                <div
-                  key={p.id}
-                  className="confetti"
-                  style={{
-                    "--dx": `${p.x}px`,
-                    "--dy": `${p.y}px`,
-                    "--rot": `${p.r}deg`,
-                    "--dur": `${p.d}ms`,
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="claimBadgeFly" aria-hidden="true">
-              <div className={"claimBadge" + (claimModal.stage ? " " + claimModal.stage : "")}>
-  {claimModal.emoji}
-</div>
-            </div>
-
-            <div className="claimCopy">
-              <div className="claimTitle">{claimModal.title}</div>
-              <div className="claimSub">{claimModal.desc}</div>
-
-              <div className="claimXpRow">
-                <div className="claimXpPlus">+{safeNumber(claimModal.xpAward)} XP</div>
-                <div className="claimXpTotal">
-                  XP: <span className="mono">{claimXpDisplay ?? safeNumber(claimModal.xpTo) ?? xp}</span>
-                </div>
-              </div>
-
-              <div className="mini muted mt8">Tap anywhere to close.</div>
-            </div>
-          </div>
-        ) : (
-          <div className="historyModal" onClick={(e) => e.stopPropagation()}>
-            <div className="historyModalTop">
-              <div>
-                <div className="historyTitle">{claimModal.title}</div>
-                <div className="muted small mt4">{claimModal.desc}</div>
-              </div>
-              <button
-                type="button"
-                className="iconBtn"
-                onClick={() => setClaimModal(null)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="panel mt12">
-              <div className="bigNumber rewardBoom" style={{ textAlign: "center" }}>
-                🎉
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     )}
   </div>
@@ -8825,6 +8833,8 @@ function StyleTag() {
       .motItem{border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:10px 12px;font-weight:800;color:#0f172a;font-size:13px}
 
     `}</style>
+
+
   );
 }
 
