@@ -1444,7 +1444,7 @@ const BADGE_DEFS = [
     title: "First 10K Run",
     desc: "Log a run day of 10.0km or more",
     category: "running",
-    tier: "platinum",
+    tier: "bronze",
     distanceLabel: "10K",
     bg: "/badges/bg/bg_running_platinum.svg",
     icon: "/badges/icons/icon_runner_10k.png", // later: distinct icon
