@@ -1577,9 +1577,7 @@ function getBadgeDescription(b, runBadgeCounts) {
     (b.distanceLabel === "5K" || b.distanceLabel === "10K")
   ) {
     const is5k = b.distanceLabel === "5K";
-    const count = is5k
-      ? runBadgeCounts.run5Count
-      : runBadgeCounts.run10Count;
+    const count = is5k ? runBadgeCounts.run5Count : runBadgeCounts.run10Count;
 
     // Simple thresholds for now:
     // 5K: bronze 1, silver 2, gold 3
@@ -7533,162 +7531,181 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
 
           <div className="grid2 mt12">
-            {BADGE_DEFS.filter((b) => !b.hidden).map((b) => {
-              const earned = earnedBadgesSet.has(b.key);
-              const claimed = claimedRewardsSet.has(b.key);
-              const status = claimed ? "claimed" : earned ? "claimable" : "locked";
+      {BADGE_DEFS.filter((b) => !b.hidden).map((b) => {
+        const earned = earnedBadgesSet.has(b.key);
+        const claimed = claimedRewardsSet.has(b.key);
+        const status = claimed ? "claimed" : earned ? "claimable" : "locked";
 
-              return (
-                <div
-                    key={b.key}
-                    className={
-                      "panel badgeCard " +
-                      status +
-                      (lastClaimedKey === b.key ? " flash" : "") +
-                      (status === "claimed" ? " lit" : "")
+        return (
+          <div
+            key={b.key}
+            className={
+              "panel badgeCard " +
+              status +
+              (lastClaimedKey === b.key ? " flash" : "") +
+              (status === "claimed" ? " lit" : "")
+            }
+          >
+            <div className="badgeTitle">{b.title}</div>
+
+            <div className="badgeMid">
+              <div className="badgeBig" aria-hidden="true">
+                <div className="wtBadge">
+                  {(() => {
+                    const tierIndex = TIER_ORDER.indexOf(b.tier);
+                    const achievedTiers =
+                      tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
+
+                    const layers = [];
+
+                    // 1) Coloured layers for all already-claimed tiers
+                    achievedTiers.forEach((tier, idx) => {
+                      const bgSrc = `/badges/bg/bg_${b.category}_${tier}.svg`;
+                      layers.push(
+                        <img
+                          key={tier}
+                          className="wtBadgeBgLayer"
+                          src={bgSrc}
+                          alt=""
+                          style={{ "--layerIndex": idx }}
+                        />
+                      );
+                    });
+
+                    // 2) Grey “next tier” preview when claimable
+                    if (
+                      status === "claimable" &&
+                      tierIndex >= 0 &&
+                      tierIndex < TIER_ORDER.length - 1
+                    ) {
+                      const nextTier = TIER_ORDER[tierIndex + 1];
+                      const bgSrcNext = `/badges/bg/bg_${b.category}_${nextTier}.svg`;
+                      layers.push(
+                        <img
+                          key={nextTier}
+                          className="wtBadgeBgLayer wtBadgeBgLayer-next"
+                          src={bgSrcNext}
+                          alt=""
+                          style={{ "--layerIndex": layers.length }}
+                        />
+                      );
                     }
+
+                    const frontOffset = (layers.length - 1) * 12; // px
+
+                    return (
+                      <>
+                        {layers}
+                        <div
+                          className="wtBadgeForeground"
+                          style={{ "--frontOffset": `${frontOffset}px` }}
+                        >
+                          {/* Big faint 5K / 10K behind icon */}
+                          {b.distanceLabel && (
+                            <div className="wtBadgeDistance">
+                              {b.distanceLabel}
+                            </div>
+                          )}
+
+                          {/* Icon on top of the stack */}
+                          <img className="wtBadgeIcon" src={b.icon} alt="" />
+
+                          {/* Tier plaque for current highest tier */}
+                          {b.tier && (
+                            <div className={"wtBadgeTierPlaque tier-" + b.tier}>
+                              {b.tier.charAt(0).toUpperCase() + b.tier.slice(1)}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <div className="badgeAction">
+                {status === "claimable" ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={async (e) => {
+                      const card = e.currentTarget.closest(".badgeCard");
+                      const rect = card ? card.getBoundingClientRect() : null;
+
+                      const xpFrom = xp;
+                      const xpTo = xpFrom + safeNumber(b.xp);
+
+                      // Optimistically bump XP so the UI updates immediately
+                      setXp(xpTo);
+
+                      playBuildUpSound();
+                      await claimRewardKey(b.key, getTodayYMD());
+
+                      // Force immediate XP recompute (so the counter/ledger updates without refresh)
+                      setTimeout(
+                        () => setXp(computeXpFromLogs(allLogs, planRef.current)),
+                        0
+                      );
+                      setTimeout(
+                        () => setXp(computeXpFromLogs(allLogs, planRef.current)),
+                        200
+                      );
+
+                      setLastClaimedKey(b.key);
+                      setTimeout(() => setLastClaimedKey(""), 900);
+
+                      const confetti = Array.from({ length: 18 }).map((_, i) => ({
+                        id: i,
+                        x: Math.random() * 140 - 70,
+                        y: Math.random() * 80 - 110,
+                        r: Math.random() * 360,
+                        d: 700 + Math.random() * 450,
+                      }));
+
+                      setClaimModal({
+                        kind: "badge",
+                        stage: "shake",
+                        title: "Badge claimed!",
+                        desc: `${b.title} unlocked`,
+                        badgeKey: b.key,
+                        emoji: b.emoji,
+                        xpAward: safeNumber(b.xp),
+                        xpFrom,
+                        xpTo,
+                        fromRect: rect
+                          ? {
+                              x: rect.left,
+                              y: rect.top,
+                              w: rect.width,
+                              h: rect.height,
+                            }
+                          : null,
+                        confetti,
+                      });
+
+                      setTimeout(() => {
+                        playRewardSound(); // boom sound at the right moment
+                        playSparkleSound();
+                        setClaimModal((prev) =>
+                          prev ? { ...prev, stage: "boom" } : prev
+                        );
+                      }, 260);
+                    }}
                   >
-                    <div className="badgeTitle">{b.title}</div>
-
-<div className="wtBadge">
-  {(() => {
-    const tierIndex = TIER_ORDER.indexOf(b.tier);
-    const achievedTiers =
-      tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
-
-    const layers = [];
-
-    // 1) Coloured layers for all already-claimed tiers
-    achievedTiers.forEach((tier, idx) => {
-      const bgSrc = `/badges/bg/bg_${b.category}_${tier}.svg`;
-      layers.push(
-        <img
-          key={tier}
-          className="wtBadgeBgLayer"
-          src={bgSrc}
-          alt=""
-          style={{ "--layerIndex": idx }}
-        />
-      );
-    });
-
-    // 2) Grey “next tier” preview when claimable
-    if (
-      status === "claimable" &&
-      tierIndex >= 0 &&
-      tierIndex < TIER_ORDER.length - 1
-    ) {
-      const nextTier = TIER_ORDER[tierIndex + 1];
-      const bgSrcNext = `/badges/bg/bg_${b.category}_${nextTier}.svg`;
-      layers.push(
-        <img
-          key={nextTier}
-          className="wtBadgeBgLayer wtBadgeBgLayer-next"
-          src={bgSrcNext}
-          alt=""
-          style={{ "--layerIndex": layers.length }}
-        />
-      );
-    }
-
-    const frontOffset = (layers.length - 1) * 12; // px
-
-    return (
-      <>
-        {layers}
-        <div
-          className="wtBadgeForeground"
-          style={{ "--frontOffset": `${frontOffset}px` }}
-        >
-          {/* Big faint 5K / 10K behind icon */}
-          {b.distanceLabel && (
-            <div className="wtBadgeDistance">
-              {b.distanceLabel}
+                    Claim
+                  </button>
+                ) : (
+                  <div className="pill">{badgeStatusLabel(status)}</div>
+                )}
+              </div>
             </div>
-          )}
 
-          {/* Icon on top of the stack */}
-          <img className="wtBadgeIcon" src={b.icon} alt="" />
-
-          {/* Tier plaque for current highest tier */}
-          {b.tier && (
-            <div className={"wtBadgeTierPlaque tier-" + b.tier}>
-              {b.tier.charAt(0).toUpperCase() + b.tier.slice(1)}
+            <div className="badgeDesc">
+              {getBadgeDescription(b, runBadgeCounts)}
             </div>
-          )}
-        </div>
-      </>
-    );
-  })()}
-</div>
-                      <div className="badgeAction">
-                        {status === "claimable" ? (
-                          <button
-                            type="button"
-                            className="btn"
-                            onClick={async (e) => {
-                              const card = e.currentTarget.closest(".badgeCard");
-                              const rect = card ? card.getBoundingClientRect() : null;
-
-                              const xpFrom = xp;
-                              const xpTo = xpFrom + safeNumber(b.xp);
-
-                              // Optimistically bump XP so the UI updates immediately
-                              setXp(xpTo);
-
-                              playBuildUpSound();
-                              await claimRewardKey(b.key, getTodayYMD());
-
-                              // Force immediate XP recompute (so the counter/ledger updates without refresh)
-                              setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
-                              setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
-
-                              setLastClaimedKey(b.key);
-                              setTimeout(() => setLastClaimedKey(""), 900);
-
-                              const confetti = Array.from({ length: 18 }).map((_, i) => ({
-                                id: i,
-                                x: Math.random() * 140 - 70,
-                                y: Math.random() * 80 - 110,
-                                r: Math.random() * 360,
-                                d: 700 + Math.random() * 450,
-                              }));
-
-                              setClaimModal({
-                                kind: "badge",
-                                stage: "shake",
-                                title: "Badge claimed!",
-                                desc: `${b.title} unlocked`,
-                                badgeKey: b.key,
-                                emoji: b.emoji,
-                                xpAward: safeNumber(b.xp),
-                                xpFrom,
-                                xpTo,
-                                fromRect: rect
-                                  ? { x: rect.left, y: rect.top, w: rect.width, h: rect.height }
-                                  : null,
-                                confetti,
-                              });
-                                setTimeout(() => {
-                                playRewardSound(); // boom sound at the right moment
-                                playSparkleSound();
-                                setClaimModal((prev) => (prev ? { ...prev, stage: "boom" } : prev));
-                              }, 260);
-                            }}
-                          >
-                            Claim
-                          </button>
-                        ) : (
-                          <div className="pill">{badgeStatusLabel(status)}</div>
-                        )}
-                       </div>
-                    </div>
-                    <div className="badgeDesc">
-                      {getBadgeDescription(b, runBadgeCounts)}
-                    </div>
-                  </div>
-                );
-            })}
+          </div>
+        );
+      })}
           </div>
 
           <div className="mini muted mt12">
