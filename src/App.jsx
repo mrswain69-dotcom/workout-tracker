@@ -2634,13 +2634,17 @@ function baseXpForLog(log, plan) {
     if (!block) continue;
     switch (block.typeId) {
       case "strength":
-      case "hiit":
-      case "box": {
-        const blockXp = xpForStrengthBlock(block);
-        total += blockXp;
-        if (blockXp > 0) total += XP_RULES.blockComplete;
-        break;
-      }
+        case "hiit":
+        case "box": {
+          const blockXp = xpForStrengthBlock(block);
+          strengthXp += blockXp;
+          setsXp += blockXp; // treat all base strength XP as "sets XP"
+
+          // +5 XP per completed strength/HIIT block
+          if (blockXp > 0) strengthXp += XP_RULES.blockComplete;
+
+          break;
+        }
       case "cardio": {
         const blockXp = xpForCardioBlock(block);
         total += blockXp;
@@ -2807,6 +2811,10 @@ let progressCount = 0;
 
           const blockXp = xpForCardioBlock(block);
           cardioXp += blockXp;
+
+          // +5 XP per completed cardio block
+          if (blockXp > 0) cardioXp += XP_RULES.blockComplete;
+
           break;
         }
 
@@ -2817,6 +2825,10 @@ let progressCount = 0;
 
           const blockXp = xpForDurationBlock(block);
           durationXp += blockXp;
+
+          // +5 XP per completed duration block
+          if (blockXp > 0) durationXp += XP_RULES.blockComplete;
+
           break;
         }
 
