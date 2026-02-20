@@ -1416,7 +1416,7 @@ const BADGE_DEFS = [
     icon: "/badges/icons/icon_runner_5k.png",
     emoji: "🏅",
     xp: 25,
-    hidden: true,            // <- keep for logic but don’t render
+    hidden: true, // keep for logic but don’t render
   },
   {
     key: "badge_run_5k_2",
@@ -1428,8 +1428,8 @@ const BADGE_DEFS = [
     bg: "/badges/bg/bg_running_silver.svg",
     icon: "/badges/icons/icon_runner_5k.png",
     emoji: "🥈",
-    xp: 25,
-    hidden: true,            // <- keep for logic but don’t render
+    xp: 35,
+    hidden: true,
   },
   {
     key: "badge_run_5k_3",
@@ -1441,7 +1441,33 @@ const BADGE_DEFS = [
     bg: "/badges/bg/bg_running_gold.svg",
     icon: "/badges/icons/icon_runner_5k.png",
     emoji: "🥇",
-    xp: 30,
+    xp: 45,
+  },
+  {
+    key: "badge_run_5k_4",
+    title: "5K Run",
+    desc: "Logged 5K+ runs",
+    category: "running",
+    tier: "platinum",
+    distanceLabel: "5K",
+    bg: "/badges/bg/bg_running_platinum.svg",
+    icon: "/badges/icons/icon_runner_5k.png",
+    emoji: "💠",
+    xp: 60,
+    hidden: true,
+  },
+  {
+    key: "badge_run_5k_5",
+    title: "5K Run",
+    desc: "Logged 5K+ runs",
+    category: "running",
+    tier: "diamond",
+    distanceLabel: "5K",
+    bg: "/badges/bg/bg_running_diamond.svg",
+    icon: "/badges/icons/icon_runner_5k.png",
+    emoji: "💎",
+    xp: 80,
+    hidden: true,
   },
   {
     key: "badge_run_10k_1",
@@ -1450,10 +1476,62 @@ const BADGE_DEFS = [
     category: "running",
     tier: "bronze",
     distanceLabel: "10K",
-    bg: "/badges/bg/bg_running_bronze.svg",  // re-use bronze frame for now
+    bg: "/badges/bg/bg_running_bronze.svg",
     icon: "/badges/icons/icon_runner_10k.png",
     emoji: "🏆",
-    xp: 40,
+    xp: 50,
+  },
+  {
+    key: "badge_run_10k_2",
+    title: "10K Run",
+    desc: "Logged 10K+ runs",
+    category: "running",
+    tier: "silver",
+    distanceLabel: "10K",
+    bg: "/badges/bg/bg_running_silver.svg",
+    icon: "/badges/icons/icon_runner_10k.png",
+    emoji: "🏆",
+    xp: 65,
+    hidden: true,
+  },
+  {
+    key: "badge_run_10k_3",
+    title: "10K Run",
+    desc: "Logged 10K+ runs",
+    category: "running",
+    tier: "gold",
+    distanceLabel: "10K",
+    bg: "/badges/bg/bg_running_gold.svg",
+    icon: "/badges/icons/icon_runner_10k.png",
+    emoji: "🏆",
+    xp: 80,
+    hidden: true,
+  },
+  {
+    key: "badge_run_10k_4",
+    title: "10K Run",
+    desc: "Logged 10K+ runs",
+    category: "running",
+    tier: "platinum",
+    distanceLabel: "10K",
+    bg: "/badges/bg/bg_running_platinum.svg",
+    icon: "/badges/icons/icon_runner_10k.png",
+    emoji: "🏆",
+    xp: 100,
+    hidden: true,
+  },
+  {
+    key: "badge_run_10k_5",
+    title: "10K Run",
+    desc: "Logged 10K+ runs",
+    category: "running",
+    tier: "diamond",
+    distanceLabel: "10K",
+    bg: "/badges/bg/bg_running_diamond.svg",
+    icon: "/badges/icons/icon_runner_10k.png",
+    emoji: "🏆",
+    xp: 130,
+    hidden: true,
   },
 ];
 
@@ -1531,14 +1609,19 @@ function getRunKmFromBlock(block) {
 }
 
 const RUN_5K_TIERS = [
-  { key: "badge_run_5k_1", tier: "bronze",  threshold: 1, xp: 25 },
-  { key: "badge_run_5k_2", tier: "silver",  threshold: 3, xp: 35 },
-  { key: "badge_run_5k_3", tier: "gold",    threshold: 5, xp: 45 },
+  { key: "badge_run_5k_1", tier: "bronze",   threshold: 1,  xp: 25 },
+  { key: "badge_run_5k_2", tier: "silver",   threshold: 3,  xp: 35 },
+  { key: "badge_run_5k_3", tier: "gold",     threshold: 5,  xp: 45 },
+  { key: "badge_run_5k_4", tier: "platinum", threshold: 10, xp: 60 },
+  { key: "badge_run_5k_5", tier: "diamond",  threshold: 25, xp: 80 },
 ];
 
 const RUN_10K_TIERS = [
-  { key: "badge_run_10k_1", tier: "bronze", threshold: 1, xp: 40 },
-  // Future: add silver/gold/platinum/diamond tiers here
+  { key: "badge_run_10k_1", tier: "bronze",   threshold: 1,  xp: 50 },
+  { key: "badge_run_10k_2", tier: "silver",   threshold: 3,  xp: 65 },
+  { key: "badge_run_10k_3", tier: "gold",     threshold: 5,  xp: 80 },
+  { key: "badge_run_10k_4", tier: "platinum", threshold: 10, xp: 100 },
+  { key: "badge_run_10k_5", tier: "diamond",  threshold: 25, xp: 130 },
 ];
 
 function computeEarnedBadgesFromLogs(allLogs) {
@@ -7819,9 +7902,35 @@ const targetInfo = buildTargetInfoForMovement({
               </div>
             </div>
 
-<div className="badgeDesc">
-  {getBadgeDescription(b, runBadgeCounts, claimedRewardsSet)}
-</div>
+            <div className="badgeDesc">
+              {getBadgeDescription(b, runBadgeCounts, claimedRewardsSet)}
+            </div>
+            {runTierState && (
+              <div className="badgeTierRow">
+                {runTierState.tiers.map((info, idx) => {
+                  const tierName =
+                    info.tier.charAt(0).toUpperCase() + info.tier.slice(1);
+                  const isUnlocked =
+                    runTierState.highestEarnedIndex >= idx;
+                  const isNext =
+                    runTierState.nextTier &&
+                    runTierState.nextTier.key === info.key;
+
+                  let chipClass = "badgeTierChip";
+                  if (isUnlocked) chipClass += " badgeTierChip--unlocked";
+                  if (isNext) chipClass += " badgeTierChip--next";
+
+                  return (
+                    <div key={info.key} className={chipClass}>
+                      <div className="badgeTierChipTier">{tierName}</div>
+                      <div className="badgeTierChipMeta">
+                        {info.threshold}+ runs · +{info.xp} XP
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}
@@ -8896,6 +9005,42 @@ function StyleTag() {
   padding:10px 12px;
   font-size:12px;
   color: rgba(0,0,0,0.65);
+}
+
+.badgeTierRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:6px;
+}
+
+.badgeTierChip{
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.85);
+  border:1px solid rgba(0,0,0,0.04);
+  font-size:10px;
+  line-height:1.25;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+}
+
+.badgeTierChipTier{
+  font-weight:600;
+}
+
+.badgeTierChipMeta{
+  opacity:0.7;
+}
+
+.badgeTierChip--unlocked{
+  background:rgba(0,200,120,0.14);
+  border-color:rgba(0,200,120,0.5);
+}
+
+.badgeTierChip--next{
+  box-shadow:0 0 0 1px rgba(255,165,0,0.65);
 }
 
 /* "Ignite" flash on the badge card */
