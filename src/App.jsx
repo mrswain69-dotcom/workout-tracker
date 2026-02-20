@@ -1409,9 +1409,10 @@ const BADGE_DEFS = [
     desc: "Log a run day of 5.0km or more",
     category: "running",
     tier: "bronze",
+    distanceLabel: "5K",
     bg: "/badges/bg/bg_running_bronze.svg",
-    icon: "/badges/icons/icon_runner.png",
-    emoji: "🏅", // still used in the claim overlay
+    icon: "/badges/icons/icon_runner_5k.png",  // or icon_runner.png if single icon
+    emoji: "🏅",
     xp: 25,
   },
   {
@@ -1420,8 +1421,9 @@ const BADGE_DEFS = [
     desc: "Log 5K+ on two different days",
     category: "running",
     tier: "silver",
+    distanceLabel: "5K",
     bg: "/badges/bg/bg_running_silver.svg",
-    icon: "/badges/icons/icon_runner.png",
+    icon: "/badges/icons/icon_runner_5k.png",
     emoji: "🥈",
     xp: 25,
   },
@@ -1431,8 +1433,9 @@ const BADGE_DEFS = [
     desc: "Log 5K+ on three different days",
     category: "running",
     tier: "gold",
+    distanceLabel: "5K",
     bg: "/badges/bg/bg_running_gold.svg",
-    icon: "/badges/icons/icon_runner.png",
+    icon: "/badges/icons/icon_runner_5k.png",
     emoji: "🥇",
     xp: 30,
   },
@@ -1442,8 +1445,9 @@ const BADGE_DEFS = [
     desc: "Log a run day of 10.0km or more",
     category: "running",
     tier: "platinum",
+    distanceLabel: "10K",
     bg: "/badges/bg/bg_running_platinum.svg",
-    icon: "/badges/icons/icon_runner.png",
+    icon: "/badges/icons/icon_runner_10k.png", // later: distinct icon
     emoji: "🏆",
     xp: 40,
   },
@@ -7465,10 +7469,25 @@ const targetInfo = buildTargetInfoForMovement({
     }
     aria-hidden="true"
   >
-    <div className="wtBadge">
-      <img className="wtBadgeBg" src={b.bg} alt="" />
-      <img className="wtBadgeIcon" src={b.icon} alt="" />
+<div className="wtBadge">
+  <img className="wtBadgeBg" src={b.bg} alt="" />
+
+  {/* Big faint 5K / 10K behind icon */}
+  {b.distanceLabel && (
+    <div className="wtBadgeDistance">
+      {b.distanceLabel}
     </div>
+  )}
+
+  <img className="wtBadgeIcon" src={b.icon} alt="" />
+
+  {/* Small tier plaque at bottom of badge */}
+  {b.tier && (
+    <div className={"wtBadgeTierPlaque tier-" + b.tier}>
+      {b.tier.charAt(0).toUpperCase() + b.tier.slice(1)}
+    </div>
+  )}
+</div>
   </div>
                       <div className="badgeAction">
                         {status === "claimable" ? (
@@ -8482,12 +8501,58 @@ function StyleTag() {
   height:56%;
   object-fit:contain;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,0.6));
+  z-index:2;
 }
+
+.wtBadgeDistance{
+  position:absolute;
+  inset:22%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;              /* you can tweak this */
+  font-weight:800;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:#FFFFFF;
+  opacity:0.18;                /* 10–20% as you suggested */
+  text-shadow:0 0 6px rgba(0,0,0,0.55);
+  z-index:1;                   /* behind icon, above bg */
+  pointer-events:none;
+}
+
+.wtBadgeTierPlaque{
+  position:absolute;
+  left:50%;
+  bottom:10%;
+  transform:translateX(-50%);
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:9px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  background:rgba(0,0,0,0.65);
+  color:#F5F5F5;
+  box-shadow:0 2px 4px rgba(0,0,0,0.5);
+  pointer-events:none;
+  z-index:3;
+}
+
+/* Tier colour accents – text colour only so it doesn’t shout */
+.wtBadgeTierPlaque.tier-bronze { color:#F2B178; }
+.wtBadgeTierPlaque.tier-silver { color:#E5ECF7; }
+.wtBadgeTierPlaque.tier-gold { color:#FFE27A; }
+.wtBadgeTierPlaque.tier-platinum { color:#C4E8FF; }
+.wtBadgeTierPlaque.tier-diamond { color:#9DF5FF; }
 
 /* Locked: greyed out */
 .badgeCard.locked .wtBadgeBg,
-.badgeCard.locked .wtBadgeIcon{
+.badgeCard.locked .wtBadgeIcon,
+.badgeCard.locked .wtBadgeDistance,
+.badgeCard.locked .wtBadgeTierPlaque{
   filter:grayscale(0.95) brightness(0.7);
+  opacity:0.75;
 }
 
 /* Claimable: subtle glow */
