@@ -2799,6 +2799,10 @@ let progressCount = 0;
           const blockXp = xpForStrengthBlock(block);
           strengthXp += blockXp;
           setsXp += blockXp; // treat all base strength XP as "sets XP"
+
+          // +5 XP per completed strength/HIIT block
+          if (blockXp > 0) strengthXp += XP_RULES.blockComplete;
+          
           break;
         }
 
