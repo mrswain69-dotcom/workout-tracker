@@ -8524,19 +8524,25 @@ function StyleTag() {
 .wtBadgeTierPlaque{
   position:absolute;
   left:50%;
-  bottom:10%;
+  bottom:6%;                 /* lower on badge */
   transform:translateX(-50%);
-  padding:2px 8px;
+  
+  padding:1px 6px;           /* tighter pill */
   border-radius:999px;
-  font-size:9px;
+  
+  font-size:8px;             /* smaller text */
   font-weight:700;
   text-transform:uppercase;
-  letter-spacing:0.12em;
-  background:rgba(0,0,0,0.65);
+  letter-spacing:0.08em;     /* slightly tighter */
+  
+  background:rgba(0,0,0,0.72);  /* slightly stronger for contrast */
   color:#F5F5F5;
+  
   box-shadow:0 2px 4px rgba(0,0,0,0.5);
   pointer-events:none;
   z-index:3;
+  
+  line-height:1.1;           /* removes vertical extra space */
 }
 
 /* Tier colour accents – text colour only so it doesn’t shout */
