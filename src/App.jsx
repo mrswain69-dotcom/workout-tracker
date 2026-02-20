@@ -1581,9 +1581,9 @@ function getBadgeDescription(b, runBadgeCounts) {
       ? runBadgeCounts.run5Count
       : runBadgeCounts.run10Count;
 
-    // For now, keep your current simple thresholds:
-    // 5K: bronze at 1, silver at 2, gold at 3
-    // 10K: bronze at 1 (we can extend later)
+    // Simple thresholds for now:
+    // 5K: bronze 1, silver 2, gold 3
+    // 10K: bronze 1 (extendable later)
     const thresholds = is5k
       ? { bronze: 1, silver: 2, gold: 3 }
       : { bronze: 1 };
@@ -1615,7 +1615,7 @@ function getBadgeDescription(b, runBadgeCounts) {
     } (${nextThreshold} total).`;
   }
 
-  // Fallback to the static description for non-running badges
+  // Non-running badges: fall back to static description
   return b.desc;
 }
 
@@ -7681,12 +7681,11 @@ const targetInfo = buildTargetInfoForMovement({
                         ) : (
                           <div className="pill">{badgeStatusLabel(status)}</div>
                         )}
-                      </div>
+                       </div>
                     </div>
-
-<div className="badgeDesc">
-  {getBadgeDescription(b, runBadgeCounts)}
-</div>
+                    <div className="badgeDesc">
+                      {getBadgeDescription(b, runBadgeCounts)}
+                    </div>
                   </div>
                 );
             })}
