@@ -1407,13 +1407,21 @@ const BADGE_DEFS = [
     key: "badge_run_5k_1",
     title: "First 5K Run",
     desc: "Log a run day of 5.0km or more",
-    emoji: "🏅",
+    category: "running",
+    tier: "bronze",
+    bg: "/badges/bg/bg_running_bronze.svg",
+    icon: "/badges/icons/icon_runner.png",
+    emoji: "🏅", // still used in the claim overlay
     xp: 25,
   },
   {
     key: "badge_run_5k_2",
     title: "5K Run ×2",
     desc: "Log 5K+ on two different days",
+    category: "running",
+    tier: "silver",
+    bg: "/badges/bg/bg_running_silver.svg",
+    icon: "/badges/icons/icon_runner.png",
     emoji: "🥈",
     xp: 25,
   },
@@ -1421,6 +1429,10 @@ const BADGE_DEFS = [
     key: "badge_run_5k_3",
     title: "5K Run ×3",
     desc: "Log 5K+ on three different days",
+    category: "running",
+    tier: "gold",
+    bg: "/badges/bg/bg_running_gold.svg",
+    icon: "/badges/icons/icon_runner.png",
     emoji: "🥇",
     xp: 30,
   },
@@ -1428,6 +1440,10 @@ const BADGE_DEFS = [
     key: "badge_run_10k_1",
     title: "First 10K Run",
     desc: "Log a run day of 10.0km or more",
+    category: "running",
+    tier: "platinum",
+    bg: "/badges/bg/bg_running_platinum.svg",
+    icon: "/badges/icons/icon_runner.png",
     emoji: "🏆",
     xp: 40,
   },
@@ -7442,10 +7458,18 @@ const targetInfo = buildTargetInfoForMovement({
                     <div className="badgeTitle">{b.title}</div>
 
                     <div className="badgeMid">
-                      <div className={"badgeBig " + (status === "claimed" ? "on" : "off")} aria-hidden="true">
-                        {b.emoji}
-                      </div>
-
+                      <div
+    className={
+      "badgeBig " +
+      (status === "claimed" ? "on" : "off")
+    }
+    aria-hidden="true"
+  >
+    <div className="wtBadge">
+      <img className="wtBadgeBg" src={b.bg} alt="" />
+      <img className="wtBadgeIcon" src={b.icon} alt="" />
+    </div>
+  </div>
                       <div className="badgeAction">
                         {status === "claimable" ? (
                           <button
@@ -8429,15 +8453,52 @@ function StyleTag() {
 .badgeMid{display:flex; align-items:center; justify-content:space-between; gap:14px}
 .badgeAction{display:flex; align-items:center; justify-content:flex-end; min-width:88px}
 .badgeBig{
-  width:86px;height:86px;border-radius:22px;
+  width:86px; height:86px;
+  border-radius:22px;
   display:flex; align-items:center; justify-content:center;
-  font-size:50px; line-height:1;
-  background: rgba(0,0,0,0.08);
-  border: 1px solid rgba(0,0,0,0.08);
   position:relative;
-  overflow:hidden;
+  overflow:visible;          /* let glows breathe */
+  background:none;
+  border:none;
+  font-size:0;               /* we no longer show emoji text */
 }
 .badgeBig.off{opacity:.22; filter:saturate(0) contrast(0.9) brightness(1.05)}
+.wtBadge{
+  position:relative;
+  width:100%;
+  height:100%;
+}
+
+.wtBadgeBg{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.wtBadgeIcon{
+  position:absolute;
+  inset:22%;
+  width:56%;
+  height:56%;
+  object-fit:contain;
+  filter:drop-shadow(0 6px 12px rgba(0,0,0,0.6));
+}
+
+/* Locked: greyed out */
+.badgeCard.locked .wtBadgeBg,
+.badgeCard.locked .wtBadgeIcon{
+  filter:grayscale(0.95) brightness(0.7);
+}
+
+/* Claimable: subtle glow */
+.badgeCard.claimable .wtBadgeBg{
+  filter:drop-shadow(0 0 12px rgba(0,229,255,0.55));
+}
+
+/* Claimed: slightly stronger glow */
+.badgeCard.claimed .wtBadgeBg{
+  filter:drop-shadow(0 0 18px rgba(0,229,255,0.75));
+}
 .badgeCard.claimable .badgeBig.off{opacity:.45}
 .badgeCard.locked .badgeBig.off{opacity:.18}
 .badgeBig.on{
