@@ -1597,11 +1597,17 @@ function getBadgeDescription(b, runBadgeCounts) {
       }
     }
 
+    // If we *don't* have a numeric next threshold:
+    // - Only call it "highest tier unlocked" when they're on Diamond.
+    // - Otherwise just say they've logged X times so far and can keep progressing.
     if (nextThreshold === null) {
-      // No higher tier defined yet
-      return `Logged ${b.distanceLabel}+ ${count} time${
-        count === 1 ? "" : "s"
-      }. Highest tier unlocked.`;
+      const timesWord = count === 1 ? "" : "s";
+
+      if (b.tier === "diamond") {
+        return `Logged ${b.distanceLabel}+ ${count} time${timesWord}. Highest tier unlocked.`;
+      }
+
+      return `Logged ${b.distanceLabel}+ ${count} time${timesWord} so far. Keep going to work towards higher tiers.`;
     }
 
     const remaining = Math.max(nextThreshold - count, 0);
@@ -8691,9 +8697,9 @@ function StyleTag() {
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:26px;              /* you can tweak this */
+  font-size:24px;              /* you can tweak this */
   font-weight:800;
-  letter-spacing:0.12em;
+  letter-spacing:0.10em;
   text-transform:uppercase;
   color:#FFFFFF;
   opacity:0.18;                /* 10–20% as you suggested */
