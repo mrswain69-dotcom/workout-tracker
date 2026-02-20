@@ -1250,89 +1250,7 @@ function AuthScreen({ onAuthed }) {
       </div>
       <StyleTag />
 
-    {claimModal && (
-      <div
-        className={"claimOverlay" + (claimModal.kind === "badge" ? " claimOverlayBadge" : "")}
-        role="dialog"
-        aria-modal="true"
-        onClick={() => setClaimModal(null)}
-      >
-        {claimModal.kind === "badge" ? (
-          <div className="claimStage">
-            <button
-              type="button"
-              className="iconBtn claimClose"
-              onClick={() => setClaimModal(null)}
-              aria-label="Close"
-            >
-              ✕
-            </button>
 
-            <div className="claimDim" />
-            <div className="claimFlash" />
-            <div className="claimRing" />
-
-            <div className="claimConfetti" aria-hidden="true">
-              {(claimModal.confetti || []).map((p) => (
-                <div
-                  key={p.id}
-                  className="confetti"
-                  style={{
-                    "--dx": `${p.x}px`,
-                    "--dy": `${p.y}px`,
-                    "--rot": `${p.r}deg`,
-                    "--dur": `${p.d}ms`,
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="claimBadgeFly" aria-hidden="true">
-              <div className={"claimBadge" + (claimModal.stage ? " " + claimModal.stage : "")}>
-  {claimModal.emoji}
-</div>
-            </div>
-
-            <div className="claimCopy">
-              <div className="claimTitle">{claimModal.title}</div>
-              <div className="claimSub">{claimModal.desc}</div>
-
-              <div className="claimXpRow">
-                <div className="claimXpPlus">+{safeNumber(claimModal.xpAward)} XP</div>
-                <div className="claimXpTotal">
-                  XP: <span className="mono">{claimXpDisplay ?? safeNumber(claimModal.xpTo) ?? xp}</span>
-                </div>
-              </div>
-
-              <div className="mini muted mt8">Tap anywhere to close.</div>
-            </div>
-          </div>
-        ) : (
-          <div className="historyModal" onClick={(e) => e.stopPropagation()}>
-            <div className="historyModalTop">
-              <div>
-                <div className="historyTitle">{claimModal.title}</div>
-                <div className="muted small mt4">{claimModal.desc}</div>
-              </div>
-              <button
-                type="button"
-                className="iconBtn"
-                onClick={() => setClaimModal(null)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="panel mt12">
-              <div className="bigNumber rewardBoom" style={{ textAlign: "center" }}>
-                🎉
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    )}
       
     </div>
   );
@@ -8176,8 +8094,95 @@ const targetInfo = buildTargetInfoForMovement({
     </div>
   </div>
 )}
-               <footer className="footer">Workout Tracker beta: custom plans • XP, streaks &amp; rewards.</footer>
+                             <footer className="footer">Workout Tracker beta: custom plans • XP, streaks &amp; rewards.</footer>
       </div>
+
+      {claimModal && (
+        <div
+          className={"claimOverlay" + (claimModal.kind === "badge" ? " claimOverlayBadge" : "")}
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setClaimModal(null)}
+        >
+          {claimModal.kind === "badge" ? (
+            <div className="claimStage">
+              <button
+                type="button"
+                className="iconBtn claimClose"
+                onClick={() => setClaimModal(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+
+              <div className="claimDim" />
+              <div className="claimFlash" />
+              <div className="claimRing" />
+
+              <div className="claimConfetti" aria-hidden="true">
+                {(claimModal.confetti || []).map((p) => (
+                  <div
+                    key={p.id}
+                    className="confetti"
+                    style={{
+                      "--dx": `${p.x}px`,
+                      "--dy": `${p.y}px`,
+                      "--rot": `${p.r}deg`,
+                      "--dur": `${p.d}ms`,
+                    }}
+                  />
+                ))}
+              </div>
+
+              <div className="claimBadgeFly" aria-hidden="true">
+                <div className={"claimBadge" + (claimModal.stage ? " " + claimModal.stage : "")}>
+                  {claimModal.emoji}
+                </div>
+              </div>
+
+              <div className="claimCopy">
+                <div className="claimTitle">{claimModal.title}</div>
+                <div className="claimSub">{claimModal.desc}</div>
+
+                <div className="claimXpRow">
+                  <div className="claimXpPlus">+{safeNumber(claimModal.xpAward)} XP</div>
+                  <div className="claimXpTotal">
+                    XP:{" "}
+                    <span className="mono">
+                      {claimXpDisplay ?? safeNumber(claimModal.xpTo) ?? xp}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mini muted mt8">Tap anywhere to close.</div>
+              </div>
+            </div>
+          ) : (
+            <div className="historyModal" onClick={(e) => e.stopPropagation()}>
+              <div className="historyModalTop">
+                <div>
+                  <div className="historyTitle">{claimModal.title}</div>
+                  <div className="muted small mt4">{claimModal.desc}</div>
+                </div>
+                <button
+                  type="button"
+                  className="iconBtn"
+                  onClick={() => setClaimModal(null)}
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="panel mt12">
+                <div className="bigNumber rewardBoom" style={{ textAlign: "center" }}>
+                  🎉
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <StyleTag />
     </div>
