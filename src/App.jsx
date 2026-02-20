@@ -1446,7 +1446,7 @@ const BADGE_DEFS = [
     category: "running",
     tier: "bronze",
     distanceLabel: "10K",
-    bg: "/badges/bg/bg_running_platinum.svg",
+    bg: "/badges/bg/bg_running_bronze.svg",
     icon: "/badges/icons/icon_runner_10k.png", // later: distinct icon
     emoji: "🏆",
     xp: 40,
