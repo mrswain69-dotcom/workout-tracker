@@ -1249,94 +1249,6 @@ function AuthScreen({ onAuthed }) {
         </Card>
       </div>
       <StyleTag />
-
-
-
-    {claimModal && (
-      <div
-        className={"claimOverlay" + (claimModal.kind === "badge" ? " claimOverlayBadge" : "")}
-        role="dialog"
-        aria-modal="true"
-        onClick={() => setClaimModal(null)}
-      >
-        {claimModal.kind === "badge" ? (
-          <div className="claimStage">
-            <button
-              type="button"
-              className="iconBtn claimClose"
-              onClick={() => setClaimModal(null)}
-              aria-label="Close"
-            >
-              ✕
-            </button>
-
-            <div className="claimDim" />
-            <div className="claimFlash" />
-            <div className="claimRing" />
-
-            <div className="claimConfetti" aria-hidden="true">
-              {(claimModal.confetti || []).map((p) => (
-                <div
-                  key={p.id}
-                  className="confetti"
-                  style={{
-                    "--dx": `${p.x}px`,
-                    "--dy": `${p.y}px`,
-                    "--rot": `${p.r}deg`,
-                    "--dur": `${p.d}ms`,
-                  }}
-                />
-              ))}
-            </div>
-
-            <div className="claimBadgeFly" aria-hidden="true">
-              <div className={"claimBadge" + (claimModal.stage ? " " + claimModal.stage : "")}>
-  {claimModal.emoji}
-</div>
-            </div>
-
-            <div className="claimCopy">
-              <div className="claimTitle">{claimModal.title}</div>
-              <div className="claimSub">{claimModal.desc}</div>
-
-              <div className="claimXpRow">
-                <div className="claimXpPlus">+{safeNumber(claimModal.xpAward)} XP</div>
-                <div className="claimXpTotal">
-                  XP: <span className="mono">{claimXpDisplay ?? safeNumber(claimModal.xpTo) ?? xp}</span>
-                </div>
-              </div>
-
-              <div className="mini muted mt8">Tap anywhere to close.</div>
-            </div>
-          </div>
-        ) : (
-          <div className="historyModal" onClick={(e) => e.stopPropagation()}>
-            <div className="historyModalTop">
-              <div>
-                <div className="historyTitle">{claimModal.title}</div>
-                <div className="muted small mt4">{claimModal.desc}</div>
-              </div>
-              <button
-                type="button"
-                className="iconBtn"
-                onClick={() => setClaimModal(null)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="panel mt12">
-              <div className="bigNumber rewardBoom" style={{ textAlign: "center" }}>
-                🎉
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    )}
-
-
     </div>
   );
 }
@@ -1881,7 +1793,6 @@ useEffect(() => {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const ctx = audioCtxRef.current || new AudioContext();
     audioCtxRef.current = ctx;
-    if (ctx.state === "suspended") ctx.resume();
 
     const now = ctx.currentTime;
 
@@ -2558,7 +2469,6 @@ function playSparkleSound() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const ctx = audioCtxRef.current || new AudioContext();
     audioCtxRef.current = ctx;
-    if (ctx.state === "suspended") ctx.resume();
 
     const now = ctx.currentTime;
 
@@ -3229,9 +3139,7 @@ function playRewardSound() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
-    const ctx = audioCtxRef.current || new AudioCtx();
-    audioCtxRef.current = ctx;
-    if (ctx.state === "suspended") ctx.resume();
+    const ctx = new AudioCtx();
 
     const now = ctx.currentTime;
 
@@ -3600,12 +3508,12 @@ async function saveLog(nextLog) {
 
   // 4) Refresh logs list (used for stats + XP)
   const { data } = await listLogs(family.id, activeProfileId, 2000);
-  const mapped = (data || []).map((r) => ({
-    date_ymd: r.date_ymd,
-    log: r.log_json,
-  }));
-  setAllLogs(mapped);
-  return mapped;
+  setAllLogs(
+    (data || []).map((r) => ({
+      date_ymd: r.date_ymd,
+      log: r.log_json,
+    }))
+  );
 }
 
 function blankLogForDay() {
@@ -3836,11 +3744,11 @@ async function claimDailyBonus(e, anchorEl) {
 
   const next = logForDay ? { ...logForDay } : blankLogForDay();
   next.meta = { ...(next.meta || {}), challengeClaimed: true };
-  const refreshedLogs = await saveLog(next);
+  await saveLog(next);
 
-  // Immediate XP recompute using refreshed logs (state may lag a tick)
-  const logsForXp = refreshedLogs || allLogs;
-  setXp(computeXpFromLogs(logsForXp, planRef.current));
+  // Force immediate XP recompute (so the counter/ledger updates without refresh)
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
 
   const confetti = Array.from({ length: 22 }).map((_, i) => ({
     id: i,
@@ -7799,6 +7707,88 @@ const targetInfo = buildTargetInfoForMovement({
         </div>
       )}
     </Card>
+
+    {claimModal && (
+      <div
+        className={"claimOverlay" + (claimModal.kind === "badge" ? " claimOverlayBadge" : "")}
+        role="dialog"
+        aria-modal="true"
+        onClick={() => setClaimModal(null)}
+      >
+        {claimModal.kind === "badge" ? (
+          <div className="claimStage">
+            <button
+              type="button"
+              className="iconBtn claimClose"
+              onClick={() => setClaimModal(null)}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            <div className="claimDim" />
+            <div className="claimFlash" />
+            <div className="claimRing" />
+
+            <div className="claimConfetti" aria-hidden="true">
+              {(claimModal.confetti || []).map((p) => (
+                <div
+                  key={p.id}
+                  className="confetti"
+                  style={{
+                    "--dx": `${p.x}px`,
+                    "--dy": `${p.y}px`,
+                    "--rot": `${p.r}deg`,
+                    "--dur": `${p.d}ms`,
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="claimBadgeFly" aria-hidden="true">
+              <div className={"claimBadge" + (claimModal.stage ? " " + claimModal.stage : "")}>
+  {claimModal.emoji}
+</div>
+            </div>
+
+            <div className="claimCopy">
+              <div className="claimTitle">{claimModal.title}</div>
+              <div className="claimSub">{claimModal.desc}</div>
+
+              <div className="claimXpRow">
+                <div className="claimXpPlus">+{safeNumber(claimModal.xpAward)} XP</div>
+                <div className="claimXpTotal">
+                  XP: <span className="mono">{claimXpDisplay ?? safeNumber(claimModal.xpTo) ?? xp}</span>
+                </div>
+              </div>
+
+              <div className="mini muted mt8">Tap anywhere to close.</div>
+            </div>
+          </div>
+        ) : (
+          <div className="historyModal" onClick={(e) => e.stopPropagation()}>
+            <div className="historyModalTop">
+              <div>
+                <div className="historyTitle">{claimModal.title}</div>
+                <div className="muted small mt4">{claimModal.desc}</div>
+              </div>
+              <button
+                type="button"
+                className="iconBtn"
+                onClick={() => setClaimModal(null)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="panel mt12">
+              <div className="bigNumber rewardBoom" style={{ textAlign: "center" }}>
+                🎉
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )}
   </div>
@@ -7976,215 +7966,215 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
         )}
 
-      {historyModal && (
-        <div
-        className="historyOverlay"
-        role="dialog"
-        aria-modal="true"
-        onClick={() => setHistoryModal(null)}
-        >
-        <div className="historyModal" onClick={(e) => e.stopPropagation()}>
-        <div className="historyModalTop">
+              {historyModal && (
+  <div
+    className="historyOverlay"
+    role="dialog"
+    aria-modal="true"
+    onClick={() => setHistoryModal(null)}
+  >
+    <div className="historyModal" onClick={(e) => e.stopPropagation()}>
+      <div className="historyModalTop">
         <div>
-        <div className="historyTitle">{historyModal.title}</div>
-        <div className="muted small">
-        {historyModal.kind === "movement"
-        ? "Strength trend"
-        : historyModal.kind === "cardio"
-        ? "Cardio trend"
-        : historyModal.kind === "duration"
-        ? "Duration trend"
-        : "Task consistency"}
-        </div>
+          <div className="historyTitle">{historyModal.title}</div>
+          <div className="muted small">
+            {historyModal.kind === "movement"
+  ? "Strength trend"
+  : historyModal.kind === "cardio"
+  ? "Cardio trend"
+  : historyModal.kind === "duration"
+  ? "Duration trend"
+  : "Task consistency"}
+          </div>
         </div>
 
         <button
-        type="button"
-        className="iconBtn"
-        onClick={() => setHistoryModal(null)}
-        aria-label="Close"
+          type="button"
+          className="iconBtn"
+          onClick={() => setHistoryModal(null)}
+          aria-label="Close"
         >
-        ✕
+          ✕
         </button>
-        </div>
+      </div>
 
-        <div className="historyRanges">
+      <div className="historyRanges">
         {[
-        ["4w", "4W"],
-        ["8w", "8W"],
-        ["12w", "12W"],
-        ["6m", "6M"],
+          ["4w", "4W"],
+          ["8w", "8W"],
+          ["12w", "12W"],
+          ["6m", "6M"],
         ].map(([k, txt]) => (
-        <button
-        key={k}
-        type="button"
-        className={"pillToggleBtn " + (historyRange === k ? "active" : "")}
-        onClick={() => setHistoryRange(k)}
-        >
-        {txt}
-        </button>
+          <button
+            key={k}
+            type="button"
+            className={"pillToggleBtn " + (historyRange === k ? "active" : "")}
+            onClick={() => setHistoryRange(k)}
+          >
+            {txt}
+          </button>
         ))}
-        </div>
+      </div>
 
-        {historyModal.kind === "movement" && (
-        <div className="historyRanges" style={{ marginTop: 6 }}>
-        {[
-        ["weight", "Weight"],
-        ["reps", "Reps"],
-        ["time", "Time"],
-        ].map(([k, label]) => (
-        <button
+      {historyModal.kind === "movement" && (
+  <div className="historyRanges" style={{ marginTop: 6 }}>
+    {[
+      ["weight", "Weight"],
+      ["reps", "Reps"],
+      ["time", "Time"],
+    ].map(([k, label]) => (
+      <button
         key={k}
         type="button"
         className={"pillToggleBtn " + (historyStrengthShow[k] ? "active" : "")}
         onClick={() =>
-        setHistoryStrengthShow((s) => ({ ...s, [k]: !s[k] }))
+          setHistoryStrengthShow((s) => ({ ...s, [k]: !s[k] }))
         }
-        >
+      >
         {label}
-        </button>
-        ))}
-        </div>
-        )}
+      </button>
+    ))}
+  </div>
+)}
 
-        {historyModal.kind === "cardio" && (
-        <>
-        <div className="historyRanges" style={{ marginTop: 6 }}>
-        {[
+{historyModal.kind === "cardio" && (
+  <>
+    <div className="historyRanges" style={{ marginTop: 6 }}>
+      {[
         ["pace", "Pace"],
         ["distance", "Distance"],
         ["time", "Time"],
         ["speed", "Speed"],
-        ].map(([k, label]) => (
+      ].map(([k, label]) => (
         <button
-        key={k}
-        type="button"
-        className={"pillToggleBtn " + (historyCardioMetric === k ? "active" : "")}
-        onClick={() => setHistoryCardioMetric(k)}
+          key={k}
+          type="button"
+          className={"pillToggleBtn " + (historyCardioMetric === k ? "active" : "")}
+          onClick={() => setHistoryCardioMetric(k)}
         >
-        {label}
+          {label}
         </button>
-        ))}
-        </div>
+      ))}
+    </div>
 
-        <div className="historyRanges" style={{ marginTop: 6 }}>
-        {[
+    <div className="historyRanges" style={{ marginTop: 6 }}>
+      {[
         ["km", "KM"],
         ["mi", "Miles"],
-        ].map(([u, label]) => (
+      ].map(([u, label]) => (
         <button
-        key={u}
-        type="button"
-        className={"pillToggleBtn " + (historyCardioUnit === u ? "active" : "")}
-        onClick={() => setHistoryCardioUnit(u)}
+          key={u}
+          type="button"
+          className={"pillToggleBtn " + (historyCardioUnit === u ? "active" : "")}
+          onClick={() => setHistoryCardioUnit(u)}
         >
-        {label}
+          {label}
         </button>
-        ))}
-        </div>
-        </>
-        )}
+      ))}
+    </div>
+  </>
+)}
 
-        <div className="chart" style={{ height: 240 }}>
+      <div className="chart" style={{ height: 240 }}>
         {historySeries.length === 0 ? (
-        <div className="dashed" style={{ padding: 18 }}>
-        No history in this range yet.
-        </div>
+          <div className="dashed" style={{ padding: 18 }}>
+            No history in this range yet.
+          </div>
         ) : (
-        <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={historySeries} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="x" tick={{ fontSize: 12 }} />
-        <YAxis tick={{ fontSize: 12 }} />
+          <ResponsiveContainer width="100%" height="100%">
+  <LineChart data={historySeries} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis dataKey="x" tick={{ fontSize: 12 }} />
+    <YAxis tick={{ fontSize: 12 }} />
 
-        <Tooltip
-        formatter={(val, key) => {
+    <Tooltip
+      formatter={(val, key) => {
         const n = Number(val);
 
         if (historyModal.kind === "movement") {
-        if (key === "weight") return [n, "Weight (kg)"];
-        if (key === "reps") return [n, "Reps"];
-        if (key === "timeSec") return [n, "Time (sec)"];
-        return [n, key];
+          if (key === "weight") return [n, "Weight (kg)"];
+          if (key === "reps") return [n, "Reps"];
+          if (key === "timeSec") return [n, "Time (sec)"];
+          return [n, key];
         }
 
         if (historyModal.kind === "duration") {
-        return [n, "Minutes"];
+          return [n, "Minutes"];
         }
 
         if (historyModal.kind === "task") {
-        return [n === 1 ? "Done" : "Missed", "Task"];
+          return [n === 1 ? "Done" : "Missed", "Task"];
         }
 
         // cardio
         if (historyModal.kind === "cardio") {
-        if (key === "pace_km" || key === "pace_mi") {
-        const totalSec = Math.round(n * 60);
-        const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
-        const ss = String(totalSec % 60).padStart(2, "0");
-        const unit = key === "pace_mi" ? "/mi" : "/km";
-        return [`${mm}:${ss} ${unit}`, "Pace"];
-        }
-        if (key === "dist_km") return [n.toFixed(2), "Distance (km)"];
-        if (key === "dist_mi") return [n.toFixed(2), "Distance (mi)"];
-        if (key === "time_min") return [n.toFixed(0), "Time (min)"];
-        if (key === "speed_kmh") return [n.toFixed(2), "Speed (km/h)"];
-        if (key === "speed_mph") return [n.toFixed(2), "Speed (mph)"];
+          if (key === "pace_km" || key === "pace_mi") {
+            const totalSec = Math.round(n * 60);
+            const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+            const ss = String(totalSec % 60).padStart(2, "0");
+            const unit = key === "pace_mi" ? "/mi" : "/km";
+            return [`${mm}:${ss} ${unit}`, "Pace"];
+          }
+          if (key === "dist_km") return [n.toFixed(2), "Distance (km)"];
+          if (key === "dist_mi") return [n.toFixed(2), "Distance (mi)"];
+          if (key === "time_min") return [n.toFixed(0), "Time (min)"];
+          if (key === "speed_kmh") return [n.toFixed(2), "Speed (km/h)"];
+          if (key === "speed_mph") return [n.toFixed(2), "Speed (mph)"];
         }
 
         return [n, key];
-        }}
-        />
+      }}
+    />
 
-        {/* Strength: multi-line */}
-        {historyModal.kind === "movement" && (
-        <>
+    {/* Strength: multi-line */}
+    {historyModal.kind === "movement" && (
+      <>
         {historyStrengthShow.weight && (
-        <Line type="monotone" dataKey="weight" dot={false} strokeWidth={3} stroke="#0ea5e9" connectNulls />
+          <Line type="monotone" dataKey="weight" dot={false} strokeWidth={3} stroke="#0ea5e9" connectNulls />
         )}
         {historyStrengthShow.reps && (
-        <Line type="monotone" dataKey="reps" dot={false} strokeWidth={3} stroke="#22c55e" connectNulls />
+          <Line type="monotone" dataKey="reps" dot={false} strokeWidth={3} stroke="#22c55e" connectNulls />
         )}
         {historyStrengthShow.time && (
-        <Line type="monotone" dataKey="timeSec" dot={false} strokeWidth={3} stroke="#f59e0b" connectNulls />
+          <Line type="monotone" dataKey="timeSec" dot={false} strokeWidth={3} stroke="#f59e0b" connectNulls />
         )}
-        </>
-        )}
+      </>
+    )}
 
-        {/* Duration: single line */}
-        {historyModal.kind === "duration" && (
-        <Line type="monotone" dataKey="minutes" dot={false} strokeWidth={3} />
-        )}
+    {/* Duration: single line */}
+    {historyModal.kind === "duration" && (
+      <Line type="monotone" dataKey="minutes" dot={false} strokeWidth={3} />
+    )}
 
-        {/* Task: single line (0/1) */}
-        {historyModal.kind === "task" && (
-        <Line type="stepAfter" dataKey="done" dot={false} strokeWidth={3} />
-        )}
+    {/* Task: single line (0/1) */}
+    {historyModal.kind === "task" && (
+      <Line type="stepAfter" dataKey="done" dot={false} strokeWidth={3} />
+    )}
 
-        {/* Cardio: single line based on metric + unit */}
-        {historyModal.kind === "cardio" && (() => {
-        const key =
+    {/* Cardio: single line based on metric + unit */}
+    {historyModal.kind === "cardio" && (() => {
+      const key =
         historyCardioMetric === "pace"
-        ? (historyCardioUnit === "mi" ? "pace_mi" : "pace_km")
-        : historyCardioMetric === "distance"
-        ? (historyCardioUnit === "mi" ? "dist_mi" : "dist_km")
-        : historyCardioMetric === "speed"
-        ? (historyCardioUnit === "mi" ? "speed_mph" : "speed_kmh")
-        : "time_min";
+          ? (historyCardioUnit === "mi" ? "pace_mi" : "pace_km")
+          : historyCardioMetric === "distance"
+          ? (historyCardioUnit === "mi" ? "dist_mi" : "dist_km")
+          : historyCardioMetric === "speed"
+          ? (historyCardioUnit === "mi" ? "speed_mph" : "speed_kmh")
+          : "time_min";
 
-        return <Line type="monotone" dataKey={key} dot={false} strokeWidth={3} />;
-        })()}
-        </LineChart>
-        </ResponsiveContainer>
+      return <Line type="monotone" dataKey={key} dot={false} strokeWidth={3} />;
+    })()}
+  </LineChart>
+</ResponsiveContainer>
         )}
-        </div>
-        </div>
-        </div>
-      )}
-      <footer className="footer">Workout Tracker beta: custom plans • XP, streaks &amp; rewards.</footer>
+      </div>
+    </div>
+  </div>
+)}
+               <footer className="footer">Workout Tracker beta: custom plans • XP, streaks &amp; rewards.</footer>
       </div>
 
-
+      <StyleTag />
     </div>
   );
 }
@@ -8835,8 +8825,6 @@ function StyleTag() {
       .motItem{border:1px solid #e2e8f0;background:#fff;border-radius:14px;padding:10px 12px;font-weight:800;color:#0f172a;font-size:13px}
 
     `}</style>
-
-
   );
 }
 
@@ -9002,3 +8990,4 @@ const boxRounds = (names) =>
     },
   ];
 };
+
