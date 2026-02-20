@@ -3747,6 +3747,9 @@ async function claimDailyBonus(e, anchorEl) {
   const xpFrom = xp;
   const xpTo = xpFrom + 15;
 
+  // Optimistically bump XP so the UI updates immediately
+  setXp(xpTo);
+
   playBuildUpSound();
 
   const next = logForDay ? { ...logForDay } : blankLogForDay();
@@ -7454,6 +7457,9 @@ const targetInfo = buildTargetInfoForMovement({
 
                               const xpFrom = xp;
                               const xpTo = xpFrom + safeNumber(b.xp);
+
+                              // Optimistically bump XP so the UI updates immediately
+                              setXp(xpTo);
 
                               playBuildUpSound();
                               await claimRewardKey(b.key, getTodayYMD());
