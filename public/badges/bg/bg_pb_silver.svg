@@ -1,0 +1,54 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rim_pb_silver" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="18%" stop-color="#C9D0D9"/>
+      <stop offset="55%" stop-color="#6C7A89"/>
+      <stop offset="100%" stop-color="#2A3138"/>
+    </linearGradient>
+
+    <linearGradient id="rimInner_pb_silver" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E9EEF3"/>
+      <stop offset="55%" stop-color="#8B96A3"/>
+      <stop offset="100%" stop-color="#2A3138"/>
+    </linearGradient>
+
+    <radialGradient id="core_pb_silver" cx="45%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#1E2C52"/>
+      <stop offset="55%" stop-color="#0E1D3D"/>
+      <stop offset="100%" stop-color="#06102B"/>
+    </radialGradient>
+
+    <linearGradient id="ring_pb_silver" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFC107" stop-opacity="0.0"/>
+      <stop offset="35%" stop-color="#FFC107" stop-opacity="0.55"/>
+      <stop offset="65%" stop-color="#FFC107" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#FFC107" stop-opacity="0.0"/>
+    </linearGradient>
+
+    <linearGradient id="shine_pb_silver" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+
+  <polygon points="256,36 448,146 448,366 256,476 64,366 64,146" fill="url(#rim_pb_silver)"/>
+  <polygon points="256,52 432,154 432,358 256,460 80,358 80,154" fill="#000000" opacity="0.6"/>
+
+  <polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="url(#rimInner_pb_silver)"/>
+  <polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="none" stroke="#111111" stroke-width="5" opacity="0.35"/>
+
+  <polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="url(#core_pb_silver)"/>
+  <polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="#000000" stroke-width="8" opacity="0.35"/>
+
+  <polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="url(#ring_pb_silver)" stroke-width="6" opacity="0.55"/>
+
+  <polygon points="256,70 414,160 404,170 256,86 108,170 98,160" fill="#FFFFFF" opacity="0.11"/>
+
+  <polygon points="132,190 380,190 348,222 164,222" fill="url(#shine_pb_silver)" opacity="0.58"/>
+
+  <polygon points="142,320 256,252 370,320 256,392" fill="#FFFFFF" opacity="0.04"/>
+  <polygon points="150,314 256,260 362,314 256,382" fill="#000000" opacity="0.16"/>
+</svg>
