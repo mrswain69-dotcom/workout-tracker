@@ -1530,6 +1530,17 @@ function getRunKmFromBlock(block) {
   return km > 0 ? km : 0;
 }
 
+const RUN_5K_TIERS = [
+  { key: "badge_run_5k_1", tier: "bronze",  threshold: 1, xp: 25 },
+  { key: "badge_run_5k_2", tier: "silver",  threshold: 3, xp: 35 },
+  { key: "badge_run_5k_3", tier: "gold",    threshold: 5, xp: 45 },
+];
+
+const RUN_10K_TIERS = [
+  { key: "badge_run_10k_1", tier: "bronze", threshold: 1, xp: 40 },
+  // Future: add silver/gold/platinum/diamond tiers here
+];
+
 function computeEarnedBadgesFromLogs(allLogs) {
   let run5Count = 0;
   let run10Count = 0;
@@ -1545,10 +1556,20 @@ function computeEarnedBadgesFromLogs(allLogs) {
   }
 
   const earned = new Set();
-  if (run5Count >= 1) earned.add("badge_run_5k_1");
-  if (run5Count >= 2) earned.add("badge_run_5k_2");
-  if (run5Count >= 3) earned.add("badge_run_5k_3");
-  if (run10Count >= 1) earned.add("badge_run_10k_1");
+
+  // 5K tiers (Bronze/Silver/Gold)
+  for (const info of RUN_5K_TIERS) {
+    if (run5Count >= info.threshold) {
+      earned.add(info.key);
+    }
+  }
+
+  // 10K tiers (Bronze for now)
+  for (const info of RUN_10K_TIERS) {
+    if (run10Count >= info.threshold) {
+      earned.add(info.key);
+    }
+  }
 
   return earned;
 }
@@ -1570,53 +1591,90 @@ function computeRunCountsFromLogs(allLogs) {
   return { run5Count, run10Count };
 }
 
-function getBadgeDescription(b, runBadgeCounts) {
+function getRunTierState(b, runBadgeCounts, claimedRewardsSet) {
+  if (
+    b.category !== "running" ||
+    (b.distanceLabel !== "5K" && b.distanceLabel !== "10K")
+  ) {
+    return null;
+  }
+
+  const is5k = b.distanceLabel === "5K";
+  const count = is5k ? runBadgeCounts.run5Count : runBadgeCounts.run10Count;
+  const tiers = is5k ? RUN_5K_TIERS : RUN_10K_TIERS;
+
+  let highestEarnedIndex = -1;
+  let highestClaimedIndex = -1;
+
+  tiers.forEach((info, idx) => {
+    if (count >= info.threshold) highestEarnedIndex = idx;
+    if (claimedRewardsSet.has(info.key)) highestClaimedIndex = idx;
+  });
+
+  const currentTier =
+    highestEarnedIndex >= 0 ? tiers[highestEarnedIndex] : null;
+
+  const nextTier =
+    highestEarnedIndex + 1 < tiers.length ? tiers[highestEarnedIndex + 1] : null;
+
+  const hasUnclaimedTier = highestEarnedIndex > highestClaimedIndex;
+
+  const nextClaimable =
+    hasUnclaimedTier && highestClaimedIndex + 1 < tiers.length
+      ? tiers[highestClaimedIndex + 1]
+      : null;
+
+  const remaining =
+    nextTier != null ? Math.max(nextTier.threshold - count, 0) : 0;
+
+  return {
+    count,
+    tiers,
+    currentTier,
+    nextTier,
+    remaining,
+    highestEarnedIndex,
+    highestClaimedIndex,
+    hasUnclaimedTier,
+    nextClaimable,
+  };
+}
+
+function getBadgeDescription(b, runBadgeCounts, claimedRewardsSet) {
   // Special dynamic text for running distance badges
   if (
     b.category === "running" &&
     (b.distanceLabel === "5K" || b.distanceLabel === "10K")
   ) {
-    const is5k = b.distanceLabel === "5K";
-    const count = is5k ? runBadgeCounts.run5Count : runBadgeCounts.run10Count;
+    const state = getRunTierState(b, runBadgeCounts, claimedRewardsSet);
+    if (!state) return b.desc;
 
-    // Simple thresholds for now:
-    // 5K: bronze 1, silver 2, gold 3
-    // 10K: bronze 1 (extendable later)
-    const thresholds = is5k
-      ? { bronze: 1, silver: 2, gold: 3 }
-      : { bronze: 1 };
+    const label = b.distanceLabel + "+";
+    const count = state.count;
 
-    const tiers = ["bronze", "silver", "gold", "platinum", "diamond"];
-    let nextThreshold = null;
-
-    for (const tier of tiers) {
-      const t = thresholds[tier];
-      if (!t) continue;
-      if (count < t && (nextThreshold === null || t < nextThreshold)) {
-        nextThreshold = t;
-      }
+    if (!state.currentTier) {
+      // No runs yet
+      const firstTier = state.tiers[0];
+      return `No ${label} runs logged yet. Do your first ${label} to unlock ${
+        firstTier.tier.charAt(0).toUpperCase() + firstTier.tier.slice(1)
+      } (+${firstTier.xp} XP).`;
     }
 
-    // If we *don't* have a numeric next threshold:
-    // - Only call it "highest tier unlocked" when they're on Diamond.
-    // - Otherwise just say they've logged X times so far and can keep progressing.
-    if (nextThreshold === null) {
-      const timesWord = count === 1 ? "" : "s";
-
-      if (b.tier === "diamond") {
-        return `Logged ${b.distanceLabel}+ ${count} time${timesWord}. Highest tier unlocked.`;
-      }
-
-      return `Logged ${b.distanceLabel}+ ${count} time${timesWord} so far. Keep going to work towards higher tiers.`;
+    if (!state.nextTier) {
+      // At or above highest configured tier
+      return `Logged ${label} ${count} time${
+        count === 1 ? "" : "s"
+      }. Highest tier unlocked.`;
     }
 
-    const remaining = Math.max(nextThreshold - count, 0);
+    const nextTierName =
+      state.nextTier.tier.charAt(0).toUpperCase() + state.nextTier.tier.slice(1);
 
-    return `Logged ${b.distanceLabel}+ ${count} time${
+    return `Logged ${label} ${count} time${
       count === 1 ? "" : "s"
-    } — unlock next tier by doing ${b.distanceLabel}+ ${remaining} more time${
-      remaining === 1 ? "" : "s"
-    } (${nextThreshold} total).`;
+    } — ${state.remaining} more to reach ${nextTierName} and +${
+      state.nextTier.xp
+    } XP (${state.nextTier.threshold} total).`;
   }
 
   // Non-running badges: fall back to static description
@@ -2479,6 +2537,10 @@ const earnedBadgesSet = useMemo(() => computeEarnedBadgesFromLogs(allLogs), [all
 const runBadgeCounts = useMemo(
   () => computeRunCountsFromLogs(allLogs),
   [allLogs]
+);
+
+  const hasUnclaimedBadges = Array.from(earnedBadgesSet).some(
+  (key) => !claimedRewardsSet.has(key)
 );
 
   const canUseTheme = (t) =>
@@ -7530,6 +7592,12 @@ const targetInfo = buildTargetInfoForMovement({
         </div>
       </div>
 
+            {hasUnclaimedBadges && (
+        <div className="badgeNotice mt8">
+          🎉 New badge earned — tap <b>Badges</b> to claim it!
+        </div>
+      )}
+
       {rewardsSubTab === "badges" && (
         <div className="mt16">
           <div className="muted">
@@ -7538,9 +7606,37 @@ const targetInfo = buildTargetInfoForMovement({
 
           <div className="grid2 mt12">
       {BADGE_DEFS.filter((b) => !b.hidden).map((b) => {
-        const earned = earnedBadgesSet.has(b.key);
-        const claimed = claimedRewardsSet.has(b.key);
-        const status = claimed ? "claimed" : earned ? "claimable" : "locked";
+        const runTierState =
+          b.category === "running" &&
+          (b.distanceLabel === "5K" || b.distanceLabel === "10K")
+            ? getRunTierState(b, runBadgeCounts, claimedRewardsSet)
+            : null;
+
+        let status;
+        if (runTierState) {
+          const hasAnyTier = runTierState.highestEarnedIndex >= 0;
+          if (runTierState.hasUnclaimedTier) {
+            status = "claimable";
+          } else if (hasAnyTier) {
+            status = "claimed";
+          } else {
+            status = "locked";
+          }
+        } else {
+          const earned = earnedBadgesSet.has(b.key);
+          const claimed = claimedRewardsSet.has(b.key);
+          status = claimed ? "claimed" : earned ? "claimable" : "locked";
+        }
+
+        const nextClaimableTier =
+          runTierState && runTierState.nextClaimable ? runTierState.nextClaimable : null;
+
+        const claimLabel = nextClaimableTier
+          ? `Claim ${
+              nextClaimableTier.tier.charAt(0).toUpperCase() +
+              nextClaimableTier.tier.slice(1)
+            }`
+          : "Claim";
 
         return (
           <div
@@ -7558,11 +7654,19 @@ const targetInfo = buildTargetInfoForMovement({
               <div className="badgeBig" aria-hidden="true">
                 <div className="wtBadge">
                   {(() => {
-                    const tierIndex = TIER_ORDER.indexOf(b.tier);
-                    const achievedTiers =
-                      tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
+  // Use dynamic tier for running badges; otherwise fall back to static b.tier
+  let effectiveTier = b.tier || null;
 
-                    const layers = [];
+  if (runTierState && runTierState.currentTier) {
+    effectiveTier = runTierState.currentTier.tier;
+  }
+
+  const tierIndex =
+    effectiveTier != null ? TIER_ORDER.indexOf(effectiveTier) : -1;
+  const achievedTiers =
+    tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
+
+  const layers = [];
 
                     // 1) Coloured layers for all already-claimed tiers
                     achievedTiers.forEach((tier, idx) => {
@@ -7607,21 +7711,36 @@ const targetInfo = buildTargetInfoForMovement({
                           style={{ "--frontOffset": `${frontOffset}px` }}
                         >
                           {/* Big faint 5K / 10K behind icon */}
-                          {b.distanceLabel && (
-                            <div className="wtBadgeDistance">
-                              {b.distanceLabel}
-                            </div>
-                          )}
+const distanceClassName =
+  "wtBadgeDistance " +
+  (b.distanceLabel === "10K"
+    ? "wtBadgeDistance--long"
+    : "wtBadgeDistance--short");
 
-                          {/* Icon on top of the stack */}
-                          <img className="wtBadgeIcon" src={b.icon} alt="" />
+return (
+  <>
+    {layers}
+    <div
+      className="wtBadgeForeground"
+      style={{ "--frontOffset": `${frontOffset}px` }}
+    >
+      {/* Big faint 5K / 10K behind icon */}
+      {b.distanceLabel && (
+        <div className={distanceClassName}>{b.distanceLabel}</div>
+      )}
 
-                          {/* Tier plaque for current highest tier */}
-                          {b.tier && (
-                            <div className={"wtBadgeTierPlaque tier-" + b.tier}>
-                              {b.tier.charAt(0).toUpperCase() + b.tier.slice(1)}
-                            </div>
-                          )}
+      {/* Icon on top of the stack */}
+      <img className="wtBadgeIcon" src={b.icon} alt="" />
+
+      {/* Tier plaque for current highest tier */}
+      {effectiveTier && (
+        <div className={"wtBadgeTierPlaque tier-" + effectiveTier}>
+          {effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)}
+        </div>
+      )}
+    </div>
+  </>
+);
                         </div>
                       </>
                     );
@@ -7631,84 +7750,88 @@ const targetInfo = buildTargetInfoForMovement({
 
               <div className="badgeAction">
                 {status === "claimable" ? (
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={async (e) => {
-                      const card = e.currentTarget.closest(".badgeCard");
-                      const rect = card ? card.getBoundingClientRect() : null;
+  <button
+    type="button"
+    className="btn"
+    onClick={async (e) => {
+      const card = e.currentTarget.closest(".badgeCard");
+      const rect = card ? card.getBoundingClientRect() : null;
 
-                      const xpFrom = xp;
-                      const xpTo = xpFrom + safeNumber(b.xp);
+      const tierToClaim = nextClaimableTier || null;
+      const xpReward = tierToClaim ? tierToClaim.xp : safeNumber(b.xp);
+      const badgeKeyToClaim = tierToClaim ? tierToClaim.key : b.key;
 
-                      // Optimistically bump XP so the UI updates immediately
-                      setXp(xpTo);
+      const xpFrom = xp;
+      const xpTo = xpFrom + safeNumber(xpReward);
 
-                      playBuildUpSound();
-                      await claimRewardKey(b.key, getTodayYMD());
+      // Optimistically bump XP so the UI updates immediately
+      setXp(xpTo);
 
-                      // Force immediate XP recompute (so the counter/ledger updates without refresh)
-                      setTimeout(
-                        () => setXp(computeXpFromLogs(allLogs, planRef.current)),
-                        0
-                      );
-                      setTimeout(
-                        () => setXp(computeXpFromLogs(allLogs, planRef.current)),
-                        200
-                      );
+      playBuildUpSound();
+      await claimRewardKey(badgeKeyToClaim, getTodayYMD());
 
-                      setLastClaimedKey(b.key);
-                      setTimeout(() => setLastClaimedKey(""), 900);
+      // Force immediate XP recompute (so the counter/ledger updates without refresh)
+      setTimeout(
+        () => setXp(computeXpFromLogs(allLogs, planRef.current)),
+        0
+      );
+      setTimeout(
+        () => setXp(computeXpFromLogs(allLogs, planRef.current)),
+        200
+      );
 
-                      const confetti = Array.from({ length: 18 }).map((_, i) => ({
-                        id: i,
-                        x: Math.random() * 140 - 70,
-                        y: Math.random() * 80 - 110,
-                        r: Math.random() * 360,
-                        d: 700 + Math.random() * 450,
-                      }));
+      setLastClaimedKey(badgeKeyToClaim);
+      setTimeout(() => setLastClaimedKey(""), 900);
 
-                      setClaimModal({
-                        kind: "badge",
-                        stage: "shake",
-                        title: "Badge claimed!",
-                        desc: `${b.title} unlocked`,
-                        badgeKey: b.key,
-                        emoji: b.emoji,
-                        xpAward: safeNumber(b.xp),
-                        xpFrom,
-                        xpTo,
-                        fromRect: rect
-                          ? {
-                              x: rect.left,
-                              y: rect.top,
-                              w: rect.width,
-                              h: rect.height,
-                            }
-                          : null,
-                        confetti,
-                      });
+      const confetti = Array.from({ length: 18 }).map((_, i) => ({
+        id: i,
+        x: Math.random() * 140 - 70,
+        y: Math.random() * 80 - 110,
+        r: Math.random() * 360,
+        d: 700 + Math.random() * 450,
+      }));
 
-                      setTimeout(() => {
-                        playRewardSound(); // boom sound at the right moment
-                        playSparkleSound();
-                        setClaimModal((prev) =>
-                          prev ? { ...prev, stage: "boom" } : prev
-                        );
-                      }, 260);
-                    }}
-                  >
-                    Claim
-                  </button>
+      setClaimModal({
+        kind: "badge",
+        stage: "shake",
+        title: "Badge claimed!",
+        desc: `${b.title} unlocked`,
+        badgeKey: badgeKeyToClaim,
+        emoji: b.emoji,
+        xpAward: safeNumber(xpReward),
+        xpFrom,
+        xpTo,
+        fromRect: rect
+          ? {
+              x: rect.left,
+              y: rect.top,
+              w: rect.width,
+              h: rect.height,
+            }
+          : null,
+        confetti,
+      });
+
+      setTimeout(() => {
+        playRewardSound(); // boom sound at the right moment
+        playSparkleSound();
+        setClaimModal((prev) =>
+          prev ? { ...prev, stage: "boom" } : prev
+        );
+      }, 260);
+    }}
+  >
+    {claimLabel}
+  </button>
                 ) : (
                   <div className="pill">{badgeStatusLabel(status)}</div>
                 )}
               </div>
             </div>
 
-            <div className="badgeDesc">
-              {getBadgeDescription(b, runBadgeCounts)}
-            </div>
+<div className="badgeDesc">
+  {getBadgeDescription(b, runBadgeCounts, claimedRewardsSet)}
+</div>
           </div>
         );
       })}
@@ -8697,15 +8820,26 @@ function StyleTag() {
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:24px;              /* you can tweak this */
-  font-weight:800;
-  letter-spacing:0.10em;
   text-transform:uppercase;
   color:#FFFFFF;
-  opacity:0.18;                /* 10–20% as you suggested */
+  opacity:0.18;
   text-shadow:0 0 6px rgba(0,0,0,0.55);
-  z-index:1;                   /* behind icon, above bg */
+  z-index:1;
   pointer-events:none;
+}
+
+/* Short label like "5K" can be bigger */
+.wtBadgeDistance--short{
+  font-size:26px;
+  font-weight:800;
+  letter-spacing:0.14em;
+}
+
+/* Longer label like "10K" needs to be a bit smaller/tighter */
+.wtBadgeDistance--long{
+  font-size:22px;
+  font-weight:800;
+  letter-spacing:0.10em;
 }
 
 .wtBadgeTierPlaque{
@@ -8980,6 +9114,16 @@ function StyleTag() {
       .gridLog input[type="number"]{font-size:20px;font-weight:800}
       .label{font-size:12px;font-weight:600;color:#475569;margin-bottom:4px}
       .muted{color:#64748b;font-size:14px}
+      .badgeNotice{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.9);
+  font-size:12px;
+  color:#f39c12;
+}
       .h2{font-size:18px;font-weight:900;color:#64748b}        /* section titles muted */
       .h3{font-size:14px;font-weight:900}                      /* block titles */
       .movementName{font-size:16px;font-weight:800;color:#0f172a;margin-top:12px;margin-bottom:4px}
