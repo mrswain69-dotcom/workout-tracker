@@ -7653,98 +7653,88 @@ const targetInfo = buildTargetInfoForMovement({
             <div className="badgeMid">
               <div className="badgeBig" aria-hidden="true">
                 <div className="wtBadge">
-                  {(() => {
-  // Use dynamic tier for running badges; otherwise fall back to static b.tier
-  let effectiveTier = b.tier || null;
+                        {(() => {
+        // Use dynamic tier for running badges; otherwise fall back to static b.tier
+        let effectiveTier = b.tier || null;
 
-  if (runTierState && runTierState.currentTier) {
-    effectiveTier = runTierState.currentTier.tier;
-  }
+        if (runTierState && runTierState.currentTier) {
+          effectiveTier = runTierState.currentTier.tier;
+        }
 
-  const tierIndex =
-    effectiveTier != null ? TIER_ORDER.indexOf(effectiveTier) : -1;
-  const achievedTiers =
-    tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
+        const tierIndex =
+          effectiveTier != null ? TIER_ORDER.indexOf(effectiveTier) : -1;
+        const achievedTiers =
+          tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
 
-  const layers = [];
+        const layers = [];
 
-                    // 1) Coloured layers for all already-claimed tiers
-                    achievedTiers.forEach((tier, idx) => {
-                      const bgSrc = `/badges/bg/bg_${b.category}_${tier}.svg`;
-                      layers.push(
-                        <img
-                          key={tier}
-                          className="wtBadgeBgLayer"
-                          src={bgSrc}
-                          alt=""
-                          style={{ "--layerIndex": idx }}
-                        />
-                      );
-                    });
+        // 1) Coloured layers for all already-claimed tiers
+        achievedTiers.forEach((tier, idx) => {
+          const bgSrc = `/badges/bg/bg_${b.category}_${tier}.svg`;
+          layers.push(
+            <img
+              key={tier}
+              className="wtBadgeBgLayer"
+              src={bgSrc}
+              alt=""
+              style={{ "--layerIndex": idx }}
+            />
+          );
+        });
 
-                    // 2) Grey “next tier” preview when claimable
-                    if (
-                      status === "claimable" &&
-                      tierIndex >= 0 &&
-                      tierIndex < TIER_ORDER.length - 1
-                    ) {
-                      const nextTier = TIER_ORDER[tierIndex + 1];
-                      const bgSrcNext = `/badges/bg/bg_${b.category}_${nextTier}.svg`;
-                      layers.push(
-                        <img
-                          key={nextTier}
-                          className="wtBadgeBgLayer wtBadgeBgLayer-next"
-                          src={bgSrcNext}
-                          alt=""
-                          style={{ "--layerIndex": layers.length }}
-                        />
-                      );
-                    }
+        // 2) Grey “next tier” preview when claimable
+        if (
+          status === "claimable" &&
+          tierIndex >= 0 &&
+          tierIndex < TIER_ORDER.length - 1
+        ) {
+          const nextTier = TIER_ORDER[tierIndex + 1];
+          const bgSrcNext = `/badges/bg/bg_${b.category}_${nextTier}.svg`;
+          layers.push(
+            <img
+              key={nextTier}
+              className="wtBadgeBgLayer wtBadgeBgLayer-next"
+              src={bgSrcNext}
+              alt=""
+              style={{ "--layerIndex": layers.length }}
+            />
+          );
+        }
 
-                    const frontOffset = (layers.length - 1) * 12; // px
+        const frontOffset = (layers.length - 1) * 12; // px
 
-                    return (
-                      <>
-                        {layers}
-                        <div
-                          className="wtBadgeForeground"
-                          style={{ "--frontOffset": `${frontOffset}px` }}
-                        >
-                          {/* Big faint 5K / 10K behind icon */}
-const distanceClassName =
-  "wtBadgeDistance " +
-  (b.distanceLabel === "10K"
-    ? "wtBadgeDistance--long"
-    : "wtBadgeDistance--short");
+        const distanceClassName =
+          "wtBadgeDistance " +
+          (b.distanceLabel === "10K"
+            ? "wtBadgeDistance--long"
+            : "wtBadgeDistance--short");
 
-return (
-  <>
-    {layers}
-    <div
-      className="wtBadgeForeground"
-      style={{ "--frontOffset": `${frontOffset}px` }}
-    >
-      {/* Big faint 5K / 10K behind icon */}
-      {b.distanceLabel && (
-        <div className={distanceClassName}>{b.distanceLabel}</div>
-      )}
+        return (
+          <>
+            {layers}
+            <div
+              className="wtBadgeForeground"
+              style={{ "--frontOffset": `${frontOffset}px` }}
+            >
+              {/* Big faint 5K / 10K behind icon */}
+              {b.distanceLabel && (
+                <div className={distanceClassName}>{b.distanceLabel}</div>
+              )}
 
-      {/* Icon on top of the stack */}
-      <img className="wtBadgeIcon" src={b.icon} alt="" />
+              {/* Icon on top of the stack */}
+              <img className="wtBadgeIcon" src={b.icon} alt="" />
 
-      {/* Tier plaque for current highest tier */}
-      {effectiveTier && (
-        <div className={"wtBadgeTierPlaque tier-" + effectiveTier}>
-          {effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)}
-        </div>
-      )}
-    </div>
-  </>
-);
-                        </div>
-                      </>
-                    );
-                  })()}
+              {/* Tier plaque for current highest tier */}
+              {effectiveTier && (
+                <div className={"wtBadgeTierPlaque tier-" + effectiveTier}>
+                  {effectiveTier.charAt(0).toUpperCase() +
+                    effectiveTier.slice(1)}
+                </div>
+              )}
+            </div>
+          </>
+        );
+      })()}
                 </div>
               </div>
 
