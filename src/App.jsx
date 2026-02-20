@@ -1402,6 +1402,8 @@ function computeCardioKmForDay(log) {
 // ---- Rewards: Badges + Avatars (V1) ----
 // NOTE: Graphics are optional. We use emoji placeholders until you add PNG/SVG assets.
 
+const TIER_ORDER = ["bronze", "silver", "gold", "platinum", "diamond"];
+
 const BADGE_DEFS = [
   {
     key: "badge_run_5k_1",
@@ -7477,33 +7479,75 @@ const targetInfo = buildTargetInfoForMovement({
                   >
                     <div className="badgeTitle">{b.title}</div>
 
-                    <div className="badgeMid">
-                      <div
+<div className="badgeMid">
+  <div
     className={
       "badgeBig " +
       (status === "claimed" ? "on" : "off")
     }
     aria-hidden="true"
   >
-<div className="wtBadge">
-  <img className="wtBadgeBg" src={b.bg} alt="" />
+    <div className="wtBadge">
+      {(() => {
+        const tierIndex = TIER_ORDER.indexOf(b.tier);
+        const achievedTiers =
+          tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
 
-  {/* Big faint 5K / 10K behind icon */}
-  {b.distanceLabel && (
-    <div className="wtBadgeDistance">
-      {b.distanceLabel}
+        const layers = [];
+
+        // 1) All already-claimed tiers as coloured layers
+        achievedTiers.forEach((tier, idx) => {
+          const bgSrc = `/badges/bg/bg_${b.category}_${tier}.svg`;
+          layers.push(
+            <img
+              key={tier}
+              className="wtBadgeBgLayer"
+              src={bgSrc}
+              alt=""
+              style={{ "--layerIndex": idx }}
+            />
+          );
+        });
+
+        // 2) If there is a new tier to claim, show next tier as grey layer on top
+        if (
+          status === "claimable" &&
+          tierIndex >= 0 &&
+          tierIndex < TIER_ORDER.length - 1
+        ) {
+          const nextTier = TIER_ORDER[tierIndex + 1];
+          const bgSrcNext = `/badges/bg/bg_${b.category}_${nextTier}.svg`;
+          layers.push(
+            <img
+              key={nextTier}
+              className="wtBadgeBgLayer wtBadgeBgLayer-next"
+              src={bgSrcNext}
+              alt=""
+              style={{ "--layerIndex": layers.length }}
+            />
+          );
+        }
+
+        return layers;
+      })()}
+
+      {/* Big faint 5K / 10K behind icon */}
+      {b.distanceLabel && (
+        <div className="wtBadgeDistance">
+          {b.distanceLabel}
+        </div>
+      )}
+
+      {/* One icon on top of the whole stack */}
+      <img className="wtBadgeIcon" src={b.icon} alt="" />
+
+      {/* Only current tier shows plaque */}
+      {b.tier && (
+        <div className={"wtBadgeTierPlaque tier-" + b.tier}>
+          {b.tier.charAt(0).toUpperCase() + b.tier.slice(1)}
+        </div>
+      )}
     </div>
-  )}
-
-  <img className="wtBadgeIcon" src={b.icon} alt="" />
-
-  {/* Small tier plaque at bottom of badge */}
-  {b.tier && (
-    <div className={"wtBadgeTierPlaque tier-" + b.tier}>
-      {b.tier.charAt(0).toUpperCase() + b.tier.slice(1)}
-    </div>
-  )}
-</div>
   </div>
                       <div className="badgeAction">
                         {status === "claimable" ? (
@@ -8488,14 +8532,17 @@ function StyleTag() {
 .badgeMid{display:flex; align-items:center; justify-content:space-between; gap:14px}
 .badgeAction{display:flex; align-items:center; justify-content:flex-end; min-width:88px}
 .badgeBig{
-  width:86px; height:86px;
+  width:120px;               /* wider to allow full-size stacking */
+  height:86px;
   border-radius:22px;
-  display:flex; align-items:center; justify-content:center;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;  /* stack starts from left */
   position:relative;
-  overflow:visible;          /* let glows breathe */
+  overflow:visible;
   background:none;
   border:none;
-  font-size:0;               /* we no longer show emoji text */
+  font-size:0;
 }
 .badgeBig.off{opacity:.22; filter:saturate(0) contrast(0.9) brightness(1.05)}
 .wtBadge{
@@ -8508,6 +8555,23 @@ function StyleTag() {
   width:100%;
   height:100%;
   display:block;
+}
+
+/* Full-size stacked hex backgrounds */
+.wtBadgeBgLayer{
+  position:absolute;
+  top:0;
+  left:0;
+  width:86px;
+  height:86px;
+  display:block;
+  z-index:calc(var(--layerIndex));             /* later index = on top */
+  transform:translateX(calc(var(--layerIndex) * 12px));  /* overlap amount */
+}
+
+/* New tier available to claim: show greyed preview on top */
+.wtBadgeBgLayer-next{
+  filter:grayscale(1) brightness(1.05) opacity(0.9);
 }
 
 .wtBadgeIcon{
@@ -8569,7 +8633,7 @@ function StyleTag() {
 .wtBadgeTierPlaque.tier-diamond { color:#9DF5FF; }
 
 /* Locked: greyed out */
-.badgeCard.locked .wtBadgeBg,
+.badgeCard.locked .wtBadgeBgLayer,
 .badgeCard.locked .wtBadgeIcon,
 .badgeCard.locked .wtBadgeDistance,
 .badgeCard.locked .wtBadgeTierPlaque{
@@ -8577,15 +8641,15 @@ function StyleTag() {
   opacity:0.75;
 }
 
-/* Claimable: subtle glow */
+/* Claimable: subtle glow 
 .badgeCard.claimable .wtBadgeBg{
   filter:drop-shadow(0 0 12px rgba(0,229,255,0.55));
-}
+}*/
 
-/* Claimed: slightly stronger glow */
+/* Claimed: slightly stronger glow 
 .badgeCard.claimed .wtBadgeBg{
   filter:drop-shadow(0 0 18px rgba(0,229,255,0.75));
-}
+}*/
 .badgeCard.claimable .badgeBig.off{opacity:.45}
 .badgeCard.locked .badgeBig.off{opacity:.18}
 .badgeBig.on{
