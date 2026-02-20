@@ -1407,20 +1407,21 @@ const TIER_ORDER = ["bronze", "silver", "gold", "platinum", "diamond"];
 const BADGE_DEFS = [
   {
     key: "badge_run_5k_1",
-    title: "First 5K Run",
-    desc: "Log a run day of 5.0km or more",
+    title: "5K Run",
+    desc: "Logged 5K+ runs",
     category: "running",
     tier: "bronze",
     distanceLabel: "5K",
     bg: "/badges/bg/bg_running_bronze.svg",
-    icon: "/badges/icons/icon_runner_5k.png",  // or icon_runner.png if single icon
+    icon: "/badges/icons/icon_runner_5k.png",
     emoji: "🏅",
     xp: 25,
+    hidden: true,            // <- keep for logic but don’t render
   },
   {
     key: "badge_run_5k_2",
-    title: "5K Run ×2",
-    desc: "Log 5K+ on two different days",
+    title: "5K Run",
+    desc: "Logged 5K+ runs",
     category: "running",
     tier: "silver",
     distanceLabel: "5K",
@@ -1428,11 +1429,12 @@ const BADGE_DEFS = [
     icon: "/badges/icons/icon_runner_5k.png",
     emoji: "🥈",
     xp: 25,
+    hidden: true,            // <- keep for logic but don’t render
   },
   {
     key: "badge_run_5k_3",
-    title: "5K Run ×3",
-    desc: "Log 5K+ on three different days",
+    title: "5K Run",
+    desc: "Logged 5K+ runs",
     category: "running",
     tier: "gold",
     distanceLabel: "5K",
@@ -1443,13 +1445,13 @@ const BADGE_DEFS = [
   },
   {
     key: "badge_run_10k_1",
-    title: "First 10K Run",
-    desc: "Log a run day of 10.0km or more",
+    title: "10K Run",
+    desc: "Logged 10K+ runs",
     category: "running",
     tier: "bronze",
     distanceLabel: "10K",
-    bg: "/badges/bg/bg_running_bronze.svg",
-    icon: "/badges/icons/icon_runner_10k.png", // later: distinct icon
+    bg: "/badges/bg/bg_running_bronze.svg",  // re-use bronze frame for now
+    icon: "/badges/icons/icon_runner_10k.png",
     emoji: "🏆",
     xp: 40,
   },
@@ -7482,7 +7484,7 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
 
           <div className="grid2 mt12">
-            {BADGE_DEFS.map((b) => {
+            {BADGE_DEFS.filter((b) => !b.hidden).map((b) => {
               const earned = earnedBadgesSet.has(b.key);
               const claimed = claimedRewardsSet.has(b.key);
               const status = claimed ? "claimed" : earned ? "claimable" : "locked";
@@ -7499,76 +7501,77 @@ const targetInfo = buildTargetInfoForMovement({
                   >
                     <div className="badgeTitle">{b.title}</div>
 
-<div className="badgeMid">
-  <div
-    className={
-      "badgeBig " +
-      (status === "claimed" ? "on" : "off")
+<div className="wtBadge">
+  {(() => {
+    const tierIndex = TIER_ORDER.indexOf(b.tier);
+    const achievedTiers =
+      tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
+
+    const layers = [];
+
+    // 1) Coloured layers for all already-claimed tiers
+    achievedTiers.forEach((tier, idx) => {
+      const bgSrc = `/badges/bg/bg_${b.category}_${tier}.svg`;
+      layers.push(
+        <img
+          key={tier}
+          className="wtBadgeBgLayer"
+          src={bgSrc}
+          alt=""
+          style={{ "--layerIndex": idx }}
+        />
+      );
+    });
+
+    // 2) Grey “next tier” preview when claimable
+    if (
+      status === "claimable" &&
+      tierIndex >= 0 &&
+      tierIndex < TIER_ORDER.length - 1
+    ) {
+      const nextTier = TIER_ORDER[tierIndex + 1];
+      const bgSrcNext = `/badges/bg/bg_${b.category}_${nextTier}.svg`;
+      layers.push(
+        <img
+          key={nextTier}
+          className="wtBadgeBgLayer wtBadgeBgLayer-next"
+          src={bgSrcNext}
+          alt=""
+          style={{ "--layerIndex": layers.length }}
+        />
+      );
     }
-    aria-hidden="true"
-  >
-    <div className="wtBadge">
-      {(() => {
-        const tierIndex = TIER_ORDER.indexOf(b.tier);
-        const achievedTiers =
-          tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
 
-        const layers = [];
+    const frontOffset = (layers.length - 1) * 12; // px
 
-        // 1) All already-claimed tiers as coloured layers
-        achievedTiers.forEach((tier, idx) => {
-          const bgSrc = `/badges/bg/bg_${b.category}_${tier}.svg`;
-          layers.push(
-            <img
-              key={tier}
-              className="wtBadgeBgLayer"
-              src={bgSrc}
-              alt=""
-              style={{ "--layerIndex": idx }}
-            />
-          );
-        });
+    return (
+      <>
+        {layers}
+        <div
+          className="wtBadgeForeground"
+          style={{ "--frontOffset": `${frontOffset}px` }}
+        >
+          {/* Big faint 5K / 10K behind icon */}
+          {b.distanceLabel && (
+            <div className="wtBadgeDistance">
+              {b.distanceLabel}
+            </div>
+          )}
 
-        // 2) If there is a new tier to claim, show next tier as grey layer on top
-        if (
-          status === "claimable" &&
-          tierIndex >= 0 &&
-          tierIndex < TIER_ORDER.length - 1
-        ) {
-          const nextTier = TIER_ORDER[tierIndex + 1];
-          const bgSrcNext = `/badges/bg/bg_${b.category}_${nextTier}.svg`;
-          layers.push(
-            <img
-              key={nextTier}
-              className="wtBadgeBgLayer wtBadgeBgLayer-next"
-              src={bgSrcNext}
-              alt=""
-              style={{ "--layerIndex": layers.length }}
-            />
-          );
-        }
+          {/* Icon on top of the stack */}
+          <img className="wtBadgeIcon" src={b.icon} alt="" />
 
-        return layers;
-      })()}
-
-      {/* Big faint 5K / 10K behind icon */}
-      {b.distanceLabel && (
-        <div className="wtBadgeDistance">
-          {b.distanceLabel}
+          {/* Tier plaque for current highest tier */}
+          {b.tier && (
+            <div className={"wtBadgeTierPlaque tier-" + b.tier}>
+              {b.tier.charAt(0).toUpperCase() + b.tier.slice(1)}
+            </div>
+          )}
         </div>
-      )}
-
-      {/* One icon on top of the whole stack */}
-      <img className="wtBadgeIcon" src={b.icon} alt="" />
-
-      {/* Only current tier shows plaque */}
-      {b.tier && (
-        <div className={"wtBadgeTierPlaque tier-" + b.tier}>
-          {b.tier.charAt(0).toUpperCase() + b.tier.slice(1)}
-        </div>
-      )}
-    </div>
-  </div>
+      </>
+    );
+  })()}
+</div>
                       <div className="badgeAction">
                         {status === "claimable" ? (
                           <button
@@ -8623,6 +8626,15 @@ function StyleTag() {
   display:block;
   z-index:calc(var(--layerIndex));             /* later index = on top */
   transform:translateX(calc(var(--layerIndex) * 12px));  /* overlap amount */
+}
+
+.wtBadgeForeground{
+  position:absolute;
+  top:0;
+  left:0;
+  width:86px;
+  height:86px;
+  transform:translateX(var(--frontOffset));
 }
 
 /* New tier available to claim: show greyed preview on top */
