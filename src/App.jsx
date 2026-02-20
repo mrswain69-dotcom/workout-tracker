@@ -8666,6 +8666,8 @@ function StyleTag() {
   width:86px;
   height:86px;
   transform:translateX(var(--frontOffset));
+  z-index:999;          /* sit above all background layers */
+  pointer-events:none;  /* clicks still hit the card/button */
 }
 
 /* New tier available to claim: show greyed preview on top */
