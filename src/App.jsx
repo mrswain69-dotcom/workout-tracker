@@ -1551,6 +1551,23 @@ function computeEarnedBadgesFromLogs(allLogs) {
   return earned;
 }
 
+function computeRunCountsFromLogs(allLogs) {
+  let run5Count = 0;
+  let run10Count = 0;
+
+  for (const r of allLogs || []) {
+    const log = r?.log;
+    const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+    for (const b of blocks) {
+      const km = getRunKmFromBlock(b);
+      if (km >= 5) run5Count += 1;
+      if (km >= 10) run10Count += 1;
+    }
+  }
+
+  return { run5Count, run10Count };
+}
+
 // -------- Main app ----------
 export default function App() {
   const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
@@ -2404,7 +2421,10 @@ const headerAvatarEmoji = useMemo(() => {
 
 const earnedBadgesSet = useMemo(() => computeEarnedBadgesFromLogs(allLogs), [allLogs]);
 
-
+const runBadgeCounts = useMemo(
+  () => computeRunCountsFromLogs(allLogs),
+  [allLogs]
+);
 
   const canUseTheme = (t) =>
     t === "classic" ||
@@ -7612,7 +7632,43 @@ const targetInfo = buildTargetInfoForMovement({
                       </div>
                     </div>
 
-                    <div className="badgeDesc">{b.desc}</div>
+                    <div className="badgeDesc">
+  {b.category === "running" && (b.distanceLabel === "5K" || b.distanceLabel === "10K")
+    ? (() => {
+        const is5k = b.distanceLabel === "5K";
+        const count = is5k
+          ? runBadgeCounts.run5Count
+          : runBadgeCounts.run10Count;
+
+        // For now, keep your current simple tiers:
+        // 5K: bronze at 1, silver at 2, gold at 3
+        // 10K: bronze at 1 (we can extend later)
+        const thresholds = is5k
+          ? { bronze: 1, silver: 2, gold: 3 }
+          : { bronze: 1 };
+
+        const tiers = ["bronze", "silver", "gold", "platinum", "diamond"];
+        let nextThreshold = null;
+
+        tiers.forEach((tier) => {
+          const t = thresholds[tier];
+          if (!t) return;
+          if (count < t && (nextThreshold === null || t < nextThreshold)) {
+            nextThreshold = t;
+          }
+        });
+
+        if (nextThreshold === null) {
+          // No higher tier defined yet
+          return `Logged ${b.distanceLabel}+ ${count} time${count === 1 ? "" : "s"}. Highest tier unlocked.`;
+        }
+
+        const remaining = Math.max(nextThreshold - count, 0);
+
+        return `Logged ${b.distanceLabel}+ ${count} time${count === 1 ? "" : "s"} — unlock next tier by doing ${b.distanceLabel}+ ${remaining} more time${remaining === 1 ? "" : "s"} (${nextThreshold} total).`;
+      })()
+    : b.desc}
+</div>
                   </div>
                 );
             })}
@@ -8547,8 +8603,8 @@ function StyleTag() {
 .badgeBig.off{opacity:.22; filter:saturate(0) contrast(0.9) brightness(1.05)}
 .wtBadge{
   position:relative;
-  width:100%;
-  height:100%;
+  width:86px;    /* match the hex background size */
+  height:86px;
 }
 
 .wtBadgeBg{
