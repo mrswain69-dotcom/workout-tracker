@@ -1624,6 +1624,21 @@ const RUN_10K_TIERS = [
   { key: "badge_run_10k_5", tier: "diamond",  threshold: 25, xp: 130 },
 ];
 
+function getBadgeXpForKey(key) {
+  // Prefer the RUN_*_TIERS tables if present
+  const t5 = RUN_5K_TIERS.find((t) => t.key === key);
+  if (t5 && typeof t5.xp === "number") return t5.xp;
+
+  const t10 = RUN_10K_TIERS.find((t) => t.key === key);
+  if (t10 && typeof t10.xp === "number") return t10.xp;
+
+  // Fallback to BADGE_DEFS
+  const def = BADGE_DEFS.find((b) => b.key === key);
+  if (def && typeof def.xp === "number") return def.xp;
+
+  return 0;
+}
+
 function computeEarnedBadgesFromLogs(allLogs) {
   let run5Count = 0;
   let run10Count = 0;
@@ -1771,6 +1786,7 @@ export default function App() {
   const [tab, setTab] = useState("log");
   const [copyDialog, setCopyDialog] = useState(null); // { blockId, days: string[] }
   const [rewardsSubTab, setRewardsSubTab] = useState("badges"); // "badges" | "avatars" | "shop" | "info"
+  const [badgeView, setBadgeView] = useState("earned"); // "earned" | "all"
   const [claimModal, setClaimModal] = useState(null); // { title, desc }
 const [claimFx, setClaimFx] = useState(null); // reserved for future
 const [claimXpDisplay, setClaimXpDisplay] = useState(null);
@@ -2600,6 +2616,14 @@ const claimedRewardsSet = useMemo(
   () => new Set((claimedRewardsNorm || []).map((c) => c.key)),
   [claimedRewardsNorm]
 );
+const totalBadgeXp = useMemo(() => {
+  let total = 0;
+  for (const c of claimedRewardsNorm || []) {
+    if (!c || !c.key) continue;
+    total += getBadgeXpForKey(c.key);
+  }
+  return total;
+}, [claimedRewardsNorm]);
 
 const unlockedAvatarPacksArr = Array.isArray(plan?.meta?.unlockedAvatarPacks) ? plan.meta.unlockedAvatarPacks : [];
 const unlockedAvatarPacksSet = useMemo(() => new Set(unlockedAvatarPacksArr), [unlockedAvatarPacksArr.join("|")]);
@@ -7682,10 +7706,36 @@ const targetInfo = buildTargetInfoForMovement({
       )}
 
       {rewardsSubTab === "badges" && (
-        <div className="mt16">
-          <div className="muted">
-            Earn badges from real workouts. Claim them to light them up.
-          </div>
+  <div className="mt16">
+    <div className="rowBetween">
+      <div className="muted">
+        Earn badges from real workouts. Claim them to light them up.
+      </div>
+      <div className="badgeXpPill">
+        Badge XP: {totalBadgeXp}
+      </div>
+    </div>
+
+    <div className="badgeViewTabs mt8">
+      <button
+        type="button"
+        className={
+          "subTabPill " + (badgeView === "earned" ? "on" : "off")
+        }
+        onClick={() => setBadgeView("earned")}
+      >
+        Earned badges
+      </button>
+      <button
+        type="button"
+        className={
+          "subTabPill " + (badgeView === "all" ? "on" : "off")
+        }
+        onClick={() => setBadgeView("all")}
+      >
+        All badges
+      </button>
+    </div>
 
           <div className="grid2 mt12">
       {BADGE_DEFS.filter((b) => !b.hidden).map((b) => {
@@ -7720,6 +7770,20 @@ const targetInfo = buildTargetInfoForMovement({
               nextClaimableTier.tier.slice(1)
             }`
           : "Claim";
+
+        // Decide if this badge is visible in the current mini-view
+        const hasAnyTierForCard =
+          runTierState && runTierState.highestEarnedIndex >= 0;
+
+        const nonRunEarned =
+          !runTierState &&
+          (earnedBadgesSet.has(b.key) || claimedRewardsSet.has(b.key));
+
+        const showInCurrentView =
+          badgeView === "all" ||
+          (runTierState ? hasAnyTierForCard : nonRunEarned);
+
+        if (!showInCurrentView) return null;
 
         return (
           <div
@@ -9258,6 +9322,44 @@ function StyleTag() {
   background:rgba(255,255,255,0.9);
   font-size:12px;
   color:#f39c12;
+}
+      .badgeXpPill{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.9);
+  font-size:12px;
+  font-weight:600;
+  color:#445066;
+  box-shadow:0 0 0 1px rgba(15,23,42,0.06);
+}
+
+.badgeViewTabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.subTabPill{
+  border-radius:999px;
+  border:1px solid rgba(15,23,42,0.08);
+  background:rgba(255,255,255,0.9);
+  padding:4px 10px;
+  font-size:12px;
+  cursor:pointer;
+  transition:background 0.16s ease, border-color 0.16s ease, transform 0.08s ease;
+}
+
+.subTabPill.on{
+  background:#fff7e6;
+  border-color:#f6a623;
+  font-weight:600;
+  transform:translateY(-1px);
+}
+
+.subTabPill.off{
+  opacity:0.8;
 }
       .h2{font-size:18px;font-weight:900;color:#64748b}        /* section titles muted */
       .h3{font-size:14px;font-weight:900}                      /* block titles */
