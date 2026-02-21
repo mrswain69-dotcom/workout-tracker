@@ -7848,7 +7848,7 @@ const targetInfo = buildTargetInfoForMovement({
           );
         }
 
-        const frontOffset = (layers.length - 1) * 12; // px
+        const frontOffset = (layers.length - 1) * 16; // px
 
         const distanceClassName =
           "wtBadgeDistance " +
@@ -8927,10 +8927,14 @@ function StyleTag() {
   font-size:0;
 }
 .badgeBig.off{opacity:.22; filter:saturate(0) contrast(0.9) brightness(1.05)}
+:root{
+  --badge-size: 110px; /* was 86px — ~20% larger */
+}
+
 .wtBadge{
   position:relative;
-  width:86px;    /* match the hex background size */
-  height:86px;
+  width:var(--badge-size);
+  height:var(--badge-size);
 }
 
 .wtBadgeBg{
@@ -8944,8 +8948,8 @@ function StyleTag() {
   position:absolute;
   top:0;
   left:0;
-  width:86px;
-  height:86px;
+  width:var(--badge-size);
+  height:var(--badge-size);
   display:block;
   z-index:calc(var(--layerIndex));             /* later index = on top */
   transform:translateX(calc(var(--layerIndex) * 12px));  /* overlap amount */
@@ -8955,8 +8959,8 @@ function StyleTag() {
   position:absolute;
   top:0;
   left:0;
-  width:86px;
-  height:86px;
+  width:var(--badge-size);
+  height:var(--badge-size);
   transform:translateX(var(--frontOffset));
   z-index:999;          /* sit above all background layers */
   pointer-events:none;  /* clicks still hit the card/button */
@@ -8970,8 +8974,8 @@ function StyleTag() {
 .wtBadgeIcon{
   position:absolute;
   inset:22%;
-  width:56%;
-  height:56%;
+  width:calc(var(--badge-size) * 0.48);
+  height:calc(var(--badge-size) * 0.48);
   object-fit:contain;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,0.6));
   z-index:2;
@@ -8993,14 +8997,14 @@ function StyleTag() {
 
 /* Short label like "5K" can be bigger */
 .wtBadgeDistance--short{
-  font-size:26px;
+  font-size:calc(var(--badge-size) * 0.28);
   font-weight:800;
   letter-spacing:0.14em;
 }
 
 /* Longer label like "10K" needs to be a bit smaller/tighter */
 .wtBadgeDistance--long{
-  font-size:22px;
+  font-size:calc(var(--badge-size) * 0.24);
   font-weight:800;
   letter-spacing:0.10em;
 }
