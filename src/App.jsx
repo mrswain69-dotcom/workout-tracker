@@ -7848,7 +7848,7 @@ const targetInfo = buildTargetInfoForMovement({
           );
         }
 
-        const frontOffset = (layers.length - 1) * 18; // px
+        const frontOffset = (layers.length - 1) * 16; // px
 
         const distanceClassName =
           "wtBadgeDistance " +
