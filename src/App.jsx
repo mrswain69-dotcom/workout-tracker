@@ -7848,10 +7848,13 @@ const targetInfo = buildTargetInfoForMovement({
           );
         }
 
-        const frontOffset =
-  (layers.length - 1) *
-  parseFloat(getComputedStyle(document.documentElement)
-    .getPropertyValue('--badge-stack-offset')) || 16; // px
+        const stackOffset =
+  parseFloat(
+    getComputedStyle(document.documentElement)
+      .getPropertyValue('--badge-stack-offset')
+  ) || 16;
+
+const frontOffset = (layers.length - 1) * stackOffset;
 
         const distanceClassName =
           "wtBadgeDistance " +
@@ -8932,7 +8935,7 @@ function StyleTag() {
 .badgeBig.off{opacity:.22; filter:saturate(0) contrast(0.9) brightness(1.05)}
 :root{
   --badge-size: 110px; /* was 86px — ~20% larger */
-  --badge-stack-offset: 16px;   /* 👈 THIS controls overlap */
+  --badge-stack-offset: 17px;   /* 👈 THIS controls overlap */
 }
 
 .wtBadge{
