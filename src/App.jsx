@@ -1582,14 +1582,53 @@ const AVATAR_PACKS = [
     title: "Avatar Pack 1",
     desc: "Unlock at 1,000 XP",
     unlockAtXp: 1000,
-    // Emoji placeholders (swap later for images)
+    // Emoji-based starter pack
     avatars: [
-      { id: "emoji_rocket", label: "🚀" },
-      { id: "emoji_bolt", label: "⚡" },
-      { id: "emoji_tiger", label: "🐯" },
-      { id: "emoji_dragon", label: "🐉" },
-      { id: "emoji_fire", label: "🔥" },
-      { id: "emoji_star", label: "⭐" },
+      { id: "emoji_rocket", label: "Rocket", emoji: "🚀" },
+      { id: "emoji_bolt", label: "Bolt", emoji: "⚡" },
+      { id: "emoji_tiger", label: "Tiger", emoji: "🐯" },
+      { id: "emoji_dragon", label: "Dragon", emoji: "🐉" },
+      { id: "emoji_fire", label: "Flame", emoji: "🔥" },
+      { id: "emoji_star", label: "Star", emoji: "⭐" },
+    ],
+  },
+  {
+    key: "avatar_pack_2_velocity_pulse",
+    title: "Avatar Pack 2 – Velocity Pulse",
+    desc: "Unlock at 2,000 XP",
+    unlockAtXp: 2000,
+    // Tier 2 image avatars
+    avatars: [
+      {
+        id: "vp_velocity_pulse",
+        label: "Velocity Pulse",
+        imgSrc: "/avatars/velocity-pulse.png",
+      },
+      {
+        id: "vp_focus_halo",
+        label: "Focus Halo",
+        imgSrc: "/avatars/focus-halo.png",
+      },
+      {
+        id: "vp_iron_shield",
+        label: "Iron Shield",
+        imgSrc: "/avatars/iron-shield.png",
+      },
+      {
+        id: "vp_streak_flame",
+        label: "Streak Flame",
+        imgSrc: "/avatars/streak-flame.png",
+      },
+      {
+        id: "vp_precision_target",
+        label: "Precision Target",
+        imgSrc: "/avatars/precision-target.png",
+      },
+      {
+        id: "vp_winged_sprint",
+        label: "Winged Sprint",
+        imgSrc: "/avatars/winged-sprint.png",
+      },
     ],
   },
 ];
@@ -2646,15 +2685,19 @@ const unlockedAvatarPacksArr = Array.isArray(plan?.meta?.unlockedAvatarPacks) ? 
 const unlockedAvatarPacksSet = useMemo(() => new Set(unlockedAvatarPacksArr), [unlockedAvatarPacksArr.join("|")]);
 
 const selectedAvatarId = typeof plan?.meta?.avatarId === "string" ? plan.meta.avatarId : "";
-const headerAvatarEmoji = useMemo(() => {
-  // Find selected avatar in unlocked packs (or fallback)
+
+const headerAvatar = useMemo(() => {
+  // Find selected avatar object in any pack (or fallback)
   for (const pack of AVATAR_PACKS) {
     for (const a of pack.avatars || []) {
-      if (a.id === selectedAvatarId) return a.label;
+      if (a.id === selectedAvatarId) return a;
     }
   }
-  return "🙂";
+  return null;
 }, [selectedAvatarId]);
+
+const headerAvatarEmoji = headerAvatar?.emoji || headerAvatar?.label || "🙂";
+const headerAvatarImg = headerAvatar?.imgSrc || "";
 
 const earnedBadgesSet = useMemo(() => computeEarnedBadgesFromLogs(allLogs), [allLogs]);
 
@@ -5486,7 +5529,17 @@ const cardioProgress = useMemo(() => {
   <div className="headerBottom">
     <h1 className="title">
   <span className="titleRow">
-    <span className="avatarChip" aria-hidden="true">{headerAvatarEmoji}</span>
+    <span className="avatarChip" aria-hidden="true">
+    {headerAvatarImg ? (
+      <img
+        src={headerAvatarImg}
+        alt={headerAvatarEmoji}
+        style={{ width: 24, height: 24, objectFit: "contain" }}
+      />
+    ) : (
+      headerAvatarEmoji
+    )}
+  </span>
     <span>{activeProfile?.name || "Profile"}</span>
   </span>
 </h1>
@@ -8076,7 +8129,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
                     <div className="mt12">
                       <div className="mini muted">Choose your avatar:</div>
                       <div className="row mt8" style={{ flexWrap: "wrap", gap: 8 }}>
-                        {(pack.avatars || []).map((a) => (
+{(pack.avatars || []).map((a) => (
                           <button
                             key={a.id}
                             type="button"
@@ -8089,7 +8142,15 @@ const frontOffset = (layers.length - 1) * stackOffset;
                               });
                             }}
                           >
-                            {a.label}
+                            {a.imgSrc ? (
+                              <img
+                                src={a.imgSrc}
+                                alt={a.label || "Avatar"}
+                                style={{ width: 32, height: 32, objectFit: "contain" }}
+                              />
+                            ) : (
+                              a.emoji || a.label
+                            )}
                           </button>
                         ))}
                       </div>
