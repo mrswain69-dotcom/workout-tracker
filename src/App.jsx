@@ -1052,8 +1052,12 @@ function estimateCalories({ bodyWeightKg, log }) {
 }
 
 // -------- UI primitives ----------
-function Card({ children, className = "" }) {
-  return <div className={`card ${className}`}>{children}</div>;
+function Card({ children, className = "", style }) {
+  return (
+    <div className={`card ${className}`} style={style}>
+      {children}
+    </div>
+  );
 }
 function Pill({ children, onClick }) {
   if (onClick) {
@@ -7705,8 +7709,8 @@ const targetInfo = buildTargetInfoForMovement({
         
 {tab === "rewards" && (
   <div className="grid2cols">
-    <Card className="pad">
-      <div className="h2">Level + XP</div>
+    <Card className="pad" style={{ minWidth: 0 }}>
+      <div className="h2">Level & XP</div>
       <div className="grid2 mt12">
         <SummaryStat label="Level" value={level} />
         <SummaryStat label="XP" value={xp} />
@@ -7752,7 +7756,7 @@ const targetInfo = buildTargetInfoForMovement({
       </div>
     </Card>
 
-    <Card className="pad">
+    <Card className="pad" style={{ minWidth: 0 }}>
       <div className="rowBetween">
         <div className="h2">Rewards</div>
         <div className="tabs">
@@ -8243,7 +8247,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
             {showXpLedger && (
   <div
     className="mt12"
-    style={{ maxHeight: 360, overflowX: "auto", overflowY: "auto" }}
+    style={{ maxHeight: 360, overflowX: "auto", overflowY: "auto", width: "100%", }}
   >
     <table className="table" style={{ minWidth: 720 }}>
                 
