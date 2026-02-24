@@ -2012,9 +2012,26 @@ const [historyCardioMetric, setHistoryCardioMetric] = useState("pace");
 
 const [historyCardioUnit, setHistoryCardioUnit] = useState("km"); 
 // "km" | "mi"
-  const [soundOn, setSoundOn] = useState(true);
-  const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
-  const [xp, setXp] = useState(0);
+const [soundOn, setSoundOn] = useState(true);
+const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
+const [xp, setXp] = useState(0);
+
+// Load/persist victory sound theme (Classic / Arcade / Chill)
+useEffect(() => {
+  try {
+    const stored = localStorage.getItem("wt_victoryTheme");
+    if (stored === "classic" || stored === "arcade" || stored === "chill") {
+      setVictoryTheme(stored);
+    }
+  } catch {}
+}, []);
+
+const applyVictoryTheme = (theme) => {
+  setVictoryTheme(theme);
+  try {
+    localStorage.setItem("wt_victoryTheme", theme);
+  } catch {}
+};
 
 useEffect(() => {
   if (!claimModal || claimModal.kind !== "badge") return;
@@ -3148,6 +3165,7 @@ rows.push({
   tasksXp,
   dayCompleteXp,
   // Bonuses
+  dailyBonusXp,
   strengthProgressXp,
   cardioProgressXp,
   progXp,
@@ -3802,6 +3820,8 @@ async function saveLog(nextLog) {
     log: r.log_json,
   }));
   setAllLogs(mapped);
+  // Keep XP in sync immediately after any log save
+  setXp(computeXpFromLogs(mapped, planRef.current));
   return mapped;
 }
 
@@ -8087,9 +8107,9 @@ const frontOffset = (layers.length - 1) * stackOffset;
           <div className="h3">Rewards shop</div>
           <div className="muted">Pick a victory sound theme. Unlock more as you level up.</div>
           <div className="stack mt12">
-            <RewardItem title="Classic" desc="Default sounds" active={victoryTheme === "classic"} locked={false} onPick={() => setVictoryTheme("classic")} />
-            <RewardItem title="Arcade" desc="8-bit vibes" active={victoryTheme === "arcade"} locked={!unlocked.arcade} onPick={() => unlocked.arcade && setVictoryTheme("arcade")} />
-            <RewardItem title="Chill" desc="Softer sounds" active={victoryTheme === "chill"} locked={!unlocked.chill} onPick={() => unlocked.chill && setVictoryTheme("chill")} />
+            <RewardItem title="Classic" desc="Default sounds" active={victoryTheme === "classic"} locked={false} onPick={() => applyVictoryTheme("classic")} />
+            <RewardItem title="Arcade" desc="8-bit vibes" active={victoryTheme === "arcade"} locked={!unlocked.arcade} onPick={() => unlocked.arcade && applyVictoryTheme("arcade")} />
+            <RewardItem title="Chill" desc="Softer sounds" active={victoryTheme === "chill"} locked={!unlocked.chill} onPick={() => unlocked.chill && applyVictoryTheme("chill")} />
           </div>
           <div className="mini mt12">Unlock rules: Level 3 = Arcade, Level 5 = Chill. (100 XP per level)</div>
         </div>
@@ -8160,8 +8180,11 @@ const frontOffset = (layers.length - 1) * stackOffset;
             </div>
 
             {showXpLedger && (
-            <div className="mt12" style={{ maxHeight: 360, overflow: "auto" }}>
-              <table className="table">
+  <div
+    className="mt12"
+    style={{ maxHeight: 360, overflowX: "auto", overflowY: "auto" }}
+  >
+    <table className="table" style={{ minWidth: 720 }}>
                 
 <thead>
                   <tr>
