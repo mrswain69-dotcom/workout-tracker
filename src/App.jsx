@@ -8261,7 +8261,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
               <div className="stack mt8 mini" style={{ maxHeight: 420, overflow: "auto" }}>
                 <div><b>Strength / HIIT:</b> +2 XP per completed set, +5 XP when the block is logged</div>
                 <div><b>Cardio:</b> XP from time + distance (runs / cycles / walks / swims / rows).
-                  XP is based on minutes and km (auto), plus 5 XP per logged cardio block. If you only know time
+                  XP is based on minutes and km (auto) - +1 XP per 2 minutes & +1 XP per 0.5km, plus 5 XP per logged cardio block. If you only know time
                   and not distance, use a Duration block instead.</div>
                 <div><b>Duration:</b> XP from minutes (2 XP per 10 minutes, plus 5 XP per logged duration block)</div>
                 <div><b>Tasks:</b> XP per task completed (as shown on the task log)</div>
