@@ -8376,7 +8376,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
   style={{
     textAlign: "right",
     background: "rgba(255,255,255,0.02)",
-    borderLeft: "1px solid rgba(255,255,255,0.06)"
+    borderLeft: "1px solid rgba(1,1,1,0.06)"
   }}
 >
   {r.strengthXp || 0}
@@ -8414,7 +8414,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
   style={{
     textAlign: "right",
     background: "rgba(255,255,255,0.02)",
-    borderRight: "1px solid rgba(255,255,255,0.06)"
+    borderRight: "1px solid rgba(1,1,1,0.06)"
   }}
 >
   {r.dayCompleteXp || 0}
