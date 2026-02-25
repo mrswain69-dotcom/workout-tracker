@@ -8375,49 +8375,81 @@ const frontOffset = (layers.length - 1) * stackOffset;
         <td
   style={{
     textAlign: "right",
-    background: "rgba(255,255,255,0.02)",
-    borderLeft: "1px solid rgba(1,1,1,0.06)"
+    borderLeft: "1px solid rgba(1,1,1,0.06)",
   }}
 >
-  {r.strengthXp || 0}
+  <div
+    style={{
+      display: "inline-block",
+      padding: "0 4px",
+      borderRadius: 4,
+      background: "rgba(255,255,255,0.04)",
+    }}
+  >
+    {r.strengthXp || 0}
+  </div>
 </td>
 
 <td
   style={{
     textAlign: "right",
-    background: "rgba(255,255,255,0.02)",
   }}
 >
-  {r.cardioXp || 0}
-  {r.cardioMode === "casual" ? " *" : ""}
+  <div
+    style={{
+      display: "inline-block",
+      padding: "0 4px",
+      borderRadius: 4,
+      background: "rgba(255,255,255,0.04)",
+    }}
+  >
+    {r.cardioXp || 0}
+    {r.cardioMode === "casual" ? " *" : ""}
+  </div>
+</td>
+
+<td style={{ textAlign: "right" }}>
+  <div
+    style={{
+      display: "inline-block",
+      padding: "0 4px",
+      borderRadius: 4,
+      background: "rgba(255,255,255,0.04)",
+    }}
+  >
+    {r.durationXp || 0}
+  </div>
+</td>
+
+<td style={{ textAlign: "right" }}>
+  <div
+    style={{
+      display: "inline-block",
+      padding: "0 4px",
+      borderRadius: 4,
+      background: "rgba(255,255,255,0.04)",
+    }}
+  >
+    {r.tasksXp || 0}
+  </div>
 </td>
 
 <td
   style={{
     textAlign: "right",
-    background: "rgba(255,255,255,0.02)",
+    borderRight: "1px solid rgba(1,1,1,0.06)",
   }}
 >
-  {r.durationXp || 0}
-</td>
-
-<td
-  style={{
-    textAlign: "right",
-    background: "rgba(255,255,255,0.02)",
-  }}
->
-  {r.tasksXp || 0}
-</td>
-
-<td
-  style={{
-    textAlign: "right",
-    background: "rgba(255,255,255,0.02)",
-    borderRight: "1px solid rgba(1,1,1,0.06)"
-  }}
->
-  {r.dayCompleteXp || 0}
+  <div
+    style={{
+      display: "inline-block",
+      padding: "0 4px",
+      borderRadius: 4,
+      background: "rgba(255,255,255,0.04)",
+    }}
+  >
+    {r.dayCompleteXp || 0}
+  </div>
 </td>
         <td style={{ textAlign: "right" }}>{r.dailyBonusXp || 0}</td>
         <td style={{ textAlign: "right" }}>{r.progXp || 0}</td>
