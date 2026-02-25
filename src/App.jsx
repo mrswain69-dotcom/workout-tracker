@@ -7970,26 +7970,44 @@ const targetInfo = buildTargetInfoForMovement({
               <div className="badgeBig" aria-hidden="true">
                 <div className="wtBadge">
                         {(() => {
-        // Use dynamic tier for running badges; otherwise fall back to static b.tier
+                // Use dynamic tier state for stacked running badges (5K / 10K)
+        const nextClaimableTier =
+          runTierState && runTierState.nextClaimable ? runTierState.nextClaimable : null;
+
+        const claimedTierIndex =
+          runTierState && typeof runTierState.highestClaimedIndex === "number"
+            ? runTierState.highestClaimedIndex
+            : -1;
+
+        // We show the tier they are about to claim if there is one,
+        // otherwise fall back to the current highest earned tier or static b.tier
         let effectiveTier = b.tier || null;
 
-        if (runTierState && runTierState.currentTier) {
-          effectiveTier = runTierState.currentTier.tier;
+        if (runTierState) {
+          if (nextClaimableTier) {
+            // If you’ve just earned a new tier, this is the one we show on the plaque
+            effectiveTier = nextClaimableTier.tier;
+          } else if (runTierState.currentTier) {
+            // Otherwise show the highest earned / owned tier
+            effectiveTier = runTierState.currentTier.tier;
+          }
         }
 
         const tierIndex =
           effectiveTier != null ? TIER_ORDER.indexOf(effectiveTier) : -1;
-        const achievedTiers =
-          tierIndex >= 0 ? TIER_ORDER.slice(0, tierIndex + 1) : [];
+
+        // Background layers for fully claimed tiers only
+        const claimedTiers =
+          claimedTierIndex >= 0 ? TIER_ORDER.slice(0, claimedTierIndex + 1) : [];
 
         const layers = [];
 
         // 1) Coloured layers for all already-claimed tiers
-        achievedTiers.forEach((tier, idx) => {
-          const bgSrc = `/badges/bg/bg_${b.category}_${tier}.svg`;
+        claimedTiers.forEach((tierName, idx) => {
+          const bgSrc = `/badges/bg/bg_${b.category}_${tierName}.svg`;
           layers.push(
             <img
-              key={tier}
+              key={tierName}
               className="wtBadgeBgLayer"
               src={bgSrc}
               alt=""
@@ -7998,17 +8016,12 @@ const targetInfo = buildTargetInfoForMovement({
           );
         });
 
-        // 2) Grey “next tier” preview when claimable
-        if (
-          status === "claimable" &&
-          tierIndex >= 0 &&
-          tierIndex < TIER_ORDER.length - 1
-        ) {
-          const nextTier = TIER_ORDER[tierIndex + 1];
-          const bgSrcNext = `/badges/bg/bg_${b.category}_${nextTier}.svg`;
+        // 2) Grey preview for the next claimable tier (level-up) if there is one
+        if (status === "claimable" && nextClaimableTier) {
+          const bgSrcNext = `/badges/bg/bg_${b.category}_${nextClaimableTier.tier}.svg`;
           layers.push(
             <img
-              key={nextTier}
+              key={nextClaimableTier.key}
               className="wtBadgeBgLayer wtBadgeBgLayer-next"
               src={bgSrcNext}
               alt=""
@@ -8018,12 +8031,13 @@ const targetInfo = buildTargetInfoForMovement({
         }
 
         const stackOffset =
-  parseFloat(
-    getComputedStyle(document.documentElement)
-      .getPropertyValue('--badge-stack-offset')
-  ) || 16;
+          parseFloat(
+            getComputedStyle(document.documentElement).getPropertyValue(
+              "--badge-stack-offset"
+            )
+          ) || 16;
 
-const frontOffset = (layers.length - 1) * stackOffset;
+        const frontOffset = (layers.length - 1) * stackOffset;
 
         const distanceClassName =
           "wtBadgeDistance " +
@@ -8046,11 +8060,16 @@ const frontOffset = (layers.length - 1) * stackOffset;
               {/* Icon on top of the stack */}
               <img className="wtBadgeIcon" src={b.icon} alt="" />
 
-              {/* Tier plaque for current highest tier */}
+              {/* Tier plaque for the level being claimed / owned */}
               {effectiveTier && (
-                <div className={"wtBadgeTierPlaque tier-" + effectiveTier}>
-                  {effectiveTier.charAt(0).toUpperCase() +
-                    effectiveTier.slice(1)}
+                <div
+                  className={
+                    "wtBadgeTierPlaque tier-" +
+                    effectiveTier +
+                    (status === "claimable" && nextClaimableTier ? " pending" : "")
+                  }
+                >
+                  {effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)}
                 </div>
               )}
             </div>
