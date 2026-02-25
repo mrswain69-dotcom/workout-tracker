@@ -7767,11 +7767,10 @@ const targetInfo = buildTargetInfoForMovement({
       <div className="row" style={{ gap: 16, alignItems: "stretch" }}>
         {/* Left: current avatar */}
         <div
+          className="panel"
           style={{
             flex: 1,
             minHeight: 104,
-            borderRadius: 16,
-            background: "rgba(15,23,42,0.75)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -7782,8 +7781,8 @@ const targetInfo = buildTargetInfoForMovement({
               src={headerAvatarImg}
               alt={headerAvatarEmoji}
               style={{
-                width: 72,
-                height: 72,
+                width: 144,
+                height: 144,
                 objectFit: "contain",
                 borderRadius: 16,
               }}
