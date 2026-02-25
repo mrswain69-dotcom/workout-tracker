@@ -8375,7 +8375,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
         <td
   style={{
     textAlign: "right",
-    background: "rgba(255,255,255,0.035)",
+    background: "rgba(255,255,255,0.02)",
     borderLeft: "1px solid rgba(255,255,255,0.06)"
   }}
 >
@@ -8385,7 +8385,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
 <td
   style={{
     textAlign: "right",
-    background: "rgba(255,255,255,0.035)",
+    background: "rgba(255,255,255,0.02)",
   }}
 >
   {r.cardioXp || 0}
@@ -8395,7 +8395,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
 <td
   style={{
     textAlign: "right",
-    background: "rgba(255,255,255,0.035)",
+    background: "rgba(255,255,255,0.02)",
   }}
 >
   {r.durationXp || 0}
@@ -8404,7 +8404,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
 <td
   style={{
     textAlign: "right",
-    background: "rgba(255,255,255,0.035)",
+    background: "rgba(255,255,255,0.02)",
   }}
 >
   {r.tasksXp || 0}
@@ -8413,7 +8413,7 @@ const frontOffset = (layers.length - 1) * stackOffset;
 <td
   style={{
     textAlign: "right",
-    background: "rgba(255,255,255,0.035)",
+    background: "rgba(255,255,255,0.02)",
     borderRight: "1px solid rgba(255,255,255,0.06)"
   }}
 >
