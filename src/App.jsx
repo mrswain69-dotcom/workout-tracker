@@ -230,9 +230,11 @@ function createCardioBlock() {
     typeId: "cardio",
     label: "",
     note: "",
-    cardioType: "run", // "run" | "bike" | "swim" | "other"
+    // Built-in types: run, cycle, walk, swim, row, other
+    cardioType: "run", // "run" | "cycle" | "walk" | "swim" | "row" | "other"
     cardioTypeOtherLabel: "",
     targetText: "",
+    plannedMinutes: "",
   };
 }
 
@@ -2758,7 +2760,7 @@ const planDayForWeekday = (weekday) => {
 const XP_RULES = {
   // Per-block rules
   strengthSet: 2,            // +2 XP per completed strength/HIIT set
-  cardioPerMin: 1 / 2,       // +1 XP per 1 minutes (rounded up)
+  cardioPerMin: 1 / 2,       // +1 XP per 2 minutes (rounded up)
   cardioPerKm: 1 / 0.5,      // +1 XP per 0.5km (rounded up)
   durationPerMin: 2 / 10,    // +2 XP per 10 minutes
   taskDefault: 5,            // fallback if a task has no xpValue
@@ -2786,6 +2788,19 @@ const XP_RULES = {
   },
 };
 
+const CARDIO_MODE = {
+  PROGRESSIVE: "progressive",
+  CASUAL: "casual",
+};
+
+const CARDIO_MODE_MULTIPLIER = {
+  [CARDIO_MODE.PROGRESSIVE]: 1,
+  [CARDIO_MODE.CASUAL]: 0.6, // casual / commute-style sessions earn a bit less XP
+};
+
+// Helper to decide if today&apos;s cardio looks more like &quot;casual&quot;.
+// For now this is simple: all-cardio-walk days are treated as casual.
+// Later we can evolve this to use personal pace baselines per user.
 
 // Count completed sets in a single block (any reps/weight/time/etc)
 function countCompletedSetsInBlock(block) {
@@ -3055,15 +3070,19 @@ const buildXpDebugRows = (records, plan) => {
     let customMin = 0;
     let tasksDone = 0;
 
-    
-let setsXp = 0;
-let movementsXp = 0; // not used in V3 but kept for compatibility
-let extraXp = 0;
+    // Cardio mode classification (progressive vs casual)
+    let anyCardio = false;
+    let allCardioAreWalk = true;
+    let cardioMode = CARDIO_MODE.PROGRESSIVE;
 
-// XP buckets (so ledger can show exactly where XP came from)
-let strengthXp = 0;
-let cardioXp = 0;
-let durationXp = 0;
+    let setsXp = 0;
+    let movementsXp = 0; // not used in V3 but kept for compatibility
+    let extraXp = 0;
+
+    // XP buckets (so ledger can show exactly where XP came from)
+    let strengthXp = 0;
+    let cardioXp = 0;
+    let durationXp = 0;
 let tasksXp = 0;
 let dayCompleteXp = 0;
 
@@ -3116,8 +3135,12 @@ let progressCount = 0;
           break;
         }
 
-        case "cardio": {
+          case "cardio": {
           const c = block.cardio || {};
+          anyCardio = true;
+          const ct = block.cardioType || "run";
+          if (ct !== "walk") allCardioAreWalk = false;
+
           const km = safeNumber(c.distanceKm);
           const min = safeNumber(c.durationMin);
           cardioKm += km;
@@ -3160,7 +3183,7 @@ let progressCount = 0;
       }
     }
 
-        if (progressCount > 0) {
+            if (progressCount > 0) {
       strengthProgressXp = progressCount * XP_RULES.progression;
     }
 
@@ -3182,6 +3205,18 @@ let progressCount = 0;
       if (lastCardio && isCardioImproved(effectiveCardio, lastCardio)) {
         cardioProgressXp = XP_RULES.cardioProgression;
       }
+    }
+
+    // Apply cardio mode multiplier (progressive vs casual/commute)
+    if (anyCardio) {
+      if (allCardioAreWalk) {
+        cardioMode = CARDIO_MODE.CASUAL;
+      } else {
+        cardioMode = CARDIO_MODE.PROGRESSIVE;
+      }
+      cardioXp = Math.round(
+        cardioXp * (CARDIO_MODE_MULTIPLIER[cardioMode] || 1)
+      );
     }
 
     dayCompleteXp = completionBonusForLog(log);
@@ -6335,9 +6370,11 @@ const targetInfo = buildTargetInfoForMovement({
 {/* Extra blocks for this specific date */}
 <div className="panel">
   <div className="h2">Extra block for today</div>
-  <div className="muted mt4">
+    <div className="muted mt4">
     Add a one-day-only Strength, Cardio or Duration block that shows in today&apos;s log
-    but doesn&apos;t change the weekly plan.
+    but doesn&apos;t change the weekly plan. Use Cardio for anything with distance + time
+    (runs, cycles, walks, swims, rows). Use Duration for movement where you only want
+    to record minutes (no distance).
   </div>
 
   <button
@@ -6357,11 +6394,11 @@ const targetInfo = buildTargetInfoForMovement({
       <Select
         value={extraBlockKind}
         onChange={setExtraBlockKind}
-        options={[
+          options={[
           { value: "strength", label: "Strength / HIIT / Box" },
-    { value: "cardio", label: "Cardio (run / bike / swim)" },
-    { value: "duration", label: "Duration (minutes only)" },
-    { value: "activity", label: "Activity / task" },
+          { value: "cardio", label: "Cardio (run / cycle / walk / swim / row)" },
+          { value: "duration", label: "Duration (minutes only)" },
+          { value: "activity", label: "Activity / task" },
         ]}
       />
     </div>
@@ -6427,13 +6464,13 @@ const targetInfo = buildTargetInfoForMovement({
   {/* Cardio extra form */}
   {extraBlockKind === "cardio" && (
     <>
-      <div className="row mt8">
+            <div className="row mt8">
         <div style={{ flex: 1 }}>
           <div className="label">Name</div>
           <Input
             value={extraCardioNameDraft}
             onChange={setExtraCardioNameDraft}
-            placeholder="e.g. Extra run"
+            placeholder="e.g. Extra run / walk"
           />
         </div>
         <div style={{ width: 8 }} />
@@ -6444,8 +6481,10 @@ const targetInfo = buildTargetInfoForMovement({
             onChange={setExtraCardioTypeDraft}
             options={[
               { value: "run", label: "Run" },
-              { value: "bike", label: "Bike" },
+              { value: "cycle", label: "Cycle" },
+              { value: "walk", label: "Walk" },
               { value: "swim", label: "Swim" },
+              { value: "row", label: "Row" },
               { value: "other", label: "Other" },
             ]}
           />
@@ -7290,24 +7329,26 @@ const targetInfo = buildTargetInfoForMovement({
               {typeId === "cardio" && (
                 <>
                   <div className="mt12">
-                    <div className="label">Cardio type</div>
-                    <Select
-                      value={block.cardioType || "run"}
-                      onChange={(v) =>
-                        updateBlockInDay(block.id, () => ({
-                          cardioType: v,
-                          cardioTypeOtherLabel:
-                            v === "other" ? block.cardioTypeOtherLabel || "" : "",
-                        }))
-                      }
-                      options={[
-                        { value: "run", label: "Run" },
-                        { value: "bike", label: "Bike" },
-                        { value: "swim", label: "Swim" },
-                        { value: "other", label: "Other" },
-                      ]}
-                    />
-                  </div>
+                     <div className="label">Cardio type</div>
+                      <Select
+                        value={block.cardioType || "run"}
+                        onChange={(v) =>
+                          updateBlockInDay(block.id, () => ({
+                            cardioType: v,
+                            cardioTypeOtherLabel:
+                              v === "other" ? block.cardioTypeOtherLabel || "" : "",
+                          }))
+                        }
+                        options={[
+                          { value: "run", label: "Run" },
+                          { value: "cycle", label: "Cycle" },
+                          { value: "walk", label: "Walk" },
+                          { value: "swim", label: "Swim" },
+                          { value: "row", label: "Row" },
+                          { value: "other", label: "Other" },
+                        ]}
+                      />
+                    </div>
 
                   {block.cardioType === "other" && (
                     <div className="mt8">
@@ -8219,7 +8260,9 @@ const frontOffset = (layers.length - 1) * stackOffset;
             {showXpRules && (
               <div className="stack mt8 mini" style={{ maxHeight: 420, overflow: "auto" }}>
                 <div><b>Strength / HIIT:</b> +2 XP per completed set, +5 XP when the block is logged</div>
-                <div><b>Cardio:</b> XP from time + distance (auto) (1 XP per 2 minutes and 2 XP per 0.5 km (rounded up), plus 5 XP per logged cardio block)</div>
+                <div><b>Cardio:</b> XP from time + distance (runs / cycles / walks / swims / rows).
+                  XP is based on minutes and km (auto), plus 5 XP per logged cardio block. If you only know time
+                  and not distance, use a Duration block instead.</div>
                 <div><b>Duration:</b> XP from minutes (2 XP per 10 minutes, plus 5 XP per logged duration block)</div>
                 <div><b>Tasks:</b> XP per task completed (as shown on the task log)</div>
                 <div><b>Progression bonuses:</b> beat your last time/effort (+20 XP for Cardio blocks and +10 XP for Strength movements)</div>
