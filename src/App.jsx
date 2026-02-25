@@ -1568,16 +1568,32 @@ function computeClaimedRewardsXp(plan) {
   return sum;
 }
 
-function computeClaimedRewardsXpByDate(plan) {
+function computeClaimedRewardsXpByDate(plan, earnedFromLogs) {
   const claimed = normaliseClaimedRewards(plan?.meta);
   const map = {}; // date => xp
+
   for (const c of claimed) {
     if (!c.claimedAtYmd) continue;
+
     const def = BADGE_DEFS.find((b) => b.key === c.key);
+    if (!def) continue;
+
     const xp = def && def.xp ? safeNumber(def.xp) : 0;
     if (!xp) continue;
+
+    // If this is one of the running distance badges (5K / 10K),
+    // only count its XP if the current logs still earn that badge key.
+    if (
+      earnedFromLogs &&
+      RUNNING_BADGE_KEYS.has(c.key) &&
+      !earnedFromLogs.has(c.key)
+    ) {
+      continue;
+    }
+
     map[c.claimedAtYmd] = (map[c.claimedAtYmd] || 0) + xp;
   }
+
   return map;
 }
 
@@ -1668,6 +1684,11 @@ const RUN_10K_TIERS = [
   { key: "badge_run_10k_4", tier: "platinum", threshold: 10, xp: 100 },
   { key: "badge_run_10k_5", tier: "diamond",  threshold: 25, xp: 130 },
 ];
+
+const RUNNING_BADGE_KEYS = new Set([
+  ...RUN_5K_TIERS.map((t) => t.key),
+  ...RUN_10K_TIERS.map((t) => t.key),
+]);
 
 function getBadgeXpForKey(key) {
   // Prefer the RUN_*_TIERS tables if present
@@ -3066,6 +3087,7 @@ const buildXpDebugRows = (records, plan) => {
   if (!Array.isArray(records) || !records.length) return [];
 
   const streakXpByDate = computeStreakBonusMap(records);
+  const earnedBadgesFromLogs = computeEarnedBadgesFromLogs(records);
   const rows = [];
 
   for (const r of records) {
@@ -3231,12 +3253,15 @@ let progressCount = 0;
       );
     }
 
-    dayCompleteXp = completionBonusForLog(log);
+        dayCompleteXp = completionBonusForLog(log);
 
     const streakXp = streakXpByDate[date] || 0;
 
-const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(plan);
-const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
+    const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(
+      plan,
+      earnedBadgesFromLogs
+    );
+    const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
 const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;
 
 const nonBonusXp = strengthXp + cardioXp + durationXp + tasksXp + dayCompleteXp;
@@ -3294,7 +3319,10 @@ rows.push({
   
   // Add synthetic rows for badge-claims on days with no log record,
   // so XP totals and the ledger still reflect the claim immediately.
-  const _claimedBadgeXpByDateAll = computeClaimedRewardsXpByDate(plan);
+    const _claimedBadgeXpByDateAll = computeClaimedRewardsXpByDate(
+    plan,
+    earnedBadgesFromLogs
+  );
     const _existingDates = new Set(rows.map((r) => r.date));
   for (const [d, xp] of Object.entries(_claimedBadgeXpByDateAll)) {
     if (!xp) continue;
