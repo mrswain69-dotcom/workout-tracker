@@ -7931,15 +7931,10 @@ const targetInfo = buildTargetInfoForMovement({
         }
 
         const nextClaimableTier =
-          runTierState && runTierState.nextClaimable ? runTierState.nextClaimable : null;
+  runTierState && runTierState.nextClaimable ? runTierState.nextClaimable : null;
 
-        const claimLabel = nextClaimableTier
-          ? `Claim 
-          ${
-              nextClaimableTier.tier.charAt(0).toUpperCase() +
-              nextClaimableTier.tier.slice(1)
-            }`
-          : "Claim";
+// Keep the tier name on the plaque; the button can stay short and neat.
+const claimLabel = "Claim";
 
         // Decide if this badge is visible in the current mini-view
         const hasAnyTierForCard =
