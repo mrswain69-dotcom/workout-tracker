@@ -8372,14 +8372,51 @@ const frontOffset = (layers.length - 1) * stackOffset;
           {r.runningTotalXp ?? ""}
         </td>
         <td style={{ textAlign: "right" }}>{r.nonBonusXp || 0}</td>
-        <td style={{ textAlign: "right" }}>{r.strengthXp || 0}</td>
-        <td style={{ textAlign: "right" }}>
-          {r.cardioXp || 0}
-          {r.cardioMode === "casual" ? " *" : ""}
-        </td>
-        <td style={{ textAlign: "right" }}>{r.durationXp || 0}</td>
-        <td style={{ textAlign: "right" }}>{r.tasksXp || 0}</td>
-        <td style={{ textAlign: "right" }}>{r.dayCompleteXp || 0}</td>
+        <td
+  style={{
+    textAlign: "right",
+    background: "rgba(148,163,184,0.08)",
+  }}
+>
+  {r.strengthXp || 0}
+</td>
+
+<td
+  style={{
+    textAlign: "right",
+    background: "rgba(148,163,184,0.08)",
+  }}
+>
+  {r.cardioXp || 0}
+  {r.cardioMode === "casual" ? " *" : ""}
+</td>
+
+<td
+  style={{
+    textAlign: "right",
+    background: "rgba(148,163,184,0.08)",
+  }}
+>
+  {r.durationXp || 0}
+</td>
+
+<td
+  style={{
+    textAlign: "right",
+    background: "rgba(148,163,184,0.08)",
+  }}
+>
+  {r.tasksXp || 0}
+</td>
+
+<td
+  style={{
+    textAlign: "right",
+    background: "rgba(148,163,184,0.08)",
+  }}
+>
+  {r.dayCompleteXp || 0}
+</td>
         <td style={{ textAlign: "right" }}>{r.dailyBonusXp || 0}</td>
         <td style={{ textAlign: "right" }}>{r.progXp || 0}</td>
         <td style={{ textAlign: "right" }}>{r.streakXp || 0}</td>
