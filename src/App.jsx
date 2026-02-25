@@ -8059,7 +8059,14 @@ const targetInfo = buildTargetInfoForMovement({
               )}
 
               {/* Icon on top of the stack */}
-              <img className="wtBadgeIcon" src={b.icon} alt="" />
+<img
+  className={
+    "wtBadgeIcon" +
+    (status === "claimable" && nextClaimableTier ? " wtBadgeIcon--pending" : "")
+  }
+  src={b.icon}
+  alt=""
+/>
 
               {/* Tier plaque for the level being claimed / owned */}
               {effectiveTier && (
@@ -9216,6 +9223,10 @@ function StyleTag() {
   object-fit:contain;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,0.6));
   z-index:2;
+}
+
+.wtBadgeIcon--pending {
+  filter: grayscale(1) brightness(0.7);
 }
 
 .wtBadgeDistance{
