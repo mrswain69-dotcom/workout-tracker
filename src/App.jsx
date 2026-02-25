@@ -1749,10 +1749,21 @@ function getRunTierState(b, runBadgeCounts, claimedRewardsSet) {
   let highestEarnedIndex = -1;
   let highestClaimedIndex = -1;
 
+  // 1) Work out the highest tier their *current logs* actually earn,
+  //    and the highest tier they've ever claimed in this stack.
   tiers.forEach((info, idx) => {
     if (count >= info.threshold) highestEarnedIndex = idx;
     if (claimedRewardsSet.has(info.key)) highestClaimedIndex = idx;
   });
+
+  // 2) If logs no longer justify a previously claimed tier,
+  //    clamp the claimed index down to what they currently earn.
+  if (highestEarnedIndex < 0) {
+    // They don't currently earn any tier -> treat as nothing claimed
+    highestClaimedIndex = -1;
+  } else if (highestClaimedIndex > highestEarnedIndex) {
+    highestClaimedIndex = highestEarnedIndex;
+  }
 
   const currentTier =
     highestEarnedIndex >= 0 ? tiers[highestEarnedIndex] : null;
