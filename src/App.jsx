@@ -2898,7 +2898,8 @@ function xpForCardioBlock(block) {
   const xpByMin = min > 0 ? Math.ceil(min * XP_RULES.cardioPerMin) : 0;
   const xpByKm = km > 0 ? Math.ceil(km * XP_RULES.cardioPerKm) : 0;
 
-  return Math.max(xpByMin, xpByKm);
+  // Time + distance both earn XP (not either/or)
+  return xpByMin + xpByKm;
 }
 
 function xpForDurationBlock(block) {
@@ -3270,6 +3271,9 @@ rows.push({
   tasksDone,
   tasksXp_legacy: 0,
 
+  // Cardio mode for debugging / ledger display
+  cardioMode: anyCardio ? cardioMode : null,
+
   setsLogged,
   cardioKm,
   customMin,
@@ -3280,7 +3284,7 @@ rows.push({
   // Add synthetic rows for badge-claims on days with no log record,
   // so XP totals and the ledger still reflect the claim immediately.
   const _claimedBadgeXpByDateAll = computeClaimedRewardsXpByDate(plan);
-  const _existingDates = new Set(rows.map((r) => r.date));
+    const _existingDates = new Set(rows.map((r) => r.date));
   for (const [d, xp] of Object.entries(_claimedBadgeXpByDateAll)) {
     if (!xp) continue;
     if (_existingDates.has(d)) continue;
@@ -3302,10 +3306,9 @@ rows.push({
       progXp: 0,
       streakXp: 0,
       badgeClaimXp: xp,
-      // legacy fields
       baseXp: 0,
       progressXp: 0,
-      extraXp: 0,
+      extraXp: xp,
       bonus: 0,
       oneOffDone: false,
       oneOffXp: 0,
@@ -3316,11 +3319,21 @@ rows.push({
       setsLogged: 0,
       cardioKm: 0,
       customMin: 0,
+      cardioMode: null,
     });
   }
 
-// newest first
+  // newest first
   rows.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  // Running balance like a bank statement:
+  // newest row shows current total XP, then steps down as you go back in time.
+  let running = rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
+  for (const r of rows) {
+    r.runningTotalXp = running;
+    running -= r.totalXp || 0;
+  }
+
   return rows;
 };
 
@@ -7751,15 +7764,54 @@ const targetInfo = buildTargetInfoForMovement({
 {tab === "rewards" && (
   <div className="grid2cols">
     <Card className="pad" style={{ minWidth: 0 }}>
-      <div className="h2">Level & XP</div>
-      <div className="grid2 mt12">
-        <SummaryStat label="Level" value={level} />
-        <SummaryStat label="XP" value={xp} />
-        <SummaryStat label="XP to next" value={xpToNext} />
-        <SummaryStat
-          label="Unlocked"
-          value={`${unlocked.arcade ? "Arcade " : ""}${unlocked.chill ? "Chill" : ""}`.trim() || "—"}
-        />
+      <div className="row" style={{ gap: 16, alignItems: "stretch" }}>
+        {/* Left: current avatar */}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 104,
+            borderRadius: 16,
+            background: "rgba(15,23,42,0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {headerAvatarImg ? (
+            <img
+              src={headerAvatarImg}
+              alt={headerAvatarEmoji}
+              style={{
+                width: 72,
+                height: 72,
+                objectFit: "contain",
+                borderRadius: 16,
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                fontSize: 40,
+              }}
+            >
+              {headerAvatarEmoji}
+            </div>
+          )}
+        </div>
+
+        {/* Right: XP / Level / XP to next */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          <SummaryStat label="XP" value={xp} />
+          <SummaryStat label="Level" value={level} />
+          <SummaryStat label="XP to next" value={xpToNext} />
+        </div>
       </div>
 
       <div className="panel mt12">
@@ -8292,51 +8344,62 @@ const frontOffset = (layers.length - 1) * stackOffset;
     className="mt12"
     style={{ maxHeight: 360, overflowX: "auto", overflowY: "auto", width: "100%", }}
   >
-    <table className="table" style={{ minWidth: 720 }}>
-                
-<thead>
-                  <tr>
-                    <th>Date</th>
-                    <th style={{ textAlign: "right" }}>Total</th>
-                    <th style={{ textAlign: "right" }}>Non‑bonus</th>
-                    <th style={{ textAlign: "right" }}>Strength</th>
-                    <th style={{ textAlign: "right" }}>Cardio</th>
-                    <th style={{ textAlign: "right" }}>Duration</th>
-                    <th style={{ textAlign: "right" }}>Tasks</th>
-                    <th style={{ textAlign: "right" }}>Day</th>
-                    <th style={{ textAlign: "right" }}>Daily</th>
-                    <th style={{ textAlign: "right" }}>Prog</th>
-                    <th style={{ textAlign: "right" }}>Streak</th>
-                    <th style={{ textAlign: "right" }}>Badges</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(xpDebugRows || []).slice(0, 21).map((r) => (
-                    
-<tr key={r.date}>
-                      <td>{r.date}</td>
-                      <td style={{ textAlign: "right" }}><b>{r.totalXp || 0}</b></td>
-                      <td style={{ textAlign: "right" }}>{r.nonBonusXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{r.strengthXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{r.cardioXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{r.durationXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{r.tasksXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{r.dayCompleteXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{r.dailyBonusXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{r.progXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{r.streakXp || 0}</td>
-                      <td style={{ textAlign: "right" }}>{r.badgeClaimXp || 0}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+    <table className="table" style={{ minWidth: 760 }}>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th style={{ textAlign: "right" }}>Total</th>
+      <th style={{ textAlign: "right" }}>Balance</th>
+      <th style={{ textAlign: "right" }}>Non-bonus</th>
+      <th style={{ textAlign: "right" }}>Strength</th>
+      <th style={{ textAlign: "right" }}>Cardio</th>
+      <th style={{ textAlign: "right" }}>Duration</th>
+      <th style={{ textAlign: "right" }}>Tasks</th>
+      <th style={{ textAlign: "right" }}>Day</th>
+      <th style={{ textAlign: "right" }}>Daily</th>
+      <th style={{ textAlign: "right" }}>Prog</th>
+      <th style={{ textAlign: "right" }}>Streak</th>
+      <th style={{ textAlign: "right" }}>Badges</th>
+    </tr>
+  </thead>
+  <tbody>
+    {(xpDebugRows || []).slice(0, 21).map((r) => (
+      <tr key={r.date}>
+        <td>{r.date}</td>
+        <td style={{ textAlign: "right" }}>
+          <b>{r.totalXp || 0}</b>
+        </td>
+        <td style={{ textAlign: "right" }}>
+          {r.runningTotalXp ?? ""}
+        </td>
+        <td style={{ textAlign: "right" }}>{r.nonBonusXp || 0}</td>
+        <td style={{ textAlign: "right" }}>{r.strengthXp || 0}</td>
+        <td style={{ textAlign: "right" }}>
+          {r.cardioXp || 0}
+          {r.cardioMode === "casual" ? " *" : ""}
+        </td>
+        <td style={{ textAlign: "right" }}>{r.durationXp || 0}</td>
+        <td style={{ textAlign: "right" }}>{r.tasksXp || 0}</td>
+        <td style={{ textAlign: "right" }}>{r.dayCompleteXp || 0}</td>
+        <td style={{ textAlign: "right" }}>{r.dailyBonusXp || 0}</td>
+        <td style={{ textAlign: "right" }}>{r.progXp || 0}</td>
+        <td style={{ textAlign: "right" }}>{r.streakXp || 0}</td>
+        <td style={{ textAlign: "right" }}>{r.badgeClaimXp || 0}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
             </div>
             )}
 
 
             <div className="mini muted mt8">
-              Tip: “Non‑bonus” = Strength + Cardio + Duration + Tasks + Day. Bonuses are Daily, Prog, Streak and Badges.
-            </div>
+  * Cardio rows marked with a star were treated as casual/commute (walk-only) days
+  and earned 60% of normal cardio XP.
+</div>
+<div className="mini muted mt4">
+  Tip: “Non-bonus” = Strength + Cardio + Duration + Tasks + Day. Bonuses are Daily, Prog, Streak and Badges.
+</div>
           </div>
 
         </div>
