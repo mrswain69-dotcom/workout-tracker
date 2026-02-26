@@ -6072,16 +6072,35 @@ const targetInfo = buildTargetInfoForMovement({
 <div className="mt8 row gap8">
   <SecondaryButton
     onClick={() => {
-      const nextSets = [
-        ...(Array.isArray(setsByMovement[mov.id])
-          ? setsByMovement[mov.id]
-          : []),
-        {
-          reps: "",
-          weight: "",
-          timeSeconds: "",
-        },
-      ];
+      const existing = Array.isArray(setsByMovement[mov.id])
+        ? setsByMovement[mov.id]
+        : [];
+      let nextSets;
+      // For extra one-day strength blocks, if no sets are stored yet,
+      // create two rows at once so the first tap visibly adds a new row.
+      if (block.isExtra && existing.length === 0) {
+        nextSets = [
+          {
+            reps: "",
+            weight: "",
+            timeSeconds: "",
+          },
+          {
+            reps: "",
+            weight: "",
+            timeSeconds: "",
+          },
+        ];
+      } else {
+        nextSets = [
+          ...existing,
+          {
+            reps: "",
+            weight: "",
+            timeSeconds: "",
+          },
+        ];
+      }
       updateStrengthSetsForMovement(
         block.id,
         mov.id,
@@ -6092,25 +6111,25 @@ const targetInfo = buildTargetInfoForMovement({
     + Add set
   </SecondaryButton>
   {Array.isArray(setsByMovement[mov.id]) &&
-    setsByMovement[mov.id].length > (mov.sets || 3) && (
-      <SecondaryButton
-        className="btnSmall"
-        onClick={() => {
-          const existing = Array.isArray(setsByMovement[mov.id])
-            ? setsByMovement[mov.id]
-            : [];
-          if (!existing.length) return;
-          const nextSets = existing.slice(0, existing.length - 1);
-          updateStrengthSetsForMovement(
-            block.id,
-            mov.id,
-            nextSets
-          );
-        }}
-      >
-        Remove last set
-      </SecondaryButton>
-    )}
+  setsByMovement[mov.id].length > basePlannedSets && (
+    <SecondaryButton
+      className="btnSmall"
+      onClick={() => {
+        const existing = Array.isArray(setsByMovement[mov.id])
+          ? setsByMovement[mov.id]
+          : [];
+        if (!existing.length) return;
+        const nextSets = existing.slice(0, existing.length - 1);
+        updateStrengthSetsForMovement(
+          block.id,
+          mov.id,
+          nextSets
+        );
+      }}
+    >
+      Remove last set
+    </SecondaryButton>
+  )}
 </div>
                                 <div className="movementDivider" />
                               </div>
