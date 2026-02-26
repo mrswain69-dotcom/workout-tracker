@@ -38,6 +38,8 @@ function evaluateSingleBadge(badge, stats) {
       return evalSessionBestThreshold(badge, stats);
     case BADGE_TRIGGER_TYPES.STREAK_DAYS:
       return evalStreakDays(badge, stats);
+    case BADGE_TRIGGER_TYPES.DISTANCE_REPEAT:
+      return evalDistanceRepeat(badge, stats);
     default:
       return { earned: false, progress: null };
   }
@@ -73,6 +75,26 @@ function evalSessionBestThreshold(badge, stats) {
 function evalStreakDays(badge, stats) {
   const value = Number(stats?.streakDays || 0);
   const target = badge.threshold ?? 0;
+  const earned = value >= target;
+
+  return {
+    earned,
+    progress: {
+      current: clamp(value, 0, target),
+      target,
+    },
+  };
+}
+
+function evalDistanceRepeat(badge, stats) {
+  const sport = badge.sport;
+  const bucketKey = String(badge.distanceKm);
+  const countsBySportAndBucket =
+    stats?.distanceSessionCountsBySportAndBucket || {};
+  const sportCounts = countsBySportAndBucket[sport] || {};
+  const value = sportCounts[bucketKey] || 0;
+
+  const target = badge.requiredCount ?? 1;
   const earned = value >= target;
 
   return {
