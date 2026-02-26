@@ -2426,11 +2426,11 @@ useEffect(() => {
     }
 
     const row = Array.isArray(data) ? data[0] : data;
-    const fromDb = row?.log_json || null;
+const fromDb = row?.log_json || null;
 
-    // Prefer the latest from the database, fall back to cached, or null.
-    const latest = fromDb || cached || null;
-    setLogForDay(latest);
+// Prefer our cached latest (from recent saves), fall back to DB, or null.
+const latest = cached || fromDb || null;
+setLogForDay(latest);
 
     // Keep the cache in sync with whatever we decided is latest.
     if (cacheKey) {
@@ -5899,13 +5899,14 @@ const cardioProgress = useMemo(() => {
                               : [];
 
                             // Number of rows:
-                            // - at least planned sets
-                            // - plus any user-added sets
-                            const basePlannedSets = mov.sets || 3;
-                            const rowCount = Math.max(
-                              basePlannedSets,
-                              movementSets.length || 0
-                            );
+// - planned sets for normal blocks
+// - minimum 1 row for extra one-off blocks
+// - plus any user-added sets
+const basePlannedSets = block.isExtra ? 1 : (mov.sets || 3);
+const rowCount = Math.max(
+  basePlannedSets,
+  movementSets.length || 0
+);
 
                             const rows = [];
 
