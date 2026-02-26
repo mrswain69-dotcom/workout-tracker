@@ -42,9 +42,9 @@ import {
   RUN_5K_TIERS,
   RUN_10K_TIERS,
   RUNNING_BADGE_KEYS,
-} from "./runBadgesV1";
+} from "./config/runBadgesV1";
 
-import { AVATAR_PACKS } from "./avatars";
+import { AVATAR_PACKS } from "./config/avatars";
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
