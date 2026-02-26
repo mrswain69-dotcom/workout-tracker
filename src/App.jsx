@@ -3918,7 +3918,7 @@ async function saveLog(nextLog) {
   // Normalise what we store
   const logToStore = nextLog ? { ...nextLog } : null;
 
-  // 1) Update in-memory state for the selected day
+  // 1) Update in-memory state for the selected day (Log tab)
   setLogForDay(logToStore);
 
   // 2) Update our per-day cache so navigation feels instant
@@ -3934,8 +3934,42 @@ async function saveLog(nextLog) {
     }
   }
 
-  // 3) Persist to Supabase
-  if (!family?.id || !activeProfileId) return;
+  // 3) Optimistically update the full logs collection so XP, stats and
+  //    rewards all see the new data immediately (single source of truth).
+  setAllLogs((prev) => {
+    const existing = Array.isArray(prev) ? prev : [];
+    // If we don't have the minimum identity info, just keep what we had.
+    if (!family?.id || !activeProfileId || !selectedDate) return existing;
+
+    const dayKey = selectedDate;
+    const idx = existing.findIndex(
+      (r) => (r?.date_ymd || r?.date) === dayKey
+    );
+
+    // If we have a log for this day, upsert it into the array.
+    if (logToStore) {
+      const updatedRow = { date_ymd: dayKey, log: logToStore };
+      if (idx >= 0) {
+        const copy = existing.slice();
+        copy[idx] = updatedRow;
+        return copy;
+      }
+      return [...existing, updatedRow];
+    }
+
+    // If the log was cleared, remove any existing row for that day.
+    if (idx >= 0) {
+      const copy = existing.slice();
+      copy.splice(idx, 1);
+      return copy;
+    }
+
+    return existing;
+  });
+
+  // 4) Persist to the database
+  if (!family?.id || !activeProfileId || !selectedDate) return [];
+
   const { error } = await upsertLog(
     family.id,
     activeProfileId,
@@ -3947,7 +3981,7 @@ async function saveLog(nextLog) {
     return;
   }
 
-  // 4) Refresh logs list (used for stats + XP)
+  // 5) Refresh logs list (used for stats + XP) so we stay in sync with DB
   const { data } = await listLogs(family.id, activeProfileId, 2000);
   const mapped = (data || []).map((r) => ({
     date_ymd: r.date_ymd,
