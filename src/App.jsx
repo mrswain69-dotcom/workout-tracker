@@ -37,6 +37,10 @@ import {
   clearFamilyPin,
 } from "./db";
 
+import { buildStatsFromRecords } from "./engine/statsEngine";
+import { evaluateBadges as evaluateEngineBadges } from "./engine/badgeEngine";
+import { badgeDefinitions as engineBadgeDefinitions } from "./config/badges";
+
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function weekdayFromYMD(ymd) {
@@ -2738,7 +2742,22 @@ const headerAvatar = useMemo(() => {
 const headerAvatarEmoji = headerAvatar?.emoji || headerAvatar?.label || "🙂";
 const headerAvatarImg = headerAvatar?.imgSrc || "";
 
-const earnedBadgesSet = useMemo(() => computeEarnedBadgesFromLogs(allLogs), [allLogs]);
+// New: engine stats + performance badges (multi-sport)
+const engineStats = useMemo(
+  () => buildStatsFromRecords(allLogs || []),
+  [allLogs]
+);
+
+const engineBadgeEval = useMemo(
+  () => evaluateEngineBadges(engineStats),
+  [engineStats]
+);
+
+// Existing: V1 run 5K / 10K badge system
+const earnedBadgesSet = useMemo(
+  () => computeEarnedBadgesFromLogs(allLogs),
+  [allLogs]
+);
 
 const runBadgeCounts = useMemo(
   () => computeRunCountsFromLogs(allLogs),
@@ -8360,10 +8379,62 @@ const claimLabel = "Claim";
           </div>
         );
       })}
+                    </div>
+
+          {/* Performance badges (engine-driven, multi-sport) */}
+          <div className="panel mt16">
+            <div className="h3">Performance badges (beta)</div>
+            <div className="mini muted mt4">
+              Auto-unlocked from distance, speed and streak stats across all sports.
+            </div>
+
+            <div className="mt8 stack">
+              {engineBadgeDefinitions.map((b) => {
+                const evalResult = engineBadgeEval || {};
+                const progress = evalResult.progressById
+                  ? evalResult.progressById[b.id]
+                  : null;
+                const earned = Array.isArray(evalResult.earnedBadgeIds)
+                  ? evalResult.earnedBadgeIds.includes(b.id)
+                  : false;
+
+                const current =
+                  progress && typeof progress.current === "number"
+                    ? progress.current
+                    : 0;
+                const target =
+                  progress && typeof progress.target === "number"
+                    ? progress.target
+                    : b.threshold ?? null;
+
+                return (
+                  <div key={b.id} className="panel mt8">
+                    <div className="rowBetween">
+                      <div>
+                        <div className="badgeTitle">{b.title}</div>
+                        <div className="mini muted">{b.description}</div>
+                      </div>
+                      <div className="mini">
+                        {earned ? (
+                          <span>✅ Earned</span>
+                        ) : target ? (
+                          <span>
+                            {current} / {target}
+                          </span>
+                        ) : (
+                          <span>–</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="mini muted mt12">
-            V1 badges are for Runs. Next: Bike + Swim + PB badges + streak badges.
+            V1 badges are for Runs. Performance badges are now rolling out for
+            Run, Bike and streaks. Swim, row and walk are coming next.
           </div>
         </div>
       )}
