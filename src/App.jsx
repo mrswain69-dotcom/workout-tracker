@@ -2409,12 +2409,17 @@ useEffect(() => {
 
   const cacheKey = makeLogCacheKey(family.id, activeProfileId, selectedDate);
   const cached = cacheKey ? lastLogByDateRef.current[cacheKey] : undefined;
+
+  // IMPORTANT: always reset logForDay for the newly selected date
   if (cached) {
+    // Fast path: show cached log immediately
     setLogForDay(cached);
+  } else {
+    // No cached entry for this date yet – clear out previous day’s log
+    setLogForDay(null);
   }
 
   const reqId = ++loadDayLogReqRef.current;
-
   (async () => {
     const { data, error } = await getLog(
       family.id,
@@ -2425,16 +2430,17 @@ useEffect(() => {
 
     if (error) {
       console.error("getLog failed", error);
-      if (!cached) setLogForDay(null);
+      // We already cleared logForDay above when there was no cache,
+      // so we don't need to do anything else here.
       return;
     }
 
     const row = Array.isArray(data) ? data[0] : data;
-const fromDb = row?.log_json || null;
+    const fromDb = row?.log_json || null;
 
-// Prefer our cached latest (from recent saves), fall back to DB, or null.
-const latest = cached || fromDb || null;
-setLogForDay(latest);
+    // Prefer our cached latest (from recent saves), fall back to DB, or null.
+    const latest = cached || fromDb || null;
+    setLogForDay(latest);
 
     // Keep the cache in sync with whatever we decided is latest.
     if (cacheKey) {
@@ -2450,7 +2456,7 @@ setLogForDay(latest);
   })().catch((e) => {
     if (reqId !== loadDayLogReqRef.current) return;
     console.error("getLog exception", e);
-    if (!cached) setLogForDay(null);
+    // logForDay was already cleared if there was no cache; leave as-is.
   });
 }, [family?.id, activeProfileId, selectedDate, plan]);
 
