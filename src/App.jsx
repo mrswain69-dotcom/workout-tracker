@@ -2922,6 +2922,23 @@ function computeStreakBonusMap(records) {
   return bonusByDate;
 }
 
+// ---- Badge XP helper ----
+
+function getBadgeXpForKey(key) {
+  // Prefer the RUN_*_TIERS tables if present
+  const t5 = RUN_5K_TIERS.find((t) => t.key === key);
+  if (t5 && typeof t5.xp === "number") return t5.xp;
+
+  const t10 = RUN_10K_TIERS.find((t) => t.key === key);
+  if (t10 && typeof t10.xp === "number") return t10.xp;
+
+  // Fallback to BADGE_DEFS
+  const def = BADGE_DEFS.find((b) => b.key === key);
+  if (def && typeof def.xp === "number") return def.xp;
+
+  return 0;
+}
+
 // ---- XP breakdown rows (Rewards tab + overall XP) ----
 
 const buildXpDebugRows = (records, plan) => {
