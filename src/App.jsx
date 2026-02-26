@@ -41,6 +41,15 @@ import { buildStatsFromRecords } from "./engine/statsEngine";
 import { evaluateBadges as evaluateEngineBadges } from "./engine/badgeEngine";
 import { badgeDefinitions as engineBadgeDefinitions } from "./config/badges";
 
+import {
+  BADGE_DEFS,
+  RUN_5K_TIERS,
+  RUN_10K_TIERS,
+  RUNNING_BADGE_KEYS,
+} from "./config/runBadgesV1";
+
+import { AVATAR_PACKS } from "./config/avatars";
+
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function weekdayFromYMD(ymd) {
@@ -1414,137 +1423,6 @@ function computeCardioKmForDay(log) {
 
 const TIER_ORDER = ["bronze", "silver", "gold", "platinum", "diamond"];
 
-const BADGE_DEFS = [
-  {
-    key: "badge_run_5k_1",
-    title: "5K Run",
-    desc: "Logged 5K+ runs",
-    category: "running",
-    tier: "bronze",
-    distanceLabel: "5K",
-    bg: "/badges/bg/bg_running_bronze.svg",
-    icon: "/badges/icons/icon_runner_5k.png",
-    emoji: "🏅",
-    xp: 25,
-    hidden: true, // keep for logic but don’t render
-  },
-  {
-    key: "badge_run_5k_2",
-    title: "5K Run",
-    desc: "Logged 5K+ runs",
-    category: "running",
-    tier: "silver",
-    distanceLabel: "5K",
-    bg: "/badges/bg/bg_running_silver.svg",
-    icon: "/badges/icons/icon_runner_5k.png",
-    emoji: "🥈",
-    xp: 35,
-    hidden: true,
-  },
-  {
-    key: "badge_run_5k_3",
-    title: "5K Run",
-    desc: "Logged 5K+ runs",
-    category: "running",
-    tier: "gold",
-    distanceLabel: "5K",
-    bg: "/badges/bg/bg_running_gold.svg",
-    icon: "/badges/icons/icon_runner_5k.png",
-    emoji: "🥇",
-    xp: 45,
-  },
-  {
-    key: "badge_run_5k_4",
-    title: "5K Run",
-    desc: "Logged 5K+ runs",
-    category: "running",
-    tier: "platinum",
-    distanceLabel: "5K",
-    bg: "/badges/bg/bg_running_platinum.svg",
-    icon: "/badges/icons/icon_runner_5k.png",
-    emoji: "💠",
-    xp: 60,
-    hidden: true,
-  },
-  {
-    key: "badge_run_5k_5",
-    title: "5K Run",
-    desc: "Logged 5K+ runs",
-    category: "running",
-    tier: "diamond",
-    distanceLabel: "5K",
-    bg: "/badges/bg/bg_running_diamond.svg",
-    icon: "/badges/icons/icon_runner_5k.png",
-    emoji: "💎",
-    xp: 80,
-    hidden: true,
-  },
-  {
-    key: "badge_run_10k_1",
-    title: "10K Run",
-    desc: "Logged 10K+ runs",
-    category: "running",
-    tier: "bronze",
-    distanceLabel: "10K",
-    bg: "/badges/bg/bg_running_bronze.svg",
-    icon: "/badges/icons/icon_runner_10k.png",
-    emoji: "🏆",
-    xp: 50,
-  },
-  {
-    key: "badge_run_10k_2",
-    title: "10K Run",
-    desc: "Logged 10K+ runs",
-    category: "running",
-    tier: "silver",
-    distanceLabel: "10K",
-    bg: "/badges/bg/bg_running_silver.svg",
-    icon: "/badges/icons/icon_runner_10k.png",
-    emoji: "🏆",
-    xp: 65,
-    hidden: true,
-  },
-  {
-    key: "badge_run_10k_3",
-    title: "10K Run",
-    desc: "Logged 10K+ runs",
-    category: "running",
-    tier: "gold",
-    distanceLabel: "10K",
-    bg: "/badges/bg/bg_running_gold.svg",
-    icon: "/badges/icons/icon_runner_10k.png",
-    emoji: "🏆",
-    xp: 80,
-    hidden: true,
-  },
-  {
-    key: "badge_run_10k_4",
-    title: "10K Run",
-    desc: "Logged 10K+ runs",
-    category: "running",
-    tier: "platinum",
-    distanceLabel: "10K",
-    bg: "/badges/bg/bg_running_platinum.svg",
-    icon: "/badges/icons/icon_runner_10k.png",
-    emoji: "🏆",
-    xp: 100,
-    hidden: true,
-  },
-  {
-    key: "badge_run_10k_5",
-    title: "10K Run",
-    desc: "Logged 10K+ runs",
-    category: "running",
-    tier: "diamond",
-    distanceLabel: "10K",
-    bg: "/badges/bg/bg_running_diamond.svg",
-    icon: "/badges/icons/icon_runner_10k.png",
-    emoji: "🏆",
-    xp: 130,
-    hidden: true,
-  },
-];
-
 
 function normaliseClaimedRewards(meta) {
   // Supports legacy format: ["badge_key", ...]
@@ -1602,63 +1480,6 @@ function computeClaimedRewardsXpByDate(plan, earnedFromLogs) {
 }
 
 
-const AVATAR_PACKS = [
-  {
-    key: "avatar_pack_1",
-    title: "Avatar Pack 1",
-    desc: "Unlock at 1,000 XP",
-    unlockAtXp: 1000,
-    // Emoji-based starter pack
-    avatars: [
-      { id: "emoji_rocket", label: "Rocket", emoji: "🚀" },
-      { id: "emoji_bolt", label: "Bolt", emoji: "⚡" },
-      { id: "emoji_tiger", label: "Tiger", emoji: "🐯" },
-      { id: "emoji_dragon", label: "Dragon", emoji: "🐉" },
-      { id: "emoji_fire", label: "Flame", emoji: "🔥" },
-      { id: "emoji_star", label: "Star", emoji: "⭐" },
-    ],
-  },
-  {
-    key: "avatar_pack_2_velocity_pulse",
-    title: "Avatar Pack 2 – Velocity Pulse",
-    desc: "Unlock at 2,000 XP",
-    unlockAtXp: 2000,
-    // Tier 2 image avatars
-    avatars: [
-      {
-        id: "vp_velocity_pulse",
-        label: "Velocity Pulse",
-        imgSrc: "/avatars/velocity-pulse.png",
-      },
-      {
-        id: "vp_focus_halo",
-        label: "Focus Halo",
-        imgSrc: "/avatars/focus-halo.png",
-      },
-      {
-        id: "vp_iron_shield",
-        label: "Iron Shield",
-        imgSrc: "/avatars/iron-shield.png",
-      },
-      {
-        id: "vp_streak_flame",
-        label: "Streak Flame",
-        imgSrc: "/avatars/streak-flame.png",
-      },
-      {
-        id: "vp_precision_target",
-        label: "Precision Target",
-        imgSrc: "/avatars/precision-target.png",
-      },
-      {
-        id: "vp_winged_sprint",
-        label: "Winged Sprint",
-        imgSrc: "/avatars/winged-sprint.png",
-      },
-    ],
-  },
-];
-
 function badgeStatusLabel(status) {
   if (status === "claimed") return "Claimed";
   if (status === "claimable") return "Claim";
@@ -1672,27 +1493,6 @@ function getRunKmFromBlock(block) {
   const km = safeNumber(block?.cardio?.distanceKm ?? block?.distanceKm);
   return km > 0 ? km : 0;
 }
-
-const RUN_5K_TIERS = [
-  { key: "badge_run_5k_1", tier: "bronze",   threshold: 1,  xp: 25 },
-  { key: "badge_run_5k_2", tier: "silver",   threshold: 3,  xp: 35 },
-  { key: "badge_run_5k_3", tier: "gold",     threshold: 5,  xp: 45 },
-  { key: "badge_run_5k_4", tier: "platinum", threshold: 10, xp: 60 },
-  { key: "badge_run_5k_5", tier: "diamond",  threshold: 25, xp: 80 },
-];
-
-const RUN_10K_TIERS = [
-  { key: "badge_run_10k_1", tier: "bronze",   threshold: 1,  xp: 50 },
-  { key: "badge_run_10k_2", tier: "silver",   threshold: 3,  xp: 65 },
-  { key: "badge_run_10k_3", tier: "gold",     threshold: 5,  xp: 80 },
-  { key: "badge_run_10k_4", tier: "platinum", threshold: 10, xp: 100 },
-  { key: "badge_run_10k_5", tier: "diamond",  threshold: 25, xp: 130 },
-];
-
-const RUNNING_BADGE_KEYS = new Set([
-  ...RUN_5K_TIERS.map((t) => t.key),
-  ...RUN_10K_TIERS.map((t) => t.key),
-]);
 
 function getBadgeXpForKey(key) {
   // Prefer the RUN_*_TIERS tables if present
