@@ -5739,6 +5739,7 @@ const cardioProgress = useMemo(() => {
       Reset day
     </SecondaryButton>
   </div>
+                </div>
 
                                {/* --- V3 block-based logging panels --- */}
 
