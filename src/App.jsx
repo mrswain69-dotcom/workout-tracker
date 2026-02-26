@@ -2067,6 +2067,7 @@ useEffect(() => { planRef.current = plan; }, [plan]);
 }
 
   const [logForDay, setLogForDay] = useState(null);
+  const [isSavingLog, setIsSavingLog] = useState(false);
   const [allLogs, setAllLogs] = useState([]); // for stats
 
   // --- History pill / modal ---
@@ -3970,27 +3971,32 @@ async function saveLog(nextLog) {
   // 4) Persist to the database
   if (!family?.id || !activeProfileId || !selectedDate) return [];
 
-  const { error } = await upsertLog(
-    family.id,
-    activeProfileId,
-    selectedDate,
-    logToStore
-  );
-  if (error) {
-    console.error("upsertLog failed", error);
-    return;
-  }
+  setIsSavingLog(true);
+  try {
+    const { error } = await upsertLog(
+      family.id,
+      activeProfileId,
+      selectedDate,
+      logToStore
+    );
+    if (error) {
+      console.error("upsertLog failed", error);
+      return;
+    }
 
-  // 5) Refresh logs list (used for stats + XP) so we stay in sync with DB
-  const { data } = await listLogs(family.id, activeProfileId, 2000);
-  const mapped = (data || []).map((r) => ({
-    date_ymd: r.date_ymd,
-    log: r.log_json,
-  }));
-  setAllLogs(mapped);
-  // Keep XP in sync immediately after any log save
-  setXp(computeXpFromLogs(mapped, planRef.current));
-  return mapped;
+    // 5) Refresh logs list (used for stats + XP) so we stay in sync with DB
+    const { data } = await listLogs(family.id, activeProfileId, 2000);
+    const mapped = (data || []).map((r) => ({
+      date_ymd: r.date_ymd,
+      log: r.log_json,
+    }));
+    setAllLogs(mapped);
+    // Keep XP in sync immediately after any log save
+    setXp(computeXpFromLogs(mapped, planRef.current));
+    return mapped;
+  } finally {
+    setIsSavingLog(false);
+  }
 }
 
 function blankLogForDay() {
@@ -5714,16 +5720,25 @@ const cardioProgress = useMemo(() => {
                   </div>
                 </div>
 
-                                <div className="rowRight logTopActions">
-  <div
-    className="dayStatusDot"
-    title={selectedDayTitle}
-    style={{ background: selectedDayDotColor }}
-  />
-  <SecondaryButton onClick={resetDay}>Reset day</SecondaryButton>
-</div>
-
-              </div>        
+                                  <div className="rowRight logTopActions">
+    <div
+      className="dayStatusDot"
+      title={selectedDayTitle}
+      style={{ background: selectedDayDotColor }}
+    />
+    {isSavingLog && (
+      <div className="syncStatus">
+        <span className="syncDot" />
+        <span className="syncText">Saving…</span>
+      </div>
+    )}
+    <SecondaryButton
+      onClick={resetDay}
+      disabled={isSavingLog}
+    >
+      Reset day
+    </SecondaryButton>
+  </div>
 
                                {/* --- V3 block-based logging panels --- */}
 
@@ -9755,6 +9770,43 @@ function StyleTag() {
     align-items:center;
     justify-content:space-between;   /* keep everything on one line */
   }
+
+  /* Small inline "Saving…" indicator in the log header */
+.logTopActions .syncStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--mutedText, #a0aec0);
+  margin-right: 8px;
+}
+
+.syncDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent, #00E5FF); /* falls back to cyan if --accent not set */
+  animation: syncPulse 1s ease-in-out infinite;
+}
+
+.syncText {
+  line-height: 1;
+}
+
+@keyframes syncPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 
   .logTopRow .rowLeft{
     flex:1 1 auto;                   /* let the date side take remaining space */
