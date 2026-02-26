@@ -2745,6 +2745,62 @@ const runBadgeCounts = useMemo(
   [allLogs]
 );
 
+useEffect(() => {
+  // Keep running distance badge claims in sync with current logs.
+  // If the user edits/deletes runs so they no longer earn a tier,
+  // we drop that claim from meta so that if they earn it again
+  // it behaves like a fresh unlock (greyed out -> claimable -> claim).
+  if (!family?.id || !activeProfileId) return;
+
+  const claimed = claimedRewardsNorm || [];
+  if (!claimed.length) return;
+
+  const { run5Count = 0, run10Count = 0 } = runBadgeCounts || {};
+
+  const cleaned = [];
+  let changed = false;
+
+  for (const c of claimed) {
+    if (!c || !c.key) continue;
+    const def = BADGE_DEFS.find((b) => b.key === c.key);
+
+    // Non-running badges keep their historical claim behaviour.
+    if (
+      !def ||
+      def.category !== "running" ||
+      (def.distanceLabel !== "5K" && def.distanceLabel !== "10K")
+    ) {
+      cleaned.push(c);
+      continue;
+    }
+
+    const is5k = def.distanceLabel === "5K";
+    const tiers = is5k ? RUN_5K_TIERS : RUN_10K_TIERS;
+    const count = is5k ? run5Count : run10Count;
+    const tierInfo = tiers.find((t) => t.key === c.key);
+
+    // If their current logs no longer meet the threshold for this tier,
+    // drop the claim so they have to earn + claim it again.
+    if (!tierInfo || count < tierInfo.threshold) {
+      changed = true;
+      continue;
+    }
+
+    cleaned.push(c);
+  }
+
+  if (changed || cleaned.length !== claimed.length) {
+    // No need to await; savePlanMetaNoPin already updates plan state + cache.
+    savePlanMetaNoPin({ claimedRewards: cleaned });
+  }
+}, [
+  family?.id,
+  activeProfileId,
+  JSON.stringify(claimedRewardsNorm || []),
+  runBadgeCounts?.run5Count,
+  runBadgeCounts?.run10Count,
+]);
+
   const hasUnclaimedBadges = Array.from(earnedBadgesSet).some(
   (key) => !claimedRewardsSet.has(key)
 );
