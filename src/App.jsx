@@ -1853,6 +1853,7 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const [logForDay, setLogForDay] = useState(null);
   const [isSavingLog, setIsSavingLog] = useState(false);
   const [allLogs, setAllLogs] = useState([]); // for stats
+  const [logsReady, setLogsReady] = useState(false);
 
   // --- History pill / modal ---
 const [historyModal, setHistoryModal] = useState(null); 
@@ -2164,21 +2165,32 @@ const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  // --- Load logs when profile changes ---
+// --- Load logs when profile changes ---
   useEffect(() => {
-  if (!family?.id || !activeProfileId) return;
+  if (!family?.id || !activeProfileId) {
+    setLogsReady(false);
+    setAllLogs([]);
+    return;
+  }
 
   // Important: clear immediately so we don't display previous profile streak/logs
+  setLogsReady(false);
   setAllLogs([]);
 
   (async () => {
     const { data } = await listLogs(family.id, activeProfileId, 2000);
 
     // Defensive: if db query ever returns mixed profiles, filter client-side
-    const rows = (data || []).filter((r) => !r.profile_id || r.profile_id === activeProfileId);
+    const rows = (data || []).filter(
+      (r) => !r.profile_id || r.profile_id === activeProfileId
+    );
 
     setAllLogs(rows.map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
-  })().catch(() => {});
+    setLogsReady(true);
+  })().catch(() => {
+    // Even if it fails, mark as "done" so we don't get stuck.
+    setLogsReady(true);
+  });
 }, [family?.id, activeProfileId]);
 
 
@@ -2535,6 +2547,7 @@ useEffect(() => {
   // we drop that claim from meta so that if they earn it again
   // it behaves like a fresh unlock (greyed out -> claimable -> claim).
   if (!family?.id || !activeProfileId) return;
+  if (!logsReady) return;
 
   const claimed = claimedRewardsNorm || [];
   if (!claimed.length) return;
@@ -2580,6 +2593,7 @@ useEffect(() => {
 }, [
   family?.id,
   activeProfileId,
+  logsReady,
   JSON.stringify(claimedRewardsNorm || []),
   runBadgeCounts?.run5Count,
   runBadgeCounts?.run10Count,
