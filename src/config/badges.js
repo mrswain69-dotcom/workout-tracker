@@ -2,8 +2,9 @@
 
 // Trigger types for the generic BadgeEngine
 export const BADGE_TRIGGER_TYPES = {
-  SESSION_BEST_THRESHOLD: "SESSION_BEST_THRESHOLD", // best single session distance / speed
+  SESSION_BEST_THRESHOLD: "SESSION_BEST_THRESHOLD", // best single session distance/speed
   STREAK_DAYS: "STREAK_DAYS",                      // consecutive active days
+  DISTANCE_REPEAT: "DISTANCE_REPEAT",              // N sessions at ≥ X km
 };
 
 // Sports keys – keep in sync with cardioType values
@@ -296,4 +297,5 @@ export const badgeDefinitions = [
     threshold: 365,
     sortOrder: 107,
   },
+
 ];
