@@ -2511,20 +2511,36 @@ const totalBadgeXp = useMemo(() => {
   return total;
 }, [claimedRewardsNorm]);
 
-const unlockedAvatarPacksArr = Array.isArray(plan?.meta?.unlockedAvatarPacks) ? plan.meta.unlockedAvatarPacks : [];
-const unlockedAvatarPacksSet = useMemo(() => new Set(unlockedAvatarPacksArr), [unlockedAvatarPacksArr.join("|")]);
+const unlockedAvatarPacksArr = Array.isArray(plan?.meta?.unlockedAvatarPacks)
+  ? plan.meta.unlockedAvatarPacks
+  : [];
 
-const selectedAvatarId = typeof plan?.meta?.avatarId === "string" ? plan.meta.avatarId : "";
+// Only treat packs as "unlocked" if this profile's XP meets the threshold
+const unlockedAvatarPacksSet = useMemo(() => {
+  const allowed = new Set();
+  for (const key of unlockedAvatarPacksArr) {
+    const pack = AVATAR_PACKS.find((p) => p.key === key);
+    if (!pack) continue;
+    if (xp >= pack.unlockAtXp) {
+      allowed.add(key);
+    }
+  }
+  return allowed;
+}, [unlockedAvatarPacksArr.join("|"), xp]);
+
+const selectedAvatarId =
+  typeof plan?.meta?.avatarId === "string" ? plan.meta.avatarId : "";
 
 const headerAvatar = useMemo(() => {
-  // Find selected avatar object in any pack (or fallback)
+  // Only allow avatars from packs this profile has truly unlocked at its current XP
   for (const pack of AVATAR_PACKS) {
+    if (!unlockedAvatarPacksSet.has(pack.key)) continue;
     for (const a of pack.avatars || []) {
       if (a.id === selectedAvatarId) return a;
     }
   }
   return null;
-}, [selectedAvatarId]);
+}, [selectedAvatarId, unlockedAvatarPacksArr.join("|"), xp]);
 
 const headerAvatarEmoji = headerAvatar?.emoji || headerAvatar?.label || "🙂";
 const headerAvatarImg = headerAvatar?.imgSrc || "";
