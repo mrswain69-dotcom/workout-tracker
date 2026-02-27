@@ -929,21 +929,42 @@ function isDayComplete(log, planDay) {
     return safeNumber(log.custom?.durationMin) > 0;
   }
 
-  // Strength / time-based day
+  // Strength / time-based day (prefer per-block sets, fall back to legacy entries)
   if (!planDay.movementsEnabled) return false;
   const ex = planDay.movements || [];
   if (!ex.length) return false;
 
+  const plannedMovementIds = new Set(
+    ex.map((m) => m && m.id).filter(Boolean)
+  );
+
+  // 1) New model: check per-block sets for any planned movement
+  if (
+    Array.isArray(log.blocks) &&
+    log.blocks.length &&
+    plannedMovementIds.size
+  ) {
+    for (const b of log.blocks) {
+      if (!b || !b.sets || typeof b.sets !== "object") continue;
+      for (const [mid, sets] of Object.entries(b.sets)) {
+        if (!plannedMovementIds.has(mid)) continue;
+        if (Array.isArray(sets) && sets.some(setDidSomething)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // 2) Legacy model: fallback to log.entries
   const entries = log.entries || {};
-  let didAny = false;
   for (const m of ex) {
     const sets = entries[m.id] || [];
     if (Array.isArray(sets) && sets.some(setDidSomething)) {
-      didAny = true;
-      break;
+      return true;
     }
   }
-  return didAny;
+
+  return false;
 }
 
 // Can be deleted once new xp engine works
@@ -1984,34 +2005,31 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
   const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
 
   // Strength-like blocks for the selected day (planned + extra one-day)
-  const strengthLikePlannedBlocks = plannedBlocksForSelectedDay.filter(
-    (b) =>
-      b &&
-      (b.typeId === "strength" ||
-        b.typeId === "hiit" ||
-        b.typeId === "box")
-  );
+  let allStrengthBlocksForDay = [];
 
-  // Any block with movements that isn't already part of today's planned
-  // strength/HIIT/box blocks counts as a "strength-like extra" block.
-  const plannedStrengthIds = new Set(
-    strengthLikePlannedBlocks.map((b) => b && b.id).filter(Boolean)
-  );
+  const strengthBlocksFromLog =
+    Array.isArray(logForDay?.blocks) && logForDay.blocks.length
+      ? logForDay.blocks.filter(
+          (b) =>
+            b &&
+            Array.isArray(b.movements) &&
+            b.movements.length > 0
+        )
+      : [];
 
-  const strengthLikeExtraBlocks = Array.isArray(logForDay?.blocks)
-    ? logForDay.blocks.filter(
-        (b) =>
-          b &&
-          !plannedStrengthIds.has(b.id) &&
-          Array.isArray(b.movements) &&
-          b.movements.length > 0
-      )
-    : [];
-
-  const allStrengthBlocksForDay = [
-    ...strengthLikePlannedBlocks,
-    ...strengthLikeExtraBlocks,
-  ];
+  if (strengthBlocksFromLog.length) {
+    // Prefer the per-day snapshot (plan + extras) if we have it
+    allStrengthBlocksForDay = strengthBlocksFromLog;
+  } else {
+    // No log yet for this day – fall back to showing planned strength/HIIT/box blocks
+    allStrengthBlocksForDay = plannedBlocksForSelectedDay.filter(
+      (b) =>
+        b &&
+        (b.typeId === "strength" ||
+          b.typeId === "hiit" ||
+          b.typeId === "box")
+    );
+  }
 
   const hasAnyStrengthBlocks = allStrengthBlocksForDay.length > 0;
 
