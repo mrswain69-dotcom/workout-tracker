@@ -3381,11 +3381,16 @@ const todayPlanStatus = useMemo(() => {
     return false;
   }
 
-  const handleProfileChange = async (id) => {
-  const ok = await ensurePinForProfileSwitch();
-  if (!ok) return;
-  setActiveProfileId(id);
-};
+    const handleProfileChange = async (id) => {
+    const ok = await ensurePinForProfileSwitch();
+    if (!ok) return;
+
+    // Clear current view so we don't show previous profile's plan/logs
+    setActiveProfileId(id);
+    setPlan(null);
+    setAllLogs([]);
+    setLogForDay(null);
+  };
 
   async function applyPlan(nextPlan, label = "Plan applied") {
     if (!(await ensureUnlocked("apply changes"))) return;
