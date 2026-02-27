@@ -2221,8 +2221,9 @@ useEffect(() => {
       return;
     }
 
-        const row = Array.isArray(data) ? data[0] : data;
-    const fromDb = row?.log_json || null;
+    const row = Array.isArray(data) ? data[0] : data;
+    // Prefer the new log_json column, but fall back to legacy log if needed
+    const fromDb = row?.log_json || row?.log || null;
 
     // Prefer our cached latest (from recent saves), fall back to DB, or null.
     const rawLatest = cached || fromDb || null;
@@ -4014,7 +4015,7 @@ function ensureBlocksSnapshot(baseLog) {
     existingById.delete(pb.id);
   }
 
-    // 2) Carry over any blocks that aren’t part of the plan (extras etc.)
+  // 2) Carry over any blocks that aren’t part of the plan (extras etc.)
   for (const [id, b] of existingById.entries()) {
     if (!b) continue;
 
@@ -4036,6 +4037,64 @@ function ensureBlocksSnapshot(baseLog) {
       cardio: baseCardio,
       duration: baseDuration,
     });
+  }
+
+  // 3) Bridge any legacy strength entries into block-based extra blocks
+  const legacyEntries =
+    baseLog.entries && typeof baseLog.entries === "object"
+      ? baseLog.entries
+      : null;
+
+  if (legacyEntries) {
+    // Track which movementIds already have block-based sets to avoid duplicates
+    const movementAlreadyCovered = new Set();
+    for (const b of mergedBlocks) {
+      if (!b || !b.sets || typeof b.sets !== "object") continue;
+      for (const [mid, sets] of Object.entries(b.sets)) {
+        if (Array.isArray(sets) && sets.some(setDidSomething)) {
+          movementAlreadyCovered.add(mid);
+        }
+      }
+    }
+
+    for (const [mid, sets] of Object.entries(legacyEntries)) {
+      if (
+        !Array.isArray(sets) ||
+        !sets.length ||
+        !sets.some(setDidSomething) ||
+        movementAlreadyCovered.has(mid)
+      ) {
+        continue;
+      }
+
+      // Create a one-day extra strength block for this movement
+      const movement = {
+        id: mid,
+        name: "Legacy movement",
+        mode: "strength",
+        reps: "",
+        trackWeight: false,
+        coachNote: "",
+      };
+
+      const setsCopy = sets.map((s) => ({ ...s }));
+
+      mergedBlocks.push({
+        id: `legacy::${mid}`,
+        typeId: "strength",
+        isExtra: true,
+        label: "",
+        note: "",
+        movements: [movement],
+        sets: { [mid]: setsCopy },
+        cardio: {
+          distanceKm: "",
+          durationMin: "",
+          avgSpeedKmh: "",
+        },
+        duration: { minutes: "" },
+      });
+    }
   }
 
   return { ...baseLog, blocks: mergedBlocks };
