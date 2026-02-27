@@ -2221,21 +2221,31 @@ useEffect(() => {
       return;
     }
 
-    const row = Array.isArray(data) ? data[0] : data;
-const fromDb = row?.log_json || null;
+        const row = Array.isArray(data) ? data[0] : data;
+    const fromDb = row?.log_json || null;
 
-// Prefer our cached latest (from recent saves), fall back to DB, or null.
-const latest = cached || fromDb || null;
-setLogForDay(latest);
+    // Prefer our cached latest (from recent saves), fall back to DB, or null.
+    const rawLatest = cached || fromDb || null;
+
+    // Snap the log to the *current* plan structure for this weekday so:
+    // - blocks always line up with the active plan
+    // - any blocks from older plans are carried over as one-day extras
+    const snapped =
+      rawLatest && typeof ensureBlocksSnapshot === "function"
+        ? ensureBlocksSnapshot({ ...rawLatest })
+        : rawLatest;
+
+    setLogForDay(snapped);
 
     // Keep the cache in sync with whatever we decided is latest.
     if (cacheKey) {
       const prev = lastLogByDateRef.current || {};
-      if (latest) {
-        lastLogByDateRef.current = { ...prev, [cacheKey]: latest };
+      if (snapped) {
+        lastLogByDateRef.current = { ...prev, [cacheKey]: snapped };
       } else {
         const copy = { ...prev };
         delete copy[cacheKey];
+
         lastLogByDateRef.current = copy;
       }
     }
@@ -4004,7 +4014,7 @@ function ensureBlocksSnapshot(baseLog) {
     existingById.delete(pb.id);
   }
 
-  // 2) Carry over any blocks that aren’t part of the plan (extras etc.)
+    // 2) Carry over any blocks that aren’t part of the plan (extras etc.)
   for (const [id, b] of existingById.entries()) {
     if (!b) continue;
 
@@ -4020,6 +4030,9 @@ function ensureBlocksSnapshot(baseLog) {
 
     mergedBlocks.push({
       ...b,
+      // This block no longer belongs to the active weekly plan.
+      // Treat it as a one-day extra so it still renders in the log UI.
+      isExtra: true,
       cardio: baseCardio,
       duration: baseDuration,
     });
