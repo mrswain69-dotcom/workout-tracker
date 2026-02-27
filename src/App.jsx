@@ -1992,14 +1992,19 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
         b.typeId === "box")
   );
 
+  // Any block with movements that isn't already part of today's planned
+  // strength/HIIT/box blocks counts as a "strength-like extra" block.
+  const plannedStrengthIds = new Set(
+    strengthLikePlannedBlocks.map((b) => b && b.id).filter(Boolean)
+  );
+
   const strengthLikeExtraBlocks = Array.isArray(logForDay?.blocks)
     ? logForDay.blocks.filter(
         (b) =>
           b &&
-          b.isExtra &&
-          (b.typeId === "strength" ||
-            b.typeId === "hiit" ||
-            b.typeId === "box")
+          !plannedStrengthIds.has(b.id) &&
+          Array.isArray(b.movements) &&
+          b.movements.length > 0
       )
     : [];
 
