@@ -2420,42 +2420,37 @@ if (cached) {
 
     // 2) Always try the DB plan (authoritative for extras)
     (async () => {
-      const { data, error } = await getProfilePlan(familyId, profileId);
-      if (error) {
-        console.error("getProfilePlan failed", error);
-
-        // If we have cached, keep it; otherwise fall back to profile row plan_json
-        if (!cached && activeProfile?.plan_json) {
-          setAndCachePlan(profileId, activeProfile.plan_json);
-        }
-        return;
-      }
-
-if (data?.plan_json) {
-  const dbPlan = normalisePlanForRuntime(data.plan_json);
-
-  // Only overwrite if it’s actually different
-  const cachedStr = cached ? JSON.stringify(cached) : "";
-  const dbStr = dbPlan ? JSON.stringify(dbPlan) : "";
-
-  if (!cached || cachedStr !== dbStr) {
-    setAndCachePlan(profileId, dbPlan);
-  }
-}
-
-      // 3) If DB has no plan yet, fall back to profile row plan_json
-      //    but only if we didn't already load a cached plan
-      if (!cached && activeProfile?.plan_json) {
-        setAndCachePlan(profileId, activeProfile.plan_json);
-        return;
-      }
-
-      // 4) No plan anywhere and no cached copy: create default + persist
+          const { data, error } = await getProfilePlan(familyId, profileId);
+    if (error) {
+      console.error("getProfilePlan failed", error);
+      // If we have cached, just keep it; otherwise we’ll fall back to a default plan.
       if (!cached) {
         const p = defaultPlanForFamily();
         await upsertProfilePlan(familyId, profileId, p);
         setAndCachePlan(profileId, p);
       }
+      return;
+    }
+
+    if (data?.plan_json) {
+      const dbPlan = normalisePlanForRuntime(data.plan_json);
+
+      // Only overwrite if it’s actually different
+      const cachedStr = cached ? JSON.stringify(cached) : "";
+      const dbStr = dbPlan ? JSON.stringify(dbPlan) : "";
+
+      if (!cached || cachedStr !== dbStr) {
+        setAndCachePlan(profileId, dbPlan);
+      }
+      return;
+    }
+
+    // No DB plan and no cached copy: create default + persist
+    if (!cached) {
+      const p = defaultPlanForFamily();
+      await upsertProfilePlan(familyId, profileId, p);
+      setAndCachePlan(profileId, p);
+    }
     })();
   }, [activeProfileId, family?.id]);  // IMPORTANT: do not depend on activeProfile here
 
