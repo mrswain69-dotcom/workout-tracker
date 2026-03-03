@@ -7756,24 +7756,34 @@ const targetInfo = buildTargetInfoForMovement({
         </div>
 
         <div className="row planTemplatesRow mt12">
-          <PrimaryButton
-            onClick={async () => {
-              const name = window.prompt("Name this saved weekly plan:");
-              if (!name) return;
-              if (!family?.id) return;
-              if (!(await ensureUnlocked("save a template"))) return;
-              const { error } = await createPlanTemplate(
-                family.id,
-                name,
-                plan || {}
-              );
-              if (error) window.alert(error.message || String(error));
-              const { data } = await listPlanTemplates(family.id);
-              setPlanTemplates(data || []);
-            }}
-          >
-            Save as new
-          </PrimaryButton>
+<PrimaryButton
+  onClick={async () => {
+    const name = window.prompt("Name this saved weekly plan:");
+    if (!name) return;
+    if (!family?.id) return;
+    if (!(await ensureUnlocked("save a template"))) return;
+
+    const { data: created, error } = await createPlanTemplate(
+      family.id,
+      name,
+      plan || {}
+    );
+
+    if (error) {
+      window.alert(error.message || String(error));
+      return;
+    }
+
+    if (created) {
+      // Immediately add the new template to the local list
+      setPlanTemplates((prev) => [created, ...(prev || [])]);
+      // And select it so it’s obvious which one you just saved
+      setSelectedTemplateId(created.id);
+    }
+  }}
+>
+  Save as new
+</PrimaryButton>
           <div style={{ width: 10 }} />
           <SecondaryButton
             disabled={!selectedTemplateId}
