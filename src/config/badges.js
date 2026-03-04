@@ -1,22 +1,25 @@
 // src/config/badges.js
-// V2 unified badge ecosystem config.
-// Keeps current UI system: title, stacked badge, claim/claimed, dynamic progress text, tier pills.
-// NOTE: No plaque SVGs. The tier plaque remains the existing pill UI in App.jsx.
-// Icons are PNGs.
+// Badge ecosystem config (V2).
+// - Plaque is NOT an SVG: tier label remains UI pill.
+// - Icons are PNGs: /public/badges/icons/
+// - Backgrounds are SVGs: /public/badges/bg/bg_<family>_<tier>.svg
+//
+// Exports:
+// - BADGE_CARDS: cards for UI rendering
+// - BADGE_DEFS: flattened tier defs for stacked badge renderer
+// - ALL_BADGE_KEYS: Set for validation
 
 export const TIERS = ["bronze", "silver", "gold", "platinum", "diamond"];
 
 export const COMPARATOR = {
-  GTE: "gte", // value >= threshold
-  LTE: "lte", // value <= threshold (lower is better)
+  GTE: "gte",
+  LTE: "lte", // for time-based badges (lower is better)
 };
 
-// Background convention: /badges/bg/bg_{family}_{tier}.svg
 export function bgPath(family, tier) {
   return `/badges/bg/bg_${family}_${tier}.svg`;
 }
 
-// Icon convention: /badges/icons/{iconFile}.png
 export function iconPath(iconFilePng) {
   return `/badges/icons/${iconFilePng}`;
 }
@@ -34,17 +37,10 @@ function safeNum(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
-// Build tiers + defs in the same style as runBadgesV1
-function makeTierDefs({
-  idPrefix,
-  title,
-  desc,
-  family,        // e.g. "volume", "performance", "intensity", "consistency"
-  iconFile,      // e.g. "icon_volume.png"
-  tiers,         // [{ tier, threshold, xp, hidden? }]
-}) {
+// Create tier defs for stacked renderer + tier rules for pills/logic
+function makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers }) {
   const tierDefs = tiers.map((t, idx) => ({
-    key: `${idPrefix}_${idx + 1}`,     // e.g. badge_volume_kg_1
+    key: `${idPrefix}_${idx + 1}`,
     title,
     desc,
     category: family,
@@ -66,26 +62,10 @@ function makeTierDefs({
   return { tierDefs, tierRules };
 }
 
-// ---------------------------------------------------------------------------
-// V2 BADGE CARDS (each one should render as a card like your 5K / 10K)
-// ---------------------------------------------------------------------------
-// statKey = the stats engine output key we will read (later)
-// comparator = gte or lte
-// getProgressText = function used by the description block in the card UI
-//
-// When wiring, App.jsx will:
-// - compute value from stats via statKey
-// - compute earned tier + next tier
-// - show "Logged X — Y more..." etc using getProgressText
-// ---------------------------------------------------------------------------
-
 export const BADGE_CARDS = [];
-
-// We'll collect all stacked defs here (like runBadgesV1 BADGE_DEFS)
 const ALL_DEFS = [];
 const ALL_KEYS = [];
 
-// Helper to push a card + add its tier defs into BADGE_DEFS
 function addCard(card, tierDefs) {
   BADGE_CARDS.push(card);
   for (const d of tierDefs) {
@@ -94,9 +74,279 @@ function addCard(card, tierDefs) {
   }
 }
 
-// =====================
-// 15 NEW BADGES
-// =====================
+// -------------------------------------------------------------
+// Shared tier scheme for repetition badges (same as your current run badges vibe)
+// -------------------------------------------------------------
+const REP_TIERS = [
+  { tier: "bronze", threshold: 1, xp: 25 },
+  { tier: "silver", threshold: 3, xp: 35, hidden: true },
+  { tier: "gold", threshold: 5, xp: 45 },
+  { tier: "platinum", threshold: 10, xp: 60, hidden: true },
+  { tier: "diamond", threshold: 25, xp: 80, hidden: true },
+];
+
+// -------------------------------------------------------------
+// SPORT PACKS (distances + pace targets)
+// Keys must match stats engine outputs exactly.
+// -------------------------------------------------------------
+//
+// Distance keys chosen to be sport-relevant:
+// - Run: classic road distances
+// - Bike: common TT/sportive distances in km
+// - Walk: common walking challenges incl. 50k
+// - Row: common erg distances incl. HM + marathon
+// - Swim: common open-water distances
+//
+// Pace badges use 3 benchmark distances per sport that people actually chase.
+//
+// Pace tier thresholds are TIME IN SECONDS (lower is better).
+// These are designed as: Bronze=achievable, Gold=solid, Diamond=serious push.
+
+const SPORT_PACKS = {
+  run: {
+    label: "Run",
+    distances: [
+      { key: "5k", label: "5K", km: 5 },
+      { key: "10k", label: "10K", km: 10 },
+      { key: "15k", label: "15K", km: 15 },
+      { key: "half", label: "Half Marathon", km: 21.1 },
+      { key: "30k", label: "30K", km: 30 },
+      { key: "marathon", label: "Marathon", km: 42.195 },
+      { key: "ultra50", label: "Ultra 50K", km: 50 },
+    ],
+    paceBadges: [
+      {
+        key: "5k",
+        label: "5K",
+        tiers: [
+          { tier: "bronze", threshold: 35 * 60, xp: 25 },
+          { tier: "silver", threshold: 30 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 25 * 60, xp: 45 },
+          { tier: "platinum", threshold: 22 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 19 * 60, xp: 80, hidden: true },
+        ],
+      },
+      {
+        key: "10k",
+        label: "10K",
+        tiers: [
+          { tier: "bronze", threshold: 75 * 60, xp: 25 },
+          { tier: "silver", threshold: 65 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 55 * 60, xp: 45 },
+          { tier: "platinum", threshold: 50 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 45 * 60, xp: 80, hidden: true },
+        ],
+      },
+      {
+        key: "half",
+        label: "Half Marathon",
+        tiers: [
+          { tier: "bronze", threshold: (2 * 60 + 30) * 60, xp: 25 }, // 2:30
+          { tier: "silver", threshold: (2 * 60 + 10) * 60, xp: 35, hidden: true }, // 2:10
+          { tier: "gold", threshold: (1 * 60 + 55) * 60, xp: 45 }, // 1:55
+          { tier: "platinum", threshold: (1 * 60 + 45) * 60, xp: 60, hidden: true }, // 1:45
+          { tier: "diamond", threshold: (1 * 60 + 35) * 60, xp: 80, hidden: true }, // 1:35
+        ],
+      },
+    ],
+  },
+
+  bike: {
+    label: "Bike",
+    distances: [
+      { key: "10k", label: "10K", km: 10 },
+      { key: "20k", label: "20K", km: 20 },
+      { key: "40k", label: "40K", km: 40 },
+      { key: "60k", label: "60K", km: 60 },
+      { key: "100k", label: "100K", km: 100 },
+      { key: "160k", label: "160K", km: 160 }, // ~100 miles sportive
+      { key: "250k", label: "250K", km: 250 }, // big endurance day
+    ],
+    paceBadges: [
+      {
+        key: "20k",
+        label: "20K",
+        tiers: [
+          { tier: "bronze", threshold: 55 * 60, xp: 25 },
+          { tier: "silver", threshold: 48 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 42 * 60, xp: 45 },
+          { tier: "platinum", threshold: 37 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 33 * 60, xp: 80, hidden: true },
+        ],
+      },
+      {
+        key: "40k",
+        label: "40K",
+        tiers: [
+          { tier: "bronze", threshold: 110 * 60, xp: 25 }, // 1:50
+          { tier: "silver", threshold: 100 * 60, xp: 35, hidden: true }, // 1:40
+          { tier: "gold", threshold: 90 * 60, xp: 45 }, // 1:30
+          { tier: "platinum", threshold: 80 * 60, xp: 60, hidden: true }, // 1:20
+          { tier: "diamond", threshold: 70 * 60, xp: 80, hidden: true }, // 1:10
+        ],
+      },
+      {
+        key: "100k",
+        label: "100K",
+        tiers: [
+          { tier: "bronze", threshold: 240 * 60, xp: 25 }, // 4:00
+          { tier: "silver", threshold: 210 * 60, xp: 35, hidden: true }, // 3:30
+          { tier: "gold", threshold: 190 * 60, xp: 45 }, // 3:10
+          { tier: "platinum", threshold: 170 * 60, xp: 60, hidden: true }, // 2:50
+          { tier: "diamond", threshold: 150 * 60, xp: 80, hidden: true }, // 2:30
+        ],
+      },
+    ],
+  },
+
+  walk: {
+    label: "Walk",
+    distances: [
+      { key: "3k", label: "3K", km: 3 },
+      { key: "5k", label: "5K", km: 5 },
+      { key: "10k", label: "10K", km: 10 },
+      { key: "15k", label: "15K", km: 15 },
+      { key: "half", label: "Half Marathon", km: 21.1 },
+      { key: "marathon", label: "Marathon", km: 42.195 },
+      { key: "50k", label: "50K", km: 50 },
+    ],
+    paceBadges: [
+      {
+        key: "5k",
+        label: "5K",
+        tiers: [
+          { tier: "bronze", threshold: 60 * 60, xp: 25 },
+          { tier: "silver", threshold: 52 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 45 * 60, xp: 45 },
+          { tier: "platinum", threshold: 40 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 35 * 60, xp: 80, hidden: true },
+        ],
+      },
+      {
+        key: "10k",
+        label: "10K",
+        tiers: [
+          { tier: "bronze", threshold: 130 * 60, xp: 25 }, // 2:10
+          { tier: "silver", threshold: 115 * 60, xp: 35, hidden: true }, // 1:55
+          { tier: "gold", threshold: 100 * 60, xp: 45 }, // 1:40
+          { tier: "platinum", threshold: 90 * 60, xp: 60, hidden: true }, // 1:30
+          { tier: "diamond", threshold: 80 * 60, xp: 80, hidden: true }, // 1:20
+        ],
+      },
+      {
+        key: "half",
+        label: "Half Marathon",
+        tiers: [
+          { tier: "bronze", threshold: 300 * 60, xp: 25 }, // 5:00
+          { tier: "silver", threshold: 270 * 60, xp: 35, hidden: true }, // 4:30
+          { tier: "gold", threshold: 240 * 60, xp: 45 }, // 4:00
+          { tier: "platinum", threshold: 210 * 60, xp: 60, hidden: true }, // 3:30
+          { tier: "diamond", threshold: 180 * 60, xp: 80, hidden: true }, // 3:00
+        ],
+      },
+    ],
+  },
+
+  row: {
+    label: "Row",
+    distances: [
+      { key: "500m", label: "500m", km: 0.5 },
+      { key: "1k", label: "1K", km: 1 },
+      { key: "2k", label: "2K", km: 2 },
+      { key: "5k", label: "5K", km: 5 },
+      { key: "10k", label: "10K", km: 10 },
+      { key: "half", label: "Half Marathon", km: 21.097 },
+      { key: "marathon", label: "Marathon", km: 42.195 },
+    ],
+    paceBadges: [
+      {
+        key: "2k",
+        label: "2K",
+        tiers: [
+          { tier: "bronze", threshold: 9 * 60 + 30, xp: 25 },  // 9:30
+          { tier: "silver", threshold: 8 * 60 + 30, xp: 35, hidden: true }, // 8:30
+          { tier: "gold", threshold: 7 * 60 + 30, xp: 45 }, // 7:30
+          { tier: "platinum", threshold: 6 * 60 + 50, xp: 60, hidden: true }, // 6:50
+          { tier: "diamond", threshold: 6 * 60 + 20, xp: 80, hidden: true }, // 6:20
+        ],
+      },
+      {
+        key: "5k",
+        label: "5K",
+        tiers: [
+          { tier: "bronze", threshold: 24 * 60, xp: 25 },
+          { tier: "silver", threshold: 22 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 20 * 60, xp: 45 },
+          { tier: "platinum", threshold: 18 * 60 + 30, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 17 * 60 + 30, xp: 80, hidden: true },
+        ],
+      },
+      {
+        key: "10k",
+        label: "10K",
+        tiers: [
+          { tier: "bronze", threshold: 52 * 60, xp: 25 },
+          { tier: "silver", threshold: 48 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 45 * 60, xp: 45 },
+          { tier: "platinum", threshold: 42 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 39 * 60, xp: 80, hidden: true },
+        ],
+      },
+    ],
+  },
+
+  swim: {
+    label: "Swim",
+    distances: [
+      { key: "200m", label: "200m", km: 0.2 },
+      { key: "400m", label: "400m", km: 0.4 },
+      { key: "750m", label: "750m", km: 0.75 },
+      { key: "1500m", label: "1500m", km: 1.5 },
+      { key: "3k", label: "3K", km: 3 },
+      { key: "5k", label: "5K", km: 5 },
+      { key: "10k", label: "10K", km: 10 },
+    ],
+    paceBadges: [
+      {
+        key: "750m",
+        label: "750m",
+        tiers: [
+          { tier: "bronze", threshold: 18 * 60, xp: 25 },
+          { tier: "silver", threshold: 16 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 14 * 60 + 30, xp: 45 },
+          { tier: "platinum", threshold: 13 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 11 * 60 + 30, xp: 80, hidden: true },
+        ],
+      },
+      {
+        key: "1500m",
+        label: "1500m",
+        tiers: [
+          { tier: "bronze", threshold: 38 * 60, xp: 25 },
+          { tier: "silver", threshold: 34 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 30 * 60, xp: 45 },
+          { tier: "platinum", threshold: 27 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 24 * 60, xp: 80, hidden: true },
+        ],
+      },
+      {
+        key: "3k",
+        label: "3K",
+        tiers: [
+          { tier: "bronze", threshold: 80 * 60, xp: 25 },
+          { tier: "silver", threshold: 70 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 62 * 60, xp: 45 },
+          { tier: "platinum", threshold: 55 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 48 * 60, xp: 80, hidden: true },
+        ],
+      },
+    ],
+  },
+};
+
+// -------------------------------------------------------------
+// KEPT non-cardio badges (your list)
+// -------------------------------------------------------------
 
 // 1) Total Volume Lifted
 {
@@ -107,11 +357,11 @@ function addCard(card, tierDefs) {
   const iconFile = "icon_volume.png";
 
   const tiers = [
-    { tier: "bronze",   threshold: 1000,   xp: 25 },
-    { tier: "silver",   threshold: 5000,   xp: 35, hidden: true },
-    { tier: "gold",     threshold: 20000,  xp: 45 },
-    { tier: "platinum", threshold: 75000,  xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 200000, xp: 80, hidden: true },
+    { tier: "bronze", threshold: 1000, xp: 25 },
+    { tier: "silver", threshold: 5000, xp: 35, hidden: true },
+    { tier: "gold", threshold: 20000, xp: 45 },
+    { tier: "platinum", threshold: 75000, xp: 60, hidden: true },
+    { tier: "diamond", threshold: 200000, xp: 80, hidden: true },
   ];
 
   const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
@@ -137,7 +387,7 @@ function addCard(card, tierDefs) {
   );
 }
 
-// 2) Most Sets in a Session
+// 2) Most Sets In a Session
 {
   const idPrefix = "badge_session_sets";
   const title = "Session Builder";
@@ -146,11 +396,11 @@ function addCard(card, tierDefs) {
   const iconFile = "icon_sets.png";
 
   const tiers = [
-    { tier: "bronze",   threshold: 10, xp: 25 },
-    { tier: "silver",   threshold: 20, xp: 35, hidden: true },
-    { tier: "gold",     threshold: 30, xp: 45 },
+    { tier: "bronze", threshold: 10, xp: 25 },
+    { tier: "silver", threshold: 20, xp: 35, hidden: true },
+    { tier: "gold", threshold: 30, xp: 45 },
     { tier: "platinum", threshold: 40, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 50, xp: 80, hidden: true },
+    { tier: "diamond", threshold: 50, xp: 80, hidden: true },
   ];
 
   const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
@@ -176,7 +426,7 @@ function addCard(card, tierDefs) {
   );
 }
 
-// 3) Total Sets
+// 3) 1000 Total Sets
 {
   const idPrefix = "badge_total_sets";
   const title = "Set Storm";
@@ -185,11 +435,11 @@ function addCard(card, tierDefs) {
   const iconFile = "icon_setstorm.png";
 
   const tiers = [
-    { tier: "bronze",   threshold: 250,  xp: 25 },
-    { tier: "silver",   threshold: 500,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 1000, xp: 45 },
+    { tier: "bronze", threshold: 250, xp: 25 },
+    { tier: "silver", threshold: 500, xp: 35, hidden: true },
+    { tier: "gold", threshold: 1000, xp: 45 },
     { tier: "platinum", threshold: 2500, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 5000, xp: 80, hidden: true },
+    { tier: "diamond", threshold: 5000, xp: 80, hidden: true },
   ];
 
   const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
@@ -215,7 +465,7 @@ function addCard(card, tierDefs) {
   );
 }
 
-// 4) Total Reps
+// 4) 10,000 Total Reps
 {
   const idPrefix = "badge_total_reps";
   const title = "Rep Wave";
@@ -224,11 +474,11 @@ function addCard(card, tierDefs) {
   const iconFile = "icon_reps.png";
 
   const tiers = [
-    { tier: "bronze",   threshold: 1000,  xp: 25 },
-    { tier: "silver",   threshold: 5000,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 10000, xp: 45 },
+    { tier: "bronze", threshold: 1000, xp: 25 },
+    { tier: "silver", threshold: 5000, xp: 35, hidden: true },
+    { tier: "gold", threshold: 10000, xp: 45 },
     { tier: "platinum", threshold: 25000, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 50000, xp: 80, hidden: true },
+    { tier: "diamond", threshold: 50000, xp: 80, hidden: true },
   ];
 
   const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
@@ -254,215 +504,20 @@ function addCard(card, tierDefs) {
   );
 }
 
-// 5) Longest Cardio Duration
-{
-  const idPrefix = "badge_cardio_long";
-  const title = "Endurance Arc";
-  const desc = "Longest cardio duration";
-  const family = "performance";
-  const iconFile = "icon_endurance.png";
-
-  const tiers = [
-    { tier: "bronze",   threshold: 20, xp: 25 },
-    { tier: "silver",   threshold: 30, xp: 35, hidden: true },
-    { tier: "gold",     threshold: 45, xp: 45 },
-    { tier: "platinum", threshold: 60, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 90, xp: 80, hidden: true },
-  ];
-
-  const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
-
-  addCard(
-    {
-      id: "cardio_longest_duration",
-      title,
-      desc,
-      family,
-      iconFile,
-      statKey: "stats.cardio.longestDurationMin",
-      comparator: COMPARATOR.GTE,
-      tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
-        const v = Math.floor(safeNum(value));
-        if (!nextTier) return `Longest cardio: ${v} min.`;
-        const remaining = Math.max(0, nextTier.threshold - v);
-        return `Longest cardio: ${v} min — ${remaining} min to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
-      },
-    },
-    tierDefs
-  );
-}
-
-// 6) Fastest 5K Time (lower is better)
-{
-  const idPrefix = "badge_5k_pace";
-  const title = "5K Pace";
-  const desc = "Fastest 5K time";
-  const family = "performance";
-  const iconFile = "icon_5kpace.png";
-
-  const tiers = [
-    { tier: "bronze",   threshold: 30 * 60,      xp: 25 },
-    { tier: "silver",   threshold: 27 * 60 + 30, xp: 35, hidden: true },
-    { tier: "gold",     threshold: 25 * 60,      xp: 45 },
-    { tier: "platinum", threshold: 22 * 60 + 30, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 20 * 60,      xp: 80, hidden: true },
-  ];
-
-  const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
-
-  addCard(
-    {
-      id: "cardio_best_5k_time",
-      title,
-      desc,
-      family,
-      iconFile,
-      statKey: "stats.cardio.best5kTimeSec",
-      comparator: COMPARATOR.LTE,
-      tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
-        const v = value == null ? null : safeNum(value);
-        if (v == null || v <= 0) return "Log a 5K+ run with time to start tracking pace.";
-        if (!nextTier) return `Best 5K: ${formatTimeMMSS(v)}.`;
-        return `Best 5K: ${formatTimeMMSS(v)} — beat ${formatTimeMMSS(nextTier.threshold)} for ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
-      },
-    },
-    tierDefs
-  );
-}
-
-// 7) Weekly Consistency Score
-{
-  const idPrefix = "badge_week_score";
-  const title = "Weekly Consistency";
-  const desc = "Consistency score (last 7 days)";
-  const family = "consistency";
-  const iconFile = "icon_consistency.png";
-
-  const tiers = [
-    { tier: "bronze",   threshold: 80,  xp: 25 },
-    { tier: "silver",   threshold: 90,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 95,  xp: 45 },
-    { tier: "platinum", threshold: 100, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 100, xp: 80, hidden: true },
-  ];
-
-  const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
-
-  addCard(
-    {
-      id: "week_score",
-      title,
-      desc,
-      family,
-      iconFile,
-      statKey: "stats.consistency.weekScorePct",
-      comparator: COMPARATOR.GTE,
-      tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
-        const v = Math.round(safeNum(value));
-        if (!nextTier) return `Weekly score: ${v}%.`;
-        const remaining = Math.max(0, nextTier.threshold - v);
-        return `Weekly score: ${v}% — ${remaining}% to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
-      },
-    },
-    tierDefs
-  );
-}
-
-// 8) Plan Adherence % (30d)
-{
-  const idPrefix = "badge_adherence";
-  const title = "Plan Adherence";
-  const desc = "Adherence to your plan (last 30 days)";
-  const family = "behaviour";
-  const iconFile = "icon_adherence.png";
-
-  const tiers = [
-    { tier: "bronze",   threshold: 70, xp: 25 },
-    { tier: "silver",   threshold: 80, xp: 35, hidden: true },
-    { tier: "gold",     threshold: 90, xp: 45 },
-    { tier: "platinum", threshold: 95, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 98, xp: 80, hidden: true },
-  ];
-
-  const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
-
-  addCard(
-    {
-      id: "adherence_30d",
-      title,
-      desc,
-      family,
-      iconFile,
-      statKey: "stats.behaviour.planAdherencePct30d",
-      comparator: COMPARATOR.GTE,
-      tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
-        const v = Math.round(safeNum(value));
-        if (!nextTier) return `Adherence: ${v}%.`;
-        const remaining = Math.max(0, nextTier.threshold - v);
-        return `Adherence: ${v}% — ${remaining}% to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
-      },
-    },
-    tierDefs
-  );
-}
-
-// 9) Perfect Form Sessions (30d)
-{
-  const idPrefix = "badge_perfect_form";
-  const title = "Perfect Form";
-  const desc = "Sessions with complete logging (last 30 days)";
-  const family = "behaviour";
-  const iconFile = "icon_perfectform.png";
-
-  const tiers = [
-    { tier: "bronze",   threshold: 3,  xp: 25 },
-    { tier: "silver",   threshold: 7,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 15, xp: 45 },
-    { tier: "platinum", threshold: 25, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 40, xp: 80, hidden: true },
-  ];
-
-  const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
-
-  addCard(
-    {
-      id: "perfect_form_30d",
-      title,
-      desc,
-      family,
-      iconFile,
-      statKey: "stats.behaviour.perfectFormSessions30d",
-      comparator: COMPARATOR.GTE,
-      tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
-        const v = Math.floor(safeNum(value));
-        if (!nextTier) return `Perfect form sessions: ${v}.`;
-        const remaining = Math.max(0, nextTier.threshold - v);
-        return `Perfect form sessions: ${v} — ${remaining} to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
-      },
-    },
-    tierDefs
-  );
-}
-
-// 10) Early Bird
+// 10) Early Bird (before cutoff; cutoff is age-based and exposed by stats engine)
 {
   const idPrefix = "badge_early";
   const title = "Early Bird";
-  const desc = "Train before 7am";
+  const desc = "Train early";
   const family = "behaviour";
   const iconFile = "icon_earlybird.png";
 
   const tiers = [
-    { tier: "bronze",   threshold: 3,   xp: 25 },
-    { tier: "silver",   threshold: 10,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 25,  xp: 45 },
-    { tier: "platinum", threshold: 50,  xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 100, xp: 80, hidden: true },
+    { tier: "bronze", threshold: 3, xp: 25 },
+    { tier: "silver", threshold: 10, xp: 35, hidden: true },
+    { tier: "gold", threshold: 25, xp: 45 },
+    { tier: "platinum", threshold: 50, xp: 60, hidden: true },
+    { tier: "diamond", threshold: 100, xp: 80, hidden: true },
   ];
 
   const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
@@ -477,31 +532,32 @@ function addCard(card, tierDefs) {
       statKey: "stats.behaviour.earlyBirdSessions",
       comparator: COMPARATOR.GTE,
       tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
+      getProgressText: ({ value, nextTier, meta }) => {
         const v = Math.floor(safeNum(value));
+        const cutoff = meta?.earlyCutoffHour ?? 8;
         if (!nextTier) return `Early sessions: ${v}.`;
         const remaining = Math.max(0, nextTier.threshold - v);
-        return `Early sessions: ${v} — ${remaining} to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
+        return `Trained before ${cutoff}:00 — ${v} sessions · ${remaining} more to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
       },
     },
     tierDefs
   );
 }
 
-// 11) Night Grinder
+// 11) Night Grinder (after cutoff; cutoff is age-based and exposed by stats engine)
 {
   const idPrefix = "badge_night";
   const title = "Night Grinder";
-  const desc = "Train after 9pm";
+  const desc = "Train late";
   const family = "behaviour";
   const iconFile = "icon_nightgrinder.png";
 
   const tiers = [
-    { tier: "bronze",   threshold: 3,   xp: 25 },
-    { tier: "silver",   threshold: 10,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 25,  xp: 45 },
-    { tier: "platinum", threshold: 50,  xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 100, xp: 80, hidden: true },
+    { tier: "bronze", threshold: 3, xp: 25 },
+    { tier: "silver", threshold: 10, xp: 35, hidden: true },
+    { tier: "gold", threshold: 25, xp: 45 },
+    { tier: "platinum", threshold: 50, xp: 60, hidden: true },
+    { tier: "diamond", threshold: 100, xp: 80, hidden: true },
   ];
 
   const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
@@ -516,89 +572,12 @@ function addCard(card, tierDefs) {
       statKey: "stats.behaviour.nightSessions",
       comparator: COMPARATOR.GTE,
       tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
+      getProgressText: ({ value, nextTier, meta }) => {
         const v = Math.floor(safeNum(value));
+        const cutoff = meta?.nightCutoffHour ?? 19;
         if (!nextTier) return `Night sessions: ${v}.`;
         const remaining = Math.max(0, nextTier.threshold - v);
-        return `Night sessions: ${v} — ${remaining} to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
-      },
-    },
-    tierDefs
-  );
-}
-
-// 12) No-Miss Weeks
-{
-  const idPrefix = "badge_perfect_week";
-  const title = "No-Miss Weeks";
-  const desc = "Perfect weeks completed";
-  const family = "consistency";
-  const iconFile = "icon_nomissweek.png";
-
-  const tiers = [
-    { tier: "bronze",   threshold: 1,  xp: 25 },
-    { tier: "silver",   threshold: 4,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 8,  xp: 45 },
-    { tier: "platinum", threshold: 16, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 32, xp: 80, hidden: true },
-  ];
-
-  const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
-
-  addCard(
-    {
-      id: "no_miss_week",
-      title,
-      desc,
-      family,
-      iconFile,
-      statKey: "stats.consistency.perfectWeekCount",
-      comparator: COMPARATOR.GTE,
-      tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
-        const v = Math.floor(safeNum(value));
-        if (!nextTier) return `Perfect weeks: ${v}.`;
-        const remaining = Math.max(0, nextTier.threshold - v);
-        return `Perfect weeks: ${v} — ${remaining} to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
-      },
-    },
-    tierDefs
-  );
-}
-
-// 13) Active Days
-{
-  const idPrefix = "badge_active_days";
-  const title = "Active Days";
-  const desc = "Days with any workout logged";
-  const family = "longevity";
-  const iconFile = "icon_activedays.png";
-
-  const tiers = [
-    { tier: "bronze",   threshold: 30,  xp: 25 },
-    { tier: "silver",   threshold: 90,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 180, xp: 45 },
-    { tier: "platinum", threshold: 365, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 730, xp: 80, hidden: true },
-  ];
-
-  const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
-
-  addCard(
-    {
-      id: "active_days",
-      title,
-      desc,
-      family,
-      iconFile,
-      statKey: "stats.longevity.activeDays",
-      comparator: COMPARATOR.GTE,
-      tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
-        const v = Math.floor(safeNum(value));
-        if (!nextTier) return `Active days: ${v}.`;
-        const remaining = Math.max(0, nextTier.threshold - v);
-        return `Active days: ${v} — ${remaining} to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
+        return `Trained after ${cutoff}:00 — ${v} sessions · ${remaining} more to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
       },
     },
     tierDefs
@@ -614,11 +593,11 @@ function addCard(card, tierDefs) {
   const iconFile = "icon_overload.png";
 
   const tiers = [
-    { tier: "bronze",   threshold: 1,  xp: 25 },
-    { tier: "silver",   threshold: 5,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 15, xp: 45 },
+    { tier: "bronze", threshold: 1, xp: 25 },
+    { tier: "silver", threshold: 5, xp: 35, hidden: true },
+    { tier: "gold", threshold: 15, xp: 45 },
     { tier: "platinum", threshold: 30, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 60, xp: 80, hidden: true },
+    { tier: "diamond", threshold: 60, xp: 80, hidden: true },
   ];
 
   const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
@@ -644,20 +623,20 @@ function addCard(card, tierDefs) {
   );
 }
 
-// 15) Pace Improvement (4w)
+// 15) Pace Improvement (global best improvement across sports)
 {
   const idPrefix = "badge_pace_imp";
   const title = "Pace Improvement";
   const desc = "Improve your pace vs baseline (4 weeks)";
-  const family = "intelligence";
+  const family = "improvement";
   const iconFile = "icon_paceimprove.png";
 
   const tiers = [
-    { tier: "bronze",   threshold: 3,  xp: 25 },
-    { tier: "silver",   threshold: 5,  xp: 35, hidden: true },
-    { tier: "gold",     threshold: 8,  xp: 45 },
+    { tier: "bronze", threshold: 3, xp: 25 },
+    { tier: "silver", threshold: 5, xp: 35, hidden: true },
+    { tier: "gold", threshold: 8, xp: 45 },
     { tier: "platinum", threshold: 12, xp: 60, hidden: true },
-    { tier: "diamond",  threshold: 15, xp: 80, hidden: true },
+    { tier: "diamond", threshold: 15, xp: 80, hidden: true },
   ];
 
   const { tierDefs, tierRules } = makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers });
@@ -669,23 +648,112 @@ function addCard(card, tierDefs) {
       desc,
       family,
       iconFile,
-      statKey: "stats.cardio.paceImprovementPct4w",
+      statKey: "stats.intelligence.paceImprovementPct4w",
       comparator: COMPARATOR.GTE,
       tiers: tierRules,
-      getProgressText: ({ value, nextTier }) => {
+      getProgressText: ({ value, nextTier, meta }) => {
         const v = Math.round(safeNum(value) * 10) / 10;
-        if (!nextTier) return `Pace improvement: ${v}%.`;
+        const sport = meta?.paceImprovementSport ? String(meta.paceImprovementSport).toUpperCase() : null;
+        if (!nextTier) return `Pace improvement: ${v}%${sport ? ` (${sport})` : ""}.`;
         const remaining = Math.max(0, nextTier.threshold - v);
-        return `Pace improvement: ${v}% — ${remaining}% to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
+        return `Pace improvement: ${v}%${sport ? ` (${sport})` : ""} — ${remaining}% to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
       },
     },
     tierDefs
   );
 }
 
-// ---------------------------------------------------------------------------
-// Exports for the renderer system you already use
-// ---------------------------------------------------------------------------
+// -------------------------------------------------------------
+// CARDIO BADGES (repetition + pace) for every sport pack above
+// -------------------------------------------------------------
+function addCardioDistanceRepetitionBadges() {
+  for (const sport of Object.keys(SPORT_PACKS)) {
+    const pack = SPORT_PACKS[sport];
+
+    for (const d of pack.distances) {
+      const idPrefix = `badge_${sport}_${d.key}_count`;
+      const title = `${pack.label} ${d.label}`;
+      const desc = `Logged ${d.label}+ (${pack.label})`;
+      const family = "performance";
+      const iconFile = `icon_${sport}_${d.key}.png`;
+
+      const { tierDefs, tierRules } = makeTierDefs({
+        idPrefix,
+        title,
+        desc,
+        family,
+        iconFile,
+        tiers: REP_TIERS,
+      });
+
+      addCard(
+        {
+          id: `${sport}_${d.key}_count`,
+          title,
+          desc,
+          family,
+          iconFile,
+          statKey: `stats.cardio.${sport}.count.${d.key}`,
+          comparator: COMPARATOR.GTE,
+          tiers: tierRules,
+          getProgressText: ({ value, nextTier }) => {
+            const v = Math.floor(safeNum(value));
+            if (!nextTier) return `Logged ${d.label}+ · ${v} times.`;
+            const remaining = Math.max(0, nextTier.threshold - v);
+            return `Logged ${d.label}+ · ${v} times — ${remaining} more to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
+          },
+        },
+        tierDefs
+      );
+    }
+  }
+}
+
+function addCardioPaceBadges() {
+  for (const sport of Object.keys(SPORT_PACKS)) {
+    const pack = SPORT_PACKS[sport];
+
+    for (const p of pack.paceBadges) {
+      const idPrefix = `badge_${sport}_${p.key}_pace`;
+      const title = `${pack.label} ${p.label} Pace`;
+      const desc = `Fastest ${p.label} time (${pack.label})`;
+      const family = "performance";
+      const iconFile = `icon_${sport}_${p.key}_pace.png`;
+
+      const { tierDefs, tierRules } = makeTierDefs({
+        idPrefix,
+        title,
+        desc,
+        family,
+        iconFile,
+        tiers: p.tiers,
+      });
+
+      addCard(
+        {
+          id: `${sport}_${p.key}_best_time`,
+          title,
+          desc,
+          family,
+          iconFile,
+          statKey: `stats.cardio.${sport}.bestTimeSec.${p.key}`,
+          comparator: COMPARATOR.LTE,
+          tiers: tierRules,
+          getProgressText: ({ value, nextTier }) => {
+            const v = value == null ? null : safeNum(value);
+            if (v == null || v <= 0) return `Log ${p.label}+ with time to start tracking pace.`;
+            if (!nextTier) return `Best ${p.label}: ${formatTimeMMSS(v)}.`;
+            return `Best ${p.label}: ${formatTimeMMSS(v)} — beat ${formatTimeMMSS(nextTier.threshold)} for ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
+          },
+        },
+        tierDefs
+      );
+    }
+  }
+}
+
+addCardioDistanceRepetitionBadges();
+addCardioPaceBadges();
 
 export const BADGE_DEFS = ALL_DEFS;
 export const ALL_BADGE_KEYS = new Set(ALL_KEYS);
