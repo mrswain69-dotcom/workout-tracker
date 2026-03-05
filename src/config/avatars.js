@@ -57,4 +57,55 @@ export const AVATAR_PACKS = [
       },
     ],
   },
+
+  // Tier 3 – Apex Engine Series
+  {
+    key: "avatar_pack_3_apex_engine",
+    title: "Avatar Pack 3 – Apex Engine Series",
+    desc: "Unlock at 3,000 XP",
+    unlockAtXp: 3000,
+    avatars: [
+      {
+        id: "ae_apex_runner",
+        label: "Apex Runner",
+        imgSrc: "/avatars/pack3/apex-runner.png",
+      },
+      {
+        id: "ae_neural_crown",
+        label: "Neural Crown",
+        imgSrc: "/avatars/pack3/neural-crown.png",
+      },
+      {
+        id: "ae_reactor_core",
+        label: "Reactor Core",
+        imgSrc: "/avatars/pack3/reactor-core.png",
+      },
+      {
+        id: "ae_vector_titan",
+        label: "Vector Titan",
+        imgSrc: "/avatars/pack3/vector-titan.png",
+      },
+      {
+        id: "ae_storm_circuit",
+        label: "Storm Circuit",
+        imgSrc: "/avatars/pack3/storm-circuit.png",
+      },
+      {
+        id: "ae_precision_orbit",
+        label: "Precision Orbit",
+        imgSrc: "/avatars/pack3/precision-orbit.png",
+      },
+      {
+        id: "ae_iron_mind",
+        label: "Iron Mind",
+        imgSrc: "/avatars/pack3/iron-mind.png",
+      },
+      {
+        id: "ae_momentum_drive",
+        label: "Momentum Drive",
+        imgSrc: "/avatars/pack3/momentum-drive.png",
+      },
+    ],
+  },
+  
 ];
