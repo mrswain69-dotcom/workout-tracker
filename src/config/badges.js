@@ -37,7 +37,6 @@ function safeNum(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
-// Create tier defs for stacked renderer + tier rules for pills/logic
 function makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers }) {
   const tierDefs = tiers.map((t, idx) => ({
     key: `${idPrefix}_${idx + 1}`,
@@ -75,7 +74,7 @@ function addCard(card, tierDefs) {
 }
 
 // -------------------------------------------------------------
-// Shared tier scheme for repetition badges (same as your current run badges vibe)
+// Shared tier scheme for repetition badges (distance repetition, etc.)
 // -------------------------------------------------------------
 const REP_TIERS = [
   { tier: "bronze", threshold: 1, xp: 25 },
@@ -89,19 +88,6 @@ const REP_TIERS = [
 // SPORT PACKS (distances + pace targets)
 // Keys must match stats engine outputs exactly.
 // -------------------------------------------------------------
-//
-// Distance keys chosen to be sport-relevant:
-// - Run: classic road distances
-// - Bike: common TT/sportive distances in km
-// - Walk: common walking challenges incl. 50k
-// - Row: common erg distances incl. HM + marathon
-// - Swim: common open-water distances
-//
-// Pace badges use 3 benchmark distances per sport that people actually chase.
-//
-// Pace tier thresholds are TIME IN SECONDS (lower is better).
-// These are designed as: Bronze=achievable, Gold=solid, Diamond=serious push.
-
 const SPORT_PACKS = {
   run: {
     label: "Run",
@@ -159,8 +145,8 @@ const SPORT_PACKS = {
       { key: "40k", label: "40K", km: 40 },
       { key: "60k", label: "60K", km: 60 },
       { key: "100k", label: "100K", km: 100 },
-      { key: "160k", label: "160K", km: 160 }, // ~100 miles sportive
-      { key: "250k", label: "250K", km: 250 }, // big endurance day
+      { key: "160k", label: "160K", km: 160 },
+      { key: "250k", label: "250K", km: 250 },
     ],
     paceBadges: [
       {
@@ -178,22 +164,22 @@ const SPORT_PACKS = {
         key: "40k",
         label: "40K",
         tiers: [
-          { tier: "bronze", threshold: 110 * 60, xp: 25 }, // 1:50
-          { tier: "silver", threshold: 100 * 60, xp: 35, hidden: true }, // 1:40
-          { tier: "gold", threshold: 90 * 60, xp: 45 }, // 1:30
-          { tier: "platinum", threshold: 80 * 60, xp: 60, hidden: true }, // 1:20
-          { tier: "diamond", threshold: 70 * 60, xp: 80, hidden: true }, // 1:10
+          { tier: "bronze", threshold: 110 * 60, xp: 25 },
+          { tier: "silver", threshold: 100 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 90 * 60, xp: 45 },
+          { tier: "platinum", threshold: 80 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 70 * 60, xp: 80, hidden: true },
         ],
       },
       {
         key: "100k",
         label: "100K",
         tiers: [
-          { tier: "bronze", threshold: 240 * 60, xp: 25 }, // 4:00
-          { tier: "silver", threshold: 210 * 60, xp: 35, hidden: true }, // 3:30
-          { tier: "gold", threshold: 190 * 60, xp: 45 }, // 3:10
-          { tier: "platinum", threshold: 170 * 60, xp: 60, hidden: true }, // 2:50
-          { tier: "diamond", threshold: 150 * 60, xp: 80, hidden: true }, // 2:30
+          { tier: "bronze", threshold: 240 * 60, xp: 25 },
+          { tier: "silver", threshold: 210 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 190 * 60, xp: 45 },
+          { tier: "platinum", threshold: 170 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 150 * 60, xp: 80, hidden: true },
         ],
       },
     ],
@@ -226,22 +212,22 @@ const SPORT_PACKS = {
         key: "10k",
         label: "10K",
         tiers: [
-          { tier: "bronze", threshold: 130 * 60, xp: 25 }, // 2:10
-          { tier: "silver", threshold: 115 * 60, xp: 35, hidden: true }, // 1:55
-          { tier: "gold", threshold: 100 * 60, xp: 45 }, // 1:40
-          { tier: "platinum", threshold: 90 * 60, xp: 60, hidden: true }, // 1:30
-          { tier: "diamond", threshold: 80 * 60, xp: 80, hidden: true }, // 1:20
+          { tier: "bronze", threshold: 130 * 60, xp: 25 },
+          { tier: "silver", threshold: 115 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 100 * 60, xp: 45 },
+          { tier: "platinum", threshold: 90 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 80 * 60, xp: 80, hidden: true },
         ],
       },
       {
         key: "half",
         label: "Half Marathon",
         tiers: [
-          { tier: "bronze", threshold: 300 * 60, xp: 25 }, // 5:00
-          { tier: "silver", threshold: 270 * 60, xp: 35, hidden: true }, // 4:30
-          { tier: "gold", threshold: 240 * 60, xp: 45 }, // 4:00
-          { tier: "platinum", threshold: 210 * 60, xp: 60, hidden: true }, // 3:30
-          { tier: "diamond", threshold: 180 * 60, xp: 80, hidden: true }, // 3:00
+          { tier: "bronze", threshold: 300 * 60, xp: 25 },
+          { tier: "silver", threshold: 270 * 60, xp: 35, hidden: true },
+          { tier: "gold", threshold: 240 * 60, xp: 45 },
+          { tier: "platinum", threshold: 210 * 60, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 180 * 60, xp: 80, hidden: true },
         ],
       },
     ],
@@ -263,11 +249,11 @@ const SPORT_PACKS = {
         key: "2k",
         label: "2K",
         tiers: [
-          { tier: "bronze", threshold: 9 * 60 + 30, xp: 25 },  // 9:30
-          { tier: "silver", threshold: 8 * 60 + 30, xp: 35, hidden: true }, // 8:30
-          { tier: "gold", threshold: 7 * 60 + 30, xp: 45 }, // 7:30
-          { tier: "platinum", threshold: 6 * 60 + 50, xp: 60, hidden: true }, // 6:50
-          { tier: "diamond", threshold: 6 * 60 + 20, xp: 80, hidden: true }, // 6:20
+          { tier: "bronze", threshold: 9 * 60 + 30, xp: 25 },
+          { tier: "silver", threshold: 8 * 60 + 30, xp: 35, hidden: true },
+          { tier: "gold", threshold: 7 * 60 + 30, xp: 45 },
+          { tier: "platinum", threshold: 6 * 60 + 50, xp: 60, hidden: true },
+          { tier: "diamond", threshold: 6 * 60 + 20, xp: 80, hidden: true },
         ],
       },
       {
@@ -426,7 +412,7 @@ const SPORT_PACKS = {
   );
 }
 
-// 3) 1000 Total Sets
+// 3) Total Sets
 {
   const idPrefix = "badge_total_sets";
   const title = "Set Storm";
@@ -465,7 +451,7 @@ const SPORT_PACKS = {
   );
 }
 
-// 4) 10,000 Total Reps
+// 4) Total Reps
 {
   const idPrefix = "badge_total_reps";
   const title = "Rep Wave";
@@ -504,7 +490,7 @@ const SPORT_PACKS = {
   );
 }
 
-// 10) Early Bird (before cutoff; cutoff is age-based and exposed by stats engine)
+// 10) Early Bird
 {
   const idPrefix = "badge_early";
   const title = "Early Bird";
@@ -544,7 +530,7 @@ const SPORT_PACKS = {
   );
 }
 
-// 11) Night Grinder (after cutoff; cutoff is age-based and exposed by stats engine)
+// 11) Night Grinder
 {
   const idPrefix = "badge_night";
   const title = "Night Grinder";
@@ -623,7 +609,7 @@ const SPORT_PACKS = {
   );
 }
 
-// 15) Pace Improvement (global best improvement across sports)
+// 15) Pace Improvement (best improvement across sports)
 {
   const idPrefix = "badge_pace_imp";
   const title = "Pace Improvement";
@@ -662,6 +648,75 @@ const SPORT_PACKS = {
     tierDefs
   );
 }
+
+// -------------------------------------------------------------
+// STREAK BADGES (green-day streak, cyclic tiers every 60 days)
+// Rules you requested:
+// - 6 separate badge cards: 2d / 3d / 5d / 10d / 30d / 60d
+// - Tiers repeat every 60 days:
+//   bronze: base
+//   silver: base + 60
+//   gold: base + 120
+//   platinum: base + 180
+//   diamond: base + 240
+//
+// XP per badge claim matches your streak XP milestone amounts for that base:
+// 2d->5, 3d->10, 5d->20, 10d->50, 30d->100, 60d->200
+// -------------------------------------------------------------
+function addStreakBadge({ baseDays, xpPerTier, idSlug, iconFile, title }) {
+  const cycle = 60;
+  const idPrefix = `badge_streak_${idSlug}`;
+  const desc = "Keep days green 🔥";
+
+  const tiers = TIERS.map((tier, idx) => ({
+    tier,
+    threshold: baseDays + cycle * idx,
+    xp: xpPerTier,
+    hidden: idx === 1 || idx === 3 || idx === 4, // keep same “mystery tier” feel if you want
+  }));
+
+  // Keep bronze/gold visible by default
+  tiers[0].hidden = false;
+  tiers[2].hidden = false;
+
+  const family = "longevity";
+
+  const { tierDefs, tierRules } = makeTierDefs({
+    idPrefix,
+    title,
+    desc,
+    family,
+    iconFile,
+    tiers,
+  });
+
+  addCard(
+    {
+      id: `streak_${idSlug}`,
+      title,
+      desc,
+      family,
+      iconFile,
+      statKey: "stats.streak.currentDays",
+      comparator: COMPARATOR.GTE,
+      tiers: tierRules,
+      getProgressText: ({ value, nextTier }) => {
+        const v = Math.floor(safeNum(value));
+        if (!nextTier) return `Current streak: ${v} day${v === 1 ? "" : "s"} 🔥`;
+        const remaining = Math.max(0, nextTier.threshold - v);
+        return `Current streak: ${v} days — ${remaining} more to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
+      },
+    },
+    tierDefs
+  );
+}
+
+addStreakBadge({ baseDays: 2, xpPerTier: 5, idSlug: "2d", iconFile: "icon_streak_2d.png", title: "Streak: 2 Days" });
+addStreakBadge({ baseDays: 3, xpPerTier: 10, idSlug: "3d", iconFile: "icon_streak_3d.png", title: "Streak: 3 Days" });
+addStreakBadge({ baseDays: 5, xpPerTier: 20, idSlug: "5d", iconFile: "icon_streak_5d.png", title: "Streak: 5 Days" });
+addStreakBadge({ baseDays: 10, xpPerTier: 50, idSlug: "10d", iconFile: "icon_streak_10d.png", title: "Streak: 10 Days" });
+addStreakBadge({ baseDays: 30, xpPerTier: 100, idSlug: "30d", iconFile: "icon_streak_30d.png", title: "Streak: 30 Days" });
+addStreakBadge({ baseDays: 60, xpPerTier: 200, idSlug: "60d", iconFile: "icon_streak_60d.png", title: "Streak: 60 Days" });
 
 // -------------------------------------------------------------
 // CARDIO BADGES (repetition + pace) for every sport pack above
