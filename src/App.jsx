@@ -2202,6 +2202,18 @@ useEffect(() => {
 
   const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
+  const todayYmd = useMemo(() => getTodayYMD(), []);
+
+const isAdult = activeProfile?.age_group === "adult";
+
+const badgeStats = useMemo(() => {
+  return buildBadgeStatsV2({
+    allLogs,
+    todayYmd,
+    isAdult,
+  });
+}, [allLogs, todayYmd, isAdult]);
+
   function updateProfilePlanInState(profileId, nextPlan) {
     setProfiles((prev) =>
       (prev || []).map((p) => (p.id === profileId ? { ...p, plan_json: nextPlan } : p))
@@ -2839,18 +2851,6 @@ function computeStreakBonusMap(records) {
   return bonusByDate;
 }
 
-// ---- Badge XP helper ----
-
-function getBadgeXpForKey(key) {
-  // Prefer the RUN_*_TIERS tables if present
- 
-  // Fallback to BADGE_DEFS
-  const def = BADGE_DEFS.find((b) => b.key === key);
-  if (def && typeof def.xp === "number") return def.xp;
-
-  return 0;
-}
-
 // ---- XP breakdown rows (Rewards tab + overall XP) ----
 
 const buildXpDebugRows = (records, plan) => {
@@ -3190,18 +3190,6 @@ const xpDebugRows = useMemo(
 
     return base;
   }, [allLogs, xpDebugRows]); 
-
-const todayYmd = useMemo(() => getTodayYMD(), []);
-
-const isAdult = activeProfile?.age_group === "adult";
-
-const badgeStats = useMemo(() => {
-  return buildBadgeStatsV2({
-    allLogs,
-    todayYmd,
-    isAdult,
-  });
-}, [allLogs, todayYmd, isAdult]);
 
 const selectedDayStatus = useMemo(() => {
   // returns: "green" | "amber" | "grey"
