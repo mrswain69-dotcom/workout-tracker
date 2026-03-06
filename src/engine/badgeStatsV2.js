@@ -158,7 +158,12 @@ function extractCardioEfforts(log) {
   for (const b of blocks) {
     if (b?.typeId !== "cardio") continue;
     const c = b.cardio || {};
-    const sport = (c.sport || "").toLowerCase();
+    const sport = String(
+  c.sport ||
+    b.cardioType ||
+    b.sport ||
+    ""
+).toLowerCase();
     const km = safeNum(c.distanceKm);
     const min = safeNum(c.durationMin);
     if (sport && km > 0 && min > 0) out.push({ sport, km, min });
@@ -387,4 +392,5 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
       paceImprovementSport,
     },
   };
+
 }
