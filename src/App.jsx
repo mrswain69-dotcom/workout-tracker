@@ -37,12 +37,8 @@ import {
   clearFamilyPin,
 } from "./db";
 
-import {
-  BADGE_DEFS,
-  RUN_5K_TIERS,
-  RUN_10K_TIERS,
-  RUNNING_BADGE_KEYS,
-} from "./config/runBadgesV1";
+import { BADGE_CARDS, BADGE_DEFS } from "./config/badges";
+import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 
 import { AVATAR_PACKS } from "./config/avatars";
 
@@ -1461,39 +1457,10 @@ function computeClaimedRewardsXp(plan) {
   const claimed = normaliseClaimedRewards(plan?.meta);
   let sum = 0;
   for (const c of claimed) {
-    const def = BADGE_DEFS.find((b) => b.key === c.key);
-    if (def && def.xp) sum += safeNumber(def.xp);
+    if (!c?.key) continue;
+    sum += getBadgeXpForKey(c.key);
   }
   return sum;
-}
-
-function computeClaimedRewardsXpByDate(plan, earnedFromLogs) {
-  const claimed = normaliseClaimedRewards(plan?.meta);
-  const map = {}; // date => xp
-
-  for (const c of claimed) {
-    if (!c.claimedAtYmd) continue;
-
-    const def = BADGE_DEFS.find((b) => b.key === c.key);
-    if (!def) continue;
-
-    const xp = def && def.xp ? safeNumber(def.xp) : 0;
-    if (!xp) continue;
-
-    // If this is one of the running distance badges (5K / 10K),
-    // only count its XP if the current logs still earn that badge key.
-    if (
-      earnedFromLogs &&
-      RUNNING_BADGE_KEYS.has(c.key) &&
-      !earnedFromLogs.has(c.key)
-    ) {
-      continue;
-    }
-
-    map[c.claimedAtYmd] = (map[c.claimedAtYmd] || 0) + xp;
-  }
-
-  return map;
 }
 
 function badgeStatusLabel(status) {
@@ -1502,94 +1469,58 @@ function badgeStatusLabel(status) {
   return "Locked";
 }
 
-function getRunKmFromBlock(block) {
-  if (!block || block.typeId !== "cardio") return 0;
-  const type = block.cardioType || "run";
-  if (type !== "run") return 0;
-  const km = safeNumber(block?.cardio?.distanceKm ?? block?.distanceKm);
-  return km > 0 ? km : 0;
+function getByPath(obj, path) {
+  if (!obj || !path) return undefined;
+  return String(path)
+    .split(".")
+    .reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
 }
 
-function computeEarnedBadgesFromLogs(allLogs) {
-  let run5Count = 0;
-  let run10Count = 0;
+function getHighestEarnedTierIndex(card, value) {
+  const tiers = Array.isArray(card?.tiers) ? card.tiers : [];
+  let idx = -1;
 
-  for (const r of allLogs || []) {
-    const log = r?.log;
-    const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
-    for (const b of blocks) {
-      const km = getRunKmFromBlock(b);
-      if (km >= 5) run5Count += 1;
-      if (km >= 10) run10Count += 1;
+  tiers.forEach((tier, i) => {
+    const threshold = Number(tier.threshold);
+
+    if (card.comparator === "lte") {
+      if (
+        value != null &&
+        Number.isFinite(Number(value)) &&
+        Number(value) <= threshold
+      ) {
+        idx = i;
+      }
+    } else {
+      if (Number(value) >= threshold) {
+        idx = i;
+      }
     }
-  }
-
-  const earned = new Set();
-
-  // 5K tiers (Bronze/Silver/Gold)
-  for (const info of RUN_5K_TIERS) {
-    if (run5Count >= info.threshold) {
-      earned.add(info.key);
-    }
-  }
-
-  // 10K tiers (Bronze for now)
-  for (const info of RUN_10K_TIERS) {
-    if (run10Count >= info.threshold) {
-      earned.add(info.key);
-    }
-  }
-
-  return earned;
-}
-
-function computeRunCountsFromLogs(allLogs) {
-  let run5Count = 0;
-  let run10Count = 0;
-
-  for (const r of allLogs || []) {
-    const log = r?.log;
-    const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
-    for (const b of blocks) {
-      const km = getRunKmFromBlock(b);
-      if (km >= 5) run5Count += 1;
-      if (km >= 10) run10Count += 1;
-    }
-  }
-
-  return { run5Count, run10Count };
-}
-
-function getRunTierState(b, runBadgeCounts, claimedRewardsSet) {
-  if (
-    b.category !== "running" ||
-    (b.distanceLabel !== "5K" && b.distanceLabel !== "10K")
-  ) {
-    return null;
-  }
-
-  const is5k = b.distanceLabel === "5K";
-  const count = is5k ? runBadgeCounts.run5Count : runBadgeCounts.run10Count;
-  const tiers = is5k ? RUN_5K_TIERS : RUN_10K_TIERS;
-
-  let highestEarnedIndex = -1;
-  let highestClaimedIndex = -1;
-
-  // 1) Work out the highest tier their *current logs* actually earn,
-  //    and the highest tier they've ever claimed in this stack.
-  tiers.forEach((info, idx) => {
-    if (count >= info.threshold) highestEarnedIndex = idx;
-    if (claimedRewardsSet.has(info.key)) highestClaimedIndex = idx;
   });
 
-  // 2) If logs no longer justify a previously claimed tier,
-  //    clamp the claimed index down to what they currently earn.
-  if (highestEarnedIndex < 0) {
-    // They don't currently earn any tier -> treat as nothing claimed
-    highestClaimedIndex = -1;
-  } else if (highestClaimedIndex > highestEarnedIndex) {
-    highestClaimedIndex = highestEarnedIndex;
-  }
+  return idx;
+}
+
+function getHighestClaimedTierIndex(card, claimedRewardsSet) {
+  const tiers = Array.isArray(card?.tiers) ? card.tiers : [];
+  let idx = -1;
+
+  tiers.forEach((tier, i) => {
+    if (claimedRewardsSet.has(tier.key)) idx = i;
+  });
+
+  return idx;
+}
+
+function getBadgeCardState(card, badgeStats, claimedRewardsSet) {
+  const value = getByPath({ stats: badgeStats }, card.statKey);
+  const tiers = Array.isArray(card?.tiers) ? card.tiers : [];
+
+  const highestEarnedIndex = getHighestEarnedTierIndex(card, value);
+  const rawClaimedIndex = getHighestClaimedTierIndex(card, claimedRewardsSet);
+
+  const highestClaimedIndex =
+    highestEarnedIndex < 0 ? -1 : Math.min(rawClaimedIndex, highestEarnedIndex);
 
   const currentTier =
     highestEarnedIndex >= 0 ? tiers[highestEarnedIndex] : null;
@@ -1597,68 +1528,57 @@ function getRunTierState(b, runBadgeCounts, claimedRewardsSet) {
   const nextTier =
     highestEarnedIndex + 1 < tiers.length ? tiers[highestEarnedIndex + 1] : null;
 
-  const hasUnclaimedTier = highestEarnedIndex > highestClaimedIndex;
-
   const nextClaimable =
-    hasUnclaimedTier && highestClaimedIndex + 1 < tiers.length
+    highestEarnedIndex > highestClaimedIndex &&
+    highestClaimedIndex + 1 < tiers.length
       ? tiers[highestClaimedIndex + 1]
       : null;
 
-  const remaining =
-    nextTier != null ? Math.max(nextTier.threshold - count, 0) : 0;
+  const status =
+    highestEarnedIndex > highestClaimedIndex
+      ? "claimable"
+      : highestEarnedIndex >= 0
+      ? "claimed"
+      : "locked";
 
   return {
-    count,
+    value,
     tiers,
-    currentTier,
-    nextTier,
-    remaining,
     highestEarnedIndex,
     highestClaimedIndex,
-    hasUnclaimedTier,
+    currentTier,
+    nextTier,
     nextClaimable,
+    status,
   };
 }
 
-function getBadgeDescription(b, runBadgeCounts, claimedRewardsSet) {
-  // Special dynamic text for running distance badges
-  if (
-    b.category === "running" &&
-    (b.distanceLabel === "5K" || b.distanceLabel === "10K")
-  ) {
-    const state = getRunTierState(b, runBadgeCounts, claimedRewardsSet);
-    if (!state) return b.desc;
+function formatBadgeThreshold(card, threshold) {
+  if (card.comparator !== "lte") return `${threshold}+`;
 
-    const label = b.distanceLabel + "+";
-    const count = state.count;
+  const totalSeconds = safeNumber(threshold);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = String(totalSeconds % 60).padStart(2, "0");
+  return `${mins}:${secs}`;
+}
 
-    if (!state.currentTier) {
-      // No runs yet
-      const firstTier = state.tiers[0];
-      return `No ${label} runs logged yet. Do your first ${label} to unlock ${
-        firstTier.tier.charAt(0).toUpperCase() + firstTier.tier.slice(1)
-      } (+${firstTier.xp} XP).`;
-    }
+function getBadgeXpForKey(key) {
+  const def = BADGE_DEFS.find((b) => b.key === key);
+  return def ? safeNumber(def.xp) : 0;
+}
 
-    if (!state.nextTier) {
-      // At or above highest configured tier
-      return `Logged ${label} ${count} time${
-        count === 1 ? "" : "s"
-      }. Highest tier unlocked.`;
-    }
+function computeClaimedRewardsXpByDate(plan) {
+  const claimed = normaliseClaimedRewards(plan?.meta);
+  const map = {};
 
-    const nextTierName =
-      state.nextTier.tier.charAt(0).toUpperCase() + state.nextTier.tier.slice(1);
-
-    return `Logged ${label} ${count} time${
-      count === 1 ? "" : "s"
-    } — ${state.remaining} more to reach ${nextTierName} and +${
-      state.nextTier.xp
-    } XP (${state.nextTier.threshold} total).`;
+  for (const c of claimed) {
+    if (!c?.claimedAtYmd) continue;
+    const xp = getBadgeXpForKey(c.key);
+    if (!xp) continue;
+    map[c.claimedAtYmd] = (map[c.claimedAtYmd] || 0) + xp;
   }
 
-  // Non-running badges: fall back to static description
-  return b.desc;
+  return map;
 }
 
 // -------- Main app ----------
@@ -2579,74 +2499,12 @@ const headerAvatar = useMemo(() => {
 const headerAvatarEmoji = headerAvatar?.emoji || headerAvatar?.label || "🙂";
 const headerAvatarImg = headerAvatar?.imgSrc || "";
 
-const earnedBadgesSet = useMemo(() => computeEarnedBadgesFromLogs(allLogs), [allLogs]);
-
-const runBadgeCounts = useMemo(
-  () => computeRunCountsFromLogs(allLogs),
-  [allLogs]
-);
-
-useEffect(() => {
-  // Keep running distance badge claims in sync with current logs.
-  // If the user edits/deletes runs so they no longer earn a tier,
-  // we drop that claim from meta so that if they earn it again
-  // it behaves like a fresh unlock (greyed out -> claimable -> claim).
-  if (!family?.id || !activeProfileId) return;
-  if (!logsReady) return;
-
-  const claimed = claimedRewardsNorm || [];
-  if (!claimed.length) return;
-
-  const { run5Count = 0, run10Count = 0 } = runBadgeCounts || {};
-
-  const cleaned = [];
-  let changed = false;
-
-  for (const c of claimed) {
-    if (!c || !c.key) continue;
-    const def = BADGE_DEFS.find((b) => b.key === c.key);
-
-    // Non-running badges keep their historical claim behaviour.
-    if (
-      !def ||
-      def.category !== "running" ||
-      (def.distanceLabel !== "5K" && def.distanceLabel !== "10K")
-    ) {
-      cleaned.push(c);
-      continue;
-    }
-
-    const is5k = def.distanceLabel === "5K";
-    const tiers = is5k ? RUN_5K_TIERS : RUN_10K_TIERS;
-    const count = is5k ? run5Count : run10Count;
-    const tierInfo = tiers.find((t) => t.key === c.key);
-
-    // If their current logs no longer meet the threshold for this tier,
-    // drop the claim so they have to earn + claim it again.
-    if (!tierInfo || count < tierInfo.threshold) {
-      changed = true;
-      continue;
-    }
-
-    cleaned.push(c);
-  }
-
-  if (changed || cleaned.length !== claimed.length) {
-    // No need to await; savePlanMetaNoPin already updates plan state + cache.
-    savePlanMetaNoPin({ claimedRewards: cleaned });
-  }
-}, [
-  family?.id,
-  activeProfileId,
-  logsReady,
-  JSON.stringify(claimedRewardsNorm || []),
-  runBadgeCounts?.run5Count,
-  runBadgeCounts?.run10Count,
-]);
-
-  const hasUnclaimedBadges = Array.from(earnedBadgesSet).some(
-  (key) => !claimedRewardsSet.has(key)
-);
+  const hasUnclaimedBadges = useMemo(() => {
+  return BADGE_CARDS.some((card) => {
+    const state = getBadgeCardState(card, badgeStats, claimedRewardsSet);
+    return state.status === "claimable";
+  });
+}, [badgeStats, claimedRewardsSet]);
 
   const canUseTheme = (t) =>
     t === "classic" ||
@@ -2985,12 +2843,7 @@ function computeStreakBonusMap(records) {
 
 function getBadgeXpForKey(key) {
   // Prefer the RUN_*_TIERS tables if present
-  const t5 = RUN_5K_TIERS.find((t) => t.key === key);
-  if (t5 && typeof t5.xp === "number") return t5.xp;
-
-  const t10 = RUN_10K_TIERS.find((t) => t.key === key);
-  if (t10 && typeof t10.xp === "number") return t10.xp;
-
+ 
   // Fallback to BADGE_DEFS
   const def = BADGE_DEFS.find((b) => b.key === key);
   if (def && typeof def.xp === "number") return def.xp;
@@ -3004,7 +2857,6 @@ const buildXpDebugRows = (records, plan) => {
   if (!Array.isArray(records) || !records.length) return [];
 
   const streakXpByDate = computeStreakBonusMap(records);
-  const earnedBadgesFromLogs = computeEarnedBadgesFromLogs(records);
   const rows = [];
 
   for (const r of records) {
@@ -3174,10 +3026,7 @@ let progressCount = 0;
 
     const streakXp = streakXpByDate[date] || 0;
 
-    const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(
-      plan,
-      earnedBadgesFromLogs
-    );
+    const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(plan);
     const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
 const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;
 
@@ -3236,10 +3085,7 @@ rows.push({
   
   // Add synthetic rows for badge-claims on days with no log record,
   // so XP totals and the ledger still reflect the claim immediately.
-    const _claimedBadgeXpByDateAll = computeClaimedRewardsXpByDate(
-    plan,
-    earnedBadgesFromLogs
-  );
+    const _claimedBadgeXpByDateAll = computeClaimedRewardsXpByDate(plan);
     const _existingDates = new Set(rows.map((r) => r.date));
   for (const [d, xp] of Object.entries(_claimedBadgeXpByDateAll)) {
     if (!xp) continue;
@@ -3346,6 +3192,16 @@ const xpDebugRows = useMemo(
   }, [allLogs, xpDebugRows]); 
 
 const todayYmd = useMemo(() => getTodayYMD(), []);
+
+const isAdult = activeProfile?.age_group === "adult";
+
+const badgeStats = useMemo(() => {
+  return buildBadgeStatsV2({
+    allLogs,
+    todayYmd,
+    isAdult,
+  });
+}, [allLogs, todayYmd, isAdult]);
 
 const selectedDayStatus = useMemo(() => {
   // returns: "green" | "amber" | "grey"
@@ -8008,294 +7864,206 @@ const targetInfo = buildTargetInfoForMovement({
     </div>
 
           <div className="grid2 mt12">
-      {BADGE_DEFS.filter((b) => !b.hidden).map((b) => {
-        const runTierState =
-          b.category === "running" &&
-          (b.distanceLabel === "5K" || b.distanceLabel === "10K")
-            ? getRunTierState(b, runBadgeCounts, claimedRewardsSet)
-            : null;
+          {BADGE_CARDS.map((card) => {
+  const state = getBadgeCardState(card, badgeStats, claimedRewardsSet);
 
-        let status;
-        if (runTierState) {
-          const hasAnyTier = runTierState.highestEarnedIndex >= 0;
-          if (runTierState.hasUnclaimedTier) {
-            status = "claimable";
-          } else if (hasAnyTier) {
-            status = "claimed";
-          } else {
-            status = "locked";
+  const showInCurrentView =
+    badgeView === "all" || state.highestEarnedIndex >= 0;
+
+  if (!showInCurrentView) return null;
+
+  const badgeKeyForFlash = state.nextClaimable?.key || card.id;
+
+  const nextClaimableTier = state.nextClaimable;
+  const claimedTierIndex = state.highestClaimedIndex;
+
+  let effectiveTier = null;
+  if (nextClaimableTier) {
+    effectiveTier = nextClaimableTier.tier;
+  } else if (state.currentTier) {
+    effectiveTier = state.currentTier.tier;
+  } else if (card.tiers?.[0]) {
+    effectiveTier = card.tiers[0].tier;
+  }
+
+  const claimedTiers =
+    claimedTierIndex >= 0 ? TIER_ORDER.slice(0, claimedTierIndex + 1) : [];
+
+  const layers = [];
+
+  claimedTiers.forEach((tierName, idx) => {
+    const bgSrc = `/badges/bg/bg_${card.family}_${tierName}.svg`;
+    layers.push(
+      <img
+        key={tierName}
+        className="wtBadgeBgLayer"
+        src={bgSrc}
+        alt=""
+        style={{ "--layerIndex": idx }}
+      />
+    );
+  });
+
+  if (state.status === "claimable" && nextClaimableTier) {
+    const bgSrcNext = `/badges/bg/bg_${card.family}_${nextClaimableTier.tier}.svg`;
+    layers.push(
+      <img
+        key={nextClaimableTier.key}
+        className="wtBadgeBgLayer wtBadgeBgLayer-next"
+        src={bgSrcNext}
+        alt=""
+        style={{ "--layerIndex": layers.length }}
+      />
+    );
+  }
+
+  const stackOffset =
+    parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue(
+        "--badge-stack-offset"
+      )
+    ) || 16;
+
+  const frontOffset = (layers.length - 1) * stackOffset;
+
+  const iconSrc =
+    nextClaimableTier
+      ? `/badges/icons/${card.iconFile}`
+      : state.currentTier
+      ? `/badges/icons/${card.iconFile}`
+      : `/badges/icons/${card.iconFile}`;
+
+  const tierLabel =
+    effectiveTier != null
+      ? effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)
+      : "";
+
+  const claimLabel = "Claim";
+
+  return (
+    <div
+      key={card.id}
+      className={
+        "panel badgeCard " +
+        state.status +
+        (lastClaimedKey === badgeKeyForFlash ? " flash" : "") +
+        (state.status === "claimed" ? " lit" : "")
+      }
+    >
+      <div className="badgeTitle">{card.title}</div>
+
+      <div className="badgeMid">
+        <div
+          className={
+            "badgeBig" + (state.status === "locked" ? " off" : "")
           }
-        } else {
-          const earned = earnedBadgesSet.has(b.key);
-          const claimed = claimedRewardsSet.has(b.key);
-          status = claimed ? "claimed" : earned ? "claimable" : "locked";
-        }
-
-        const nextClaimableTier =
-  runTierState && runTierState.nextClaimable ? runTierState.nextClaimable : null;
-
-// Keep the tier name on the plaque; the button can stay short and neat.
-const claimLabel = "Claim";
-
-        // Decide if this badge is visible in the current mini-view
-        const hasAnyTierForCard =
-          runTierState && runTierState.highestEarnedIndex >= 0;
-
-        const nonRunEarned =
-          !runTierState &&
-          (earnedBadgesSet.has(b.key) || claimedRewardsSet.has(b.key));
-
-        const showInCurrentView =
-          badgeView === "all" ||
-          (runTierState ? hasAnyTierForCard : nonRunEarned);
-
-        if (!showInCurrentView) return null;
-
-        return (
-          <div
-            key={b.key}
-            className={
-              "panel badgeCard " +
-              status +
-              (lastClaimedKey === b.key ? " flash" : "") +
-              (status === "claimed" ? " lit" : "")
-            }
-          >
-            <div className="badgeTitle">{b.title}</div>
-
-            <div className="badgeMid">
-              <div className="badgeBig" aria-hidden="true">
-                <div className="wtBadge">
-                        {(() => {
-                // Use dynamic tier state for stacked running badges (5K / 10K)
-        const nextClaimableTier =
-          runTierState && runTierState.nextClaimable ? runTierState.nextClaimable : null;
-
-        const claimedTierIndex =
-          runTierState && typeof runTierState.highestClaimedIndex === "number"
-            ? runTierState.highestClaimedIndex
-            : -1;
-
-        // We show the tier they are about to claim if there is one,
-        // otherwise fall back to the current highest earned tier or static b.tier
-        let effectiveTier = b.tier || null;
-
-        if (runTierState) {
-          if (nextClaimableTier) {
-            // If you’ve just earned a new tier, this is the one we show on the plaque
-            effectiveTier = nextClaimableTier.tier;
-          } else if (runTierState.currentTier) {
-            // Otherwise show the highest earned / owned tier
-            effectiveTier = runTierState.currentTier.tier;
-          }
-        }
-
-        const tierIndex =
-          effectiveTier != null ? TIER_ORDER.indexOf(effectiveTier) : -1;
-
-        // Background layers for fully claimed tiers only
-        const claimedTiers =
-          claimedTierIndex >= 0 ? TIER_ORDER.slice(0, claimedTierIndex + 1) : [];
-
-        const layers = [];
-
-        // 1) Coloured layers for all already-claimed tiers
-        claimedTiers.forEach((tierName, idx) => {
-          const bgSrc = `/badges/bg/bg_${b.category}_${tierName}.svg`;
-          layers.push(
-            <img
-              key={tierName}
-              className="wtBadgeBgLayer"
-              src={bgSrc}
-              alt=""
-              style={{ "--layerIndex": idx }}
-            />
-          );
-        });
-
-        // 2) Grey preview for the next claimable tier (level-up) if there is one
-        if (status === "claimable" && nextClaimableTier) {
-          const bgSrcNext = `/badges/bg/bg_${b.category}_${nextClaimableTier.tier}.svg`;
-          layers.push(
-            <img
-              key={nextClaimableTier.key}
-              className="wtBadgeBgLayer wtBadgeBgLayer-next"
-              src={bgSrcNext}
-              alt=""
-              style={{ "--layerIndex": layers.length }}
-            />
-          );
-        }
-
-        const stackOffset =
-          parseFloat(
-            getComputedStyle(document.documentElement).getPropertyValue(
-              "--badge-stack-offset"
-            )
-          ) || 16;
-
-        const frontOffset = (layers.length - 1) * stackOffset;
-
-        const distanceClassName =
-          "wtBadgeDistance " +
-          (b.distanceLabel === "10K"
-            ? "wtBadgeDistance--long"
-            : "wtBadgeDistance--short");
-
-        return (
-          <>
+          aria-hidden="true"
+        >
+          <div className="wtBadge">
             {layers}
+
             <div
               className="wtBadgeForeground"
               style={{ "--frontOffset": `${frontOffset}px` }}
             >
-              {/* Big faint 5K / 10K behind icon */}
-              {b.distanceLabel && (
-                <div className={distanceClassName}>{b.distanceLabel}</div>
-              )}
-
-              {/* Icon on top of the stack */}
-<img
-  className={
-    "wtBadgeIcon" +
-    (status === "claimable" && nextClaimableTier ? " wtBadgeIcon--pending" : "")
-  }
-  src={b.icon}
-  alt=""
-/>
-
-              {/* Tier plaque for the level being claimed / owned */}
-              {effectiveTier && (
-                <div
-                  className={
-                    "wtBadgeTierPlaque tier-" +
-                    effectiveTier +
-                    (status === "claimable" && nextClaimableTier ? " pending" : "")
-                  }
-                >
-                  {effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)}
-                </div>
-              )}
+              <img
+                className={
+                  "wtBadgeIcon" +
+                  (state.status === "locked" ? " wtBadgeIcon--pending" : "")
+                }
+                src={iconSrc}
+                alt=""
+              />
             </div>
-          </>
-        );
-      })()}
-                </div>
-              </div>
-
-              <div className="badgeAction">
-                {status === "claimable" ? (
-  <button
-    type="button"
-    className="btn"
-    onClick={async (e) => {
-      const card = e.currentTarget.closest(".badgeCard");
-      const rect = card ? card.getBoundingClientRect() : null;
-
-      const tierToClaim = nextClaimableTier || null;
-      const xpReward = tierToClaim ? tierToClaim.xp : safeNumber(b.xp);
-      const badgeKeyToClaim = tierToClaim ? tierToClaim.key : b.key;
-
-      const xpFrom = xp;
-      const xpTo = xpFrom + safeNumber(xpReward);
-
-      // Optimistically bump XP so the UI updates immediately
-      setXp(xpTo);
-
-      playBuildUpSound();
-      await claimRewardKey(badgeKeyToClaim, getTodayYMD());
-
-      // Force immediate XP recompute (so the counter/ledger updates without refresh)
-      setTimeout(
-        () => setXp(computeXpFromLogs(allLogs, planRef.current)),
-        0
-      );
-      setTimeout(
-        () => setXp(computeXpFromLogs(allLogs, planRef.current)),
-        200
-      );
-
-      setLastClaimedKey(badgeKeyToClaim);
-      setTimeout(() => setLastClaimedKey(""), 900);
-
-      const confetti = Array.from({ length: 18 }).map((_, i) => ({
-        id: i,
-        x: Math.random() * 140 - 70,
-        y: Math.random() * 80 - 110,
-        r: Math.random() * 360,
-        d: 700 + Math.random() * 450,
-      }));
-
-      setClaimModal({
-        kind: "badge",
-        stage: "shake",
-        title: "Badge claimed!",
-        desc: `${b.title} unlocked`,
-        badgeKey: badgeKeyToClaim,
-        emoji: b.emoji,
-        xpAward: safeNumber(xpReward),
-        xpFrom,
-        xpTo,
-        fromRect: rect
-          ? {
-              x: rect.left,
-              y: rect.top,
-              w: rect.width,
-              h: rect.height,
-            }
-          : null,
-        confetti,
-      });
-
-      setTimeout(() => {
-        playRewardSound(); // boom sound at the right moment
-        playSparkleSound();
-        setClaimModal((prev) =>
-          prev ? { ...prev, stage: "boom" } : prev
-        );
-      }, 260);
-    }}
-  >
-    {claimLabel}
-  </button>
-                ) : (
-                  <div className="pill">{badgeStatusLabel(status)}</div>
-                )}
-              </div>
-            </div>
-
-            <div className="badgeDesc">
-              {getBadgeDescription(b, runBadgeCounts, claimedRewardsSet)}
-            </div>
-            {runTierState && (
-              <div className="badgeTierRow">
-                {runTierState.tiers.map((info, idx) => {
-                  const tierName =
-                    info.tier.charAt(0).toUpperCase() + info.tier.slice(1);
-                  const isUnlocked =
-                    runTierState.highestEarnedIndex >= idx;
-                  const isNext =
-                    runTierState.nextTier &&
-                    runTierState.nextTier.key === info.key;
-
-                  let chipClass = "badgeTierChip";
-                  if (isUnlocked) chipClass += " badgeTierChip--unlocked";
-                  if (isNext) chipClass += " badgeTierChip--next";
-
-                  return (
-                    <div key={info.key} className={chipClass}>
-                      <div className="badgeTierChipTier">{tierName}</div>
-                      <div className="badgeTierChipMeta">
-                        {info.threshold}+ runs · +{info.xp} XP
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
-        );
-      })}
+        </div>
+
+        <div className="badgeAction">
+          {state.status === "claimable" && state.nextClaimable ? (
+            <button
+              className="btn btn-primary"
+              onClick={async () => {
+                const badgeKeyToClaim = state.nextClaimable?.key;
+                if (!badgeKeyToClaim) return;
+
+                const xpReward = safeNumber(state.nextClaimable?.xp);
+                const xpFrom = xp;
+                const xpTo = xpFrom + xpReward;
+
+                await claimRewardKey(badgeKeyToClaim, getTodayYMD());
+
+                setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
+                setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
+
+                setLastClaimedKey(badgeKeyToClaim);
+                setTimeout(() => setLastClaimedKey(""), 900);
+
+                setClaimModal({
+                  kind: "badge",
+                  stage: "boom",
+                  title: "Badge claimed!",
+                  desc: `${card.title} unlocked`,
+                  badgeKey: badgeKeyToClaim,
+                  xpAward: xpReward,
+                  xpFrom,
+                  xpTo,
+                });
+              }}
+            >
+              {claimLabel}
+            </button>
+          ) : (
+            <div className="pill">{badgeStatusLabel(state.status)}</div>
+          )}
+        </div>
+      </div>
+
+      <div className="badgeTierPills">
+        {card.tiers
+          .filter((t) => !t.hidden)
+          .map((tier) => {
+            const isActive = effectiveTier === tier.tier;
+            return (
+              <div
+                key={tier.key}
+                className={
+                  "badgeTierPill" + (isActive ? " badgeTierPill--active" : "")
+                }
+              >
+                {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
+              </div>
+            );
+          })}
+      </div>
+
+      <div className="badgeDesc">
+        {typeof card.getProgressText === "function"
+          ? card.getProgressText({
+              value: state.value,
+              nextTier: state.nextTier,
+              currentTier: state.currentTier,
+              highestEarnedIndex: state.highestEarnedIndex,
+              highestClaimedIndex: state.highestClaimedIndex,
+              stats: badgeStats,
+              meta: {
+                earlyCutoffHour: badgeStats?.behaviour?.earlyCutoffHour,
+                nightCutoffHour: badgeStats?.behaviour?.nightCutoffHour,
+                paceImprovementSport: badgeStats?.intelligence?.paceImprovementSport,
+              },
+            })
+          : card.desc}
+      </div>
+
+      <div className="mini muted">
+        {state.nextTier
+          ? card.comparator === "lte"
+            ? `Next: ${formatBadgeThreshold(card, state.nextTier.threshold)} · +${state.nextTier.xp} XP`
+            : `Next: ${state.nextTier.threshold}+ · +${state.nextTier.xp} XP`
+          : "Highest tier reached"}
+      </div>
+    </div>
+  );
+})}
           </div>
 
           <div className="mini muted mt12">
@@ -9281,6 +9049,35 @@ function StyleTag() {
   width:100%;
   height:100%;
   display:block;
+}
+.badgeDesc{
+  font-size:13px;
+  line-height:1.35;
+  color:#475569;
+  min-height:36px;
+}
+
+.badgeTierPills{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.badgeTierPill{
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.02em;
+  background:#e5e7eb;
+  color:#475569;
+  border:1px solid rgba(15,23,42,.08);
+}
+
+.badgeTierPill--active{
+  background:rgba(255,122,24,.14);
+  color:#9a3412;
+  border-color:rgba(255,122,24,.28);
 }
 
 /* Full-size stacked hex backgrounds */
