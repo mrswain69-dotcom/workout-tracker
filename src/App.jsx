@@ -9154,8 +9154,8 @@ function StyleTag() {
 }
 
 :root{
-  --badge-size: 128px;
-  --badge-stack-offset: 18px;
+  --badge-size: 132px;
+  --badge-stack-offset: 20px;
 }
 
 .wtBadge{
@@ -9197,7 +9197,7 @@ function StyleTag() {
 .wtBadgeFaceText{
   position:absolute;
   left:50%;
-  top:32%;
+  top:35%;
   transform:translate(-50%, -50%);
   font-size:15px;
   font-weight:900;
@@ -9212,10 +9212,10 @@ function StyleTag() {
 .wtBadgeIcon{
   position:absolute;
   left:50%;
-  top:55%;
+  top:52%;
   transform:translate(-50%, -50%);
-  width:62px;
-  height:62px;
+  width:65px;
+  height:65px;
   object-fit:contain;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,0.6));
   z-index:2;
