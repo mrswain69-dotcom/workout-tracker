@@ -614,7 +614,7 @@ const SPORT_PACKS = {
   const idPrefix = "badge_pace_imp";
   const title = "Pace Improvement";
   const desc = "Improve your pace vs baseline (4 weeks)";
-  const family = "improvement";
+  const family = "intelligence";
   const iconFile = "icon_paceimprove.png";
 
   const tiers = [
@@ -812,3 +812,4 @@ addCardioPaceBadges();
 
 export const BADGE_DEFS = ALL_DEFS;
 export const ALL_BADGE_KEYS = new Set(ALL_KEYS);
+
