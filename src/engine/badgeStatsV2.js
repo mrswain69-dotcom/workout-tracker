@@ -156,17 +156,40 @@ function extractCardioEfforts(log) {
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
 
   for (const b of blocks) {
-    if (b?.typeId !== "cardio") continue;
+    const typeId = String(b?.typeId || "").toLowerCase();
+
+    // Accept all cardio-style block ids that may exist in logs
+    if (
+      typeId !== "cardio" &&
+      typeId !== "run" &&
+      typeId !== "swim" &&
+      typeId !== "walk" &&
+      typeId !== "row" &&
+      typeId !== "cycle" &&
+      typeId !== "bike"
+    ) {
+      continue;
+    }
+
     const c = b.cardio || {};
-    const sport = String(
-  c.sport ||
-    b.cardioType ||
-    b.sport ||
-    ""
-).toLowerCase();
+
+    let sport = String(
+      c.sport ||
+      b.cardioType ||
+      b.sport ||
+      typeId ||
+      ""
+    ).toLowerCase();
+
+    // Normalise app wording to badge wording
+    if (sport === "cycle") sport = "bike";
+
     const km = safeNum(c.distanceKm);
     const min = safeNum(c.durationMin);
-    if (sport && km > 0 && min > 0) out.push({ sport, km, min });
+
+    if (sport && km > 0 && min > 0) {
+      out.push({ sport, km, min });
+    }
   }
 
   return out;
@@ -394,3 +417,4 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
   };
 
 }
+
