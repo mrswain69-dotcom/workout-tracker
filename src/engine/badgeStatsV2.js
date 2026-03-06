@@ -78,7 +78,15 @@ function isDayGreen(log) {
           (arr) => Array.isArray(arr) && arr.some(setDidSomething)
         );
       }
-    } else if (typeId === "cardio") {
+        } else if (
+      typeId === "cardio" ||
+      typeId === "run" ||
+      typeId === "swim" ||
+      typeId === "walk" ||
+      typeId === "row" ||
+      typeId === "cycle" ||
+      typeId === "bike"
+    ) {
       const c = block.cardio || {};
       hasData = safeNum(c.distanceKm) > 0 || safeNum(c.durationMin) > 0;
     } else if (typeId === "duration") {
@@ -173,13 +181,32 @@ function extractCardioEfforts(log) {
 
     const c = b.cardio || {};
 
-    let sport = String(
+        let sport = String(
       c.sport ||
       b.cardioType ||
       b.sport ||
       typeId ||
       ""
     ).toLowerCase();
+
+    // Recover sport from label if this is a generic cardio block
+    if (sport === "cardio") {
+      const label = String(b?.label || "").toLowerCase();
+      const note = String(b?.note || "").toLowerCase();
+
+      if (label.includes("run") || note.includes("run")) sport = "run";
+      else if (label.includes("walk") || note.includes("walk")) sport = "walk";
+      else if (label.includes("swim") || note.includes("swim")) sport = "swim";
+      else if (label.includes("row") || note.includes("row")) sport = "row";
+      else if (
+        label.includes("bike") ||
+        label.includes("cycle") ||
+        note.includes("bike") ||
+        note.includes("cycle")
+      ) {
+        sport = "bike";
+      }
+    }
 
     // Normalise app wording to badge wording
     if (sport === "cycle") sport = "bike";
@@ -417,4 +444,5 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
   };
 
 }
+
 
