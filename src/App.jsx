@@ -2280,11 +2280,15 @@ useEffect(() => {
 const isAdult = activeProfile?.age_group === "adult";
 
 const badgeStats = useMemo(() => {
-  return buildBadgeStatsV2({
+  const result = buildBadgeStatsV2({
     allLogs,
     todayYmd,
     isAdult,
   });
+
+  console.log("BADGE_STATS_V2", result);
+
+  return result;
 }, [allLogs, todayYmd, isAdult]);
 
   function updateProfilePlanInState(profileId, nextPlan) {
@@ -8038,33 +8042,65 @@ const targetInfo = buildTargetInfoForMovement({
           {state.status === "claimable" && state.nextClaimable ? (
             <button
               className="btn btn-primary"
-              onClick={async () => {
-                const badgeKeyToClaim = state.nextClaimable?.key;
-                if (!badgeKeyToClaim) return;
+              onClick={async (e) => {
+  const badgeKeyToClaim = state.nextClaimable?.key;
+  if (!badgeKeyToClaim) return;
 
-                const xpReward = safeNumber(state.nextClaimable?.xp);
-                const xpFrom = xp;
-                const xpTo = xpFrom + xpReward;
+  const cardEl = e.currentTarget.closest(".badgeCard");
+  const rect = cardEl ? cardEl.getBoundingClientRect() : null;
 
-                await claimRewardKey(badgeKeyToClaim, getTodayYMD());
+  const xpReward = safeNumber(state.nextClaimable?.xp);
+  const xpFrom = xp;
+  const xpTo = xpFrom + xpReward;
 
-                setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
-                setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
+  setXp(xpTo);
 
-                setLastClaimedKey(badgeKeyToClaim);
-                setTimeout(() => setLastClaimedKey(""), 900);
+  playBuildUpSound?.();
 
-                setClaimModal({
-                  kind: "badge",
-                  stage: "boom",
-                  title: "Badge claimed!",
-                  desc: `${card.title} unlocked`,
-                  badgeKey: badgeKeyToClaim,
-                  xpAward: xpReward,
-                  xpFrom,
-                  xpTo,
-                });
-              }}
+  await claimRewardKey(badgeKeyToClaim, getTodayYMD());
+
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
+
+  setLastClaimedKey(badgeKeyToClaim);
+  setTimeout(() => setLastClaimedKey(""), 900);
+
+  const confetti = Array.from({ length: 18 }).map((_, i) => ({
+    id: i,
+    x: Math.random() * 140 - 70,
+    y: Math.random() * 80 - 110,
+    r: Math.random() * 360,
+    d: 700 + Math.random() * 450,
+  }));
+
+  setClaimModal({
+    kind: "badge",
+    stage: "shake",
+    title: "Badge claimed!",
+    desc: `${card.title} unlocked`,
+    badgeKey: badgeKeyToClaim,
+    xpAward: xpReward,
+    xpFrom,
+    xpTo,
+    fromRect: rect
+      ? {
+          x: rect.left,
+          y: rect.top,
+          w: rect.width,
+          h: rect.height,
+        }
+      : null,
+    confetti,
+  });
+
+  setTimeout(() => {
+    playRewardSound?.();
+    playSparkleSound?.();
+    setClaimModal((prev) =>
+      prev ? { ...prev, stage: "boom" } : prev
+    );
+  }, 260);
+}}
             >
               Claim
             </button>
@@ -9118,8 +9154,8 @@ function StyleTag() {
 }
 
 :root{
-  --badge-size: 112px;
-  --badge-stack-offset: 17px;
+  --badge-size: 128px;
+  --badge-stack-offset: 18px;
 }
 
 .wtBadge{
@@ -9161,9 +9197,9 @@ function StyleTag() {
 .wtBadgeFaceText{
   position:absolute;
   left:50%;
-  top:35%;
+  top:32%;
   transform:translate(-50%, -50%);
-  font-size:13px;
+  font-size:15px;
   font-weight:900;
   letter-spacing:.06em;
   text-transform:uppercase;
@@ -9176,10 +9212,10 @@ function StyleTag() {
 .wtBadgeIcon{
   position:absolute;
   left:50%;
-  top:47%;
+  top:55%;
   transform:translate(-50%, -50%);
-  width:44px;
-  height:44px;
+  width:62px;
+  height:62px;
   object-fit:contain;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,0.6));
   z-index:2;
