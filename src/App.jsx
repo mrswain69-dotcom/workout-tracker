@@ -7947,16 +7947,25 @@ const targetInfo = buildTargetInfoForMovement({
     effectiveTier = card.tiers[0].tier;
   }
 
-  // Always show at least a grey bronze base for locked badges
+  // Build the visible stack from earned progress, not just claimed progress.
+  // Rules:
+  // - no earned tiers => show 1 locked bronze base
+  // - earned but unclaimed tiers => show grey pending layers
+  // - claimed tiers => show full-colour layers
   const layers = [];
 
-  if (claimedTierIndex >= 0) {
-    TIER_ORDER.slice(0, claimedTierIndex + 1).forEach((tierName, idx) => {
+  if (state.highestEarnedIndex >= 0) {
+    card.tiers.slice(0, state.highestEarnedIndex + 1).forEach((tier, idx) => {
+      const isClaimedLayer = claimedTierIndex >= idx;
+
       layers.push(
         <img
-          key={`claimed_${tierName}`}
-          className="wtBadgeBgLayer"
-          src={`/badges/bg/bg_${card.family}_${tierName}.svg`}
+          key={`${isClaimedLayer ? "claimed" : "pending"}_${tier.key}`}
+          className={
+            "wtBadgeBgLayer" +
+            (isClaimedLayer ? "" : " wtBadgeBgLayer-next")
+          }
+          src={`/badges/bg/bg_${card.family}_${tier.tier}.svg`}
           alt=""
           style={{ "--layerIndex": idx }}
         />
@@ -7970,19 +7979,6 @@ const targetInfo = buildTargetInfoForMovement({
         src={`/badges/bg/bg_${card.family}_bronze.svg`}
         alt=""
         style={{ "--layerIndex": 0 }}
-      />
-    );
-  }
-
-  // If there's a claimable next tier, preview it grey on top
-  if (state.status === "claimable" && nextClaimableTier) {
-    layers.push(
-      <img
-        key={`next_${nextClaimableTier.key}`}
-        className="wtBadgeBgLayer wtBadgeBgLayer-next"
-        src={`/badges/bg/bg_${card.family}_${nextClaimableTier.tier}.svg`}
-        alt=""
-        style={{ "--layerIndex": layers.length }}
       />
     );
   }
