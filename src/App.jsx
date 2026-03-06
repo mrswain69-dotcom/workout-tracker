@@ -1562,6 +1562,79 @@ function formatBadgeThreshold(card, threshold) {
   return `${mins}:${secs}`;
 }
 
+function getBadgeFaceText(card) {
+  const title = String(card?.title || "").trim();
+
+  // Cardio pace / distance badges
+  // Examples:
+  // "Run 5K"
+  // "Run 5K Pace"
+  // "Swim 1500m Pace"
+  const m = title.match(/^(Run|Bike|Walk|Row|Swim)\s+(.+?)(?:\s+Pace)?$/i);
+  if (m) {
+    return m[2].toUpperCase();
+  }
+
+  // Streak cards
+  const s = title.match(/^Streak:\s+(.+)$/i);
+  if (s) return s[1].toUpperCase();
+
+  // Fallback: no face text
+  return "";
+}
+
+function getTierRequirementText(card, tier) {
+  const threshold = safeNumber(tier?.threshold);
+  const xp = safeNumber(tier?.xp);
+
+  if (card?.comparator === "lte") {
+    return `${formatBadgeThreshold(card, threshold)} or faster · +${xp} XP`;
+  }
+
+  const statKey = String(card?.statKey || "");
+
+  if (statKey.includes(".count.")) {
+    return `${threshold}+ times · +${xp} XP`;
+  }
+
+  if (statKey === "stats.streak.currentDays") {
+    return `${threshold}+ days · +${xp} XP`;
+  }
+
+  if (statKey === "stats.lifts.totalVolumeKg") {
+    return `${threshold}+ kg · +${xp} XP`;
+  }
+
+  if (statKey === "stats.lifts.totalSets") {
+    return `${threshold}+ sets · +${xp} XP`;
+  }
+
+  if (statKey === "stats.lifts.totalReps") {
+    return `${threshold}+ reps · +${xp} XP`;
+  }
+
+  if (statKey === "stats.sessions.maxStrengthSetsInSession") {
+    return `${threshold}+ sets · +${xp} XP`;
+  }
+
+  if (
+    statKey === "stats.behaviour.earlyBirdSessions" ||
+    statKey === "stats.behaviour.nightSessions"
+  ) {
+    return `${threshold}+ sessions · +${xp} XP`;
+  }
+
+  if (statKey === "stats.intelligence.paceImprovementPct4w") {
+    return `${threshold}%+ · +${xp} XP`;
+  }
+
+  if (statKey === "stats.intelligence.progressiveOverloadEvents") {
+    return `${threshold}+ events · +${xp} XP`;
+  }
+
+  return `${threshold}+ · +${xp} XP`;
+}
+
 function getBadgeXpForKey(key) {
   const def = BADGE_DEFS.find((b) => b.key === key);
   return def ? safeNumber(def.xp) : 0;
@@ -7861,72 +7934,61 @@ const targetInfo = buildTargetInfoForMovement({
   if (!showInCurrentView) return null;
 
   const badgeKeyForFlash = state.nextClaimable?.key || card.id;
-
   const nextClaimableTier = state.nextClaimable;
+  const earnedTier = state.currentTier;
   const claimedTierIndex = state.highestClaimedIndex;
 
   let effectiveTier = null;
   if (nextClaimableTier) {
     effectiveTier = nextClaimableTier.tier;
-  } else if (state.currentTier) {
-    effectiveTier = state.currentTier.tier;
+  } else if (earnedTier) {
+    effectiveTier = earnedTier.tier;
   } else if (card.tiers?.[0]) {
     effectiveTier = card.tiers[0].tier;
   }
 
-  const claimedTiers =
-    claimedTierIndex >= 0 ? TIER_ORDER.slice(0, claimedTierIndex + 1) : [];
-
+  // Always show at least a grey bronze base for locked badges
   const layers = [];
 
-  claimedTiers.forEach((tierName, idx) => {
-    const bgSrc = `/badges/bg/bg_${card.family}_${tierName}.svg`;
+  if (claimedTierIndex >= 0) {
+    TIER_ORDER.slice(0, claimedTierIndex + 1).forEach((tierName, idx) => {
+      layers.push(
+        <img
+          key={`claimed_${tierName}`}
+          className="wtBadgeBgLayer"
+          src={`/badges/bg/bg_${card.family}_${tierName}.svg`}
+          alt=""
+          style={{ "--layerIndex": idx }}
+        />
+      );
+    });
+  } else {
     layers.push(
       <img
-        key={tierName}
-        className="wtBadgeBgLayer"
-        src={bgSrc}
+        key="locked_bronze_base"
+        className="wtBadgeBgLayer wtBadgeBgLayer-locked"
+        src={`/badges/bg/bg_${card.family}_bronze.svg`}
         alt=""
-        style={{ "--layerIndex": idx }}
+        style={{ "--layerIndex": 0 }}
       />
     );
-  });
+  }
 
+  // If there's a claimable next tier, preview it grey on top
   if (state.status === "claimable" && nextClaimableTier) {
-    const bgSrcNext = `/badges/bg/bg_${card.family}_${nextClaimableTier.tier}.svg`;
     layers.push(
       <img
-        key={nextClaimableTier.key}
+        key={`next_${nextClaimableTier.key}`}
         className="wtBadgeBgLayer wtBadgeBgLayer-next"
-        src={bgSrcNext}
+        src={`/badges/bg/bg_${card.family}_${nextClaimableTier.tier}.svg`}
         alt=""
         style={{ "--layerIndex": layers.length }}
       />
     );
   }
 
-  const stackOffset =
-    parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue(
-        "--badge-stack-offset"
-      )
-    ) || 16;
-
-  const frontOffset = (layers.length - 1) * stackOffset;
-
-  const iconSrc =
-    nextClaimableTier
-      ? `/badges/icons/${card.iconFile}`
-      : state.currentTier
-      ? `/badges/icons/${card.iconFile}`
-      : `/badges/icons/${card.iconFile}`;
-
-  const tierLabel =
-    effectiveTier != null
-      ? effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)
-      : "";
-
-  const claimLabel = "Claim";
+  const frontOffset = Math.max(0, layers.length - 1) * 17;
+  const faceText = getBadgeFaceText(card);
 
   return (
     <div
@@ -7954,14 +8016,24 @@ const targetInfo = buildTargetInfoForMovement({
               className="wtBadgeForeground"
               style={{ "--frontOffset": `${frontOffset}px` }}
             >
+              {!!faceText && (
+                <div className="wtBadgeFaceText">{faceText}</div>
+              )}
+
               <img
                 className={
                   "wtBadgeIcon" +
-                  (state.status === "locked" ? " wtBadgeIcon--pending" : "")
+                  (state.status !== "claimed" ? " wtBadgeIcon--pending" : "")
                 }
-                src={iconSrc}
+                src={`/badges/icons/${card.iconFile}`}
                 alt=""
               />
+
+              {!!effectiveTier && (
+                <div className="wtBadgePlaque">
+                  {effectiveTier.toUpperCase()}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -7998,30 +8070,12 @@ const targetInfo = buildTargetInfoForMovement({
                 });
               }}
             >
-              {claimLabel}
+              Claim
             </button>
           ) : (
             <div className="pill">{badgeStatusLabel(state.status)}</div>
           )}
         </div>
-      </div>
-
-      <div className="badgeTierPills">
-        {card.tiers
-          .filter((t) => !t.hidden)
-          .map((tier) => {
-            const isActive = effectiveTier === tier.tier;
-            return (
-              <div
-                key={tier.key}
-                className={
-                  "badgeTierPill" + (isActive ? " badgeTierPill--active" : "")
-                }
-              >
-                {tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1)}
-              </div>
-            );
-          })}
       </div>
 
       <div className="badgeDesc">
@@ -8042,12 +8096,30 @@ const targetInfo = buildTargetInfoForMovement({
           : card.desc}
       </div>
 
-      <div className="mini muted">
-        {state.nextTier
-          ? card.comparator === "lte"
-            ? `Next: ${formatBadgeThreshold(card, state.nextTier.threshold)} · +${state.nextTier.xp} XP`
-            : `Next: ${state.nextTier.threshold}+ · +${state.nextTier.xp} XP`
-          : "Highest tier reached"}
+      <div className="badgeTierGrid">
+        {card.tiers.map((tier, idx) => {
+          const tierName =
+            tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1);
+
+          const isClaimedTier = claimedTierIndex >= idx;
+          const isCurrentEarnedTier = state.highestEarnedIndex >= idx && !isClaimedTier;
+          const isNextTier = state.nextTier?.key === tier.key;
+
+          let chipClass = "badgeTierChip";
+          if (isClaimedTier) chipClass += " badgeTierChip--claimed";
+          else if (isCurrentEarnedTier) chipClass += " badgeTierChip--earned";
+          else if (isNextTier) chipClass += " badgeTierChip--next";
+          else chipClass += " badgeTierChip--locked";
+
+          return (
+            <div key={tier.key} className={chipClass}>
+              <div className="badgeTierChipName">{tierName}</div>
+              <div className="badgeTierChipMeta">
+                {getTierRequirementText(card, tier)}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -9003,72 +9075,63 @@ function StyleTag() {
 }
 
 /* Badge cards (kids-first: big badge, small text) */
-.badgeCard{transition:transform .12s ease; display:flex; flex-direction:column; gap:10px}
+/* Badge cards */
+.badgeCard{
+  transition:transform .12s ease;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
 .badgeCard.claimable:hover{transform:translateY(-1px)}
-.badgeTitle{font-weight:800; font-size:16px}
-.badgeMid{display:flex; align-items:center; justify-content:space-between; gap:14px}
-.badgeAction{display:flex; align-items:center; justify-content:flex-end; min-width:88px}
+
+.badgeTitle{
+  font-weight:800;
+  font-size:16px;
+}
+
+.badgeMid{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.badgeAction{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  min-width:88px;
+}
+
 .badgeBig{
-  width:120px;               /* wider to allow full-size stacking */
-  height:86px;
+  width:132px;
+  height:104px;
   border-radius:22px;
   display:flex;
   align-items:center;
-  justify-content:flex-start;  /* stack starts from left */
+  justify-content:flex-start;
   position:relative;
   overflow:visible;
   background:none;
   border:none;
   font-size:0;
 }
-.badgeBig.off{opacity:.22; filter:saturate(0) contrast(0.9) brightness(1.05)}
+
+.badgeBig.off{
+  opacity:.9;
+}
+
 :root{
-  --badge-size: 110px; /* was 86px — ~20% larger */
-  --badge-stack-offset: 17px;   /* 👈 THIS controls overlap */
+  --badge-size: 112px;
+  --badge-stack-offset: 17px;
 }
 
 .wtBadge{
   position:relative;
-  width:var(--badge-size);
+  width:calc(var(--badge-size) + 40px);
   height:var(--badge-size);
 }
 
-.wtBadgeBg{
-  width:100%;
-  height:100%;
-  display:block;
-}
-.badgeDesc{
-  font-size:13px;
-  line-height:1.35;
-  color:#475569;
-  min-height:36px;
-}
-
-.badgeTierPills{
-  display:flex;
-  gap:6px;
-  flex-wrap:wrap;
-}
-
-.badgeTierPill{
-  padding:4px 8px;
-  border-radius:999px;
-  font-size:11px;
-  font-weight:800;
-  letter-spacing:.02em;
-  background:#e5e7eb;
-  color:#475569;
-  border:1px solid rgba(15,23,42,.08);
-}
-
-.badgeTierPill--active{
-  background:rgba(255,122,24,.14);
-  color:#9a3412;
-  border-color:rgba(255,122,24,.28);
-}
-
-/* Full-size stacked hex backgrounds */
 .wtBadgeBgLayer{
   position:absolute;
   top:0;
@@ -9076,8 +9139,16 @@ function StyleTag() {
   width:var(--badge-size);
   height:var(--badge-size);
   display:block;
-  z-index:calc(var(--layerIndex));             /* later index = on top */
-  transform: translateX(calc(var(--layerIndex) * var(--badge-stack-offset)));  /* overlap amount */
+  z-index:calc(var(--layerIndex));
+  transform:translateX(calc(var(--layerIndex) * var(--badge-stack-offset)));
+}
+
+.wtBadgeBgLayer-locked{
+  filter:grayscale(1) brightness(1.08) contrast(.92) opacity(.95);
+}
+
+.wtBadgeBgLayer-next{
+  filter:grayscale(1) brightness(1.05) opacity(.92);
 }
 
 .wtBadgeForeground{
@@ -9087,29 +9158,120 @@ function StyleTag() {
   width:var(--badge-size);
   height:var(--badge-size);
   transform:translateX(var(--frontOffset));
-  z-index:999;          /* sit above all background layers */
-  pointer-events:none;  /* clicks still hit the card/button */
+  z-index:999;
+  pointer-events:none;
 }
 
-/* New tier available to claim: show greyed preview on top */
-.wtBadgeBgLayer-next{
-  filter:grayscale(1) brightness(1.05) opacity(0.9);
+.wtBadgeFaceText{
+  position:absolute;
+  left:50%;
+  top:35%;
+  transform:translate(-50%, -50%);
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.18);
+  text-shadow:0 1px 0 rgba(0,0,0,.25);
+  white-space:nowrap;
+  z-index:1;
 }
 
 .wtBadgeIcon{
   position:absolute;
-  inset:22%;
-  width:calc(var(--badge-size) * 0.48);
-  height:calc(var(--badge-size) * 0.48);
+  left:50%;
+  top:47%;
+  transform:translate(-50%, -50%);
+  width:44px;
+  height:44px;
   object-fit:contain;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,0.6));
   z-index:2;
 }
 
-.wtBadgeIcon--pending {
-  filter: grayscale(1) brightness(0.7);
+.wtBadgeIcon--pending{
+  filter:grayscale(1) brightness(1.12) opacity(.55);
 }
 
+.wtBadgePlaque{
+  position:absolute;
+  left:50%;
+  bottom:8px;
+  transform:translateX(-50%);
+  min-width:42px;
+  padding:2px 8px;
+  border-radius:999px;
+  background:#111827;
+  color:#f59e0b;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.05em;
+  line-height:1.2;
+  text-align:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.28);
+  z-index:3;
+}
+
+.badgeDesc{
+  font-size:13px;
+  line-height:1.35;
+  color:#475569;
+  min-height:50px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:#eef2f7;
+  border:1px solid rgba(15,23,42,.06);
+}
+
+.badgeTierGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.badgeTierChip{
+  border-radius:999px;
+  padding:6px 10px;
+  border:1px solid rgba(15,23,42,.08);
+  background:#f3f4f6;
+  color:#475569;
+}
+
+.badgeTierChip--locked{
+  background:#f3f4f6;
+  color:#6b7280;
+  border-color:rgba(15,23,42,.08);
+}
+
+.badgeTierChip--next{
+  background:rgba(245,158,11,.12);
+  color:#92400e;
+  border-color:rgba(245,158,11,.28);
+}
+
+.badgeTierChip--earned{
+  background:rgba(245,158,11,.14);
+  color:#92400e;
+  border-color:rgba(245,158,11,.28);
+}
+
+.badgeTierChip--claimed{
+  background:rgba(16,185,129,.14);
+  color:#065f46;
+  border-color:rgba(16,185,129,.28);
+}
+
+.badgeTierChipName{
+  font-size:11px;
+  font-weight:900;
+  line-height:1.1;
+}
+
+.badgeTierChipMeta{
+  margin-top:2px;
+  font-size:11px;
+  line-height:1.15;
+}
 .wtBadgeDistance{
   position:absolute;
   inset:22%;
