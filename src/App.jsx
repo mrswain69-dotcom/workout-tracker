@@ -3876,11 +3876,17 @@ function blankLogForDay() {
         // Plan V2: per-block snapshot for this day.
     // We now keep ID / type / label / note plus empty cardio & duration slots
     // so later we can bind UI + XP onto these.
-    blocks: plannedBlocks.map((b) => ({
+        blocks: plannedBlocks.map((b) => ({
       id: b.id,
       typeId: b.typeId,
       label: b.label || "",
       note: b.note || "",
+
+      // IMPORTANT: preserve cardio metadata so badge stats can identify sport
+      cardioType: b.cardioType || "",
+      cardioTypeOtherLabel: b.cardioTypeOtherLabel || "",
+      targetText: b.targetText || "",
+
       cardio: {
         distanceKm: "",
         durationMin: "",
@@ -3936,7 +3942,7 @@ function ensureBlocksSnapshot(baseLog) {
         ? existing.duration
         : { minutes: "" };
 
-    mergedBlocks.push({
+        mergedBlocks.push({
       ...(existing || {}),
       id: pb.id,
       typeId: pb.typeId,
@@ -3947,6 +3953,21 @@ function ensureBlocksSnapshot(baseLog) {
           : typeof existing?.note === "string"
           ? existing.note
           : "",
+
+      // IMPORTANT: preserve cardio metadata for planned cardio blocks
+      cardioType:
+        pb.cardioType ||
+        existing?.cardioType ||
+        "",
+      cardioTypeOtherLabel:
+        pb.cardioTypeOtherLabel ||
+        existing?.cardioTypeOtherLabel ||
+        "",
+      targetText:
+        pb.targetText ||
+        existing?.targetText ||
+        "",
+
       cardio: baseCardio,
       duration: baseDuration,
       movements: Array.isArray(pb.movements)
