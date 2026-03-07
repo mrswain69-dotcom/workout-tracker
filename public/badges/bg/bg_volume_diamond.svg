@@ -1,1 +1,36 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rim_volume_diamond" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9FFFF"/><stop offset="0.35" stop-color="#7FE8FF"/><stop offset="1" stop-color="#08305C"/></linearGradient><linearGradient id="rimInner_volume_diamond" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D7FFFF"/><stop offset="1" stop-color="#08305C"/></linearGradient><radialGradient id="core_volume_diamond" cx="0.45" cy="0.40" r="0.70"><stop offset="0" stop-color="#7E3CFF"/><stop offset="0.55" stop-color="#3B1FA8"/><stop offset="1" stop-color="#0B0630"/></radialGradient><linearGradient id="ring_volume_diamond" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#D7FFFF" stop-opacity="0"/><stop offset="0.35" stop-color="#D7FFFF" stop-opacity="0.65"/><stop offset="0.65" stop-color="#D7FFFF" stop-opacity="0.65"/><stop offset="1" stop-color="#D7FFFF" stop-opacity="0"/></linearGradient><linearGradient id="shine_volume_diamond" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><polygon points="256,36 448,146 448,366 256,476 64,366 64,146" fill="url(#rim_volume_diamond)"/><polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="url(#rimInner_volume_diamond)"/><polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="none" stroke="#E8FFFF" stroke-width="5" opacity="0.50"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="url(#core_volume_diamond)"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="#000" stroke-width="8" opacity="0.35"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="url(#ring_volume_diamond)" stroke-width="6" opacity="0.55"/><polygon points="132,190 380,190 348,222 164,222" fill="url(#shine_volume_diamond)" opacity="0.55"/></svg>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="diamondMetal_volume_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F3FFFF"/>
+      <stop offset="18%" stop-color="#D7F7FF"/>
+      <stop offset="45%" stop-color="#9EDCEE"/>
+      <stop offset="72%" stop-color="#5D9DB8"/>
+      <stop offset="100%" stop-color="#243846"/>
+    </linearGradient>
+
+    <linearGradient id="diamondLine_volume_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="35%" stop-color="#DFFFFF" stop-opacity="0.90"/>
+      <stop offset="70%" stop-color="#8EDCF5" stop-opacity="0.80"/>
+      <stop offset="100%" stop-color="#4D7D99" stop-opacity="0.72"/>
+    </linearGradient>
+
+    <radialGradient id="volumeCore_diamond_ultraslim" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#FFB347"/>
+      <stop offset="55%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#5B2E05"/>
+    </radialGradient>
+
+    <linearGradient id="coreShine_volume_diamond_ultraslim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <polygon points="256,36 446,146 446,366 256,476 66,366 66,146" fill="url(#diamondMetal_volume_ultraslim)"/>
+  <polygon points="256,43 440,149 440,363 256,469 72,363 72,149" fill="none" stroke="url(#diamondLine_volume_ultraslim)" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="url(#volumeCore_diamond_ultraslim)"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="none" stroke="#4A2405" stroke-width="2.5" stroke-opacity="0.42" stroke-linejoin="round"/>
+  <polygon points="126,184 386,184 362,206 150,206" fill="url(#coreShine_volume_diamond_ultraslim)" opacity="0.58"/>
+</svg>
