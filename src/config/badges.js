@@ -690,21 +690,21 @@ function addStreakBadge({ baseDays, xpPerTier, idSlug, iconFile, title }) {
     tiers,
   });
 
-  addCard(
+    addCard(
     {
       id: `streak_${idSlug}`,
       title,
       desc,
       family,
       iconFile,
-      statKey: "stats.streak.currentDays",
+      statKey: "stats.streak.longestDays",
       comparator: COMPARATOR.GTE,
       tiers: tierRules,
       getProgressText: ({ value, nextTier }) => {
         const v = Math.floor(safeNum(value));
-        if (!nextTier) return `Current streak: ${v} day${v === 1 ? "" : "s"} 🔥`;
+        if (!nextTier) return `Best streak: ${v} day${v === 1 ? "" : "s"} 🔥`;
         const remaining = Math.max(0, nextTier.threshold - v);
-        return `Current streak: ${v} days — ${remaining} more to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
+        return `Best streak: ${v} days — ${remaining} more to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
       },
     },
     tierDefs
@@ -812,4 +812,5 @@ addCardioPaceBadges();
 
 export const BADGE_DEFS = ALL_DEFS;
 export const ALL_BADGE_KEYS = new Set(ALL_KEYS);
+
 
