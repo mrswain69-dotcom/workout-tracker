@@ -1,1 +1,36 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rim_longevity_silver" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4F7FF"/><stop offset="0.35" stop-color="#C0C7D6"/><stop offset="1" stop-color="#2C3342"/></linearGradient><linearGradient id="rimInner_longevity_silver" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E7ECF7"/><stop offset="1" stop-color="#2C3342"/></linearGradient><radialGradient id="core_longevity_silver" cx="0.45" cy="0.40" r="0.70"><stop offset="0" stop-color="#FFC14D"/><stop offset="0.55" stop-color="#A86200"/><stop offset="1" stop-color="#2B1706"/></radialGradient><linearGradient id="ring_longevity_silver" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E7ECF7" stop-opacity="0"/><stop offset="0.35" stop-color="#E7ECF7" stop-opacity="0.55"/><stop offset="0.65" stop-color="#E7ECF7" stop-opacity="0.55"/><stop offset="1" stop-color="#E7ECF7" stop-opacity="0"/></linearGradient><linearGradient id="shine_longevity_silver" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><polygon points="256,36 448,146 448,366 256,476 64,366 64,146" fill="url(#rim_longevity_silver)"/><polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="url(#rimInner_longevity_silver)"/><polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="none" stroke="#8DE3FF" stroke-width="5" opacity="0.38"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="url(#core_longevity_silver)"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="#000" stroke-width="8" opacity="0.35"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="url(#ring_longevity_silver)" stroke-width="6" opacity="0.55"/><polygon points="132,190 380,190 348,222 164,222" fill="url(#shine_longevity_silver)" opacity="0.55"/></svg>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="silverMetal_longevity_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F8FBFF"/>
+      <stop offset="18%" stop-color="#E2E8F1"/>
+      <stop offset="45%" stop-color="#BFC8D4"/>
+      <stop offset="72%" stop-color="#8D97A6"/>
+      <stop offset="100%" stop-color="#3E4653"/>
+    </linearGradient>
+
+    <linearGradient id="silverLine_longevity_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="35%" stop-color="#EFF4FB" stop-opacity="0.88"/>
+      <stop offset="70%" stop-color="#C7D1DE" stop-opacity="0.78"/>
+      <stop offset="100%" stop-color="#667080" stop-opacity="0.72"/>
+    </linearGradient>
+
+    <radialGradient id="longevityCore_silver_ultraslim" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="55%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#073B3A"/>
+    </radialGradient>
+
+    <linearGradient id="coreShine_longevity_silver_ultraslim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <polygon points="256,36 446,146 446,366 256,476 66,366 66,146" fill="url(#silverMetal_longevity_ultraslim)"/>
+  <polygon points="256,43 440,149 440,363 256,469 72,363 72,149" fill="none" stroke="url(#silverLine_longevity_ultraslim)" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="url(#longevityCore_silver_ultraslim)"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="none" stroke="#062F2D" stroke-width="2.5" stroke-opacity="0.42" stroke-linejoin="round"/>
+  <polygon points="126,184 386,184 362,206 150,206" fill="url(#coreShine_longevity_silver_ultraslim)" opacity="0.55"/>
+</svg>

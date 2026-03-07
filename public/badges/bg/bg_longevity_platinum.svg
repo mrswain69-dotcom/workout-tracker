@@ -1,1 +1,36 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rim_longevity_platinum" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7FBFF"/><stop offset="0.35" stop-color="#B8C7D1"/><stop offset="1" stop-color="#1E2730"/></linearGradient><linearGradient id="rimInner_longevity_platinum" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EAF2F7"/><stop offset="1" stop-color="#1E2730"/></linearGradient><radialGradient id="core_longevity_platinum" cx="0.45" cy="0.40" r="0.70"><stop offset="0" stop-color="#FFC14D"/><stop offset="0.55" stop-color="#A86200"/><stop offset="1" stop-color="#2B1706"/></radialGradient><linearGradient id="ring_longevity_platinum" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#EAF2F7" stop-opacity="0"/><stop offset="0.35" stop-color="#EAF2F7" stop-opacity="0.60"/><stop offset="0.65" stop-color="#EAF2F7" stop-opacity="0.60"/><stop offset="1" stop-color="#EAF2F7" stop-opacity="0"/></linearGradient><linearGradient id="shine_longevity_platinum" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.24"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><polygon points="256,36 448,146 448,366 256,476 64,366 64,146" fill="url(#rim_longevity_platinum)"/><polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="url(#rimInner_longevity_platinum)"/><polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="none" stroke="#BFF7FF" stroke-width="5" opacity="0.42"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="url(#core_longevity_platinum)"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="#000" stroke-width="8" opacity="0.35"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="url(#ring_longevity_platinum)" stroke-width="6" opacity="0.55"/><polygon points="132,190 380,190 348,222 164,222" fill="url(#shine_longevity_platinum)" opacity="0.55"/></svg>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="platinumMetal_longevity_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7FDFF"/>
+      <stop offset="18%" stop-color="#DCEAF0"/>
+      <stop offset="45%" stop-color="#AFC4CE"/>
+      <stop offset="72%" stop-color="#7F95A0"/>
+      <stop offset="100%" stop-color="#33414A"/>
+    </linearGradient>
+
+    <linearGradient id="platinumLine_longevity_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="35%" stop-color="#E9FAFF" stop-opacity="0.88"/>
+      <stop offset="70%" stop-color="#B7D8E2" stop-opacity="0.78"/>
+      <stop offset="100%" stop-color="#5A7480" stop-opacity="0.72"/>
+    </linearGradient>
+
+    <radialGradient id="longevityCore_platinum_ultraslim" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="55%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#073B3A"/>
+    </radialGradient>
+
+    <linearGradient id="coreShine_longevity_platinum_ultraslim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <polygon points="256,36 446,146 446,366 256,476 66,366 66,146" fill="url(#platinumMetal_longevity_ultraslim)"/>
+  <polygon points="256,43 440,149 440,363 256,469 72,363 72,149" fill="none" stroke="url(#platinumLine_longevity_ultraslim)" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="url(#longevityCore_platinum_ultraslim)"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="none" stroke="#062F2D" stroke-width="2.5" stroke-opacity="0.42" stroke-linejoin="round"/>
+  <polygon points="126,184 386,184 362,206 150,206" fill="url(#coreShine_longevity_platinum_ultraslim)" opacity="0.55"/>
+</svg>

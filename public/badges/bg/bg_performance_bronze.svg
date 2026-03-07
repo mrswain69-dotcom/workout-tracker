@@ -1,1 +1,36 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rim_performance_bronze" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD7B0"/><stop offset="0.35" stop-color="#CD7F32"/><stop offset="1" stop-color="#3A220A"/></linearGradient><linearGradient id="rimInner_performance_bronze" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E6B27A"/><stop offset="1" stop-color="#3A220A"/></linearGradient><radialGradient id="core_performance_bronze" cx="0.45" cy="0.40" r="0.70"><stop offset="0" stop-color="#36FFB0"/><stop offset="0.55" stop-color="#0EA27A"/><stop offset="1" stop-color="#062B26"/></radialGradient><linearGradient id="ring_performance_bronze" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E6B27A" stop-opacity="0"/><stop offset="0.35" stop-color="#E6B27A" stop-opacity="0.55"/><stop offset="0.65" stop-color="#E6B27A" stop-opacity="0.55"/><stop offset="1" stop-color="#E6B27A" stop-opacity="0"/></linearGradient><linearGradient id="shine_performance_bronze" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><polygon points="256,36 448,146 448,366 256,476 64,366 64,146" fill="url(#rim_performance_bronze)"/><polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="url(#rimInner_performance_bronze)"/><polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="none" stroke="#66D6FF" stroke-width="5" opacity="0.35"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="url(#core_performance_bronze)"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="#000" stroke-width="8" opacity="0.35"/><polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="url(#ring_performance_bronze)" stroke-width="6" opacity="0.55"/><polygon points="132,190 380,190 348,222 164,222" fill="url(#shine_performance_bronze)" opacity="0.55"/></svg>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bronzeMetal_performance_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7D7B3"/>
+      <stop offset="18%" stop-color="#E4B27A"/>
+      <stop offset="45%" stop-color="#C9873F"/>
+      <stop offset="72%" stop-color="#9C5C22"/>
+      <stop offset="100%" stop-color="#5B2F0E"/>
+    </linearGradient>
+
+    <linearGradient id="bronzeLine_performance_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE8C9" stop-opacity="0.98"/>
+      <stop offset="35%" stop-color="#F2C48F" stop-opacity="0.88"/>
+      <stop offset="70%" stop-color="#B46B2A" stop-opacity="0.78"/>
+      <stop offset="100%" stop-color="#6A3710" stop-opacity="0.72"/>
+    </linearGradient>
+
+    <radialGradient id="performanceCore_bronze_ultraslim" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="55%" stop-color="#0E7490"/>
+      <stop offset="100%" stop-color="#083344"/>
+    </radialGradient>
+
+    <linearGradient id="coreShine_performance_bronze_ultraslim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <polygon points="256,36 446,146 446,366 256,476 66,366 66,146" fill="url(#bronzeMetal_performance_ultraslim)"/>
+  <polygon points="256,43 440,149 440,363 256,469 72,363 72,149" fill="none" stroke="url(#bronzeLine_performance_ultraslim)" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="url(#performanceCore_bronze_ultraslim)"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="none" stroke="#072B38" stroke-width="2.5" stroke-opacity="0.42" stroke-linejoin="round"/>
+  <polygon points="126,184 386,184 362,206 150,206" fill="url(#coreShine_performance_bronze_ultraslim)" opacity="0.55"/>
+</svg>
