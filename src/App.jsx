@@ -8148,6 +8148,12 @@ const targetInfo = buildTargetInfoForMovement({
       </div>
 
       <div className="badgeDesc">
+        {card.desc && (
+    <div className="badgeDescIntro">
+      {card.desc}
+    </div>
+  )}
+        <div className="badgeDescProgress">
         {typeof card.getProgressText === "function"
           ? card.getProgressText({
               value: state.value,
@@ -8163,6 +8169,7 @@ const targetInfo = buildTargetInfoForMovement({
               },
             })
           : card.desc}
+          </div>
       </div>
 
       <div className="badgeTierGrid">
@@ -9251,8 +9258,8 @@ function StyleTag() {
   left:50%;
   top:52%;
   transform:translate(-50%, -50%);
-  width:65px;
-  height:65px;
+  width:75px;
+  height:75px;
   object-fit:contain;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,0.6));
   z-index:2;
@@ -9290,6 +9297,16 @@ function StyleTag() {
   border-radius:14px;
   background:#eef2f7;
   border:1px solid rgba(15,23,42,.06);
+}
+
+.badgeDescIntro{
+  font-size:12px;
+  color:#6b7280;
+  margin-bottom:4px;
+}
+
+.badgeDescProgress{
+  font-size:13px;
 }
 
 .badgeTierGrid{
