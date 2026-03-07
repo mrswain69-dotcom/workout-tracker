@@ -5640,7 +5640,22 @@ const cardioProgress = useMemo(() => {
                 <div className="rowLeft">
                   <div className="field">
                     <div className="label">Date</div>
-                    <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="input" />
+                    <input
+  type="date"
+  value={selectedDate}
+  onChange={(e) => setSelectedDate(e.target.value)}
+  onKeyDown={(e) => {
+    if (
+      e.key === "ArrowUp" ||
+      e.key === "ArrowDown" ||
+      e.key === "PageUp" ||
+      e.key === "PageDown"
+    ) {
+      e.preventDefault();
+    }
+  }}
+  className="input"
+/>
                   </div>
                 </div>
 
@@ -6135,35 +6150,35 @@ const targetInfo = buildTargetInfoForMovement({
   <div>
     <div className="label">Distance (km)</div>
     <input
-      className="input"
-      type="number"
-      min={0}
-      step={0.01}
-      defaultValue={cardio.distanceKm ?? ""}
-      onChange={(e) =>
-        updateCardioForBlock(block.id, {
-          distanceKm: e.target.value,
-        })
-      }
-      placeholder="e.g. 2.50"
-    />
+  className="input"
+  type="number"
+  min={0}
+  step={0.01}
+  value={cardio.distanceKm ?? ""}
+  onChange={(e) =>
+    updateCardioForBlock(block.id, {
+      distanceKm: e.target.value,
+    })
+  }
+  placeholder="e.g. 2.50"
+/>
   </div>
 
   <div>
     <div className="label">Time (minutes)</div>
     <input
-      className="input"
-      type="number"
-      min={0}
-      step={0.5}
-      defaultValue={cardio.durationMin ?? ""}
-      onChange={(e) =>
-        updateCardioForBlock(block.id, {
-          durationMin: e.target.value,
-        })
-      }
-      placeholder="e.g. 14.5"
-    />
+  className="input"
+  type="number"
+  min={0}
+  step={0.5}
+  value={cardio.durationMin ?? ""}
+  onChange={(e) =>
+    updateCardioForBlock(block.id, {
+      durationMin: e.target.value,
+    })
+  }
+  placeholder="e.g. 14.5"
+/>
   </div>
 
       <div>
@@ -6267,18 +6282,18 @@ const targetInfo = buildTargetInfoForMovement({
   <div>
     <div className="label">Minutes</div>
     <input
-      className="input"
-      type="number"
-      min={0}
-      step={0.5}
-      defaultValue={duration.minutes ?? ""}
-      onChange={(e) =>
-        updateDurationForBlock(block.id, {
-          minutes: e.target.value,
-        })
-      }
-      placeholder="e.g. 30"
-    />
+  className="input"
+  type="number"
+  min={0}
+  step={0.5}
+  value={duration.minutes ?? ""}
+  onChange={(e) =>
+    updateDurationForBlock(block.id, {
+      minutes: e.target.value,
+    })
+  }
+  placeholder="e.g. 30"
+/>
   </div>
 </div>
           </div>
@@ -8008,7 +8023,7 @@ const targetInfo = buildTargetInfoForMovement({
     );
   }
 
-  const frontOffset = Math.max(0, layers.length - 1) * 17;
+  const frontOffset = Math.max(0, layers.length - 1) * 22;
   const faceText = getBadgeFaceText(card);
 
   return (
@@ -8094,12 +8109,13 @@ const targetInfo = buildTargetInfoForMovement({
     d: 700 + Math.random() * 450,
   }));
 
-  setClaimModal({
+    setClaimModal({
     kind: "badge",
     stage: "shake",
     title: "Badge claimed!",
     desc: `${card.title} unlocked`,
     badgeKey: badgeKeyToClaim,
+    emoji: "🏅",
     xpAward: xpReward,
     xpFrom,
     xpTo,
@@ -9176,7 +9192,7 @@ function StyleTag() {
 
 :root{
   --badge-size: 132px;
-  --badge-stack-offset: 20px;
+  --badge-stack-offset: 22px;
 }
 
 .wtBadge{
