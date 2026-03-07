@@ -9258,8 +9258,8 @@ function StyleTag() {
   left:50%;
   top:52%;
   transform:translate(-50%, -50%);
-  width:75px;
-  height:75px;
+  width:80px;
+  height:80px;
   object-fit:contain;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,0.6));
   z-index:2;
