@@ -71,7 +71,7 @@ function isDayGreen(log) {
 
     let hasData = false;
 
-    if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+        if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
       const setsObj = block.sets && typeof block.sets === "object" ? block.sets : null;
       if (setsObj) {
         hasData = Object.values(setsObj).some(
@@ -91,6 +91,8 @@ function isDayGreen(log) {
       hasData = safeNum(c.distanceKm) > 0 || safeNum(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = safeNum(block?.duration?.minutes) > 0;
+    } else if (typeId === "recovery") {
+      hasData = !!block?.recoveryDone;
     }
 
     if (!hasData) return false;
@@ -248,6 +250,12 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
   const greenByDate = new Map(); // date -> boolean
 
   // -----------------------------
+  // Recovery
+  // -----------------------------
+  let totalRecoveryDays = 0;
+  let qualifyingRecoveryDays = 0;
+
+  // -----------------------------
   // Cardio stats
   // -----------------------------
   const cardio = {};
@@ -281,6 +289,15 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
     // Strength processing (strength only counts sets/reps/volume)
     let sessionSets = 0;
     const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+
+    const hasRecoveryDone = blocks.some(
+      (b) => b && !b.cancelled && b.typeId === "recovery" && b.recoveryDone
+    );
+
+    if (hasRecoveryDone) {
+      totalRecoveryDays += 1;
+      qualifyingRecoveryDays += 1;
+    }
 
     for (const b of blocks) {
       if (!b || b.cancelled) continue;
@@ -435,6 +452,10 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
       currentDays: currentStreakDays,
       longestDays: longestStreakDays,
     },
+    recovery: {
+      totalRecoveryDays,
+      qualifyingRecoveryDays,
+    },
     cardio,
     intelligence: {
       progressiveOverloadEvents: 0, // placeholder until BI engine emits events
@@ -444,5 +465,6 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
   };
 
 }
+
 
 
