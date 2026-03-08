@@ -253,6 +253,18 @@ function createDurationBlock() {
   };
 }
 
+function createRecoveryBlock() {
+  return {
+    id: uid(),
+    typeId: "recovery",
+    label: "Recovery",
+    note:
+      "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session.",
+    recoveryMode: "full", // "full" | "light"
+    plannedMinutes: "",
+  };
+}
+
 function createTasksBlock() {
   return {
     id: uid(),
@@ -393,6 +405,7 @@ function builtInTypes() {
     { id: "run", name: "Run (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
     { id: "swim", name: "Swim (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
     { id: "duration", name: "Duration only (minutes)", kind: "custom", movementsEnabled: false, fields: { durationMin: true } },
+    { id: "recovery", name: "Recovery", kind: "recovery", movementsEnabled: false, fields: { recoveryDone: true, plannedMinutes: true } },
     // NEW: tick-box tasks (yes/no)
     { id: "tasks", name: "Tick-box tasks (yes/no)", kind: "task", movementsEnabled: false, fields: { tasks: true } },
   ];
@@ -1312,7 +1325,7 @@ function isDayGreen(log) {
 
     let hasData = false;
 
-    if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+        if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
       hasData =
         block.sets &&
         Object.values(block.sets).some(
@@ -1325,6 +1338,8 @@ function isDayGreen(log) {
         Number(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = Number(block?.duration?.minutes) > 0;
+    } else if (typeId === "recovery") {
+      hasData = !!block?.recoveryDone;
     }
 
     if (!hasData) return false;
@@ -2071,6 +2086,24 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
 
   const hasAnyDurationBlocks = allDurationBlocksForDay.length > 0;
 
+    // Recovery blocks (planned + extra for this day)
+  const recoveryPlannedBlocks = plannedBlocksForSelectedDay.filter(
+    (b) => b && b.typeId === "recovery"
+  );
+
+  const recoveryExtraBlocks = Array.isArray(logForDay?.blocks)
+    ? logForDay.blocks.filter(
+        (b) => b && b.isExtra && b.typeId === "recovery"
+      )
+    : [];
+
+  const allRecoveryBlocksForDay = [
+    ...recoveryPlannedBlocks,
+    ...recoveryExtraBlocks,
+  ];
+
+  const hasAnyRecoveryBlocks = allRecoveryBlocksForDay.length > 0;
+
   // Tasks blocks (planned + extra for this day)
 const tasksPlannedBlocks = plannedBlocksForSelectedDay.filter(
   (b) => b && b.typeId === "tasks"
@@ -2404,6 +2437,25 @@ const badgeStats = useMemo(() => {
           };
         }
 
+        if (typeId === "recovery") {
+          return {
+            id: b?.id || `${w}_block_${idx}`,
+            typeId: "recovery",
+            label: b?.label || "Recovery",
+            note:
+              typeof b?.note === "string"
+                ? b.note
+                : "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session.",
+            recoveryMode:
+              b?.recoveryMode === "light" ? "light" : "full",
+            plannedMinutes:
+              typeof b?.plannedMinutes === "number" ||
+              typeof b?.plannedMinutes === "string"
+                ? String(b.plannedMinutes)
+                : "",
+          };
+        }
+        
         if (typeId === "tasks") {
           const tasks = Array.isArray(b?.tasks) ? b.tasks : [];
           return {
@@ -2745,6 +2797,10 @@ function blockHasData(block) {
     return mins > 0;
   }
 
+  if (typeId === "recovery") {
+    return !!block.recoveryDone;
+  }
+
   if (typeId === "tasks") {
     const done = block.tasksDone || {};
     return Object.values(done).some(Boolean);
@@ -2786,6 +2842,10 @@ function xpForDurationBlock(block) {
   const mins = safeNumber(d.minutes);
   if (!mins) return 0;
   return Math.ceil(mins * XP_RULES.durationPerMin);
+}
+
+function xpForRecoveryBlock(block) {
+  return block?.recoveryDone ? 5 : 0;
 }
 
 function findPlanBlockForLogBlock(plan, logBlockId) {
@@ -2860,6 +2920,11 @@ function baseXpForLog(log, plan) {
         const blockXp = xpForDurationBlock(block);
         total += blockXp;
         if (blockXp > 0) total += XP_RULES.blockComplete;
+        break;
+      }
+      case "recovery": {
+        const blockXp = xpForRecoveryBlock(block);
+        total += blockXp;
         break;
       }
       case "tasks":
@@ -2963,6 +3028,7 @@ const buildXpDebugRows = (records, plan) => {
     let strengthXp = 0;
     let cardioXp = 0;
     let durationXp = 0;
+    let recoveryXp = 0;
 let tasksXp = 0;
 let dayCompleteXp = 0;
 
@@ -3049,6 +3115,12 @@ let progressCount = 0;
           break;
         }
 
+        case "recovery": {
+          const blockXp = xpForRecoveryBlock(block);
+          recoveryXp += blockXp;
+          break;
+        }
+
         case "tasks": {
           const done = block.tasksDone || {};
           tasksDone += Object.values(done).filter(Boolean).length;
@@ -3107,7 +3179,7 @@ let progressCount = 0;
     const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
 const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;
 
-const nonBonusXp = strengthXp + cardioXp + durationXp + tasksXp + dayCompleteXp;
+const nonBonusXp = strengthXp + cardioXp + durationXp + recoveryXp + tasksXp + dayCompleteXp;
 const progXp = strengthProgressXp + cardioProgressXp;
 
 const totalXp = nonBonusXp + progXp + streakXp + dailyBonusXp + badgeClaimXp;
@@ -3124,6 +3196,7 @@ rows.push({
   strengthXp,
   cardioXp,
   durationXp,
+  recoveryXp,
   tasksXp,
   dayCompleteXp,
   // Bonuses
@@ -3518,6 +3591,8 @@ async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
       newBlock = createCardioBlock();
     } else if (typeId === "duration") {
       newBlock = createDurationBlock();
+    } else if (typeId === "recovery") {
+      newBlock = createRecoveryBlock();
     } else if (typeId === "tasks") {
       newBlock = createTasksBlock();
     } else {
@@ -3876,7 +3951,7 @@ function blankLogForDay() {
         // Plan V2: per-block snapshot for this day.
     // We now keep ID / type / label / note plus empty cardio & duration slots
     // so later we can bind UI + XP onto these.
-        blocks: plannedBlocks.map((b) => ({
+            blocks: plannedBlocks.map((b) => ({
       id: b.id,
       typeId: b.typeId,
       label: b.label || "",
@@ -3886,6 +3961,9 @@ function blankLogForDay() {
       cardioType: b.cardioType || "",
       cardioTypeOtherLabel: b.cardioTypeOtherLabel || "",
       targetText: b.targetText || "",
+
+      recoveryMode: b.recoveryMode || "full",
+      recoveryDone: false,
 
       cardio: {
         distanceKm: "",
@@ -3942,7 +4020,7 @@ function ensureBlocksSnapshot(baseLog) {
         ? existing.duration
         : { minutes: "" };
 
-        mergedBlocks.push({
+           mergedBlocks.push({
       ...(existing || {}),
       id: pb.id,
       typeId: pb.typeId,
@@ -3967,6 +4045,12 @@ function ensureBlocksSnapshot(baseLog) {
         pb.targetText ||
         existing?.targetText ||
         "",
+
+      recoveryMode:
+        pb.recoveryMode ||
+        existing?.recoveryMode ||
+        "full",
+      recoveryDone: !!existing?.recoveryDone,
 
       cardio: baseCardio,
       duration: baseDuration,
@@ -4358,6 +4442,22 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
+  async function toggleRecoveryForBlock(blockId, recoveryDone) {
+    const ctx = await ensureAudio();
+    const base = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
+
+    const next = updateBlockLog(base, blockId, {
+      recoveryDone: !!recoveryDone,
+    });
+
+    await saveLog(next);
+    setLogForDay(next);
+
+    if (ctx && recoveryDone) playBling(ctx, 1, victoryTheme);
+  }  
+  
 async function toggleBlockCancelled(blockId, cancelled) {
   // Turning ON requires the parent PIN; turning OFF is free.
   if (cancelled) {
@@ -6209,6 +6309,60 @@ const targetInfo = buildTargetInfoForMovement({
   </div>
 )}
 
+{/* Recovery blocks log */}
+{hasAnyRecoveryBlocks && (
+  <div className="panel mt16">
+    <div className="h2">Recovery log</div>
+
+    {allRecoveryBlocksForDay.map((block) => {
+      const blockLog = getBlockLog(logForDay, block.id) || {};
+      const isCancelled = !!blockLog.cancelled;
+      const recoveryDone = !!blockLog.recoveryDone;
+      const label = block.label || "Recovery block";
+
+      return (
+        <div key={block.id} className="mt12">
+          <div className="rowBetween">
+            <div className="h3">{label}</div>
+          </div>
+
+          {block.note ? (
+            <div className="muted mt4">{block.note}</div>
+          ) : null}
+
+          <div className="row between mt4">
+            <div className="muted small">
+              {recoveryDone
+                ? "Recovery respected today."
+                : "Tick when recovery was genuinely respected today."}
+            </div>
+            <label
+              className="mini"
+              style={{ opacity: isCancelled ? 0.5 : 1 }}
+              title="Mark recovery complete when the day was genuinely used for recovery."
+            >
+              <input
+                type="checkbox"
+                checked={recoveryDone}
+                disabled={isCancelled}
+                onChange={(e) =>
+                  toggleRecoveryForBlock(block.id, e.target.checked)
+                }
+              />
+              <span>Recovery respected</span>
+            </label>
+          </div>
+
+          <div className="muted mt8">
+            Full recovery: complete rest or very light movement.
+            Light recovery: walking, mobility, stretching, easy cycling.
+          </div>
+        </div>
+      );
+    })}
+  </div>
+)}
+              
 {/* Duration blocks log */}
 {hasAnyDurationBlocks && (
   <div className="panel mt16">
@@ -7031,7 +7185,7 @@ const targetInfo = buildTargetInfoForMovement({
         {blocksForSelectedPlanDay.length === 0 && (
           <div className="muted">
             No blocks yet for {planWeekday}. Add a strength, cardio, duration,
-            or tasks block below.
+recovery, or tasks block below.
           </div>
         )}
 
@@ -7049,6 +7203,7 @@ const targetInfo = buildTargetInfoForMovement({
                     {typeId === "box" && "Boxercise"}
                     {typeId === "cardio" && "Cardio"}
                     {typeId === "duration" && "Duration"}
+                    {typeId === "recovery" && "Recovery"}
                     {typeId === "tasks" && "Tasks"}
                   </div>
                   <SecondaryButton
@@ -7083,6 +7238,7 @@ const targetInfo = buildTargetInfoForMovement({
                     {typeId === "box" && "Boxercise"}
                     {typeId === "cardio" && "Cardio"}
                     {typeId === "duration" && "Duration"}
+                    {typeId === "recovery" && "Recovery"}
                     {typeId === "tasks" && "Tasks"}
                   </span>
                   {typeId === "strength" || typeId === "hiit" || typeId === "box" ? (
@@ -7467,6 +7623,52 @@ const targetInfo = buildTargetInfoForMovement({
                 </>
               )}
 
+              {typeId === "recovery" && (
+                <>
+                  <div className="mt12">
+                    <div className="label">Recovery type</div>
+                    <Select
+                      value={block.recoveryMode || "full"}
+                      onChange={(v) =>
+                        updateBlockInDay(block.id, () => ({
+                          recoveryMode: v === "light" ? "light" : "full",
+                        }))
+                      }
+                      options={[
+                        { value: "full", label: "Full recovery" },
+                        { value: "light", label: "Light recovery" },
+                      ]}
+                    />
+                  </div>
+
+                  <div className="mt8">
+                    <div className="label">Planned minutes (optional)</div>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={
+                        block.plannedMinutes === "" || block.plannedMinutes == null
+                          ? ""
+                          : String(block.plannedMinutes)
+                      }
+                      onChange={(v) => {
+                        const cleaned =
+                          v === "" ? "" : Math.max(0, parseInt(v, 10) || 0);
+
+                        updateBlockInDay(block.id, () => ({
+                          plannedMinutes: cleaned,
+                        }));
+                      }}
+                      placeholder="e.g. 20"
+                    />
+                  </div>
+
+                  <div className="muted mt8">
+                    Recovery supports adaptation, muscle repair, nervous system reset and energy restore.
+                  </div>
+                </>
+              )}
+              
               {typeId === "tasks" && (
                 <>
                   <div className="mt12">
@@ -7560,11 +7762,17 @@ const targetInfo = buildTargetInfoForMovement({
           >
             + Cardio block
           </PrimaryButton>
-          <PrimaryButton
+                    <PrimaryButton
             className="btnSmall"
             onClick={() => addBlockToDay("duration")}
           >
             + Duration block
+          </PrimaryButton>
+          <PrimaryButton
+            className="btnSmall"
+            onClick={() => addBlockToDay("recovery")}
+          >
+            + Recovery block
           </PrimaryButton>
           <PrimaryButton
             className="btnSmall"
