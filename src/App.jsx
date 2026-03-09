@@ -1425,6 +1425,169 @@ function computeTotalMinutesForDay(log) {
   return Math.round(est * 10) / 10;
 }
 
+function isTrainingBlockForRecoveryLogic(block) {
+  if (!block || block.cancelled) return false;
+  const typeId = String(block.typeId || "").toLowerCase();
+
+  if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+    return countCompletedSetsInBlock(block) > 0;
+  }
+
+  if (
+    typeId === "cardio" ||
+    typeId === "run" ||
+    typeId === "swim" ||
+    typeId === "walk" ||
+    typeId === "row" ||
+    typeId === "cycle" ||
+    typeId === "bike"
+  ) {
+    const c = block.cardio || {};
+    return safeNumber(c.distanceKm) > 0 || safeNumber(c.durationMin) > 0;
+  }
+
+  if (typeId === "duration") {
+    return safeNumber(block?.duration?.minutes) > 0;
+  }
+
+  return false;
+}
+
+function hasRecoveryDoneForLog(log) {
+  const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+  return blocks.some(
+    (b) => b && !b.cancelled && b.typeId === "recovery" && b.recoveryDone
+  );
+}
+
+function getRecoveryDateMapForApp(records) {
+  const map = new Map();
+
+  for (const row of Array.isArray(records) ? records : []) {
+    const dateStr = row?.date_ymd || row?.date;
+    const log = row?.log;
+    if (!dateStr || !log) continue;
+
+    const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+    const trained = blocks.some(isTrainingBlockForRecoveryLogic);
+    const recoveryDone = hasRecoveryDoneForLog(log);
+
+    map.set(dateStr, {
+      trained,
+      recoveryDone,
+    });
+  }
+
+  return map;
+}
+
+function countTrainingDaysInWindowForApp(dayMap, endYmd, daysBack) {
+  let count = 0;
+  for (let i = 1; i <= daysBack; i++) {
+    const d = ymdAddDays(endYmd, -i);
+    if (dayMap.get(d)?.trained) count += 1;
+  }
+  return count;
+}
+
+function countRecoveryDaysInWindowForApp(dayMap, endYmd, daysBack) {
+  let count = 0;
+  for (let i = 1; i <= daysBack; i++) {
+    const d = ymdAddDays(endYmd, -i);
+    if (dayMap.get(d)?.recoveryDone) count += 1;
+  }
+  return count;
+}
+
+function countConsecutiveTrainingDaysBeforeForApp(dayMap, endYmd) {
+  let run = 0;
+  for (let i = 1; i <= 30; i++) {
+    const d = ymdAddDays(endYmd, -i);
+    if (dayMap.get(d)?.trained) run += 1;
+    else break;
+  }
+  return run;
+}
+
+function getRecoveryEligibilityForDateApp(records, dateStr) {
+  const dayMap = getRecoveryDateMapForApp(records);
+  const day = dayMap.get(dateStr);
+
+  if (!day?.recoveryDone) {
+    return {
+      qualifies: false,
+      score: 0,
+      reasons: [],
+    };
+  }
+
+  const trainingLast5 = countTrainingDaysInWindowForApp(dayMap, dateStr, 5);
+  const trainingLast7 = countTrainingDaysInWindowForApp(dayMap, dateStr, 7);
+  const recoveryLast7 = countRecoveryDaysInWindowForApp(dayMap, dateStr, 7);
+  const prevDay = dayMap.get(ymdAddDays(dateStr, -1));
+
+  let score = 0;
+  const reasons = [];
+
+  if (trainingLast5 >= 2) {
+    score += 1;
+    reasons.push("trained_2_of_last_5");
+  }
+  if (trainingLast7 >= 4) {
+    score += 1;
+    reasons.push("trained_4_of_last_7");
+  }
+  if (prevDay?.recoveryDone) {
+    score -= 1;
+    reasons.push("previous_day_recovery");
+  }
+  if (trainingLast7 < 2) {
+    score -= 1;
+    reasons.push("too_little_recent_training");
+  }
+  if (recoveryLast7 >= 2) {
+    score -= 1;
+    reasons.push("too_many_recent_recovery_days");
+  }
+
+  const qualifies =
+    score >= 1 &&
+    !prevDay?.recoveryDone &&
+    trainingLast7 >= 2 &&
+    recoveryLast7 < 2;
+
+  return {
+    qualifies,
+    score,
+    reasons,
+    trainingLast5,
+    trainingLast7,
+    recoveryLast7,
+    consecutiveTrainingBefore: countConsecutiveTrainingDaysBeforeForApp(
+      dayMap,
+      dateStr
+    ),
+  };
+}
+
+function getRecoveryRecommendationForTodayApp(records, todayYmd) {
+  const dayMap = getRecoveryDateMapForApp(records);
+  const consecutiveTrainingBefore =
+    countConsecutiveTrainingDaysBeforeForApp(dayMap, todayYmd);
+  const trainingLast5 = countTrainingDaysInWindowForApp(dayMap, todayYmd, 5);
+  const trainingLast7 = countTrainingDaysInWindowForApp(dayMap, todayYmd, 7);
+
+  return {
+    recommended:
+      consecutiveTrainingBefore >= 3 ||
+      trainingLast5 >= 4 ||
+      trainingLast7 >= 5,
+    consecutiveTrainingBefore,
+    trainingLast5,
+    trainingLast7,
+  };
+}
+
 function computeCardioKmForDay(log) {
   if (!log) return null;
 
@@ -3369,8 +3532,16 @@ const selectedDayStatus = useMemo(() => {
   }
 
   const log = rec.log;
-  const green = isDayGreen(log);
+  let green = isDayGreen(log);
   const any = dayHasAnyBlockActivity(log);
+
+  const hasRecoveryDone = hasRecoveryDoneForLog(log);
+  if (green && hasRecoveryDone) {
+    const eligibility = getRecoveryEligibilityForDateApp(allLogs, d);
+    if (!eligibility?.qualifies) {
+      green = false;
+    }
+  }
 
   if (green) return "green";
   if (any) return "amber";
@@ -3392,8 +3563,16 @@ const todayPlanStatus = useMemo(() => {
   if (!rec || !rec.log) return "amber"; // today not logged yet
 
   const log = rec.log;
-  const green = isDayGreen(log);
+  let green = isDayGreen(log);
   const any = dayHasAnyBlockActivity(log);
+
+  const hasRecoveryDone = hasRecoveryDoneForLog(log);
+  if (green && hasRecoveryDone) {
+    const eligibility = getRecoveryEligibilityForDateApp(allLogs, todayYmd);
+    if (!eligibility?.qualifies) {
+      green = false;
+    }
+  }
 
   if (green) return "green";
   if (any) return "amber";
@@ -3401,6 +3580,37 @@ const todayPlanStatus = useMemo(() => {
   return "amber";
 }, [allLogs, todayYmd]);
 
+  
+const recoveryEligibilityForSelectedDate = useMemo(() => {
+  if (!selectedDate) return null;
+  return getRecoveryEligibilityForDateApp(allLogs, selectedDate);
+}, [allLogs, selectedDate]);
+
+const recoveryRecommendationToday = useMemo(() => {
+  return getRecoveryRecommendationForTodayApp(allLogs, todayYmd);
+}, [allLogs, todayYmd]);
+
+const bodyReadiness = useMemo(() => {
+  const trainingLast5 = recoveryRecommendationToday?.trainingLast5 || 0;
+  const trainingLast7 = recoveryRecommendationToday?.trainingLast7 || 0;
+  const consecutiveTrainingBefore =
+    recoveryRecommendationToday?.consecutiveTrainingBefore || 0;
+
+  return {
+    muscleRecoveryPct: Math.max(35, Math.min(100, 100 - trainingLast5 * 8)),
+    nervousSystemPct: Math.max(
+      30,
+      Math.min(100, 100 - consecutiveTrainingBefore * 12)
+    ),
+    energyPct: Math.max(40, Math.min(100, 100 - trainingLast7 * 7)),
+  };
+}, [recoveryRecommendationToday]);
+
+const selectedDayHasRecoveryBlock =
+  hasAnyRecoveryBlocks;
+
+const selectedDayHasHeavyTrainingBlocks =
+  hasAnyStrengthBlocks || hasAnyCardioBlocks;
 
   async function ensureUnlocked(actionLabel = "save changes") {
     if (!family?.id) return false;
@@ -5115,6 +5325,19 @@ async function addExtraActivityBlockForToday(draft) {
   
 // Click handler for the "+ Add extra block" button on the Log tab
 async function addExtraMovement() {
+  const selectedDayHasRecovery =
+    Array.isArray(logForDay?.blocks) &&
+    logForDay.blocks.some((b) => b && b.typeId === "recovery");
+
+  const addingHeavyBlock =
+    extraBlockKind === "strength" || extraBlockKind === "cardio";
+
+  if (selectedDayHasRecovery && addingHeavyBlock) {
+    const proceed = window.confirm(
+      "This day is marked as Recovery.\n\nAdding high intensity training may reduce recovery and impact tomorrow’s performance.\n\nContinue anyway?"
+    );
+    if (!proceed) return;
+  }
   if (extraBlockKind === "strength") {
     const name = (extraMovNameDraft || "").trim();
     if (!name) return;
@@ -6448,6 +6671,14 @@ const targetInfo = buildTargetInfoForMovement({
             Full recovery: complete rest or very light movement.
             Light recovery: walking, mobility, stretching, easy cycling.
           </div>
+
+          {recoveryDone && selectedDate === (selectedDate || "") && recoveryEligibilityForSelectedDate && (
+            <div className="muted mt8">
+              {recoveryEligibilityForSelectedDate.qualifies
+                ? "Eligible recovery day: counts as intelligent recovery."
+                : "Recovery logged, but this one does not qualify for streak protection yet."}
+            </div>
+          )}
         </div>
       );
     })}
@@ -6673,6 +6904,35 @@ const targetInfo = buildTargetInfoForMovement({
 
 {/* Extra movements + One-off activities (legacy, still useful) */}
 <div className="stack mt16">
+  {recoveryRecommendationToday?.recommended && !selectedDayHasRecoveryBlock && (
+    <div className="panel" style={{ border: "1px solid rgba(255,215,0,0.25)" }}>
+      <div className="h2">⚡ Recovery Recommended Today</div>
+      <div className="muted mt8">
+        Your recent workload suggests a recovery session may improve adaptation and performance.
+      </div>
+      <div className="muted mt8">
+        Recent load: {recoveryRecommendationToday.consecutiveTrainingBefore} consecutive training day
+        {recoveryRecommendationToday.consecutiveTrainingBefore === 1 ? "" : "s"}
+        {" "}• {recoveryRecommendationToday.trainingLast5} of last 5 days
+        {" "}• {recoveryRecommendationToday.trainingLast7} of last 7 days
+      </div>
+      <div className="mt8">
+        <PrimaryButton
+          onClick={async () => {
+            await addExtraRecoveryBlockForToday({
+              name: "Recovery",
+              recoveryMode: "full",
+              plannedMinutes: "",
+              coachNote:
+                "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session.",
+            });
+          }}
+        >
+          + Add Recovery Block
+        </PrimaryButton>
+      </div>
+    </div>
+  )}
 {/* Extra blocks for this specific date */}
 <div className="panel">
   <div className="h2">Extra block for today</div>
@@ -6999,7 +7259,41 @@ const targetInfo = buildTargetInfoForMovement({
                   <div className="muted">Estimate only.</div>
                 </div>
               </Card>
+              
+              <Card className="pad">
+  <div className="rowBetween">
+    <div className="h3">Recovery Status</div>
+    <Pill>Estimated</Pill>
+  </div>
 
+  <div className="mt12">
+    <div className="muted mini">Muscle recovery</div>
+    <div className="progress mt4">
+      <div className="progress-fill" style={{ width: `${bodyReadiness.muscleRecoveryPct}%` }} />
+    </div>
+    <div className="muted mini mt4">{bodyReadiness.muscleRecoveryPct}%</div>
+  </div>
+
+  <div className="mt12">
+    <div className="muted mini">Nervous system recovery</div>
+    <div className="progress mt4">
+      <div className="progress-fill" style={{ width: `${bodyReadiness.nervousSystemPct}%` }} />
+    </div>
+    <div className="muted mini mt4">{bodyReadiness.nervousSystemPct}%</div>
+  </div>
+
+  <div className="mt12">
+    <div className="muted mini">Energy restoration</div>
+    <div className="progress mt4">
+      <div className="progress-fill" style={{ width: `${bodyReadiness.energyPct}%` }} />
+    </div>
+    <div className="muted mini mt4">{bodyReadiness.energyPct}%</div>
+  </div>
+
+  <div className="muted mt12">
+    Recommendation: {recoveryRecommendationToday?.recommended ? "Recovery Day or Light Activity" : "Ready to train if feeling good"}
+  </div>
+</Card>
                             <Card className="pad">
                 <div className="h3">Today’s mission</div>
                 <div className="stack mt12">
