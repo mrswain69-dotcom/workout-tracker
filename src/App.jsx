@@ -6402,8 +6402,20 @@ const targetInfo = buildTargetInfoForMovement({
       return (
         <div key={block.id} className="mt12">
           <div className="rowBetween">
-            <div className="h3">{label}</div>
-          </div>
+  <div className="h3">{label}</div>
+
+  {block.isExtra && (
+    <div className="row space">
+      <div className="muted mini">One-day extra recovery</div>
+      <SecondaryButton
+        className="btnSmall"
+        onClick={() => removeExtraMovement(block.id)}
+      >
+        Remove
+      </SecondaryButton>
+    </div>
+  )}
+</div>
 
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
