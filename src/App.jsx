@@ -1438,7 +1438,15 @@ function isTrainingBlockForRecoveryLogic(block) {
   const typeId = String(block.typeId || "").toLowerCase();
 
   if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
-    return countCompletedSetsInBlock(block) > 0;
+    const setsObj =
+      block.sets && typeof block.sets === "object" ? block.sets : null;
+
+    return !!(
+      setsObj &&
+      Object.values(setsObj).some(
+        (arr) => Array.isArray(arr) && arr.some((s) => s && setDidSomething(s))
+      )
+    );
   }
 
   if (
