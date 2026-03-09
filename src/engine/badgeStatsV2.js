@@ -43,6 +43,181 @@ function bestTime(existing, candidate) {
   return Math.min(existing, candidate);
 }
 
+function isTrainingBlock(block) {
+  if (!block || block.cancelled) return false;
+  const typeId = String(block.typeId || "").toLowerCase();
+
+  if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+    const setsObj = block.sets && typeof block.sets === "object" ? block.sets : null;
+    return !!(
+      setsObj &&
+      Object.values(setsObj).some(
+        (arr) => Array.isArray(arr) && arr.some(setDidSomething)
+      )
+    );
+  }
+
+  if (
+    typeId === "cardio" ||
+    typeId === "run" ||
+    typeId === "swim" ||
+    typeId === "walk" ||
+    typeId === "row" ||
+    typeId === "cycle" ||
+    typeId === "bike"
+  ) {
+    const c = block.cardio || {};
+    return safeNum(c.distanceKm) > 0 || safeNum(c.durationMin) > 0;
+  }
+
+  if (typeId === "duration") {
+    return safeNum(block?.duration?.minutes) > 0;
+  }
+
+  return false;
+}
+
+function hasRecoveryDone(log) {
+  const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+  return blocks.some(
+    (b) => b && !b.cancelled && b.typeId === "recovery" && b.recoveryDone
+  );
+}
+
+function buildRecoveryDayMap(rows) {
+  const map = new Map();
+
+  for (const row of rows) {
+    const dateStr = row?.date_ymd || row?.date;
+    const log = row?.log;
+    if (!dateStr || !log) continue;
+
+    const blocks = Array.isArray(log.blocks) ? log.blocks : [];
+    const trained = blocks.some(isTrainingBlock);
+    const recoveryDone = hasRecoveryDone(log);
+
+    map.set(dateStr, {
+      date: dateStr,
+      trained,
+      recoveryDone,
+    });
+  }
+
+  return map;
+}
+
+function countTrainingDaysInWindow(dayMap, endYmd, daysBack) {
+  let count = 0;
+  for (let i = 1; i <= daysBack; i++) {
+    const d = ymdAddDays(endYmd, -i);
+    if (dayMap.get(d)?.trained) count += 1;
+  }
+  return count;
+}
+
+function countQualifyingRecoveryDaysInWindow(dayMap, endYmd, daysBack) {
+  let count = 0;
+  for (let i = 1; i <= daysBack; i++) {
+    const d = ymdAddDays(endYmd, -i);
+    if (dayMap.get(d)?.recoveryQualified) count += 1;
+  }
+  return count;
+}
+
+function countConsecutiveTrainingDaysBefore(dayMap, endYmd) {
+  let run = 0;
+  for (let i = 1; i <= 30; i++) {
+    const d = ymdAddDays(endYmd, -i);
+    if (dayMap.get(d)?.trained) run += 1;
+    else break;
+  }
+  return run;
+}
+
+function getRecoveryEligibilityForDate(dayMap, dateStr) {
+  const day = dayMap.get(dateStr);
+  if (!day || !day.recoveryDone) {
+    return {
+      qualifies: false,
+      score: 0,
+      reasons: [],
+    };
+  }
+
+  const reasons = [];
+  let score = 0;
+
+  const trainingLast5 = countTrainingDaysInWindow(dayMap, dateStr, 5);
+  const trainingLast7 = countTrainingDaysInWindow(dayMap, dateStr, 7);
+  const qualifyingRecoveryLast7 = countQualifyingRecoveryDaysInWindow(dayMap, dateStr, 7);
+  const prevDay = dayMap.get(ymdAddDays(dateStr, -1));
+
+  // +1 user trained ≥2 of last 5 days
+  if (trainingLast5 >= 2) {
+    score += 1;
+    reasons.push("trained_2_of_last_5");
+  }
+
+  // +1 user trained ≥4 of last 7 days
+  if (trainingLast7 >= 4) {
+    score += 1;
+    reasons.push("trained_4_of_last_7");
+  }
+
+  // -1 previous day was recovery
+  if (prevDay?.recoveryQualified || prevDay?.recoveryDone) {
+    score -= 1;
+    reasons.push("previous_day_recovery");
+  }
+
+  // -1 fewer than 2 training days in last 7 days
+  if (trainingLast7 < 2) {
+    score -= 1;
+    reasons.push("too_little_recent_training");
+  }
+
+  // -1 already used 2 qualifying recovery days in last 7 days
+  if (qualifyingRecoveryLast7 >= 2) {
+    score -= 1;
+    reasons.push("too_many_recent_recovery_days");
+  }
+
+  const hardBlocked =
+    qualifyingRecoveryLast7 >= 2 ||
+    !!(prevDay?.recoveryQualified || prevDay?.recoveryDone) ||
+    trainingLast7 < 2;
+
+  return {
+    qualifies: !hardBlocked && score >= 1,
+    score,
+    reasons,
+    trainingLast5,
+    trainingLast7,
+    qualifyingRecoveryLast7,
+    consecutiveTrainingDaysBefore: countConsecutiveTrainingDaysBefore(dayMap, dateStr),
+  };
+}
+
+function getRecoveryRecommendationForToday(dayMap, todayYmd) {
+  const trainingLast5 = countTrainingDaysInWindow(dayMap, todayYmd, 5);
+  const trainingLast7 = countTrainingDaysInWindow(dayMap, todayYmd, 7);
+  const consecutiveTrainingBefore = countConsecutiveTrainingDaysBefore(dayMap, todayYmd);
+
+  const shouldRecommend =
+    consecutiveTrainingBefore >= 3 ||
+    trainingLast5 >= 4 ||
+    trainingLast7 >= 5;
+
+  return {
+    recommended: shouldRecommend,
+    reasons: {
+      consecutiveTrainingBefore,
+      trainingLast5,
+      trainingLast7,
+    },
+  };
+}
+
 // A set is "done" if any meaningful field exists.
 function setDidSomething(s) {
   if (!s) return false;
@@ -290,13 +465,10 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
     let sessionSets = 0;
     const blocks = Array.isArray(log.blocks) ? log.blocks : [];
 
-    const hasRecoveryDone = blocks.some(
-      (b) => b && !b.cancelled && b.typeId === "recovery" && b.recoveryDone
-    );
+    const recoveryDoneToday = hasRecoveryDone(log);
 
-    if (hasRecoveryDone) {
+    if (recoveryDoneToday) {
       totalRecoveryDays += 1;
-      qualifyingRecoveryDays += 1;
     }
 
     for (const b of blocks) {
@@ -407,6 +579,33 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
     if (runLen > longestStreakDays) longestStreakDays = runLen;
   }
 
+    // -----------------------------
+  // Recovery qualification + recommendation
+  // -----------------------------
+  const recoveryDayMap = buildRecoveryDayMap(rows);
+  const orderedRecoveryDates = Array.from(recoveryDayMap.keys()).sort((a, b) =>
+    a < b ? -1 : 1
+  );
+
+  for (const d of orderedRecoveryDates) {
+    const info = recoveryDayMap.get(d);
+    if (!info?.recoveryDone) continue;
+
+    const eligibility = getRecoveryEligibilityForDate(recoveryDayMap, d);
+    info.recoveryQualified = eligibility.qualifies;
+    info.recoveryScore = eligibility.score;
+    info.recoveryReasons = eligibility.reasons;
+
+    if (eligibility.qualifies) {
+      qualifyingRecoveryDays += 1;
+    }
+  }
+
+  const recoveryRecommendation = getRecoveryRecommendationForToday(
+    recoveryDayMap,
+    today
+  );
+  
   // -----------------------------
   // Pace improvement (best improvement across sports/pace distances)
   // improvement = (prev - cur) / prev * 100
@@ -455,6 +654,30 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
     recovery: {
       totalRecoveryDays,
       qualifyingRecoveryDays,
+      recommendation: recoveryRecommendation,
+      readiness: {
+        muscleRecoveryPct: Math.max(
+          35,
+          Math.min(
+            100,
+            100 - recoveryRecommendation.reasons.trainingLast5 * 8
+          )
+        ),
+        nervousSystemPct: Math.max(
+          30,
+          Math.min(
+            100,
+            100 - recoveryRecommendation.reasons.consecutiveTrainingBefore * 12
+          )
+        ),
+        energyPct: Math.max(
+          40,
+          Math.min(
+            100,
+            100 - recoveryRecommendation.reasons.trainingLast7 * 7
+          )
+        ),
+      },
     },
     cardio,
     intelligence: {
@@ -465,6 +688,7 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
   };
 
 }
+
 
 
 
