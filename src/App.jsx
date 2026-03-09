@@ -7138,7 +7138,8 @@ const targetInfo = buildTargetInfoForMovement({
     })}
   </div>
 )}
-
+              
+<Card className="pad">
 {/* Extra movements + One-off activities (legacy, still useful) */}
 <div className="stack mt16">
   {recoveryRecommendationToday?.recommended && !selectedDayHasRecoveryBlock && (
@@ -7468,9 +7469,8 @@ const targetInfo = buildTargetInfoForMovement({
   </PrimaryButton>
 </>
   )}
-</div>
-</div>
-              
+                </div>
+              </div> 
             </Card>
 
             <div className="stack">
