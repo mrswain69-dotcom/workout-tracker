@@ -1989,7 +1989,7 @@ useEffect(() => {
   const [extraMovCoachNoteDraft, setExtraMovCoachNoteDraft] = useState("");
   // Extra block type selection for today-only blocks
   const [showExtraBlockForm, setShowExtraBlockForm] = useState(false);
-  const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration"
+   const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration" | "recovery" | "activity"
 
   // Cardio extra-block drafts
   const [extraCardioNameDraft, setExtraCardioNameDraft] = useState("");
@@ -1998,12 +1998,23 @@ useEffect(() => {
   const [extraCardioCoachNoteDraft, setExtraCardioCoachNoteDraft] =
     useState("");
 
-  // Duration extra-block drafts
+    // Duration extra-block drafts
   const [extraDurationNameDraft, setExtraDurationNameDraft] = useState("");
   const [extraDurationMinutesDraft, setExtraDurationMinutesDraft] =
     useState("");
   const [extraDurationCoachNoteDraft, setExtraDurationCoachNoteDraft] =
     useState("");
+
+  // Recovery extra-block drafts
+  const [extraRecoveryNameDraft, setExtraRecoveryNameDraft] = useState("Recovery");
+  const [extraRecoveryModeDraft, setExtraRecoveryModeDraft] = useState("full");
+  const [extraRecoveryMinutesDraft, setExtraRecoveryMinutesDraft] =
+    useState("");
+  const [extraRecoveryCoachNoteDraft, setExtraRecoveryCoachNoteDraft] =
+    useState(
+      "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session."
+    );
+
   // Activity / task extra-block drafts
 const [extraActivityNameDraft, setExtraActivityNameDraft] = useState("");
 const [extraActivityXpDraft, setExtraActivityXpDraft] = useState("");
@@ -4989,6 +5000,53 @@ async function addExtraDurationBlockForToday(draft) {
   await saveLog(nextLog);
 }
 
+async function addExtraRecoveryBlockForToday(draft) {
+  const name = (draft?.name || "").trim() || "Recovery";
+  const recoveryMode = draft?.recoveryMode === "light" ? "light" : "full";
+  const plannedMinutes =
+    draft?.plannedMinutes === "" || draft?.plannedMinutes == null
+      ? ""
+      : String(draft.plannedMinutes);
+  const coachNote = (
+    draft?.coachNote ||
+    "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session."
+  ).trim();
+
+  const baseLog = ensureBlocksSnapshot(
+    logForDay ? { ...logForDay } : blankLogForDay()
+  );
+
+  const existingBlocks = Array.isArray(baseLog.blocks)
+    ? baseLog.blocks.slice()
+    : [];
+
+  const newBlock = {
+    id: uid(),
+    typeId: "recovery",
+    isExtra: true,
+    label: name,
+    note: coachNote,
+    recoveryMode,
+    recoveryDone: false,
+    cardio: {
+      distanceKm: "",
+      durationMin: "",
+      avgSpeedKmh: "",
+    },
+    duration: {
+      minutes: "",
+    },
+    plannedMinutes,
+  };
+
+  const nextLog = {
+    ...baseLog,
+    blocks: [...existingBlocks, newBlock],
+  };
+
+  await saveLog(nextLog);
+}
+
 async function addExtraActivityBlockForToday(draft) {
   const name = (draft?.name || "").trim();
   if (!name) return;
@@ -5099,7 +5157,7 @@ async function addExtraMovement() {
     return;
   }
 
-  if (extraBlockKind === "duration") {
+    if (extraBlockKind === "duration") {
     const name = (extraDurationNameDraft || "").trim();
     if (!name) return;
 
@@ -5114,6 +5172,27 @@ async function addExtraMovement() {
     setExtraDurationNameDraft("");
     setExtraDurationMinutesDraft("");
     setExtraDurationCoachNoteDraft("");
+    return;
+  }
+
+  if (extraBlockKind === "recovery") {
+    const name = (extraRecoveryNameDraft || "").trim() || "Recovery";
+
+    const draft = {
+      name,
+      recoveryMode: extraRecoveryModeDraft || "full",
+      plannedMinutes: extraRecoveryMinutesDraft || "",
+      coachNote: extraRecoveryCoachNoteDraft || "",
+    };
+
+    await addExtraRecoveryBlockForToday(draft);
+
+    setExtraRecoveryNameDraft("Recovery");
+    setExtraRecoveryModeDraft("full");
+    setExtraRecoveryMinutesDraft("");
+    setExtraRecoveryCoachNoteDraft(
+      "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session."
+    );
     return;
   }
 
@@ -6586,10 +6665,10 @@ const targetInfo = buildTargetInfoForMovement({
 <div className="panel">
   <div className="h2">Extra block for today</div>
     <div className="muted mt4">
-    Add a one-day-only Strength, Cardio or Duration block that shows in today&apos;s log
+    Add a one-day-only Strength, Cardio, Duration or Recovery block that shows in today&apos;s log
     but doesn&apos;t change the weekly plan. Use Cardio for anything with distance + time
     (runs, cycles, walks, swims, rows). Use Duration for movement where you only want
-    to record minutes (no distance).
+    to record minutes (no distance). Use Recovery for an unplanned rest or light recovery day.
   </div>
 
   <button
@@ -6609,10 +6688,11 @@ const targetInfo = buildTargetInfoForMovement({
       <Select
         value={extraBlockKind}
         onChange={setExtraBlockKind}
-          options={[
+        options={[
           { value: "strength", label: "Strength / HIIT / Box" },
           { value: "cardio", label: "Cardio (run / cycle / walk / swim / row)" },
           { value: "duration", label: "Duration (minutes only)" },
+          { value: "recovery", label: "Recovery" },
           { value: "activity", label: "Activity / task" },
         ]}
       />
@@ -6761,6 +6841,60 @@ const targetInfo = buildTargetInfoForMovement({
           onChange={setExtraDurationCoachNoteDraft}
           placeholder="Any cues or notes for this duration block..."
         />
+      </div>
+    </>
+  )}
+
+    {/* Recovery extra form */}
+  {extraBlockKind === "recovery" && (
+    <>
+      <div className="row mt8">
+        <div style={{ flex: 1 }}>
+          <div className="label">Name</div>
+          <Input
+            value={extraRecoveryNameDraft}
+            onChange={setExtraRecoveryNameDraft}
+            placeholder="e.g. Recovery"
+          />
+        </div>
+        <div style={{ width: 8 }} />
+        <div style={{ minWidth: 180 }}>
+          <div className="label">Recovery type</div>
+          <Select
+            value={extraRecoveryModeDraft}
+            onChange={setExtraRecoveryModeDraft}
+            options={[
+              { value: "full", label: "Full recovery" },
+              { value: "light", label: "Light recovery" },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div className="row mt8">
+        <div style={{ flex: 1 }}>
+          <div className="label">Planned minutes (optional)</div>
+          <Input
+            type="number"
+            min={0}
+            value={extraRecoveryMinutesDraft}
+            onChange={setExtraRecoveryMinutesDraft}
+            placeholder="e.g. 20"
+          />
+        </div>
+      </div>
+
+      <div className="mt8">
+        <div className="label">Coach note</div>
+        <Textarea
+          value={extraRecoveryCoachNoteDraft}
+          onChange={setExtraRecoveryCoachNoteDraft}
+          placeholder="Recovery guidance..."
+        />
+      </div>
+
+      <div className="muted mt8">
+        Use this for an unplanned recovery day when fatigue, soreness, workload or body signals suggest backing off is the smart choice.
       </div>
     </>
   )}
