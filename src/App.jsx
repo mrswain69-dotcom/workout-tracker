@@ -1721,21 +1721,43 @@ function getDayLoadSummaryForApp(log) {
   };
 }
 
-function getWeightedRecentLoadForApp(records, todayYmd) {
-  const weights = [1.0, 0.85, 0.7, 0.55, 0.4, 0.28, 0.18];
+function getWeightedRecentLoadForApp(records, todayYmd, currentLogForToday = null) {
+  const weights = [1.0, 0.78, 0.58, 0.42, 0.28, 0.18, 0.1];
 
   let totalLoad = 0;
   let muscleLoad = 0;
   let nervousLoad = 0;
   let energyLoad = 0;
   let recoveryCredit = 0;
+  let sleepCredit = 0;
+  let hoursSinceLastTraining = 999;
 
+  const rows = Array.isArray(records) ? records : [];
+
+  // 1) Include TODAY first, if there is a current log
+  if (currentLogForToday) {
+    const todaySummary = getDayLoadSummaryForApp(currentLogForToday);
+
+    totalLoad += todaySummary.totalLoad * 1.15;
+    muscleLoad += todaySummary.strengthLoad * 1.15;
+    nervousLoad += todaySummary.nervousLoad * 1.15;
+    energyLoad += todaySummary.cardioEnergyLoad * 1.15;
+    recoveryCredit += todaySummary.recoveryCredit * 1.0;
+
+    if (todaySummary.hadTraining) {
+      hoursSinceLastTraining = 0;
+    }
+  }
+
+  // 2) Historical days
   for (let i = 1; i <= 7; i++) {
     const d = ymdAddDays(todayYmd, -i);
-    const row = (Array.isArray(records) ? records : []).find(
-      (r) => (r?.date_ymd || r?.date) === d
-    );
-    if (!row?.log) continue;
+    const row = rows.find((r) => (r?.date_ymd || r?.date) === d);
+
+    if (!row?.log) {
+      sleepCredit += (i <= 2 ? 10 : i <= 4 ? 7 : 4) * (weights[i - 1] || 0.1);
+      continue;
+    }
 
     const w = weights[i - 1] || 0.1;
     const day = getDayLoadSummaryForApp(row.log);
@@ -1745,6 +1767,17 @@ function getWeightedRecentLoadForApp(records, todayYmd) {
     nervousLoad += day.nervousLoad * w;
     energyLoad += day.cardioEnergyLoad * w;
     recoveryCredit += day.recoveryCredit * w;
+
+    const daySleepBase =
+      day.totalLoad >= 120 ? 5 :
+      day.totalLoad >= 70 ? 7 :
+      10;
+
+    sleepCredit += daySleepBase * w;
+
+    if (hoursSinceLastTraining === 999 && day.hadTraining) {
+      hoursSinceLastTraining = i * 24;
+    }
   }
 
   return {
@@ -1753,6 +1786,8 @@ function getWeightedRecentLoadForApp(records, todayYmd) {
     nervousLoad: Math.round(nervousLoad),
     energyLoad: Math.round(energyLoad),
     recoveryCredit: Math.round(recoveryCredit),
+    sleepCredit: Math.round(sleepCredit),
+    hoursSinceLastTraining,
   };
 }
 
@@ -1764,34 +1799,54 @@ function getReadinessBand(score) {
   return { label: "Low", tone: "low" };
 }
 
-function getRecoveryRecommendationForTodayApp(records, todayYmd) {
+function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForToday = null) {
   const dayMap = getRecoveryDateMapForApp(records);
   const consecutiveTrainingBefore =
     countConsecutiveTrainingDaysBeforeForApp(dayMap, todayYmd);
   const trainingLast5 = countTrainingDaysInWindowForApp(dayMap, todayYmd, 5);
   const trainingLast7 = countTrainingDaysInWindowForApp(dayMap, todayYmd, 7);
-  const weighted = getWeightedRecentLoadForApp(records, todayYmd);
+    const weighted = getWeightedRecentLoadForApp(records, todayYmd, currentLogForToday);
+
+  const timeRecoveryBoost = clamp(
+    Math.round((weighted.hoursSinceLastTraining / 24) * 8),
+    0,
+    18
+  );
 
   const muscleReadiness = clamp(
-    Math.round(100 - weighted.muscleLoad * 0.9 + weighted.recoveryCredit * 0.45),
-    12,
+    Math.round(
+      86 -
+        weighted.muscleLoad * 0.48 +
+        weighted.recoveryCredit * 0.85 +
+        weighted.sleepCredit * 0.6 +
+        timeRecoveryBoost
+    ),
+    18,
     100
   );
 
   const nervousSystemReadiness = clamp(
     Math.round(
-      100 -
-        weighted.nervousLoad * 0.95 -
-        consecutiveTrainingBefore * 6 +
-        weighted.recoveryCredit * 0.35
+      84 -
+        weighted.nervousLoad * 0.52 -
+        consecutiveTrainingBefore * 4 +
+        weighted.recoveryCredit * 0.7 +
+        weighted.sleepCredit * 0.55 +
+        timeRecoveryBoost
     ),
-    10,
+    15,
     100
   );
 
   const bodyEnergy = clamp(
-    Math.round(100 - weighted.energyLoad * 0.72 + weighted.recoveryCredit * 0.28),
-    15,
+    Math.round(
+      88 -
+        weighted.energyLoad * 0.42 +
+        weighted.recoveryCredit * 0.5 +
+        weighted.sleepCredit * 0.8 +
+        Math.round(timeRecoveryBoost * 0.65)
+    ),
+    20,
     100
   );
 
@@ -1807,11 +1862,14 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd) {
 
   const band = getReadinessBand(trainingReadinessScore);
 
+  const hardRecoveryRule =
+    trainingReadinessScore <= 34 ||
+    consecutiveTrainingBefore >= 4 ||
+    (weighted.totalLoad >= 210 && trainingLast7 >= 4);
+
   const recommended =
-    trainingReadinessScore <= 44 ||
-    consecutiveTrainingBefore >= 3 ||
-    trainingLast5 >= 4 ||
-    (weighted.totalLoad >= 170 && trainingLast7 >= 4);
+    hardRecoveryRule ||
+    (trainingReadinessScore <= 44 && trainingLast7 >= 3);
 
   let recommendationText = "Ready to train if energy feels good.";
   if (trainingReadinessScore <= 24) {
@@ -1819,10 +1877,10 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd) {
       "Recovery strongly advised. Recent load is high enough that performance quality may drop if you keep pushing hard.";
   } else if (trainingReadinessScore <= 44) {
     recommendationText =
-      "Recovery advised. Recent load is suppressing readiness and a recovery day could help restore performance quality.";
+      "Recovery advised. Recent load is suppressing readiness and a lighter or recovery day could improve the quality of your next hard session.";
   } else if (trainingReadinessScore <= 64) {
     recommendationText =
-      "A lighter day is worth considering. You can still train, but quality matters more than just adding load.";
+      "Moderate readiness. You can train, but quality and intent matter more than simply adding load.";
   } else if (trainingReadinessScore >= 85) {
     recommendationText =
       "Prime for performance. Load and recovery look well balanced for a quality session.";
@@ -3842,8 +3900,8 @@ const recoveryEligibilityForSelectedDate = useMemo(() => {
 }, [allLogs, selectedDate]);
 
 const recoveryRecommendationToday = useMemo(() => {
-  return getRecoveryRecommendationForTodayApp(allLogs, todayYmd);
-}, [allLogs, todayYmd]);
+  return getRecoveryRecommendationForTodayApp(allLogs, todayYmd, logForDay);
+}, [allLogs, todayYmd, logForDay]);
 
 const bodyReadiness = useMemo(() => {
   const score = recoveryRecommendationToday?.trainingReadinessScore || 0;
@@ -7515,72 +7573,100 @@ const targetInfo = buildTargetInfoForMovement({
     <Pill>{bodyReadiness.band.label}</Pill>
   </div>
 
-  <div className={`readinessScore readiness-${bodyReadiness.band.tone} mt12`}>
-    <div className="readinessScoreTop">
-      <div className="readinessScoreValue">
-        {bodyReadiness.trainingReadinessScore}
+  <div className={`readinessHero readiness-${bodyReadiness.band.tone} mt12`}>
+    <div className="readinessScoreSolo">
+      {bodyReadiness.trainingReadinessScore}
+    </div>
+
+    <div className="readinessScaleWrap mt12">
+      <div className="readinessScaleLegend">
+        <span>Low</span>
+        <span>Reduced</span>
+        <span>Moderate</span>
+        <span>High</span>
+        <span>Prime</span>
       </div>
 
-      <div className="readinessScoreMeta">
-        <div className="muted mini">Training Readiness Score</div>
-        <div className="muted mini">
-          Estimated from recent training load, recovery days and training density
+      <div className="readinessScaleBand">
+        <div className="readinessMarker" style={{ left: `${bodyReadiness.trainingReadinessScore}%` }} />
+      </div>
+    </div>
+
+    <div className="muted mt12">
+      {bodyReadiness.recommendationText} Estimated from recent training load,
+      recovery days, assumed sleep and training density.
+    </div>
+  </div>
+
+  <div className="readinessMetricsGrid mt16">
+    <div className="readinessMetricCard">
+      <div className="readinessMetricTitle">Muscle Readiness</div>
+      <div className="readinessGauge">
+        <svg viewBox="0 0 120 70" className="readinessGaugeSvg">
+          <path
+            d="M 15 55 A 45 45 0 0 1 105 55"
+            className="readinessGaugeTrack"
+          />
+          <path
+            d="M 15 55 A 45 45 0 0 1 105 55"
+            className="readinessGaugeFill"
+            style={{
+              strokeDasharray: `${bodyReadiness.muscleReadiness * 1.42} 999`,
+            }}
+          />
+        </svg>
+        <div className="readinessGaugeValue">{bodyReadiness.muscleReadiness}%</div>
+      </div>
+    </div>
+
+    <div className="readinessMetricCard">
+      <div className="readinessMetricTitle">Nervous System Readiness</div>
+      <div className="readinessGauge">
+        <svg viewBox="0 0 120 70" className="readinessGaugeSvg">
+          <path
+            d="M 15 55 A 45 45 0 0 1 105 55"
+            className="readinessGaugeTrack"
+          />
+          <path
+            d="M 15 55 A 45 45 0 0 1 105 55"
+            className="readinessGaugeFill"
+            style={{
+              strokeDasharray: `${bodyReadiness.nervousSystemReadiness * 1.42} 999`,
+            }}
+          />
+        </svg>
+        <div className="readinessGaugeValue">
+          {bodyReadiness.nervousSystemReadiness}%
         </div>
       </div>
     </div>
 
-    <div className="readinessScale mt12">
-      <div
-        className="readinessScaleFill"
-        style={{ width: `${bodyReadiness.trainingReadinessScore}%` }}
-      />
+    <div className="readinessMetricCard">
+      <div className="readinessMetricTitle">Body Energy</div>
+      <div className="readinessGauge">
+        <svg viewBox="0 0 120 70" className="readinessGaugeSvg">
+          <path
+            d="M 15 55 A 45 45 0 0 1 105 55"
+            className="readinessGaugeTrack"
+          />
+          <path
+            d="M 15 55 A 45 45 0 0 1 105 55"
+            className="readinessGaugeFill"
+            style={{
+              strokeDasharray: `${bodyReadiness.bodyEnergy * 1.42} 999`,
+            }}
+          />
+        </svg>
+        <div className="readinessGaugeValue">{bodyReadiness.bodyEnergy}%</div>
+      </div>
     </div>
-
-    <div className="muted mt8">{bodyReadiness.recommendationText}</div>
-  </div>
-
-  <div className="mt16">
-    <div className="muted mini">Muscle Readiness</div>
-    <div className="progress mt4">
-      <div
-        className="progress-fill"
-        style={{ width: `${bodyReadiness.muscleReadiness}%` }}
-      />
-    </div>
-    <div className="muted mini mt4">{bodyReadiness.muscleReadiness}%</div>
-  </div>
-
-  <div className="mt12">
-    <div className="muted mini">Nervous System Readiness</div>
-    <div className="progress mt4">
-      <div
-        className="progress-fill"
-        style={{ width: `${bodyReadiness.nervousSystemReadiness}%` }}
-      />
-    </div>
-    <div className="muted mini mt4">
-      {bodyReadiness.nervousSystemReadiness}%
-    </div>
-  </div>
-
-  <div className="mt12">
-    <div className="muted mini">Body Energy</div>
-    <div className="progress mt4">
-      <div
-        className="progress-fill"
-        style={{ width: `${bodyReadiness.bodyEnergy}%` }}
-      />
-    </div>
-    <div className="muted mini mt4">{bodyReadiness.bodyEnergy}%</div>
   </div>
 
   <div className="mt16">
     <SecondaryButton
       onClick={() => setShowBodyReadinessExplain((v) => !v)}
     >
-      {showBodyReadinessExplain
-        ? "Hide explanation"
-        : "What do these mean?"}
+      {showBodyReadinessExplain ? "Hide explanation" : "What do these mean?"}
     </SecondaryButton>
   </div>
 
@@ -7592,8 +7678,8 @@ const targetInfo = buildTargetInfoForMovement({
         <b>Training Readiness Score</b>
         <div className="muted mt4">
           A combined estimate of how ready the body looks for productive
-          training today. It is influenced by recent training load,
-          hard-session density and recovery days.
+          training today. It is influenced by recent training load, recovery,
+          assumed normal sleep and time since recent hard work.
         </div>
       </div>
 
@@ -7601,33 +7687,30 @@ const targetInfo = buildTargetInfoForMovement({
         <b>Muscle Readiness</b>
         <div className="muted mt4">
           Estimated from recent strength, HIIT and other muscular load.
-          Low suggests the body may still be carrying muscular fatigue.
+          Low suggests the muscles may still be carrying fatigue.
         </div>
       </div>
 
       <div className="mt8">
         <b>Nervous System Readiness</b>
         <div className="muted mt4">
-          Estimated from hard-session clustering and consecutive training
-          density. Low suggests intensity quality may be suppressed even if
-          motivation is high.
+          Estimated from hard-session clustering and repeated intensity.
+          Low suggests sharpness and output quality may be suppressed.
         </div>
       </div>
 
       <div className="mt8">
         <b>Body Energy</b>
         <div className="muted mt4">
-          Estimated from recent cardio, duration and total workload
-          accumulation. Low suggests the body may benefit from reduced load
-          or recovery.
+          Estimated from recent cardio, total workload and general recovery.
+          Low suggests the body may benefit from reduced load or recovery.
         </div>
       </div>
 
       <div className="mt8">
         <b>Score guide</b>
         <div className="muted mt4">
-          Low = red, Reduced = amber, Moderate = green, High = blue,
-          Prime = purple.
+          Low = red, Reduced = amber, Moderate = green, High = blue, Prime = purple.
         </div>
       </div>
     </div>
