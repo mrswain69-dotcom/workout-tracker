@@ -7514,7 +7514,7 @@ const targetInfo = buildTargetInfoForMovement({
                 </div>
               </Card>
               
-             <Card className="pad bodyReadinessCard">
+  <Card className="pad bodyReadinessCard">
   <div className="rowBetween">
     <div className="h3">Body Readiness Status</div>
     <Pill>{bodyReadiness.band.label}</Pill>
@@ -7525,6 +7525,7 @@ const targetInfo = buildTargetInfoForMovement({
       <div className="readinessScoreValue">
         {bodyReadiness.trainingReadinessScore}
       </div>
+
       <div className="readinessScoreMeta">
         <div className="muted mini">Training Readiness Score</div>
         <div className="muted mini">
@@ -7534,18 +7535,22 @@ const targetInfo = buildTargetInfoForMovement({
     </div>
 
     <div className="readinessScale mt12">
-      <div className="readinessScaleFill" style={{ width: `${bodyReadiness.trainingReadinessScore}%` }} />
+      <div
+        className="readinessScaleFill"
+        style={{ width: `${bodyReadiness.trainingReadinessScore}%` }}
+      />
     </div>
 
-    <div className="muted mt8">
-      {bodyReadiness.recommendationText}
-    </div>
+    <div className="muted mt8">{bodyReadiness.recommendationText}</div>
   </div>
 
   <div className="mt16">
     <div className="muted mini">Muscle Readiness</div>
     <div className="progress mt4">
-      <div className="progress-fill" style={{ width: `${bodyReadiness.muscleReadiness}%` }} />
+      <div
+        className="progress-fill"
+        style={{ width: `${bodyReadiness.muscleReadiness}%` }}
+      />
     </div>
     <div className="muted mini mt4">{bodyReadiness.muscleReadiness}%</div>
   </div>
@@ -7553,15 +7558,23 @@ const targetInfo = buildTargetInfoForMovement({
   <div className="mt12">
     <div className="muted mini">Nervous System Readiness</div>
     <div className="progress mt4">
-      <div className="progress-fill" style={{ width: `${bodyReadiness.nervousSystemReadiness}%` }} />
+      <div
+        className="progress-fill"
+        style={{ width: `${bodyReadiness.nervousSystemReadiness}%` }}
+      />
     </div>
-    <div className="muted mini mt4">{bodyReadiness.nervousSystemReadiness}%</div>
+    <div className="muted mini mt4">
+      {bodyReadiness.nervousSystemReadiness}%
+    </div>
   </div>
 
   <div className="mt12">
     <div className="muted mini">Body Energy</div>
     <div className="progress mt4">
-      <div className="progress-fill" style={{ width: `${bodyReadiness.bodyEnergy}%` }} />
+      <div
+        className="progress-fill"
+        style={{ width: `${bodyReadiness.bodyEnergy}%` }}
+      />
     </div>
     <div className="muted mini mt4">{bodyReadiness.bodyEnergy}%</div>
   </div>
@@ -7570,7 +7583,9 @@ const targetInfo = buildTargetInfoForMovement({
     <SecondaryButton
       onClick={() => setShowBodyReadinessExplain((v) => !v)}
     >
-      {showBodyReadinessExplain ? "Hide explanation" : "What do these mean?"}
+      {showBodyReadinessExplain
+        ? "Hide explanation"
+        : "What do these mean?"}
     </SecondaryButton>
   </div>
 
@@ -7581,8 +7596,9 @@ const targetInfo = buildTargetInfoForMovement({
       <div className="mt8">
         <b>Training Readiness Score</b>
         <div className="muted mt4">
-          A combined estimate of how ready the body looks for productive training today.
-          It is influenced by recent training load, hard-session density and recovery days.
+          A combined estimate of how ready the body looks for productive
+          training today. It is influenced by recent training load,
+          hard-session density and recovery days.
         </div>
       </div>
 
@@ -7597,23 +7613,26 @@ const targetInfo = buildTargetInfoForMovement({
       <div className="mt8">
         <b>Nervous System Readiness</b>
         <div className="muted mt4">
-          Estimated from hard-session clustering and consecutive training density.
-          Low suggests intensity quality may be suppressed even if motivation is high.
+          Estimated from hard-session clustering and consecutive training
+          density. Low suggests intensity quality may be suppressed even if
+          motivation is high.
         </div>
       </div>
 
       <div className="mt8">
         <b>Body Energy</b>
         <div className="muted mt4">
-          Estimated from recent cardio, duration and total workload accumulation.
-          Low suggests the body may benefit from reduced load or recovery.
+          Estimated from recent cardio, duration and total workload
+          accumulation. Low suggests the body may benefit from reduced load
+          or recovery.
         </div>
       </div>
 
       <div className="mt8">
         <b>Score guide</b>
         <div className="muted mt4">
-          Low = red, Reduced = amber, Moderate = green, High = blue, Prime = purple.
+          Low = red, Reduced = amber, Moderate = green, High = blue,
+          Prime = purple.
         </div>
       </div>
     </div>
