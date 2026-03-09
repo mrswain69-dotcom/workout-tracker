@@ -294,7 +294,15 @@ function ensureBlocksByWeekday(plan) {
 
 function ymd(date) {
   const d = typeof date === "string" ? new Date(date) : date;
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function ymdAddDays(ymdStr, days) {
+  const d = new Date(`${ymdStr}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return ymd(d);
 }
 function formatDate(dISO) {
   const d = new Date(dISO + "T00:00:00");
@@ -4858,13 +4866,6 @@ const extractTaskDoneFromLog = (log, blockId, taskId) => {
   const b = blocks.find((x) => x?.id === blockId);
   const tasksDone = b?.tasksDone && typeof b.tasksDone === "object" ? b.tasksDone : null;
   return !!tasksDone?.[taskId];
-};
-
-// simple date iterator for task streak charts (0/1 per day)
-const ymdAddDays = (ymdStr, days) => {
-  const d = new Date(ymdStr + "T00:00:00");
-  d.setDate(d.getDate() + days);
-  return ymd(d);
 };
 
 // Build a quick “has history?” index so we only show the pill when data exists
