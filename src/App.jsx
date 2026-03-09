@@ -7171,23 +7171,7 @@ const targetInfo = buildTargetInfoForMovement({
     </div>
   </div>
 )}
-      <div className="mt8">
-        <PrimaryButton
-          onClick={async () => {
-            await addExtraRecoveryBlockForToday({
-              name: "Recovery",
-              recoveryMode: "full",
-              plannedMinutes: "",
-              coachNote:
-                "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session.",
-            });
-          }}
-        >
-          + Add Recovery Block
-        </PrimaryButton>
-      </div>
-    </div>
-  )}
+
 {/* Extra blocks for this specific date */}
 <div className="panel">
   <div className="h2">Extra block for today</div>
