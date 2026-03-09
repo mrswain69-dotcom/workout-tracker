@@ -454,3 +454,85 @@ button.btn.primary:hover{
   border-radius: 999px;
   background: var(--accent, #00E5FF);
 }
+
+.bodyReadinessCard {
+  overflow: hidden;
+}
+
+.readinessScore {
+  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.02);
+}
+
+.readinessScoreTop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.readinessScoreValue {
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 800;
+  min-width: 72px;
+}
+
+.readinessScoreMeta {
+  flex: 1;
+}
+
+.readinessScale {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    #c73a3a 0%,
+    #d67b1f 25%,
+    #4e9c59 50%,
+    #3e7fd9 75%,
+    #7d4bd6 100%
+  );
+  opacity: 0.24;
+  position: relative;
+}
+
+.readinessScaleFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #c73a3a 0%,
+    #d67b1f 25%,
+    #4e9c59 50%,
+    #3e7fd9 75%,
+    #7d4bd6 100%
+  );
+}
+
+.readiness-low .readinessScoreValue {
+  color: #c73a3a;
+}
+
+.readiness-reduced .readinessScoreValue {
+  color: #d67b1f;
+}
+
+.readiness-moderate .readinessScoreValue {
+  color: #4e9c59;
+}
+
+.readiness-high .readinessScoreValue {
+  color: #3e7fd9;
+}
+
+.readiness-prime .readinessScoreValue {
+  color: #7d4bd6;
+}
+
+.readinessBanner {
+  border: 1px solid rgba(214, 123, 31, 0.35);
+}
