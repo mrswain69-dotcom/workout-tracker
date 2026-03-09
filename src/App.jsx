@@ -1586,21 +1586,251 @@ function getRecoveryEligibilityForDateApp(records, dateStr) {
   };
 }
 
+function getBlockLoadScoreForApp(block) {
+  if (!block || block.cancelled) return 0;
+  const typeId = String(block.typeId || "").toLowerCase();
+
+  if (typeId === "strength") {
+    const setsCount = countCompletedSetsInBlock(block);
+    return setsCount * 10;
+  }
+
+  if (typeId === "hiit" || typeId === "box") {
+    const setsCount = countCompletedSetsInBlock(block);
+    return setsCount * 13;
+  }
+
+  if (
+    typeId === "cardio" ||
+    typeId === "run" ||
+    typeId === "swim" ||
+    typeId === "walk" ||
+    typeId === "row" ||
+    typeId === "cycle" ||
+    typeId === "bike"
+  ) {
+    const c = block.cardio || {};
+    const km = safeNumber(c.distanceKm);
+    const min = safeNumber(c.durationMin);
+    const cardioType = String(block.cardioType || typeId || "").toLowerCase();
+
+    let base = min * 1.2 + km * 8;
+
+    if (cardioType === "walk") base *= 0.65;
+    if (cardioType === "run" || cardioType === "row" || cardioType === "swim") base *= 1.1;
+
+    return Math.round(base);
+  }
+
+  if (typeId === "duration") {
+    const mins = safeNumber(block?.duration?.minutes);
+    return Math.round(mins * 0.7);
+  }
+
+  if (typeId === "tasks") {
+    return 0;
+  }
+
+  if (typeId === "recovery") {
+    return 0;
+  }
+
+  return 0;
+}
+
+function getRecoveryCreditForApp(log) {
+  const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+  let credit = 0;
+
+  for (const b of blocks) {
+    if (!b || b.cancelled || b.typeId !== "recovery" || !b.recoveryDone) continue;
+
+    if (b.recoveryMode === "light") credit += 10;
+    else credit += 18;
+  }
+
+  return credit;
+}
+
+function getDayLoadSummaryForApp(log) {
+  const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+
+  let totalLoad = 0;
+  let strengthLoad = 0;
+  let nervousLoad = 0;
+  let cardioEnergyLoad = 0;
+  let hadTraining = false;
+  let hadRecovery = false;
+
+  for (const b of blocks) {
+    if (!b || b.cancelled) continue;
+
+    const typeId = String(b.typeId || "").toLowerCase();
+    const load = getBlockLoadScoreForApp(b);
+
+    if (load > 0) hadTraining = true;
+    if (typeId === "recovery" && b.recoveryDone) hadRecovery = true;
+
+    totalLoad += load;
+
+    if (typeId === "strength") {
+      strengthLoad += load;
+      nervousLoad += load * 0.85;
+    } else if (typeId === "hiit" || typeId === "box") {
+      strengthLoad += load * 0.5;
+      nervousLoad += load * 1.15;
+      cardioEnergyLoad += load * 0.7;
+    } else if (
+      typeId === "cardio" ||
+      typeId === "run" ||
+      typeId === "swim" ||
+      typeId === "walk" ||
+      typeId === "row" ||
+      typeId === "cycle" ||
+      typeId === "bike"
+    ) {
+      nervousLoad += load * 0.55;
+      cardioEnergyLoad += load;
+    } else if (typeId === "duration") {
+      cardioEnergyLoad += load * 0.6;
+      nervousLoad += load * 0.25;
+    }
+  }
+
+  return {
+    totalLoad,
+    strengthLoad,
+    nervousLoad,
+    cardioEnergyLoad,
+    recoveryCredit: getRecoveryCreditForApp(log),
+    hadTraining,
+    hadRecovery,
+    streakSaved: !!log?.meta?.streakSaved,
+  };
+}
+
+function getWeightedRecentLoadForApp(records, todayYmd) {
+  const weights = [1.0, 0.85, 0.7, 0.55, 0.4, 0.28, 0.18];
+
+  let totalLoad = 0;
+  let muscleLoad = 0;
+  let nervousLoad = 0;
+  let energyLoad = 0;
+  let recoveryCredit = 0;
+
+  for (let i = 1; i <= 7; i++) {
+    const d = ymdAddDays(todayYmd, -i);
+    const row = (Array.isArray(records) ? records : []).find(
+      (r) => (r?.date_ymd || r?.date) === d
+    );
+    if (!row?.log) continue;
+
+    const w = weights[i - 1] || 0.1;
+    const day = getDayLoadSummaryForApp(row.log);
+
+    totalLoad += day.totalLoad * w;
+    muscleLoad += day.strengthLoad * w;
+    nervousLoad += day.nervousLoad * w;
+    energyLoad += day.cardioEnergyLoad * w;
+    recoveryCredit += day.recoveryCredit * w;
+  }
+
+  return {
+    totalLoad: Math.round(totalLoad),
+    muscleLoad: Math.round(muscleLoad),
+    nervousLoad: Math.round(nervousLoad),
+    energyLoad: Math.round(energyLoad),
+    recoveryCredit: Math.round(recoveryCredit),
+  };
+}
+
+function getReadinessBand(score) {
+  if (score >= 85) return { label: "Prime", tone: "prime" };
+  if (score >= 65) return { label: "High", tone: "high" };
+  if (score >= 45) return { label: "Moderate", tone: "moderate" };
+  if (score >= 25) return { label: "Reduced", tone: "reduced" };
+  return { label: "Low", tone: "low" };
+}
+
 function getRecoveryRecommendationForTodayApp(records, todayYmd) {
   const dayMap = getRecoveryDateMapForApp(records);
   const consecutiveTrainingBefore =
     countConsecutiveTrainingDaysBeforeForApp(dayMap, todayYmd);
   const trainingLast5 = countTrainingDaysInWindowForApp(dayMap, todayYmd, 5);
   const trainingLast7 = countTrainingDaysInWindowForApp(dayMap, todayYmd, 7);
+  const weighted = getWeightedRecentLoadForApp(records, todayYmd);
+
+  const muscleReadiness = clamp(
+    Math.round(100 - weighted.muscleLoad * 0.9 + weighted.recoveryCredit * 0.45),
+    12,
+    100
+  );
+
+  const nervousSystemReadiness = clamp(
+    Math.round(
+      100 -
+        weighted.nervousLoad * 0.95 -
+        consecutiveTrainingBefore * 6 +
+        weighted.recoveryCredit * 0.35
+    ),
+    10,
+    100
+  );
+
+  const bodyEnergy = clamp(
+    Math.round(100 - weighted.energyLoad * 0.72 + weighted.recoveryCredit * 0.28),
+    15,
+    100
+  );
+
+  const trainingReadinessScore = clamp(
+    Math.round(
+      muscleReadiness * 0.35 +
+        nervousSystemReadiness * 0.35 +
+        bodyEnergy * 0.3
+    ),
+    0,
+    100
+  );
+
+  const band = getReadinessBand(trainingReadinessScore);
+
+  const recommended =
+    trainingReadinessScore <= 44 ||
+    consecutiveTrainingBefore >= 3 ||
+    trainingLast5 >= 4 ||
+    (weighted.totalLoad >= 170 && trainingLast7 >= 4);
+
+  let recommendationText = "Ready to train if energy feels good.";
+  if (trainingReadinessScore <= 24) {
+    recommendationText =
+      "Recovery strongly advised. Recent load is high enough that performance quality may drop if you keep pushing hard.";
+  } else if (trainingReadinessScore <= 44) {
+    recommendationText =
+      "Recovery advised. Recent load is suppressing readiness and a recovery day could help restore performance quality.";
+  } else if (trainingReadinessScore <= 64) {
+    recommendationText =
+      "A lighter day is worth considering. You can still train, but quality matters more than just adding load.";
+  } else if (trainingReadinessScore >= 85) {
+    recommendationText =
+      "Prime for performance. Load and recovery look well balanced for a quality session.";
+  } else {
+    recommendationText =
+      "Readiness looks solid. If energy feels good, this is a strong day to train well.";
+  }
 
   return {
-    recommended:
-      consecutiveTrainingBefore >= 3 ||
-      trainingLast5 >= 4 ||
-      trainingLast7 >= 5,
+    recommended,
+    recommendationText,
+    trainingReadinessScore,
+    band,
+    muscleReadiness,
+    nervousSystemReadiness,
+    bodyEnergy,
     consecutiveTrainingBefore,
     trainingLast5,
     trainingLast7,
+    weightedLoad: weighted,
   };
 }
 
@@ -1861,6 +2091,7 @@ const [claimFx, setClaimFx] = useState(null); // reserved for future
 const [claimXpDisplay, setClaimXpDisplay] = useState(null);
   const [showXpLedger, setShowXpLedger] = useState(false);
   const [lastClaimedKey, setLastClaimedKey] = useState("");
+  const [showBodyReadinessExplain, setShowBodyReadinessExplain] = useState(false);
 
   // --- Rotating Motivation & Health tip (changes on tab switch) ---
 const MOTIVATION_QUOTES = [
@@ -3603,18 +3834,19 @@ const recoveryRecommendationToday = useMemo(() => {
 }, [allLogs, todayYmd]);
 
 const bodyReadiness = useMemo(() => {
-  const trainingLast5 = recoveryRecommendationToday?.trainingLast5 || 0;
-  const trainingLast7 = recoveryRecommendationToday?.trainingLast7 || 0;
-  const consecutiveTrainingBefore =
-    recoveryRecommendationToday?.consecutiveTrainingBefore || 0;
+  const score = recoveryRecommendationToday?.trainingReadinessScore || 0;
+  const band = recoveryRecommendationToday?.band || getReadinessBand(score);
 
   return {
-    muscleRecoveryPct: Math.max(35, Math.min(100, 100 - trainingLast5 * 8)),
-    nervousSystemPct: Math.max(
-      30,
-      Math.min(100, 100 - consecutiveTrainingBefore * 12)
-    ),
-    energyPct: Math.max(40, Math.min(100, 100 - trainingLast7 * 7)),
+    trainingReadinessScore: score,
+    band,
+    muscleReadiness: recoveryRecommendationToday?.muscleReadiness || 0,
+    nervousSystemReadiness:
+      recoveryRecommendationToday?.nervousSystemReadiness || 0,
+    bodyEnergy: recoveryRecommendationToday?.bodyEnergy || 0,
+    recommendationText:
+      recoveryRecommendationToday?.recommendationText ||
+      "Ready to train if energy feels good.",
   };
 }, [recoveryRecommendationToday]);
 
@@ -6910,17 +7142,34 @@ const targetInfo = buildTargetInfoForMovement({
 {/* Extra movements + One-off activities (legacy, still useful) */}
 <div className="stack mt16">
   {recoveryRecommendationToday?.recommended && !selectedDayHasRecoveryBlock && (
-    <div className="panel" style={{ border: "1px solid rgba(255,215,0,0.25)" }}>
-      <div className="h2">⚡ Recovery Recommended Today</div>
-      <div className="muted mt8">
-        Your recent workload suggests a recovery session may improve adaptation and performance.
-      </div>
-      <div className="muted mt8">
-        Recent load: {recoveryRecommendationToday.consecutiveTrainingBefore} consecutive training day
-        {recoveryRecommendationToday.consecutiveTrainingBefore === 1 ? "" : "s"}
-        {" "}• {recoveryRecommendationToday.trainingLast5} of last 5 days
-        {" "}• {recoveryRecommendationToday.trainingLast7} of last 7 days
-      </div>
+  <div className="panel readinessBanner">
+    <div className="h2">⚡ Recovery Recommended Today</div>
+    <div className="muted mt8">
+      {bodyReadiness.recommendationText}
+    </div>
+    <div className="muted mt8">
+      Readiness {bodyReadiness.trainingReadinessScore}/100 — {bodyReadiness.band.label}
+      {" "}• {recoveryRecommendationToday.consecutiveTrainingBefore} consecutive training day
+      {recoveryRecommendationToday.consecutiveTrainingBefore === 1 ? "" : "s"}
+      {" "}• load score {recoveryRecommendationToday.weightedLoad.totalLoad}
+    </div>
+    <div className="mt8">
+      <PrimaryButton
+        onClick={async () => {
+          await addExtraRecoveryBlockForToday({
+            name: "Recovery",
+            recoveryMode: "full",
+            plannedMinutes: "",
+            coachNote:
+              "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session.",
+          });
+        }}
+      >
+        + Add Recovery Block
+      </PrimaryButton>
+    </div>
+  </div>
+)}
       <div className="mt8">
         <PrimaryButton
           onClick={async () => {
@@ -7265,39 +7514,110 @@ const targetInfo = buildTargetInfoForMovement({
                 </div>
               </Card>
               
-              <Card className="pad">
+             <Card className="pad bodyReadinessCard">
   <div className="rowBetween">
-    <div className="h3">Recovery Status</div>
-    <Pill>Estimated</Pill>
+    <div className="h3">Body Readiness Status</div>
+    <Pill>{bodyReadiness.band.label}</Pill>
+  </div>
+
+  <div className={`readinessScore readiness-${bodyReadiness.band.tone} mt12`}>
+    <div className="readinessScoreTop">
+      <div className="readinessScoreValue">
+        {bodyReadiness.trainingReadinessScore}
+      </div>
+      <div className="readinessScoreMeta">
+        <div className="muted mini">Training Readiness Score</div>
+        <div className="muted mini">
+          Estimated from recent training load, recovery days and training density
+        </div>
+      </div>
+    </div>
+
+    <div className="readinessScale mt12">
+      <div className="readinessScaleFill" style={{ width: `${bodyReadiness.trainingReadinessScore}%` }} />
+    </div>
+
+    <div className="muted mt8">
+      {bodyReadiness.recommendationText}
+    </div>
+  </div>
+
+  <div className="mt16">
+    <div className="muted mini">Muscle Readiness</div>
+    <div className="progress mt4">
+      <div className="progress-fill" style={{ width: `${bodyReadiness.muscleReadiness}%` }} />
+    </div>
+    <div className="muted mini mt4">{bodyReadiness.muscleReadiness}%</div>
   </div>
 
   <div className="mt12">
-    <div className="muted mini">Muscle recovery</div>
+    <div className="muted mini">Nervous System Readiness</div>
     <div className="progress mt4">
-      <div className="progress-fill" style={{ width: `${bodyReadiness.muscleRecoveryPct}%` }} />
+      <div className="progress-fill" style={{ width: `${bodyReadiness.nervousSystemReadiness}%` }} />
     </div>
-    <div className="muted mini mt4">{bodyReadiness.muscleRecoveryPct}%</div>
+    <div className="muted mini mt4">{bodyReadiness.nervousSystemReadiness}%</div>
   </div>
 
   <div className="mt12">
-    <div className="muted mini">Nervous system recovery</div>
+    <div className="muted mini">Body Energy</div>
     <div className="progress mt4">
-      <div className="progress-fill" style={{ width: `${bodyReadiness.nervousSystemPct}%` }} />
+      <div className="progress-fill" style={{ width: `${bodyReadiness.bodyEnergy}%` }} />
     </div>
-    <div className="muted mini mt4">{bodyReadiness.nervousSystemPct}%</div>
+    <div className="muted mini mt4">{bodyReadiness.bodyEnergy}%</div>
   </div>
 
-  <div className="mt12">
-    <div className="muted mini">Energy restoration</div>
-    <div className="progress mt4">
-      <div className="progress-fill" style={{ width: `${bodyReadiness.energyPct}%` }} />
-    </div>
-    <div className="muted mini mt4">{bodyReadiness.energyPct}%</div>
+  <div className="mt16">
+    <SecondaryButton
+      onClick={() => setShowBodyReadinessExplain((v) => !v)}
+    >
+      {showBodyReadinessExplain ? "Hide explanation" : "What do these mean?"}
+    </SecondaryButton>
   </div>
 
-  <div className="muted mt12">
-    Recommendation: {recoveryRecommendationToday?.recommended ? "Recovery Day or Light Activity" : "Ready to train if feeling good"}
-  </div>
+  {showBodyReadinessExplain && (
+    <div className="panel mt12">
+      <div className="h3">How Body Readiness works</div>
+
+      <div className="mt8">
+        <b>Training Readiness Score</b>
+        <div className="muted mt4">
+          A combined estimate of how ready the body looks for productive training today.
+          It is influenced by recent training load, hard-session density and recovery days.
+        </div>
+      </div>
+
+      <div className="mt8">
+        <b>Muscle Readiness</b>
+        <div className="muted mt4">
+          Estimated from recent strength, HIIT and other muscular load.
+          Low suggests the body may still be carrying muscular fatigue.
+        </div>
+      </div>
+
+      <div className="mt8">
+        <b>Nervous System Readiness</b>
+        <div className="muted mt4">
+          Estimated from hard-session clustering and consecutive training density.
+          Low suggests intensity quality may be suppressed even if motivation is high.
+        </div>
+      </div>
+
+      <div className="mt8">
+        <b>Body Energy</b>
+        <div className="muted mt4">
+          Estimated from recent cardio, duration and total workload accumulation.
+          Low suggests the body may benefit from reduced load or recovery.
+        </div>
+      </div>
+
+      <div className="mt8">
+        <b>Score guide</b>
+        <div className="muted mt4">
+          Low = red, Reduced = amber, Moderate = green, High = blue, Prime = purple.
+        </div>
+      </div>
+    </div>
+  )}
 </Card>
                             <Card className="pad">
                 <div className="h3">Today’s mission</div>
