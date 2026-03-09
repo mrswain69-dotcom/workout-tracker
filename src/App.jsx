@@ -3080,18 +3080,14 @@ function baseXpForLog(log, plan) {
   for (const block of log.blocks) {
     if (!block) continue;
     switch (block.typeId) {
-      case "strength":
-        case "hiit":
-        case "box": {
-          const blockXp = xpForStrengthBlock(block);
-          strengthXp += blockXp;
-          setsXp += blockXp; // treat all base strength XP as "sets XP"
-
-          // +5 XP per completed strength/HIIT block
-          if (blockXp > 0) strengthXp += XP_RULES.blockComplete;
-
-          break;
-        }
+           case "strength":
+      case "hiit":
+      case "box": {
+        const blockXp = xpForStrengthBlock(block);
+        total += blockXp;
+        if (blockXp > 0) total += XP_RULES.blockComplete;
+        break;
+      }
       case "cardio": {
         const blockXp = xpForCardioBlock(block);
         total += blockXp;
