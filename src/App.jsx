@@ -1590,13 +1590,27 @@ function getBlockLoadScoreForApp(block) {
   if (!block || block.cancelled) return 0;
   const typeId = String(block.typeId || "").toLowerCase();
 
+  const countSetsDirectly = () => {
+    const setsObj =
+      block.sets && typeof block.sets === "object" ? block.sets : null;
+
+    if (!setsObj) return 0;
+
+    let count = 0;
+    for (const arr of Object.values(setsObj)) {
+      if (!Array.isArray(arr)) continue;
+      count += arr.filter((s) => s && setDidSomething(s)).length;
+    }
+    return count;
+  };
+
   if (typeId === "strength") {
-    const setsCount = countCompletedSetsInBlock(block);
+    const setsCount = countSetsDirectly();
     return setsCount * 10;
   }
 
   if (typeId === "hiit" || typeId === "box") {
-    const setsCount = countCompletedSetsInBlock(block);
+    const setsCount = countSetsDirectly();
     return setsCount * 13;
   }
 
@@ -1617,7 +1631,9 @@ function getBlockLoadScoreForApp(block) {
     let base = min * 1.2 + km * 8;
 
     if (cardioType === "walk") base *= 0.65;
-    if (cardioType === "run" || cardioType === "row" || cardioType === "swim") base *= 1.1;
+    if (cardioType === "run" || cardioType === "row" || cardioType === "swim") {
+      base *= 1.1;
+    }
 
     return Math.round(base);
   }
@@ -1627,11 +1643,7 @@ function getBlockLoadScoreForApp(block) {
     return Math.round(mins * 0.7);
   }
 
-  if (typeId === "tasks") {
-    return 0;
-  }
-
-  if (typeId === "recovery") {
+  if (typeId === "tasks" || typeId === "recovery") {
     return 0;
   }
 
