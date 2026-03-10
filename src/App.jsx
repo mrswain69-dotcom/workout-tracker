@@ -139,6 +139,21 @@ function safeNumber(v) {
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
+
+function softFloor(value, floor, max = 100, softness = 12, hardMin = 0) {
+  const v = clamp(safeNumber(value), hardMin, max);
+
+  // Above the floor, leave the value untouched.
+  if (v >= floor) return v;
+
+  // Below the floor, compress the deficit so the number becomes
+  // increasingly sticky as it approaches the floor, without becoming
+  // a visibly fake hard clamp.
+  const deficit = floor - v;
+  const compressed = floor - deficit / (1 + deficit / softness);
+
+  return clamp(compressed, hardMin, max);
+}
 // Build a simple target string for a strength movement given:
 // - the movement config
 // - the last logged sets in history
@@ -2029,29 +2044,27 @@ function getReadinessBreakdownFromState({
     18
   );
 
-  const muscleReadiness = clamp(
-    Math.round(
-      88 -
-        muscleLoad * 0.40 +
-        recoveryCredit * 0.9 +
-        sleepCredit * 0.65 +
-        timeRecoveryBoost
-    ),
-    30,
-    100
+  const rawMuscleReadiness =
+    88 -
+    muscleLoad * 0.40 +
+    recoveryCredit * 0.9 +
+    sleepCredit * 0.65 +
+    timeRecoveryBoost;
+
+  const muscleReadiness = Math.round(
+    softFloor(rawMuscleReadiness, 30, 100, 14, 8)
   );
 
-  const nervousSystemReadiness = clamp(
-    Math.round(
-      86 -
-        nervousLoad * 0.44 -
-        consecutiveTrainingBefore * 3 +
-        recoveryCredit * 0.75 +
-        sleepCredit * 0.6 +
-        timeRecoveryBoost
-    ),
-    35,
-    100
+  const rawNervousSystemReadiness =
+    86 -
+    nervousLoad * 0.44 -
+    consecutiveTrainingBefore * 3 +
+    recoveryCredit * 0.75 +
+    sleepCredit * 0.6 +
+    timeRecoveryBoost;
+
+  const nervousSystemReadiness = Math.round(
+    softFloor(rawNervousSystemReadiness, 35, 100, 16, 10)
   );
 
   const bodyEnergy = clamp(
