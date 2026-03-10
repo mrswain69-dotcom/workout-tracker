@@ -1799,13 +1799,114 @@ function getReadinessBand(score) {
   return { label: "Low", tone: "low" };
 }
 
+function projectNextSessionReadiness({
+  muscleReadiness,
+  nervousSystemReadiness,
+  bodyEnergy,
+  currentLogForToday,
+  weighted,
+}) {
+  const todaySummary = currentLogForToday
+    ? getDayLoadSummaryForApp(currentLogForToday)
+    : {
+        totalLoad: 0,
+        strengthLoad: 0,
+        nervousLoad: 0,
+        cardioEnergyLoad: 0,
+        recoveryCredit: 0,
+        hadTraining: false,
+        hadRecovery: false,
+      };
+
+  const dayComplete = currentLogForToday ? isDayGreen(currentLogForToday) : false;
+
+  // Assume ordinary rest + normal sleep until roughly the same time tomorrow.
+  // This is a forecast, not a medical measurement.
+  const overnightBase = dayComplete ? 16 : 12;
+  const sleepLift = clamp(Math.round((weighted?.sleepCredit || 0) * 0.22), 4, 12);
+  const recoveryLift = clamp(Math.round((todaySummary.recoveryCredit || 0) * 0.45), 0, 10);
+
+  const muscleBounce = clamp(
+    Math.round(
+      overnightBase +
+        sleepLift +
+        recoveryLift +
+        10 -
+        todaySummary.strengthLoad * 0.05
+    ),
+    12,
+    30
+  );
+
+  const nervousBounce = clamp(
+    Math.round(
+      overnightBase +
+        sleepLift +
+        recoveryLift +
+        8 -
+        todaySummary.nervousLoad * 0.04
+    ),
+    10,
+    28
+  );
+
+  const energyBounce = clamp(
+    Math.round(
+      overnightBase +
+        sleepLift +
+        recoveryLift +
+        10 -
+        todaySummary.cardioEnergyLoad * 0.03
+    ),
+    12,
+    30
+  );
+
+  const projectedMuscleReadiness = clamp(
+    Math.round(muscleReadiness + muscleBounce),
+    0,
+    100
+  );
+
+  const projectedNervousSystemReadiness = clamp(
+    Math.round(nervousSystemReadiness + nervousBounce),
+    0,
+    100
+  );
+
+  const projectedBodyEnergy = clamp(
+    Math.round(bodyEnergy + energyBounce),
+    0,
+    100
+  );
+
+  const projectedTrainingReadinessScore = clamp(
+    Math.round(
+      projectedMuscleReadiness * 0.35 +
+        projectedNervousSystemReadiness * 0.35 +
+        projectedBodyEnergy * 0.3
+    ),
+    0,
+    100
+  );
+
+  return {
+    dayComplete,
+    projectedMuscleReadiness,
+    projectedNervousSystemReadiness,
+    projectedBodyEnergy,
+    projectedTrainingReadinessScore,
+    projectedBand: getReadinessBand(projectedTrainingReadinessScore),
+  };
+}
+
 function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForToday = null) {
   const dayMap = getRecoveryDateMapForApp(records);
   const consecutiveTrainingBefore =
     countConsecutiveTrainingDaysBeforeForApp(dayMap, todayYmd);
   const trainingLast5 = countTrainingDaysInWindowForApp(dayMap, todayYmd, 5);
   const trainingLast7 = countTrainingDaysInWindowForApp(dayMap, todayYmd, 7);
-    const weighted = getWeightedRecentLoadForApp(records, todayYmd, currentLogForToday);
+  const weighted = getWeightedRecentLoadForApp(records, todayYmd, currentLogForToday);
 
   const timeRecoveryBoost = clamp(
     Math.round((weighted.hoursSinceLastTraining / 24) * 8),
@@ -1862,22 +1963,42 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
 
   const band = getReadinessBand(trainingReadinessScore);
 
+  const projected = projectNextSessionReadiness({
+    muscleReadiness,
+    nervousSystemReadiness,
+    bodyEnergy,
+    currentLogForToday,
+    weighted,
+  });
+
+  // Recommendation should reflect likely next-session readiness,
+  // not just the fact that today's session has spent readiness.
   const hardRecoveryRule =
-    trainingReadinessScore <= 34 ||
+    projected.projectedTrainingReadinessScore <= 34 ||
     consecutiveTrainingBefore >= 4 ||
     (weighted.totalLoad >= 210 && trainingLast7 >= 4);
 
   const recommended =
     hardRecoveryRule ||
-    (trainingReadinessScore <= 44 && trainingLast7 >= 3);
+    (projected.projectedTrainingReadinessScore <= 44 && trainingLast7 >= 3);
 
   let recommendationText = "Ready to train if energy feels good.";
-  if (trainingReadinessScore <= 24) {
+
+  if (
+    projected.dayComplete &&
+    projected.projectedTrainingReadinessScore >= 45
+  ) {
     recommendationText =
-      "Recovery strongly advised. Recent load is high enough that performance quality may drop if you keep pushing hard.";
+      "Readiness has been spent by today's session. If you now rest and sleep normally, forecast for your next session is back in a workable zone.";
+  } else if (projected.projectedTrainingReadinessScore <= 24) {
+    recommendationText =
+      "Recovery strongly advised. Even by your next likely session, readiness is still forecast to stay low.";
+  } else if (projected.projectedTrainingReadinessScore <= 44) {
+    recommendationText =
+      "Recovery advised. Even by your next likely session, readiness is forecast to stay below moderate unless load is reduced.";
   } else if (trainingReadinessScore <= 44) {
     recommendationText =
-      "Recovery advised. Recent load is suppressing readiness and a lighter or recovery day could improve the quality of your next hard session.";
+      "Current readiness is suppressed because today's work has spent load capacity, but forecast recovery suggests you should rebound with normal rest and sleep.";
   } else if (trainingReadinessScore <= 64) {
     recommendationText =
       "Moderate readiness. You can train, but quality and intent matter more than simply adding load.";
@@ -1901,6 +2022,12 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
     trainingLast5,
     trainingLast7,
     weightedLoad: weighted,
+    projectedTrainingReadinessScore: projected.projectedTrainingReadinessScore,
+    projectedBand: projected.projectedBand,
+    projectedMuscleReadiness: projected.projectedMuscleReadiness,
+    projectedNervousSystemReadiness: projected.projectedNervousSystemReadiness,
+    projectedBodyEnergy: projected.projectedBodyEnergy,
+    currentDayComplete: projected.dayComplete,
   };
 }
 
@@ -3914,6 +4041,21 @@ const bodyReadiness = useMemo(() => {
     nervousSystemReadiness:
       recoveryRecommendationToday?.nervousSystemReadiness || 0,
     bodyEnergy: recoveryRecommendationToday?.bodyEnergy || 0,
+    projectedTrainingReadinessScore:
+      recoveryRecommendationToday?.projectedTrainingReadinessScore || 0,
+    projectedBand:
+      recoveryRecommendationToday?.projectedBand ||
+      getReadinessBand(
+        recoveryRecommendationToday?.projectedTrainingReadinessScore || 0
+      ),
+    projectedMuscleReadiness:
+      recoveryRecommendationToday?.projectedMuscleReadiness || 0,
+    projectedNervousSystemReadiness:
+      recoveryRecommendationToday?.projectedNervousSystemReadiness || 0,
+    projectedBodyEnergy:
+      recoveryRecommendationToday?.projectedBodyEnergy || 0,
+    currentDayComplete:
+      !!recoveryRecommendationToday?.currentDayComplete,
     recommendationText:
       recoveryRecommendationToday?.recommendationText ||
       "Ready to train if energy feels good.",
@@ -7215,8 +7357,13 @@ const targetInfo = buildTargetInfoForMovement({
   <div className="panel readinessBanner">
     <div className="h2">⚡ Recovery Recommended Today</div>
     <div className="muted mt8">
-      {bodyReadiness.recommendationText}
-    </div>
+  {bodyReadiness.recommendationText}
+</div>
+
+<div className="muted mt8">
+  Forecast by next session: {bodyReadiness.projectedTrainingReadinessScore}/100 —{" "}
+  {bodyReadiness.projectedBand.label}
+</div>
     <div className="muted mt8">
       Readiness {bodyReadiness.trainingReadinessScore}/100 — {bodyReadiness.band.label}
       {" "}• {recoveryRecommendationToday.consecutiveTrainingBefore} consecutive training day
@@ -7593,9 +7740,21 @@ const targetInfo = buildTargetInfoForMovement({
     </div>
 
     <div className="muted mt12">
-      {bodyReadiness.recommendationText} Estimated from recent training load,
-      recovery days, assumed sleep and training density.
-    </div>
+  {bodyReadiness.recommendationText}
+</div>
+
+<div className="muted mt8">
+  Forecast by next session (rest + normal sleep):{" "}
+  <b>
+    {bodyReadiness.projectedTrainingReadinessScore}/100 —{" "}
+    {bodyReadiness.projectedBand.label}
+  </b>.
+</div>
+
+<div className="muted mt8">
+  Estimated from recent training load, recovery days, assumed sleep and
+  training density.
+</div>
   </div>
 
   <div className="readinessMetricsGrid mt16">
@@ -7678,8 +7837,9 @@ const targetInfo = buildTargetInfoForMovement({
         <b>Training Readiness Score</b>
         <div className="muted mt4">
           A combined estimate of how ready the body looks for productive
-          training today. It is influenced by recent training load, recovery,
-          assumed normal sleep and time since recent hard work.
+training right now. The system also forecasts likely next-session
+readiness if the user now rests and gets normal sleep until around
+the same time tomorrow.
         </div>
       </div>
 
