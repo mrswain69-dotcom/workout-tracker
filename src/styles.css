@@ -695,3 +695,85 @@ button.btn.primary:hover{
   box-shadow:0 0 0 2px rgba(15,23,42,0.45);
   z-index:1;
 }
+
+.readinessTimelineWrap{
+  margin-top:10px;
+}
+
+.readinessTimelineBars{
+  position:relative;
+  display:flex;
+  align-items:flex-end;
+  gap:2px;
+  height:112px;
+  padding:8px 6px 6px;
+  border-radius:14px;
+  background:rgba(15,23,42,0.05);
+  overflow:hidden;
+}
+
+.readinessTimelineBar{
+  width:6px;
+  min-height:10px;
+  border-radius:6px 6px 2px 2px;
+  opacity:0.95;
+  position:relative;
+  flex:0 0 auto;
+}
+
+.readinessTimelineBar-low{
+  background:#d84c4c;
+}
+
+.readinessTimelineBar-reduced{
+  background:#d8871f;
+}
+
+.readinessTimelineBar-moderate{
+  background:#6aa84f;
+}
+
+.readinessTimelineBar-high{
+  background:#4e87d9;
+}
+
+.readinessTimelineBar-prime{
+  background:#8b5cf6;
+}
+
+.readinessTimelineBar.isSleep{
+  box-shadow: inset 0 -12px 0 rgba(255,255,255,0.18);
+}
+
+.readinessTimelineBar.isNextSession::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  top:-10px;
+  width:2px;
+  height:124px;
+  border-radius:2px;
+  background:rgba(15,23,42,0.55);
+}
+
+.readinessTimelineBar.isNextSession::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  top:-14px;
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:#0f172a;
+}
+
+.readinessTimelineAxis{
+  display:flex;
+  justify-content:space-between;
+  font-size:11px;
+  color:#64748b;
+  margin-top:6px;
+  padding:0 2px;
+}
