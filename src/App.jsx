@@ -2218,10 +2218,6 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
     weighted.muscleLoad >= weighted.energyLoad * 0.9 &&
     muscleReadiness <= 55;
 
-  const sameMuscleGroupCaution =
-    strengthDrivenFatigue &&
-    projected.projectedMuscleReadiness <= 60;
-
   const densityRecoveryPressure =
     consecutiveTrainingBefore >= 3 ||
     trainingLast5 >= 4 ||
@@ -2235,6 +2231,10 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
     consecutiveTrainingBefore,
     currentState: current,
   });
+
+  const sameMuscleGroupCaution =
+    strengthDrivenFatigue &&
+    projected.projectedMuscleReadiness <= 60;
 
   // Recommendation should reflect likely next-session readiness,
   // not just the fact that today's session has spent readiness.
