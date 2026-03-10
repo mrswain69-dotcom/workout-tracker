@@ -1730,7 +1730,6 @@ function getWeightedRecentLoadForApp(records, todayYmd, currentLogForToday = nul
   let energyLoad = 0;
   let recoveryCredit = 0;
   let sleepCredit = 0;
-  let hoursSinceLastTraining = 999;
 
   const rows = Array.isArray(records) ? records : [];
 
@@ -1743,10 +1742,6 @@ function getWeightedRecentLoadForApp(records, todayYmd, currentLogForToday = nul
     nervousLoad += todaySummary.nervousLoad * 1.15;
     energyLoad += todaySummary.cardioEnergyLoad * 1.15;
     recoveryCredit += todaySummary.recoveryCredit * 1.0;
-
-    if (todaySummary.hadTraining) {
-      hoursSinceLastTraining = 0;
-    }
   }
 
   // 2) Historical days
@@ -1774,11 +1769,14 @@ function getWeightedRecentLoadForApp(records, todayYmd, currentLogForToday = nul
       10;
 
     sleepCredit += daySleepBase * w;
-
-    if (hoursSinceLastTraining === 999 && day.hadTraining) {
-      hoursSinceLastTraining = i * 24;
-    }
   }
+
+  const lastTrainingMs = getLastTrainingTimestampMs(records, todayYmd, currentLogForToday);
+
+  const hoursSinceLastTraining =
+    lastTrainingMs == null
+      ? 999
+      : Math.max(0, Math.round((Date.now() - lastTrainingMs) / (60 * 60 * 1000)));
 
   return {
     totalLoad: Math.round(totalLoad),
@@ -1893,16 +1891,14 @@ function getExpectedNextSessionTimeMs(todayYmd, currentLogForToday, records) {
   const now = new Date();
   const nowMs = now.getTime();
 
-  // Primary rule:
-  // if today has any block timestamps, anchor next session to
-  // tomorrow at the first logged block time.
+  // If today already has a real logged session, the next expected session
+  // becomes tomorrow at that first real session time.
   const firstTodayMs = getFirstBlockTimestampMs(currentLogForToday);
   if (firstTodayMs) {
     return firstTodayMs + 24 * 60 * 60 * 1000;
   }
 
-  // Fallback:
-  // look back for the most recent logged day that has a first block timestamp
+  // Otherwise, anchor to the most recent real logged session time pattern.
   const rows = Array.isArray(records) ? records : [];
   const sorted = [...rows].sort((a, b) =>
     (a?.date_ymd || a?.date || "") < (b?.date_ymd || b?.date || "") ? 1 : -1
@@ -1916,32 +1912,79 @@ function getExpectedNextSessionTimeMs(todayYmd, currentLogForToday, records) {
     if (!ms) continue;
 
     const d = new Date(ms);
-    const target = new Date();
-    target.setHours(d.getHours(), d.getMinutes(), 0, 0);
+    const targetToday = new Date();
+    targetToday.setHours(d.getHours(), d.getMinutes(), 0, 0);
 
-    // if that time has already passed today, move to tomorrow
-    if (target.getTime() <= nowMs) {
-      target.setDate(target.getDate() + 1);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    // Rule:
+    // - before first real log today, keep the anchor on today's expected time
+    // - only roll to tomorrow after today is actually over
+    if (nowMs <= endOfToday.getTime()) {
+      return targetToday.getTime();
     }
 
-    return target.getTime();
+    const targetTomorrow = new Date(targetToday);
+    targetTomorrow.setDate(targetTomorrow.getDate() + 1);
+    return targetTomorrow.getTime();
   }
 
-  // Final fallback: tomorrow at 17:00 local
+  // Final fallback: today at 17:00 if still ahead, otherwise tomorrow 17:00
   const fallback = new Date();
-  fallback.setDate(fallback.getDate() + 1);
   fallback.setHours(17, 0, 0, 0);
+  if (fallback.getTime() <= nowMs) {
+    fallback.setDate(fallback.getDate() + 1);
+  }
   return fallback.getTime();
 }
 
 function getHoursAheadFromNow(targetMs) {
   const diff = (targetMs - Date.now()) / (60 * 60 * 1000);
-  return clamp(Math.round(diff), 1, 48);
+  return clamp(Math.round(diff), 0, 48);
 }
 
 function isSleepHour(dateObj) {
   const h = dateObj.getHours();
   return h >= 22 || h < 6;
+}
+
+function getLastTrainingTimestampMs(records, todayYmd, currentLogForToday = null) {
+  const rows = Array.isArray(records) ? records : [];
+  let latestMs = null;
+
+  const considerLog = (log) => {
+    const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+    for (const b of blocks) {
+      if (!isTrainingBlockForRecoveryLogic(b)) continue;
+
+      const raw =
+        b?.startedAt ||
+        b?.completedAt ||
+        b?.loggedAt ||
+        b?.createdAt ||
+        null;
+
+      if (!raw) continue;
+
+      const ms = new Date(raw).getTime();
+      if (!Number.isFinite(ms)) continue;
+
+      if (latestMs == null || ms > latestMs) latestMs = ms;
+    }
+  };
+
+  if (currentLogForToday) {
+    considerLog(currentLogForToday);
+  }
+
+  for (const row of rows) {
+    const dateStr = row?.date_ymd || row?.date;
+    if (!dateStr || dateStr > todayYmd) continue;
+    considerLog(row?.log);
+  }
+
+  return latestMs;
 }
 
 function getReadinessBreakdownFromState({
@@ -3153,9 +3196,9 @@ useEffect(() => {
   });
 }, [family?.id, activeProfileId, selectedDate, plan]);
 
-  const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
+const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
-  const todayYmd = useMemo(() => getTodayYMD(), []);
+const todayYmd = useMemo(() => getTodayYMD(), [readinessNowTick]);
 
 const isAdult = activeProfile?.age_group === "adult";
 
