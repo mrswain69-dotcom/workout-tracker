@@ -777,3 +777,68 @@ button.btn.primary:hover{
   margin-top:6px;
   padding:0 2px;
 }
+
+/* --- Mobile overflow guard for Log page --- */
+@media (max-width: 720px) {
+  html, body {
+    overflow-x: hidden;
+  }
+
+  .wrap,
+  .page,
+  .card,
+  .panel,
+  .mini,
+  .box,
+  .stat,
+  .reward,
+  .challenge,
+  .gridLog,
+  .logTopRow,
+  .logTopActions,
+  .dateActions,
+  .rowBetween,
+  .rowLeft,
+  .tabsRow,
+  .tabs {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tabsRow {
+    width: 100%;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .tabs .btn {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .logTopRow,
+  .logTopActions,
+  .dateActions {
+    flex-wrap: wrap;
+  }
+
+  .logTopActions .btn,
+  .dateActions .btn {
+    min-width: 0;
+  }
+
+  .sessionBlock,
+  .sessionRow,
+  .readinessHero,
+  .readinessMetricCard,
+  .readinessTimelineWrap,
+  .readinessTimelineBars {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
