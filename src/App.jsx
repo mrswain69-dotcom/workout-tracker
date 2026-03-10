@@ -2065,6 +2065,7 @@ function projectNextSessionReadiness({
   records,
   todayYmd,
   consecutiveTrainingBefore = 0,
+  currentState,
 }) {
   const todaySummary = currentLogForToday
     ? getDayLoadSummaryForApp(currentLogForToday)
@@ -2134,20 +2135,22 @@ function projectNextSessionReadiness({
         Math.max(0, safeNumber(weighted.hoursSinceLastTraining)) + hour
       );
 
-    const projected = getReadinessBreakdownFromState({
-      muscleLoad: projectedMuscleLoad,
-      nervousLoad: projectedNervousLoad,
-      energyLoad: projectedEnergyLoad,
-      recoveryCredit:
-        Math.round(weighted.recoveryCredit) +
-        Math.round(todaySummary.recoveryCredit || 0) +
-        Math.round(hourlyRecoveryCredit),
-      sleepCredit:
-        Math.round(weighted.sleepCredit) +
-        Math.round(hourlySleepCredit),
-      hoursSinceLastTraining: projectedHoursSinceLastTraining,
-      consecutiveTrainingBefore: 0,
-    });
+    const projected =
+      hour === 0 && currentState
+        ? currentState
+        : getReadinessBreakdownFromState({
+            muscleLoad: projectedMuscleLoad,
+            nervousLoad: projectedNervousLoad,
+            energyLoad: projectedEnergyLoad,
+            recoveryCredit:
+              Math.round(weighted.recoveryCredit) +
+              Math.round(hourlyRecoveryCredit),
+            sleepCredit:
+              Math.round(weighted.sleepCredit) +
+              Math.round(hourlySleepCredit),
+            hoursSinceLastTraining: projectedHoursSinceLastTraining,
+            consecutiveTrainingBefore: 0,
+          });
 
     const point = {
       hour,
@@ -2210,12 +2213,27 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
   const trainingReadinessScore = current.trainingReadinessScore;
   const band = current.band;
 
-    const projected = projectNextSessionReadiness({
+  const strengthDrivenFatigue =
+    weighted.muscleLoad >= 90 &&
+    weighted.muscleLoad >= weighted.energyLoad * 0.9 &&
+    muscleReadiness <= 55;
+
+  const sameMuscleGroupCaution =
+    strengthDrivenFatigue &&
+    projected.projectedMuscleReadiness <= 60;
+
+  const densityRecoveryPressure =
+    consecutiveTrainingBefore >= 3 ||
+    trainingLast5 >= 4 ||
+    trainingLast7 >= 5;
+
+  const projected = projectNextSessionReadiness({
     weighted,
     currentLogForToday,
     records,
     todayYmd,
     consecutiveTrainingBefore,
+    currentState: current,
   });
 
   // Recommendation should reflect likely next-session readiness,
@@ -2225,13 +2243,22 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
 
   const softRecoveryRule =
     projected.projectedTrainingReadinessScore <= 44 &&
-    trainingLast7 >= 3;
+    densityRecoveryPressure;
 
-  const recommended = hardRecoveryRule || softRecoveryRule;
+  const recommended =
+    hardRecoveryRule ||
+    softRecoveryRule ||
+    (sameMuscleGroupCaution && projected.projectedTrainingReadinessScore <= 44);
 
   let recommendationText = "Ready to train if energy feels good.";
 
   if (
+    sameMuscleGroupCaution &&
+    projected.projectedTrainingReadinessScore <= 44
+  ) {
+    recommendationText =
+      "Your readiness is being pulled down mainly by recent strength work. Muscles often need up to 5 days before being trained hard again, so consider avoiding the same muscle groups directly for the next 5 days and use cardio, mobility, skill work, or different areas instead.";
+  } else if (
     projected.dayComplete &&
     projected.projectedTrainingReadinessScore >= 45
   ) {
@@ -2241,9 +2268,12 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
     recommendationText =
       "Recovery strongly advised. Even by your next likely session, readiness is still forecast to stay low.";
   } else if (projected.projectedTrainingReadinessScore <= 44) {
-  recommendationText =
-    "Recovery advised. By your next likely session, readiness is still forecast to remain below the Moderate zone unless load is reduced.";
-} else if (trainingReadinessScore <= 44) {
+    recommendationText =
+      "Recovery advised. By your next likely session, readiness is still forecast to remain below the Moderate zone unless load is reduced.";
+  } else if (trainingReadinessScore <= 44 && strengthDrivenFatigue) {
+    recommendationText =
+      "Current readiness is being held down mainly by recent strength load. General training may still be possible, but avoid hitting the same muscle groups directly until they recover further.";
+  } else if (trainingReadinessScore <= 44) {
     recommendationText =
       "Current readiness is suppressed by recent work in the last 24 hours, but forecast recovery suggests you should rebound with normal rest and sleep.";
   } else if (trainingReadinessScore <= 64) {
@@ -2274,6 +2304,8 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
     projectedMuscleReadiness: projected.projectedMuscleReadiness,
     projectedNervousSystemReadiness: projected.projectedNervousSystemReadiness,
     projectedBodyEnergy: projected.projectedBodyEnergy,
+    strengthDrivenFatigue,
+    sameMuscleGroupCaution,
     currentDayComplete: projected.dayComplete,
     expectedNextSessionHoursAhead: projected.expectedNextSessionHoursAhead,
     expectedNextSessionTimeMs: projected.expectedNextSessionTimeMs,
@@ -7653,10 +7685,10 @@ const targetInfo = buildTargetInfoForMovement({
   {bodyReadiness.projectedBand.label}
 </div>
     <div className="muted mt8">
-      Readiness {bodyReadiness.trainingReadinessScore}/100 — {bodyReadiness.band.label}
+      Readiness {recoveryRecommendationToday.trainingReadinessScore}/100 — {recoveryRecommendationToday.band.label}
       {" "}• {recoveryRecommendationToday.consecutiveTrainingBefore} consecutive training day
       {recoveryRecommendationToday.consecutiveTrainingBefore === 1 ? "" : "s"}
-      {" "}• load score {recoveryRecommendationToday.weightedLoad.totalLoad}
+      {" "}• recent load {recoveryRecommendationToday.weightedLoad.totalLoad}
     </div>
     <div className="mt8">
       <PrimaryButton
