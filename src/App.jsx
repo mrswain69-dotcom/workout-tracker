@@ -1819,17 +1819,80 @@ function getReadinessScalePercent(score) {
   return 80 + ((s - 85) / 15) * 20;
 }
 
-function getDefaultForecastHoursAhead() {
-  const now = new Date();
-  const hour = now.getHours();
+function getFirstBlockTimestampMs(log) {
+  const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+  const stamps = [];
 
-  // Simple local-time forecast window.
-  // Morning = more recovery still to come before next likely session.
-  // Evening = forecast is closer to a true overnight + next-day same-time estimate.
-  if (hour < 6) return 16;
-  if (hour < 12) return 20;
-  if (hour < 18) return 22;
-  return 24;
+  for (const b of blocks) {
+    const raw =
+      b?.startedAt ||
+      b?.createdAt ||
+      b?.completedAt ||
+      b?.loggedAt ||
+      null;
+
+    if (!raw) continue;
+    const ms = new Date(raw).getTime();
+    if (Number.isFinite(ms)) stamps.push(ms);
+  }
+
+  if (!stamps.length) return null;
+  return Math.min(...stamps);
+}
+
+function getExpectedNextSessionTimeMs(todayYmd, currentLogForToday, records) {
+  const now = new Date();
+  const nowMs = now.getTime();
+
+  // Primary rule:
+  // if today has any block timestamps, anchor next session to
+  // tomorrow at the first logged block time.
+  const firstTodayMs = getFirstBlockTimestampMs(currentLogForToday);
+  if (firstTodayMs) {
+    return firstTodayMs + 24 * 60 * 60 * 1000;
+  }
+
+  // Fallback:
+  // look back for the most recent logged day that has a first block timestamp
+  const rows = Array.isArray(records) ? records : [];
+  const sorted = [...rows].sort((a, b) =>
+    (a?.date_ymd || a?.date || "") < (b?.date_ymd || b?.date || "") ? 1 : -1
+  );
+
+  for (const row of sorted) {
+    const dateStr = row?.date_ymd || row?.date;
+    if (!dateStr || dateStr > todayYmd) continue;
+
+    const ms = getFirstBlockTimestampMs(row?.log);
+    if (!ms) continue;
+
+    const d = new Date(ms);
+    const target = new Date();
+    target.setHours(d.getHours(), d.getMinutes(), 0, 0);
+
+    // if that time has already passed today, move to tomorrow
+    if (target.getTime() <= nowMs) {
+      target.setDate(target.getDate() + 1);
+    }
+
+    return target.getTime();
+  }
+
+  // Final fallback: tomorrow at 17:00 local
+  const fallback = new Date();
+  fallback.setDate(fallback.getDate() + 1);
+  fallback.setHours(17, 0, 0, 0);
+  return fallback.getTime();
+}
+
+function getHoursAheadFromNow(targetMs) {
+  const diff = (targetMs - Date.now()) / (60 * 60 * 1000);
+  return clamp(Math.round(diff), 1, 48);
+}
+
+function isSleepHour(dateObj) {
+  const h = dateObj.getHours();
+  return h >= 22 || h < 6;
 }
 
 function getReadinessBreakdownFromState({
@@ -1907,8 +1970,9 @@ function getReadinessBreakdownFromState({
 function projectNextSessionReadiness({
   weighted,
   currentLogForToday,
+  records,
+  todayYmd,
   consecutiveTrainingBefore = 0,
-  hoursAhead = null,
 }) {
   const todaySummary = currentLogForToday
     ? getDayLoadSummaryForApp(currentLogForToday)
@@ -1923,84 +1987,110 @@ function projectNextSessionReadiness({
       };
 
   const dayComplete = currentLogForToday ? isDayGreen(currentLogForToday) : false;
-  const forecastHoursAhead =
-    hoursAhead == null ? getDefaultForecastHoursAhead() : hoursAhead;
 
-  const forecastFactor = clamp(forecastHoursAhead / 24, 0.25, 1.2);
+  const expectedNextSessionTimeMs = getExpectedNextSessionTimeMs(
+    todayYmd,
+    currentLogForToday,
+    records
+  );
 
-  // 24h fatigue decay profile
+  const expectedNextSessionHoursAhead =
+    getHoursAheadFromNow(expectedNextSessionTimeMs);
+
+  const baseNow = new Date();
+
   const muscleDecay24h = 0.26;
   const nervousDecay24h = 0.18;
   const energyDecay24h = 0.34;
 
-  const projectedMuscleLoad = Math.max(
-    0,
-    Math.round(weighted.muscleLoad * (1 - muscleDecay24h * forecastFactor))
-  );
+  const readinessTimeline48h = [];
+  let nextSessionSnapshot = null;
 
-  const projectedNervousLoad = Math.max(
-    0,
-    Math.round(weighted.nervousLoad * (1 - nervousDecay24h * forecastFactor))
-  );
+  for (let hour = 0; hour <= 48; hour++) {
+    const pointTime = new Date(baseNow.getTime() + hour * 60 * 60 * 1000);
+    const t = hour / 24;
+    const sleeping = isSleepHour(pointTime);
 
-  const projectedEnergyLoad = Math.max(
-    0,
-    Math.round(weighted.energyLoad * (1 - energyDecay24h * forecastFactor))
-  );
-
-  // Sleep / overnight restoration
-  const normalSleepCredit = clamp(
-    Math.round(8 * forecastFactor),
-    4,
-    10
-  );
-
-  const overnightRecoveryCredit = clamp(
-    Math.round((dayComplete ? 8 : 5) * forecastFactor),
-    2,
-    10
-  );
-
-  const projectedRecoveryCredit =
-    Math.round(weighted.recoveryCredit) +
-    Math.round(todaySummary.recoveryCredit || 0) +
-    overnightRecoveryCredit;
-
-  const projectedSleepCredit =
-    Math.round(weighted.sleepCredit) + normalSleepCredit;
-
-  const projectedHoursSinceLastTraining =
-    Math.min(
-      999,
-      Math.max(0, safeNumber(weighted.hoursSinceLastTraining)) + forecastHoursAhead
+    const projectedMuscleLoad = Math.max(
+      0,
+      Math.round(weighted.muscleLoad * (1 - muscleDecay24h * t))
     );
 
-  // If the athlete now rests until next session, the consecutive streak is broken.
-  const projectedConsecutiveTrainingBefore = 0;
+    const projectedNervousLoad = Math.max(
+      0,
+      Math.round(weighted.nervousLoad * (1 - nervousDecay24h * t))
+    );
 
-  const projected = getReadinessBreakdownFromState({
-    muscleLoad: projectedMuscleLoad,
-    nervousLoad: projectedNervousLoad,
-    energyLoad: projectedEnergyLoad,
-    recoveryCredit: projectedRecoveryCredit,
-    sleepCredit: projectedSleepCredit,
-    hoursSinceLastTraining: projectedHoursSinceLastTraining,
-    consecutiveTrainingBefore: projectedConsecutiveTrainingBefore,
-  });
+    const projectedEnergyLoad = Math.max(
+      0,
+      Math.round(weighted.energyLoad * (1 - energyDecay24h * t))
+    );
 
-  return {
-    dayComplete,
-    forecastHoursAhead,
-    projectedMuscleReadiness: projected.muscleReadiness,
-    projectedNervousSystemReadiness: projected.nervousSystemReadiness,
-    projectedBodyEnergy: projected.bodyEnergy,
-    projectedTrainingReadinessScore: projected.trainingReadinessScore,
-    projectedBand: projected.band,
-    projectedLoads: {
+    // slower recovery during waking hours, stronger during sleep
+    const hourlyRecoveryCredit =
+      (dayComplete ? 0.18 : 0.12) * hour;
+
+    let hourlySleepCredit = 0;
+    for (let h = 1; h <= hour; h++) {
+      const d = new Date(baseNow.getTime() + h * 60 * 60 * 1000);
+      if (isSleepHour(d)) hourlySleepCredit += 0.9;
+    }
+
+    const projectedHoursSinceLastTraining =
+      Math.min(
+        999,
+        Math.max(0, safeNumber(weighted.hoursSinceLastTraining)) + hour
+      );
+
+    const projected = getReadinessBreakdownFromState({
       muscleLoad: projectedMuscleLoad,
       nervousLoad: projectedNervousLoad,
       energyLoad: projectedEnergyLoad,
-    },
+      recoveryCredit:
+        Math.round(weighted.recoveryCredit) +
+        Math.round(todaySummary.recoveryCredit || 0) +
+        Math.round(hourlyRecoveryCredit),
+      sleepCredit:
+        Math.round(weighted.sleepCredit) +
+        Math.round(hourlySleepCredit),
+      hoursSinceLastTraining: projectedHoursSinceLastTraining,
+      consecutiveTrainingBefore: 0,
+    });
+
+    const point = {
+      hour,
+      timestampMs: pointTime.getTime(),
+      sleeping,
+      score: projected.trainingReadinessScore,
+      band: projected.band,
+      muscleReadiness: projected.muscleReadiness,
+      nervousSystemReadiness: projected.nervousSystemReadiness,
+      bodyEnergy: projected.bodyEnergy,
+      isExpectedNextSession: hour === expectedNextSessionHoursAhead,
+    };
+
+    readinessTimeline48h.push(point);
+
+    if (hour === expectedNextSessionHoursAhead) {
+      nextSessionSnapshot = point;
+    }
+  }
+
+  const fallbackPoint =
+    readinessTimeline48h[Math.min(24, readinessTimeline48h.length - 1)];
+
+  const nextPoint = nextSessionSnapshot || fallbackPoint;
+
+  return {
+    dayComplete,
+    expectedNextSessionTimeMs,
+    expectedNextSessionHoursAhead,
+    projectedMuscleReadiness: nextPoint.muscleReadiness,
+    projectedNervousSystemReadiness: nextPoint.nervousSystemReadiness,
+    projectedBodyEnergy: nextPoint.bodyEnergy,
+    projectedTrainingReadinessScore: nextPoint.score,
+    projectedBand: nextPoint.band,
+    readinessTimeline48h,
   };
 }
 
@@ -2028,9 +2118,11 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
   const trainingReadinessScore = current.trainingReadinessScore;
   const band = current.band;
 
-  const projected = projectNextSessionReadiness({
+    const projected = projectNextSessionReadiness({
     weighted,
     currentLogForToday,
+    records,
+    todayYmd,
     consecutiveTrainingBefore,
   });
 
@@ -2091,6 +2183,9 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
     projectedNervousSystemReadiness: projected.projectedNervousSystemReadiness,
     projectedBodyEnergy: projected.projectedBodyEnergy,
     currentDayComplete: projected.dayComplete,
+    expectedNextSessionHoursAhead: projected.expectedNextSessionHoursAhead,
+    expectedNextSessionTimeMs: projected.expectedNextSessionTimeMs,
+    readinessTimeline48h: projected.readinessTimeline48h,
   };
 }
 
@@ -2353,6 +2448,8 @@ const [claimXpDisplay, setClaimXpDisplay] = useState(null);
   const [lastClaimedKey, setLastClaimedKey] = useState("");
   const [showBodyReadinessExplain, setShowBodyReadinessExplain] = useState(false);
 
+  const [readinessNowTick, setReadinessNowTick] = useState(Date.now());
+
   // --- Rotating Motivation & Health tip (changes on tab switch) ---
 const MOTIVATION_QUOTES = [
   "Small steps count. Show up and win the day ⭐",
@@ -2390,6 +2487,26 @@ useEffect(() => {
   setHealthTip((v) => v || pickRandom(HEALTH_TIPS));
 }, []);
 
+useEffect(() => {
+  const tick = () => setReadinessNowTick(Date.now());
+
+  let intervalId = null;
+
+  const now = new Date();
+  const msToNextHour =
+    ((60 - now.getMinutes()) * 60 - now.getSeconds()) * 1000 -
+    now.getMilliseconds();
+
+  const timeoutId = setTimeout(() => {
+    tick();
+    intervalId = setInterval(tick, 60 * 60 * 1000);
+  }, Math.max(1000, msToNextHour));
+
+  return () => {
+    clearTimeout(timeoutId);
+    if (intervalId) clearInterval(intervalId);
+  };
+}, []);
 
   // --- Service worker update toast (prevents stale PWA UI after deploys) ---
   const [swUpdateReg, setSwUpdateReg] = useState(null);
@@ -4098,7 +4215,7 @@ const todayLog = useMemo(() => {
 
 const recoveryRecommendationToday = useMemo(() => {
   return getRecoveryRecommendationForTodayApp(allLogs, todayYmd, todayLog);
-}, [allLogs, todayYmd, todayLog]);
+}, [allLogs, todayYmd, todayLog, readinessNowTick]);
 
 const bodyReadiness = useMemo(() => {
   const score = recoveryRecommendationToday?.trainingReadinessScore || 0;
@@ -4127,13 +4244,19 @@ const bodyReadiness = useMemo(() => {
       recoveryRecommendationToday?.projectedNervousSystemReadiness || 0,
     projectedBodyEnergy:
       recoveryRecommendationToday?.projectedBodyEnergy || 0,
-    currentDayComplete:
+        currentDayComplete:
       !!recoveryRecommendationToday?.currentDayComplete,
+    expectedNextSessionHoursAhead:
+      recoveryRecommendationToday?.expectedNextSessionHoursAhead || 24,
+    expectedNextSessionTimeMs:
+      recoveryRecommendationToday?.expectedNextSessionTimeMs || null,
+    readinessTimeline48h:
+      recoveryRecommendationToday?.readinessTimeline48h || [],
     recommendationText:
       recoveryRecommendationToday?.recommendationText ||
       "Ready to train if energy feels good.",
   };
-}, [recoveryRecommendationToday]);
+}, [recoveryRecommendationToday, readinessNowTick]);
 
 const selectedDayHasRecoveryBlock =
   hasAnyRecoveryBlocks;
@@ -7830,12 +7953,36 @@ const targetInfo = buildTargetInfoForMovement({
   <b>
     {bodyReadiness.projectedTrainingReadinessScore}/100 —{" "}
     {bodyReadiness.projectedBand.label}
-  </b>.
+  </b>
+  {" "}at ~{bodyReadiness.expectedNextSessionHoursAhead}h.
+</div>
+
+<div className="readinessTimelineWrap mt8">
+  <div className="readinessTimelineBars">
+    {(bodyReadiness.readinessTimeline48h || []).map((point) => (
+      <div
+        key={point.hour}
+        className={[
+          "readinessTimelineBar",
+          `readinessTimelineBar-${point.band.tone}`,
+          point.sleeping ? "isSleep" : "",
+          point.isExpectedNextSession ? "isNextSession" : "",
+        ].join(" ")}
+        style={{ height: `${Math.max(10, point.score)}px` }}
+        title={`+${point.hour}h • ${point.score}/100 • ${point.band.label}${point.sleeping ? " • Sleep" : ""}${point.isExpectedNextSession ? " • Next expected session" : ""}`}
+      />
+    ))}
+  </div>
+
+  <div className="readinessTimelineAxis">
+    <span>Now</span>
+    <span>24h</span>
+    <span>48h</span>
+  </div>
 </div>
 
 <div className="muted mt8">
-  Estimated from recent training load, recovery days, assumed sleep and
-  training density.
+  Forecast uses recent load, projected recovery by hour, assumed sleep, and the expected time of the next session.
 </div>
   </div>
 
