@@ -387,12 +387,25 @@ function playStartSound(ctx, theme = "classic") {
     playTone(ctx, { freq: 783.99, duration: 0.08, type: "square", gain: 0.05, when: 0.16 });
     return;
   }
+  if (theme === "chill") {
+    playTone(ctx, { freq: 392, duration: 0.12, type: "sine", gain: 0.045, when: 0.0 });
+    playTone(ctx, { freq: 523.25, duration: 0.14, type: "sine", gain: 0.04, when: 0.10 });
+    playTone(ctx, { freq: 659.25, duration: 0.16, type: "sine", gain: 0.035, when: 0.22 });
+    return;
+  }
   playTone(ctx, { freq: 440, duration: 0.08, type: "triangle", gain: 0.06, when: 0.0 });
   playTone(ctx, { freq: 660, duration: 0.09, type: "triangle", gain: 0.06, when: 0.08 });
   playTone(ctx, { freq: 880, duration: 0.10, type: "triangle", gain: 0.06, when: 0.17 });
 }
 function playWhoosh(ctx, combo = 1, theme = "classic") {
   const c = clamp(combo, 1, 10);
+
+  if (theme === "chill") {
+    playTone(ctx, { freq: 260 + c * 18, duration: 0.14, type: "sine", gain: 0.025, when: 0.0 });
+    playTone(ctx, { freq: 340 + c * 22, duration: 0.16, type: "sine", gain: 0.02, when: 0.05 });
+    return;
+  }
+
   const base = theme === "arcade" ? 320 : 240;
   const t = theme === "arcade" ? "square" : "sawtooth";
   playTone(ctx, { freq: base + c * 30, duration: 0.10, type: t, gain: 0.035, when: 0.0 });
@@ -401,12 +414,28 @@ function playWhoosh(ctx, combo = 1, theme = "classic") {
 function playBling(ctx, combo = 1, theme = "classic") {
   const c = clamp(combo, 1, 10);
   const mult = 1 + c * 0.04;
+
+  if (theme === "chill") {
+    playTone(ctx, { freq: 784 * mult, duration: 0.08, type: "sine", gain: 0.035, when: 0.0 });
+    playTone(ctx, { freq: 987.77 * mult, duration: 0.10, type: "sine", gain: 0.03, when: 0.08 });
+    playTone(ctx, { freq: 1174.66 * mult, duration: 0.12, type: "sine", gain: 0.025, when: 0.18 });
+    return;
+  }
+
   const type = theme === "arcade" ? "square" : "sine";
   playTone(ctx, { freq: 1046.5 * mult, duration: 0.055, type, gain: 0.055, when: 0.0 });
   playTone(ctx, { freq: 1318.5 * mult, duration: 0.065, type, gain: 0.05, when: 0.06 });
   playTone(ctx, { freq: 1567.98 * mult, duration: 0.075, type, gain: 0.045, when: 0.13 });
 }
 function playLevelUp(ctx, theme = "classic") {
+  if (theme === "chill") {
+    playTone(ctx, { freq: 261.63, duration: 0.20, type: "sine", gain: 0.03, when: 0.0 });
+    playTone(ctx, { freq: 392.0, duration: 0.22, type: "sine", gain: 0.03, when: 0.08 });
+    playTone(ctx, { freq: 523.25, duration: 0.24, type: "sine", gain: 0.028, when: 0.18 });
+    playTone(ctx, { freq: 783.99, duration: 0.18, type: "sine", gain: 0.022, when: 0.34 });
+    return;
+  }
+
   const t = theme === "arcade" ? "square" : "sawtooth";
   playTone(ctx, { freq: 220, duration: 0.18, type: t, gain: 0.04, when: 0.0 });
   playTone(ctx, { freq: 330, duration: 0.18, type: t, gain: 0.04, when: 0.02 });
@@ -2881,20 +2910,34 @@ const [soundOn, setSoundOn] = useState(true);
 const [victoryTheme, setVictoryTheme] = useState("classic"); // classic | arcade | chill
 const [xp, setXp] = useState(0);
 
+const getVictoryThemeStorageKey = () =>
+  family?.id ? `wt_victoryTheme:${family.id}` : "wt_victoryTheme";
+
 // Load/persist victory sound theme (Classic / Arcade / Chill)
 useEffect(() => {
   try {
-    const stored = localStorage.getItem("wt_victoryTheme");
+    const scopedKey = getVictoryThemeStorageKey();
+    const stored =
+      localStorage.getItem(scopedKey) ||
+      localStorage.getItem("wt_victoryTheme");
+
     if (stored === "classic" || stored === "arcade" || stored === "chill") {
       setVictoryTheme(stored);
+    } else {
+      setVictoryTheme("classic");
     }
   } catch {}
-}, []);
+}, [family?.id]);
 
 const applyVictoryTheme = (theme) => {
+  if (theme !== "classic" && theme !== "arcade" && theme !== "chill") return;
+
   setVictoryTheme(theme);
+
   try {
-    localStorage.setItem("wt_victoryTheme", theme);
+    const scopedKey = getVictoryThemeStorageKey();
+    localStorage.setItem(scopedKey, theme);
+    localStorage.setItem("wt_victoryTheme", theme); // legacy fallback
   } catch {}
 };
 
@@ -3218,7 +3261,11 @@ const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
       (r) => !r.profile_id || r.profile_id === activeProfileId
     );
 
-    setAllLogs(rows.map((r) => ({ date_ymd: r.date_ymd, log: r.log_json })));
+    const mapped = rows
+      .map((r) => ({ date_ymd: r.date_ymd, log: getLogRowPayload(r) }))
+      .filter((r) => r.log);
+
+    setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId));
     setLogsReady(true);
   })().catch(() => {
     // Even if it fails, mark as "done" so we don't get stuck.
@@ -4876,6 +4923,33 @@ function cloneBlockForPlanPreserveIds(block) {
     removeTask(blockId, taskId);
   }
 
+  function getLogRowPayload(row) {
+    return row?.log_json || row?.log || null;
+  }
+
+  function mergeMappedLogsWithLocalCache(mappedRows, familyId, profileId) {
+    const next = Array.isArray(mappedRows) ? mappedRows.slice() : [];
+    if (!familyId || !profileId) return next;
+
+    const cache = lastLogByDateRef.current || {};
+    const prefix = `${familyId}:${profileId}:`;
+
+    for (const [key, cachedLog] of Object.entries(cache)) {
+      if (!key.startsWith(prefix) || !cachedLog) continue;
+
+      const dateYmd = key.slice(prefix.length);
+      const idx = next.findIndex((r) => (r?.date_ymd || r?.date) === dateYmd);
+
+      if (idx >= 0) {
+        next[idx] = { ...next[idx], date_ymd: dateYmd, log: cachedLog };
+      } else {
+        next.push({ date_ymd: dateYmd, log: cachedLog });
+      }
+    }
+
+    return next;
+  }
+
   function updateTaskField(blockId, taskId, field, value) {
     updatePlanBlocksForCurrentDay("Update task", (blocks) =>
       blocks.map((b) => {
@@ -4962,14 +5036,34 @@ async function saveLog(nextLog) {
 
     // 5) Refresh logs list (used for stats + XP) so we stay in sync with DB
     const { data } = await listLogs(family.id, activeProfileId, 2000);
-    const mapped = (data || []).map((r) => ({
-      date_ymd: r.date_ymd,
-      log: r.log_json,
-    }));
-    setAllLogs(mapped);
+    const mapped = (data || [])
+      .map((r) => ({
+        date_ymd: r.date_ymd,
+        log: getLogRowPayload(r),
+      }))
+      .filter((r) => r.log);
+
+    const merged = mergeMappedLogsWithLocalCache(
+      mapped,
+      family.id,
+      activeProfileId
+    );
+
+    setAllLogs(merged);
+
+    // Keep the selected day pinned to the latest saved version
+    const latestSelected =
+      cacheKey && lastLogByDateRef.current
+        ? lastLogByDateRef.current[cacheKey]
+        : null;
+
+    if (latestSelected) {
+      setLogForDay(latestSelected);
+    }
+
     // Keep XP in sync immediately after any log save
-    setXp(computeXpFromLogs(mapped, planRef.current));
-    return mapped;
+    setXp(computeXpFromLogs(merged, planRef.current));
+    return merged;
   } finally {
     setIsSavingLog(false);
   }
@@ -5283,25 +5377,24 @@ async function claimDailyBonus(e, anchorEl) {
     );
     return;
   }
+
   if (logForDay?.meta?.challengeClaimed) return;
 
   const rect = anchorEl ? anchorEl.getBoundingClientRect() : null;
-
   const xpFrom = xp;
-  const xpTo = xpFrom + 15;
-
-  // Optimistically bump XP so the UI updates immediately
-  setXp(xpTo);
 
   playBuildUpSound();
 
   const next = logForDay ? { ...logForDay } : blankLogForDay();
   next.meta = { ...(next.meta || {}), challengeClaimed: true };
-  const refreshedLogs = await saveLog(next);
 
-  // Immediate XP recompute using refreshed logs (state may lag a tick)
+  // saveLog already updates logForDay + allLogs optimistically,
+  // so the claimed state becomes reliable immediately.
+  const refreshedLogs = await saveLog(next);
   const logsForXp = refreshedLogs || allLogs;
-  setXp(computeXpFromLogs(logsForXp, planRef.current));
+  const xpTo = computeXpFromLogs(logsForXp, planRef.current);
+
+  setXp(xpTo);
 
   const confetti = Array.from({ length: 22 }).map((_, i) => ({
     id: i,
@@ -5321,7 +5414,9 @@ async function claimDailyBonus(e, anchorEl) {
     xpAward: 15,
     xpFrom,
     xpTo,
-    fromRect: rect ? { x: rect.left, y: rect.top, w: rect.width, h: rect.height } : null,
+    fromRect: rect
+      ? { x: rect.left, y: rect.top, w: rect.width, h: rect.height }
+      : null,
     confetti,
   });
 
@@ -11307,23 +11402,38 @@ function StyleTag() {
       .pill{display:inline-flex;align-items:center;border:1px solid #e2e8f0;background:#f1f5f9;border-radius:999px;padding:6px 10px;font-size:12px;color:#334155}
       .pillBtn{cursor:pointer;background:#f1f5f9}
       .pillBtn:hover{background:#e2e8f0}
-      .header-right{display:flex;flex-direction:column;gap:10px}
+           .header-right{display:flex;flex-direction:column;gap:10px;min-width:0}
       @media(min-width:900px){.header-right{flex-direction:row;align-items:center}}
-      .tabs{display:flex;flex-wrap:wrap;gap:8px}
+      .tabs{display:flex;flex-wrap:wrap;gap:8px;min-width:0;max-width:100%}
       /* Prevent button text wrapping */
       .btn, button { white-space: nowrap; }
 
       /* Make the +Session / Reset day buttons big enough on desktop */
-      .logTopActions, .logActions, .dateActions { display:flex; gap:10px; align-items:center; flex-wrap:nowrap; }
+      .logTopActions, .logActions, .dateActions {
+        display:flex;
+        gap:10px;
+        align-items:center;
+        flex-wrap:nowrap;
+        min-width:0;
+        max-width:100%;
+      }
       .logTopActions .btn, .logActions .btn, .dateActions .btn { min-width: 120px; }
 
-      .tabsRow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
+      .tabsRow{
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+        align-items:center;
+        justify-content:flex-end;
+        min-width:0;
+        max-width:100%;
+      }
       .iconBtn{width:44px;height:44px;border-radius:14px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;display:inline-flex;align-items:center;justify-content:center}
       .iconBtn:hover{filter:brightness(0.98)}
       .iconBtn:active{transform:scale(0.99)}
       .iconSvg{width:20px;height:20px}
       .iconEmoji{font-size:20px;line-height:1}
-      .selectWide{min-width:220px}
+      .selectWide{min-width:220px;max-width:100%}
       .card{border:1px solid #e2e8f0;background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.06)}
       .pad{padding:16px}
       .btn{border-radius:14px;padding:10px 14px;font-weight:800;border:1px solid #e2e8f0;background:#fff;color:#0f172a}
@@ -11552,7 +11662,81 @@ function StyleTag() {
       .notes{grid-column:1/-1}
       .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
       @media(max-width:720px){.grid2{grid-template-columns:1fr}}
-      @media(max-width:720px){.tabs{overflow-x:auto;-webkit-overflow-scrolling:touch} .tabs::-webkit-scrollbar{display:none}}
+           @media(max-width:720px){
+        .wrap{
+          padding:12px;
+          overflow-x:hidden;
+        }
+
+        .card,
+        .panel,
+        .mini,
+        .box,
+        .stat,
+        .reward,
+        .planRow,
+        .challenge{
+          min-width:0;
+          max-width:100%;
+          box-sizing:border-box;
+        }
+
+        .headerBottom,
+        .header-right,
+        .tabsRow,
+        .tabs,
+        .gridLog,
+        .logTopRow,
+        .rowLeft,
+        .logTopActions{
+          min-width:0;
+          max-width:100%;
+        }
+
+        .selectWide{
+          width:100%;
+          min-width:0;
+        }
+
+        .tabsRow{
+          width:100%;
+          justify-content:stretch;
+        }
+
+        .tabs{
+          display:grid;
+          grid-template-columns:repeat(4, minmax(0, 1fr));
+          width:100%;
+          overflow:visible;
+        }
+
+        .tabs .btn{
+          width:100%;
+          min-width:0;
+          padding-left:8px;
+          padding-right:8px;
+        }
+
+        .logTopRow{
+          align-items:flex-start;
+        }
+
+        .logTopActions,
+        .dateActions{
+          width:100%;
+          justify-content:flex-start;
+          flex-wrap:wrap;
+        }
+
+        .logTopActions .btn,
+        .dateActions .btn{
+          min-width:0;
+        }
+
+        .rowBetween{
+          min-width:0;
+        }
+      }
       .grid3{display:grid;grid-template-columns:1fr;gap:10px}
       @media(min-width:900px){.grid3{grid-template-columns:1fr 1fr 1fr}}
       .stat{border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:12px}
