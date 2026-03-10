@@ -710,6 +710,8 @@ button.btn.primary:hover{
   border-radius:14px;
   background:rgba(15,23,42,0.05);
   overflow:hidden;
+  min-width:0;
+  max-width:100%;
 }
 
 .readinessTimelineBar{
@@ -718,7 +720,8 @@ button.btn.primary:hover{
   border-radius:6px 6px 2px 2px;
   opacity:0.95;
   position:relative;
-  flex:0 0 auto;
+  flex:0 1 6px;
+  min-width:0;
 }
 
 .readinessTimelineBar-low{
@@ -840,5 +843,75 @@ button.btn.primary:hover{
   .readinessTimelineBars {
     min-width: 0;
     max-width: 100%;
+  }
+}
+
+/* --- Readiness card mobile compression --- */
+@media (max-width: 720px) {
+  .bodyReadinessCard,
+  .readinessHero,
+  .readinessMetricsGrid,
+  .readinessMetricCard,
+  .readinessScaleWrap,
+  .readinessTimelineWrap,
+  .readinessTimelineBars {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .bodyReadinessCard,
+  .readinessHero {
+    overflow-x: hidden;
+  }
+
+  .readinessHero {
+    padding: 14px 12px;
+    border-radius: 16px;
+  }
+
+  .readinessScoreSolo {
+    font-size: 44px;
+  }
+
+  .readinessScaleLegend {
+    gap: 4px;
+    font-size: 9px;
+  }
+
+  .readinessMetricCard {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .readinessGauge {
+    max-width: 150px;
+  }
+
+  .readinessGaugeValue {
+    font-size: 16px;
+  }
+
+  .readinessTimelineBars {
+    gap: 1px;
+    height: 92px;
+    padding: 8px 4px 4px;
+  }
+
+  .readinessTimelineBar {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    border-radius: 4px 4px 2px 2px;
+  }
+
+  .readinessTimelineBar.isNextSession::after {
+    height: 104px;
+    top: -8px;
+  }
+
+  .readinessTimelineAxis {
+    font-size: 10px;
+    margin-top: 4px;
   }
 }
