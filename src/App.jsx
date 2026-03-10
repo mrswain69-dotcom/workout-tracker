@@ -1799,6 +1799,26 @@ function getReadinessBand(score) {
   return { label: "Low", tone: "low" };
 }
 
+function getReadinessScalePercent(score) {
+  const s = clamp(safeNumber(score), 0, 100);
+
+  // Five equal visual segments, but score ranges are not equal.
+  // Map each score range into its matching visual segment.
+  if (s <= 24) {
+    return (s / 24) * 20;
+  }
+  if (s <= 44) {
+    return 20 + ((s - 25) / 19) * 20;
+  }
+  if (s <= 64) {
+    return 40 + ((s - 45) / 19) * 20;
+  }
+  if (s <= 84) {
+    return 60 + ((s - 65) / 19) * 20;
+  }
+  return 80 + ((s - 85) / 15) * 20;
+}
+
 function getDefaultForecastHoursAhead() {
   const now = new Date();
   const hour = now.getHours();
@@ -2037,9 +2057,9 @@ function getRecoveryRecommendationForTodayApp(records, todayYmd, currentLogForTo
     recommendationText =
       "Recovery strongly advised. Even by your next likely session, readiness is still forecast to stay low.";
   } else if (projected.projectedTrainingReadinessScore <= 44) {
-    recommendationText =
-      "Recovery advised. Even by your next likely session, readiness is forecast to stay below Moderate unless load is reduced.";
-  } else if (trainingReadinessScore <= 44) {
+  recommendationText =
+    "Recovery advised. By your next likely session, readiness is still forecast to remain below the Moderate zone unless load is reduced.";
+} else if (trainingReadinessScore <= 44) {
     recommendationText =
       "Current readiness is suppressed by recent work in the last 24 hours, but forecast recovery suggests you should rebound with normal rest and sleep.";
   } else if (trainingReadinessScore <= 64) {
@@ -4069,28 +4089,38 @@ const recoveryEligibilityForSelectedDate = useMemo(() => {
   return getRecoveryEligibilityForDateApp(allLogs, selectedDate);
 }, [allLogs, selectedDate]);
 
+const todayLog = useMemo(() => {
+  const row = Array.isArray(allLogs)
+    ? allLogs.find((r) => (r?.date_ymd || r?.date) === todayYmd)
+    : null;
+  return row?.log || null;
+}, [allLogs, todayYmd]);
+
 const recoveryRecommendationToday = useMemo(() => {
-  return getRecoveryRecommendationForTodayApp(allLogs, todayYmd, logForDay);
-}, [allLogs, todayYmd, logForDay]);
+  return getRecoveryRecommendationForTodayApp(allLogs, todayYmd, todayLog);
+}, [allLogs, todayYmd, todayLog]);
 
 const bodyReadiness = useMemo(() => {
   const score = recoveryRecommendationToday?.trainingReadinessScore || 0;
   const band = recoveryRecommendationToday?.band || getReadinessBand(score);
 
+  const projectedScore =
+    recoveryRecommendationToday?.projectedTrainingReadinessScore || 0;
+
   return {
     trainingReadinessScore: score,
+    trainingReadinessScalePercent: getReadinessScalePercent(score),
     band,
     muscleReadiness: recoveryRecommendationToday?.muscleReadiness || 0,
     nervousSystemReadiness:
       recoveryRecommendationToday?.nervousSystemReadiness || 0,
     bodyEnergy: recoveryRecommendationToday?.bodyEnergy || 0,
-    projectedTrainingReadinessScore:
-      recoveryRecommendationToday?.projectedTrainingReadinessScore || 0,
+    projectedTrainingReadinessScore: projectedScore,
+    projectedTrainingReadinessScalePercent:
+      getReadinessScalePercent(projectedScore),
     projectedBand:
       recoveryRecommendationToday?.projectedBand ||
-      getReadinessBand(
-        recoveryRecommendationToday?.projectedTrainingReadinessScore || 0
-      ),
+      getReadinessBand(projectedScore),
     projectedMuscleReadiness:
       recoveryRecommendationToday?.projectedMuscleReadiness || 0,
     projectedNervousSystemReadiness:
@@ -7779,15 +7809,15 @@ const targetInfo = buildTargetInfoForMovement({
 
       <div className="readinessScaleBand">
         <div
-          className="readinessMarker"
-          style={{ left: `${bodyReadiness.trainingReadinessScore}%` }}
-          title={`Current: ${bodyReadiness.trainingReadinessScore}`}
-        />
-        <div
-          className="readinessMarker readinessMarkerForecast"
-          style={{ left: `${bodyReadiness.projectedTrainingReadinessScore}%` }}
-          title={`Forecast: ${bodyReadiness.projectedTrainingReadinessScore}`}
-        />
+  className="readinessMarker"
+  style={{ left: `${bodyReadiness.trainingReadinessScalePercent}%` }}
+  title={`Current: ${bodyReadiness.trainingReadinessScore}`}
+/>
+<div
+  className="readinessMarker readinessMarkerForecast"
+  style={{ left: `${bodyReadiness.projectedTrainingReadinessScalePercent}%` }}
+  title={`Forecast: ${bodyReadiness.projectedTrainingReadinessScore}`}
+/>
       </div>
     </div>
 
