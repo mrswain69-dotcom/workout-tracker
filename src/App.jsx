@@ -1949,6 +1949,33 @@ function isSleepHour(dateObj) {
   return h >= 22 || h < 6;
 }
 
+function getProjectedConsecutiveTrainingPenaltyHours(
+  consecutiveTrainingBefore,
+  hour,
+  pointTime
+) {
+  const base = Math.max(0, safeNumber(consecutiveTrainingBefore));
+
+  // Keep the current penalty at hour 0.
+  if (hour <= 0) return base;
+
+  // Recover very little while awake, more meaningfully during sleep.
+  // This is a penalty-unwind model, not a hard reset.
+  let penalty = base;
+
+  for (let h = 1; h <= hour; h++) {
+    const d = new Date(pointTime.getTime() - (hour - h) * 60 * 60 * 1000);
+
+    if (isSleepHour(d)) {
+      penalty -= 0.22; // stronger overnight reduction
+    } else {
+      penalty -= 0.04; // mild daytime reduction
+    }
+  }
+
+  return Math.max(0, penalty);
+}
+
 function getLastTrainingTimestampMs(records, todayYmd, currentLogForToday = null) {
   const rows = Array.isArray(records) ? records : [];
   let latestMs = null;
@@ -2092,10 +2119,6 @@ function projectNextSessionReadiness({
 
   const baseNow = new Date();
 
-  const muscleDecay24h = 0.26;
-  const nervousDecay24h = 0.18;
-  const energyDecay24h = 0.34;
-
   const readinessTimeline48h = [];
   let nextSessionSnapshot = null;
 
@@ -2104,29 +2127,48 @@ function projectNextSessionReadiness({
     const t = hour / 24;
     const sleeping = isSleepHour(pointTime);
 
-    const projectedMuscleLoad = Math.max(
-      0,
-      Math.round(weighted.muscleLoad * (1 - muscleDecay24h * t))
-    );
+    // System-specific decay:
+    // energy recovers fastest, muscle moderate, nervous system slowest.
+    let projectedMuscleLoad = weighted.muscleLoad;
+    let projectedNervousLoad = weighted.nervousLoad;
+    let projectedEnergyLoad = weighted.energyLoad;
 
-    const projectedNervousLoad = Math.max(
-      0,
-      Math.round(weighted.nervousLoad * (1 - nervousDecay24h * t))
-    );
-
-    const projectedEnergyLoad = Math.max(
-      0,
-      Math.round(weighted.energyLoad * (1 - energyDecay24h * t))
-    );
-
-    // slower recovery during waking hours, stronger during sleep
-    const hourlyRecoveryCredit =
-      (dayComplete ? 0.18 : 0.12) * hour;
-
+    let hourlyRecoveryCredit = 0;
     let hourlySleepCredit = 0;
+
     for (let h = 1; h <= hour; h++) {
       const d = new Date(baseNow.getTime() + h * 60 * 60 * 1000);
-      if (isSleepHour(d)) hourlySleepCredit += 0.9;
+      const sleepingHour = isSleepHour(d);
+
+      // Recovery support:
+      // daytime = light drift up
+      // sleep = stronger repair / restoration
+      hourlyRecoveryCredit += sleepingHour
+        ? (dayComplete ? 0.55 : 0.4)
+        : (dayComplete ? 0.08 : 0.05);
+
+      hourlySleepCredit += sleepingHour ? 1.15 : 0;
+
+      // Load decay:
+      // sleep accelerates recovery, especially for energy.
+      const muscleStep = sleepingHour ? 0.018 : 0.006;
+      const nervousStep = sleepingHour ? 0.012 : 0.004;
+      const energyStep = sleepingHour ? 0.028 : 0.01;
+
+      projectedMuscleLoad = Math.max(
+        0,
+        projectedMuscleLoad * (1 - muscleStep)
+      );
+
+      projectedNervousLoad = Math.max(
+        0,
+        projectedNervousLoad * (1 - nervousStep)
+      );
+
+      projectedEnergyLoad = Math.max(
+        0,
+        projectedEnergyLoad * (1 - energyStep)
+      );
     }
 
     const projectedHoursSinceLastTraining =
@@ -2135,13 +2177,20 @@ function projectNextSessionReadiness({
         Math.max(0, safeNumber(weighted.hoursSinceLastTraining)) + hour
       );
 
+    const projectedConsecutiveTrainingBefore =
+      getProjectedConsecutiveTrainingPenaltyHours(
+        consecutiveTrainingBefore,
+        hour,
+        pointTime
+      );
+
     const projected =
       hour === 0 && currentState
         ? currentState
         : getReadinessBreakdownFromState({
-            muscleLoad: projectedMuscleLoad,
-            nervousLoad: projectedNervousLoad,
-            energyLoad: projectedEnergyLoad,
+            muscleLoad: Math.round(projectedMuscleLoad),
+            nervousLoad: Math.round(projectedNervousLoad),
+            energyLoad: Math.round(projectedEnergyLoad),
             recoveryCredit:
               Math.round(weighted.recoveryCredit) +
               Math.round(hourlyRecoveryCredit),
@@ -2149,7 +2198,7 @@ function projectNextSessionReadiness({
               Math.round(weighted.sleepCredit) +
               Math.round(hourlySleepCredit),
             hoursSinceLastTraining: projectedHoursSinceLastTraining,
-            consecutiveTrainingBefore: 0,
+            consecutiveTrainingBefore: projectedConsecutiveTrainingBefore,
           });
 
     const point = {
@@ -8078,7 +8127,7 @@ const targetInfo = buildTargetInfoForMovement({
     {bodyReadiness.projectedTrainingReadinessScore}/100 —{" "}
     {bodyReadiness.projectedBand.label}
   </b>
-  {" "}in ~{bodyReadiness.expectedNextSessionHoursAhead}h.
+  {" "}in ~{bodyReadiness.expectedNextSessionHoursAhead}h (expected next session).
 </div>
 
 <div className="readinessTimelineWrap mt8">
