@@ -11418,6 +11418,9 @@ function StyleTag() {
         max-width:100%;
       }
       .logTopActions .btn, .logActions .btn, .dateActions .btn { min-width: 120px; }
+      @media(max-width:720px){
+        .logTopActions .btn, .logActions .btn, .dateActions .btn { min-width: 0; }
+      }
 
       .tabsRow{
         display:flex;
@@ -11434,6 +11437,9 @@ function StyleTag() {
       .iconSvg{width:20px;height:20px}
       .iconEmoji{font-size:20px;line-height:1}
       .selectWide{min-width:220px;max-width:100%}
+      @media(max-width:720px){
+      .selectWide{width:100%;min-width:0}
+      }
       .card{border:1px solid #e2e8f0;background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(15,23,42,.06)}
       .pad{padding:16px}
       .btn{border-radius:14px;padding:10px 14px;font-weight:800;border:1px solid #e2e8f0;background:#fff;color:#0f172a}
@@ -11663,9 +11669,10 @@ function StyleTag() {
       .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
       @media(max-width:720px){.grid2{grid-template-columns:1fr}}
            @media(max-width:720px){
-        .wrap{
+      .wrap{
           padding:12px;
           overflow-x:hidden;
+          max-width:100vw;
         }
 
         .card,
@@ -11681,16 +11688,26 @@ function StyleTag() {
           box-sizing:border-box;
         }
 
-        .headerBottom,
+                .headerBottom,
         .header-right,
         .tabsRow,
         .tabs,
         .gridLog,
         .logTopRow,
         .rowLeft,
-        .logTopActions{
+        .logTopActions,
+        .dateActions,
+        .rowBetween,
+        .panelTop,
+        .sessionRow,
+        .sessionBlock,
+        .readinessHero,
+        .readinessMetricCard,
+        .readinessTimelineWrap,
+        .readinessTimelineBars{
           min-width:0;
           max-width:100%;
+          box-sizing:border-box;
         }
 
         .selectWide{
@@ -11737,6 +11754,7 @@ function StyleTag() {
           min-width:0;
         }
       }
+            html, body { max-width:100%; overflow-x:hidden; }
       .grid3{display:grid;grid-template-columns:1fr;gap:10px}
       @media(min-width:900px){.grid3{grid-template-columns:1fr 1fr 1fr}}
       .stat{border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:12px}
