@@ -1889,10 +1889,6 @@ function getFirstBlockTimestampMs(log) {
   return Math.min(...stamps);
 }
 
-  if (!stamps.length) return null;
-  return Math.min(...stamps);
-}
-
 function getExpectedNextSessionTimeMs(todayYmd, currentLogForToday, records) {
   const now = new Date();
   const nowMs = now.getTime();
