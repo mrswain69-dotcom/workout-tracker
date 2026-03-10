@@ -11669,10 +11669,18 @@ function StyleTag() {
       .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
       @media(max-width:720px){.grid2{grid-template-columns:1fr}}
            @media(max-width:720px){
-      .wrap{
+              .wrap{
           padding:12px;
           overflow-x:hidden;
           max-width:100vw;
+        }
+
+        .bodyReadinessCard,
+        .readinessHero,
+        .readinessTimelineWrap,
+        .readinessTimelineBars{
+          min-width:0;
+          max-width:100%;
         }
 
         .card,
