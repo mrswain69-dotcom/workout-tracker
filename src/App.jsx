@@ -2031,26 +2031,26 @@ function getReadinessBreakdownFromState({
 
   const muscleReadiness = clamp(
     Math.round(
-      86 -
-        muscleLoad * 0.48 +
-        recoveryCredit * 0.85 +
-        sleepCredit * 0.6 +
+      88 -
+        muscleLoad * 0.40 +
+        recoveryCredit * 0.9 +
+        sleepCredit * 0.65 +
         timeRecoveryBoost
     ),
-    18,
+    30,
     100
   );
 
   const nervousSystemReadiness = clamp(
     Math.round(
-      84 -
-        nervousLoad * 0.52 -
-        consecutiveTrainingBefore * 4 +
-        recoveryCredit * 0.7 +
-        sleepCredit * 0.55 +
+      86 -
+        nervousLoad * 0.44 -
+        consecutiveTrainingBefore * 3 +
+        recoveryCredit * 0.75 +
+        sleepCredit * 0.6 +
         timeRecoveryBoost
     ),
-    15,
+    35,
     100
   );
 
@@ -2141,19 +2141,19 @@ function projectNextSessionReadiness({
       const sleepingHour = isSleepHour(d);
 
       // Recovery support:
-      // daytime = light drift up
-      // sleep = stronger repair / restoration
+      // daytime = steady recovery
+      // sleep = stronger repair / restoration, but not massively disproportionate
       hourlyRecoveryCredit += sleepingHour
-        ? (dayComplete ? 0.55 : 0.4)
-        : (dayComplete ? 0.08 : 0.05);
+        ? (dayComplete ? 0.42 : 0.32)
+        : (dayComplete ? 0.18 : 0.12);
 
-      hourlySleepCredit += sleepingHour ? 1.15 : 0;
+      hourlySleepCredit += sleepingHour ? 0.42 : 0.08;
 
       // Load decay:
-      // sleep accelerates recovery, especially for energy.
-      const muscleStep = sleepingHour ? 0.018 : 0.006;
-      const nervousStep = sleepingHour ? 0.012 : 0.004;
-      const energyStep = sleepingHour ? 0.028 : 0.01;
+      // sleep still accelerates recovery, but daytime now also meaningfully restores readiness.
+      const muscleStep = sleepingHour ? 0.016 : 0.009;
+      const nervousStep = sleepingHour ? 0.011 : 0.006;
+      const energyStep = sleepingHour ? 0.024 : 0.014;
 
       projectedMuscleLoad = Math.max(
         0,
