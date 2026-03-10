@@ -1824,14 +1824,20 @@ function getFirstBlockTimestampMs(log) {
   const stamps = [];
 
   for (const b of blocks) {
+    if (!b || b.cancelled) continue;
+
+    // Only use blocks that actually have logged/performed data.
+    if (!blockHasData(b)) continue;
+
     const raw =
       b?.startedAt ||
-      b?.createdAt ||
       b?.completedAt ||
       b?.loggedAt ||
+      b?.createdAt ||
       null;
 
     if (!raw) continue;
+
     const ms = new Date(raw).getTime();
     if (Number.isFinite(ms)) stamps.push(ms);
   }
@@ -7954,7 +7960,7 @@ const targetInfo = buildTargetInfoForMovement({
     {bodyReadiness.projectedTrainingReadinessScore}/100 —{" "}
     {bodyReadiness.projectedBand.label}
   </b>
-  {" "}at ~{bodyReadiness.expectedNextSessionHoursAhead}h.
+  {" "}in ~{bodyReadiness.expectedNextSessionHoursAhead}h.
 </div>
 
 <div className="readinessTimelineWrap mt8">
