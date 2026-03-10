@@ -1823,11 +1823,54 @@ function getFirstBlockTimestampMs(log) {
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
   const stamps = [];
 
-  for (const b of blocks) {
-    if (!b || b.cancelled) continue;
+  const hasLoggedData = (b) => {
+    if (!b || b.cancelled) return false;
 
-    // Only use blocks that actually have logged/performed data.
-    if (!blockHasData(b)) continue;
+    const typeId = String(b.typeId || "").toLowerCase();
+
+    if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+      const setsObj =
+        b.sets && typeof b.sets === "object" ? b.sets : null;
+
+      return !!(
+        setsObj &&
+        Object.values(setsObj).some(
+          (arr) => Array.isArray(arr) && arr.some((s) => s && setDidSomething(s))
+        )
+      );
+    }
+
+    if (
+      typeId === "cardio" ||
+      typeId === "run" ||
+      typeId === "swim" ||
+      typeId === "walk" ||
+      typeId === "row" ||
+      typeId === "cycle" ||
+      typeId === "bike"
+    ) {
+      const c = b.cardio || {};
+      return safeNumber(c.distanceKm) > 0 || safeNumber(c.durationMin) > 0;
+    }
+
+    if (typeId === "duration") {
+      return safeNumber(b?.duration?.minutes) > 0;
+    }
+
+    if (typeId === "recovery") {
+      return !!b?.recoveryDone;
+    }
+
+    if (typeId === "tasks") {
+      const done = b?.tasksDone && typeof b.tasksDone === "object" ? b.tasksDone : {};
+      return Object.values(done).some(Boolean);
+    }
+
+    return false;
+  };
+
+  for (const b of blocks) {
+    if (!hasLoggedData(b)) continue;
 
     const raw =
       b?.startedAt ||
@@ -1841,6 +1884,10 @@ function getFirstBlockTimestampMs(log) {
     const ms = new Date(raw).getTime();
     if (Number.isFinite(ms)) stamps.push(ms);
   }
+
+  if (!stamps.length) return null;
+  return Math.min(...stamps);
+}
 
   if (!stamps.length) return null;
   return Math.min(...stamps);
