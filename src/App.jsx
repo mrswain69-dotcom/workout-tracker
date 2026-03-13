@@ -9995,16 +9995,37 @@ recovery, or tasks block below.
                     )}
                   </div>
 
-                  {alreadyUnlocked && (
-                    <div className="mt12">
-                      <div className="mini muted">Choose your avatar:</div>
-                      <div className={"row mt8 avatarRoster " + (pack.unlockAtXp >= 4000 ? "avatarPackPremium" : "")}>
-                        {(pack.avatars || []).map((a) => (
+                                    <div className="mt12">
+                    <div className="mini muted">
+                      {alreadyUnlocked
+                        ? "Choose your avatar:"
+                        : "Preview the pack:"}
+                    </div>
+
+                    <div
+                      className={
+                        "row mt8 avatarRoster " +
+                        (pack.unlockAtXp >= 4000 ? "avatarPackPremium " : "") +
+                        (pack.unlockAtXp >= 5000 ? "avatarPackMythic " : "") +
+                        (!alreadyUnlocked ? "avatarRosterLocked " : "")
+                      }
+                    >
+                      {(pack.avatars || []).map((a) => {
+                        const isSelected = selectedAvatarId === a.id;
+                        const isLockedPreview = !alreadyUnlocked;
+
+                        return (
                           <button
                             key={a.id}
                             type="button"
-                            className={"avatarPick " + (selectedAvatarId === a.id ? "active" : "")}
+                            disabled={isLockedPreview}
+                            className={
+                              "avatarPick " +
+                              (isSelected ? "active " : "") +
+                              (isLockedPreview ? "lockedPreview " : "")
+                            }
                             onClick={async () => {
+                              if (isLockedPreview) return;
                               await savePlanMetaNoPin({ avatarId: a.id });
                               setClaimModal({
                                 title: "Avatar selected!",
@@ -10017,18 +10038,27 @@ recovery, or tasks block below.
                                 <img
                                   src={a.imgSrc}
                                   alt={a.label || "Avatar"}
-                                  style={{ width: 52, height: 52, objectFit: "contain" }}
+                                  className="avatarPickImg"
                                 />
                               ) : (
                                 <span className="avatarPickEmoji">{a.emoji || a.label}</span>
                               )}
                             </div>
-                            <div className="avatarPickLabel">{a.label || "Avatar"}</div>
+
+                            <div className="avatarPickLabel">
+                              {a.label || "Avatar"}
+                            </div>
+
+                            {isLockedPreview && (
+                              <div className="avatarPickLockText">
+                                Locked
+                              </div>
+                            )}
                           </button>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
@@ -11405,9 +11435,15 @@ function StyleTag() {
   justify-content:flex-start;
   gap:8px;
   border:1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.18);
-  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+  background:rgba(0,0,0,0.18);
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background .18s ease,
+    filter .18s ease;
   overflow:hidden;
+  position:relative;
 }
 
 .avatarPick:hover{
@@ -11434,6 +11470,15 @@ function StyleTag() {
   justify-content:center;
   background:rgba(255,255,255,0.04);
   flex:0 0 auto;
+  transition: transform .18s ease, filter .18s ease;
+}
+
+.avatarPickImg{
+  width:52px;
+  height:52px;
+  object-fit:contain;
+  display:block;
+  transition: transform .18s ease, filter .18s ease, opacity .18s ease;
 }
 
 .avatarPickLabel{
@@ -11448,6 +11493,16 @@ function StyleTag() {
   overflow-wrap:anywhere;
   word-break:break-word;
   text-wrap:balance;
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+.avatarPickLockText{
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.02em;
+  color:#64748b;
+  text-transform:uppercase;
+  opacity:.9;
 }
 
 .avatarPickEmoji{
@@ -11481,6 +11536,72 @@ function StyleTag() {
   box-shadow:
     0 0 0 1px rgba(0,229,255,0.28) inset,
     0 0 24px rgba(0,229,255,0.34);
+}
+
+/* Pack 5+ mythic hover pop */
+.avatarPackMythic .avatarPick{
+  width:112px;
+  min-height:136px;
+}
+
+.avatarPackMythic .avatarPickArt{
+  width:76px;
+  height:76px;
+}
+
+.avatarPackMythic .avatarPick:hover:not(.lockedPreview):not(:disabled){
+  transform:translateY(-6px) scale(1.06);
+  border-color:rgba(0,229,255,0.7);
+  background:
+    linear-gradient(180deg, rgba(0,229,255,0.11), rgba(0,0,0,0.22));
+  box-shadow:
+    0 14px 28px rgba(0,229,255,0.22),
+    0 0 0 1px rgba(0,229,255,0.16) inset;
+  z-index:2;
+}
+
+.avatarPackMythic .avatarPick:hover:not(.lockedPreview):not(:disabled) .avatarPickArt{
+  transform:scale(1.08);
+}
+
+.avatarPackMythic .avatarPick:hover:not(.lockedPreview):not(:disabled) .avatarPickImg{
+  transform:scale(1.08);
+}
+
+.avatarPackMythic .avatarPick:hover:not(.lockedPreview):not(:disabled) .avatarPickLabel{
+  transform:translateY(-1px);
+}
+
+/* Locked preview state */
+.avatarPick.lockedPreview,
+.avatarPick:disabled{
+  cursor:not-allowed;
+  opacity:.92;
+}
+
+.avatarPick.lockedPreview:hover,
+.avatarPick:disabled:hover{
+  transform:none;
+  box-shadow:none;
+  border-color:rgba(255,255,255,0.14);
+}
+
+.avatarPick.lockedPreview .avatarPickArt,
+.avatarPick.lockedPreview .avatarPickImg,
+.avatarPick:disabled .avatarPickArt,
+.avatarPick:disabled .avatarPickImg{
+  filter:grayscale(1) blur(1.6px) brightness(.78);
+  opacity:.78;
+}
+
+.avatarPick.lockedPreview .avatarPickLabel,
+.avatarPick:disabled .avatarPickLabel{
+  color:#64748b;
+  opacity:.9;
+}
+
+.avatarRosterLocked{
+  opacity:.98;
 }
 
       .page{min-height:100vh;background:#f8fafc}
