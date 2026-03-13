@@ -9998,7 +9998,7 @@ recovery, or tasks block below.
                   {alreadyUnlocked && (
                     <div className="mt12">
                       <div className="mini muted">Choose your avatar:</div>
-                      <div className="row mt8 avatarRoster">
+                      <div className={"row mt8 avatarRoster " + (pack.unlockAtXp >= 4000 ? "avatarPackPremium" : "")}>
                         {(pack.avatars || []).map((a) => (
                           <button
                             key={a.id}
@@ -11389,14 +11389,15 @@ function StyleTag() {
 
 /* avatar picker */
 .avatarRoster{
+  display:flex;
   flex-wrap:wrap;
   gap:10px;
 }
 
 .avatarPick{
-  width:88px;
-  min-height:96px;
-  padding:10px 8px;
+  width:96px;
+  min-height:112px;
+  padding:10px 8px 9px;
   border-radius:18px;
   display:flex;
   flex-direction:column;
@@ -11406,6 +11407,7 @@ function StyleTag() {
   border:1px solid rgba(255,255,255,0.14);
   background: rgba(0,0,0,0.18);
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+  overflow:hidden;
 }
 
 .avatarPick:hover{
@@ -11424,26 +11426,61 @@ function StyleTag() {
 }
 
 .avatarPickArt{
-  width:60px;
-  height:60px;
+  width:64px;
+  height:64px;
   border-radius:16px;
   display:flex;
   align-items:center;
   justify-content:center;
   background:rgba(255,255,255,0.04);
+  flex:0 0 auto;
 }
 
 .avatarPickLabel{
+  width:100%;
+  min-height:26px;
   font-size:11px;
   line-height:1.15;
   font-weight:800;
   text-align:center;
   color:#0f172a;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  text-wrap:balance;
 }
 
 .avatarPickEmoji{
   font-size:28px;
   line-height:1;
+}
+
+/* Pack 4+ feels more premium */
+.avatarPackPremium .avatarPick{
+  width:104px;
+  min-height:124px;
+  border-color:rgba(0,229,255,0.18);
+  background:
+    linear-gradient(180deg, rgba(0,229,255,0.07), rgba(0,0,0,0.18));
+}
+
+.avatarPackPremium .avatarPickArt{
+  width:72px;
+  height:72px;
+  border-radius:18px;
+  background:rgba(255,255,255,0.05);
+  box-shadow:0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+
+.avatarPackPremium .avatarPick:hover{
+  border-color:rgba(0,229,255,0.55);
+  box-shadow:0 10px 24px rgba(0,229,255,0.20);
+}
+
+.avatarPackPremium .avatarPick.active{
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,0.28) inset,
+    0 0 24px rgba(0,229,255,0.34);
 }
 
       .page{min-height:100vh;background:#f8fafc}
