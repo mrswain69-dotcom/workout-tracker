@@ -3674,6 +3674,44 @@ const headerAvatarIsPack4Plus =
   typeof headerAvatarImg === "string" &&
   /\/avatars\/pack([4-9]|\d{2,})\//.test(headerAvatarImg);
 
+// ---- Avatar behaviour state (header only for now) ----
+// Priority:
+// fatigued > legend > energised > neutral
+//
+// Rationale:
+// - fatigued reflects current readiness
+// - legend reflects long streak identity
+// - energised reflects solid momentum
+//
+// This stays subtle and performance-aligned rather than flashy.
+const avatarBehaviourState = useMemo(() => {
+  const readinessScore = safeNumber(
+    bodyReadiness?.trainingReadinessScore
+  );
+  const streakDays = safeNumber(currentPlanStreak);
+
+  if (readinessScore > 0 && readinessScore < 45) {
+    return "fatigued";
+  }
+
+  if (streakDays >= 30) {
+    return "legend";
+  }
+
+  if (streakDays >= 7 && readinessScore >= 45) {
+    return "energised";
+  }
+
+  return "neutral";
+}, [
+  bodyReadiness?.trainingReadinessScore,
+  currentPlanStreak,
+]);
+
+const headerAvatarStateClass = headerAvatarIsPack4Plus
+  ? "avatarChipState avatarState-" + avatarBehaviourState
+  : "";
+
   const hasUnclaimedBadges = useMemo(() => {
   return BADGE_CARDS.some((card) => {
     const state = getBadgeCardState(card, badgeStats, claimedRewardsSet);
@@ -6915,21 +6953,26 @@ const cardioProgress = useMemo(() => {
   <div className="headerBottom">
     <h1 className="title">
   <span className="titleRow">
-    <span className="avatarChip" aria-hidden="true">
-    {headerAvatarImg ? (
+    <span
+  className={`avatarChip ${headerAvatarStateClass}`}
+  aria-hidden="true"
+  title={`Avatar state: ${avatarBehaviourState}`}
+>
+  {headerAvatarImg ? (
     <img
-        src={headerAvatarImg}
-        alt={headerAvatarEmoji}
-        style={{
-          width: headerAvatarIsPack4Plus ? 34 : 24,
-          height: headerAvatarIsPack4Plus ? 34 : 24,
-          objectFit: "contain",
-        }}
-      />
-    ) : (
-      headerAvatarEmoji
-    )}
-  </span>
+      src={headerAvatarImg}
+      alt={headerAvatarEmoji}
+      className="headerAvatarImg"
+      style={{
+        width: headerAvatarIsPack4Plus ? 34 : 24,
+        height: headerAvatarIsPack4Plus ? 34 : 24,
+        objectFit: "contain",
+      }}
+    />
+  ) : (
+    <span className="headerAvatarEmoji">{headerAvatarEmoji}</span>
+  )}
+</span>
     <span>{activeProfile?.name || "Profile"}</span>
   </span>
 </h1>
@@ -10923,11 +10966,82 @@ function StyleTag() {
 /* Rewards: header avatar + badge grid */
 .titleRow{display:flex;align-items:center;gap:10px}
 .avatarChip{
-  width:28px;height:28px;border-radius:999px;
-  display:inline-flex;align-items:center;justify-content:center;
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.15);
+  width:28px;
+  height:28px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,0.25);
+  border:1px solid rgba(255,255,255,0.15);
   font-size:16px;
+  position:relative;
+  overflow:visible;
+}
+
+.avatarChipState{
+  transition:
+    box-shadow .22s ease,
+    border-color .22s ease,
+    background .22s ease,
+    filter .22s ease,
+    transform .22s ease,
+    opacity .22s ease;
+}
+
+.headerAvatarImg,
+.headerAvatarEmoji{
+  transition:
+    filter .22s ease,
+    opacity .22s ease,
+    transform .22s ease;
+}
+
+/* Neutral */
+.avatarState-neutral{
+  box-shadow:none;
+}
+
+/* Energised = subtle cyan glow */
+.avatarState-energised{
+  border-color:rgba(0,229,255,0.42);
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,0.12) inset,
+    0 0 10px rgba(0,229,255,0.18);
+}
+
+.avatarState-energised .headerAvatarImg,
+.avatarState-energised .headerAvatarEmoji{
+  filter:brightness(1.04) saturate(1.04);
+}
+
+/* Legend = stronger prestige ring, still controlled */
+.avatarState-legend{
+  border-color:rgba(255,215,0,0.55);
+  box-shadow:
+    0 0 0 1px rgba(255,215,0,0.18) inset,
+    0 0 0 2px rgba(0,229,255,0.12),
+    0 0 16px rgba(255,215,0,0.22);
+  transform:translateY(-1px);
+}
+
+.avatarState-legend .headerAvatarImg,
+.avatarState-legend .headerAvatarEmoji{
+  filter:brightness(1.06) saturate(1.08);
+}
+
+/* Fatigued = slightly dimmed / desaturated */
+.avatarState-fatigued{
+  border-color:rgba(255,77,77,0.26);
+  background:rgba(0,0,0,0.32);
+  box-shadow:
+    0 0 0 1px rgba(255,77,77,0.08) inset;
+}
+
+.avatarState-fatigued .headerAvatarImg,
+.avatarState-fatigued .headerAvatarEmoji{
+  filter:grayscale(.28) brightness(.88);
+  opacity:.86;
 }
 
 /* Badge cards (kids-first: big badge, small text) */
