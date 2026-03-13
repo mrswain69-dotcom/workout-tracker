@@ -106,6 +106,56 @@ export const AVATAR_PACKS = [
         imgSrc: "/avatars/pack3/momentum-drive.png",
       },
     ],
+    },
+
+  // Tier 4 – Movement Masters
+  {
+    key: "avatar_pack_4_movement_masters",
+    title: "Avatar Pack 4 – Movement Masters",
+    desc: "Unlock at 4,000 XP",
+    unlockAtXp: 4000,
+    avatars: [
+      {
+        id: "mm_velocity_runner",
+        label: "Velocity Runner",
+        imgSrc: "/avatars/pack4/velocity-runner.png",
+      },
+      {
+        id: "mm_iron_lifter",
+        label: "Iron Lifter",
+        imgSrc: "/avatars/pack4/iron-lifter.png",
+      },
+      {
+        id: "mm_aero_jumper",
+        label: "Aero Jumper",
+        imgSrc: "/avatars/pack4/aero-jumper.png",
+      },
+      {
+        id: "mm_shadow_striker",
+        label: "Shadow Striker",
+        imgSrc: "/avatars/pack4/shadow-striker.png",
+      },
+      {
+        id: "mm_endurance_titan",
+        label: "Endurance Titan",
+        imgSrc: "/avatars/pack4/endurance-titan.png",
+      },
+      {
+        id: "mm_blaze_sprinter",
+        label: "Blaze Sprinter",
+        imgSrc: "/avatars/pack4/blaze-sprinter.png",
+      },
+      {
+        id: "mm_storm_cycler",
+        label: "Storm Cycler",
+        imgSrc: "/avatars/pack4/storm-cycler.png",
+      },
+      {
+        id: "mm_focus_guardian",
+        label: "Focus Guardian",
+        imgSrc: "/avatars/pack4/focus-guardian.png",
+      },
+    ],
   },
-  
+
 ];
