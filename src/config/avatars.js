@@ -158,5 +158,53 @@ export const AVATAR_PACKS = [
     ],
   },
 
-];
+{
+    key: "avatar_pack_5_mythic_guardians",
+    title: "Avatar Pack 5 – Mythic Guardians",
+    desc: "Unlock at 5,000 XP",
+    unlockAtXp: 5000,
+    avatars: [
+      {
+        id: "mg_storm_panther",
+        label: "Storm Panther",
+        imgSrc: "/avatars/pack5/storm-panther.png",
+      },
+      {
+        id: "mg_titan_rhino",
+        label: "Titan Rhino",
+        imgSrc: "/avatars/pack5/titan-rhino.png",
+      },
+      {
+        id: "mg_solar_falcon",
+        label: "Solar Falcon",
+        imgSrc: "/avatars/pack5/solar-falcon.png",
+      },
+      {
+        id: "mg_frost_wolf",
+        label: "Frost Wolf",
+        imgSrc: "/avatars/pack5/frost-wolf.png",
+      },
+      {
+        id: "mg_magma_gorilla",
+        label: "Magma Gorilla",
+        imgSrc: "/avatars/pack5/magma-gorilla.png",
+      },
+      {
+        id: "mg_atlas_guardian",
+        label: "Atlas Guardian",
+        imgSrc: "/avatars/pack5/atlas-guardian.png",
+      },
+      {
+        id: "mg_void_serpent",
+        label: "Void Serpent",
+        imgSrc: "/avatars/pack5/void-serpent.png",
+      },
+      {
+        id: "mg_aurora_stag",
+        label: "Aurora Stag",
+        imgSrc: "/avatars/pack5/aurora-stag.png",
+      },
+    ],
+  },
 
+];
