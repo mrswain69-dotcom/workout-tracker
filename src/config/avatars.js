@@ -108,10 +108,10 @@ export const AVATAR_PACKS = [
     ],
     },
 
-  // Tier 4 – Movement Masters
+  // Tier 4 – Apex Athletes
   {
     key: "avatar_pack_4_movement_masters",
-    title: "Avatar Pack 4 – Movement Masters",
+    title: "Avatar Pack 4 – Apex Athletes",
     desc: "Unlock at 4,000 XP",
     unlockAtXp: 4000,
     avatars: [
@@ -159,3 +159,4 @@ export const AVATAR_PACKS = [
   },
 
 ];
+
