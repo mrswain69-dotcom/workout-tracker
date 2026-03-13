@@ -3670,6 +3670,9 @@ const headerAvatar = useMemo(() => {
 
 const headerAvatarEmoji = headerAvatar?.emoji || headerAvatar?.label || "🙂";
 const headerAvatarImg = headerAvatar?.imgSrc || "";
+const headerAvatarIsPack4Plus =
+  typeof headerAvatarImg === "string" &&
+  /\/avatars\/pack([4-9]|\d{2,})\//.test(headerAvatarImg);
 
   const hasUnclaimedBadges = useMemo(() => {
   return BADGE_CARDS.some((card) => {
@@ -6914,10 +6917,14 @@ const cardioProgress = useMemo(() => {
   <span className="titleRow">
     <span className="avatarChip" aria-hidden="true">
     {headerAvatarImg ? (
-      <img
+    <img
         src={headerAvatarImg}
         alt={headerAvatarEmoji}
-        style={{ width: 24, height: 24, objectFit: "contain" }}
+        style={{
+          width: headerAvatarIsPack4Plus ? 34 : 24,
+          height: headerAvatarIsPack4Plus ? 34 : 24,
+          objectFit: "contain",
+        }}
       />
     ) : (
       headerAvatarEmoji
@@ -9579,8 +9586,8 @@ recovery, or tasks block below.
               src={headerAvatarImg}
               alt={headerAvatarEmoji}
               style={{
-                width: 144,
-                height: 144,
+                width: headerAvatarIsPack4Plus ? 168 : 144,
+                height: headerAvatarIsPack4Plus ? 168 : 144,
                 objectFit: "contain",
                 borderRadius: 16,
               }}
@@ -9991,8 +9998,8 @@ recovery, or tasks block below.
                   {alreadyUnlocked && (
                     <div className="mt12">
                       <div className="mini muted">Choose your avatar:</div>
-                      <div className="row mt8" style={{ flexWrap: "wrap", gap: 8 }}>
-{(pack.avatars || []).map((a) => (
+                      <div className="row mt8 avatarRoster">
+                        {(pack.avatars || []).map((a) => (
                           <button
                             key={a.id}
                             type="button"
@@ -10005,15 +10012,18 @@ recovery, or tasks block below.
                               });
                             }}
                           >
-                            {a.imgSrc ? (
-                              <img
-                                src={a.imgSrc}
-                                alt={a.label || "Avatar"}
-                                style={{ width: 32, height: 32, objectFit: "contain" }}
-                              />
-                            ) : (
-                              a.emoji || a.label
-                            )}
+                            <div className="avatarPickArt">
+                              {a.imgSrc ? (
+                                <img
+                                  src={a.imgSrc}
+                                  alt={a.label || "Avatar"}
+                                  style={{ width: 52, height: 52, objectFit: "contain" }}
+                                />
+                              ) : (
+                                <span className="avatarPickEmoji">{a.emoji || a.label}</span>
+                              )}
+                            </div>
+                            <div className="avatarPickLabel">{a.label || "Avatar"}</div>
                           </button>
                         ))}
                       </div>
@@ -11378,18 +11388,63 @@ function StyleTag() {
 }
 
 /* avatar picker */
-.avatarPick{
-  min-width:44px;height:44px;border-radius:14px;
-  display:inline-flex;align-items:center;justify-content:center;
-  border:1px solid rgba(255,255,255,0.15);
-  background: rgba(0,0,0,0.18);
-  font-size:20px;
-}
-.avatarPick.active{
-  border:1px solid rgba(255,255,255,0.35);
-  background: rgba(255,255,255,0.08);
+.avatarRoster{
+  flex-wrap:wrap;
+  gap:10px;
 }
 
+.avatarPick{
+  width:88px;
+  min-height:96px;
+  padding:10px 8px;
+  border-radius:18px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  border:1px solid rgba(255,255,255,0.14);
+  background: rgba(0,0,0,0.18);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+
+.avatarPick:hover{
+  transform:translateY(-2px);
+  border-color:rgba(0,224,255,0.45);
+  background:rgba(255,255,255,0.06);
+  box-shadow:0 8px 18px rgba(0,224,255,0.16);
+}
+
+.avatarPick.active{
+  border:1px solid rgba(0,224,255,0.65);
+  background:rgba(0,224,255,0.10);
+  box-shadow:
+    0 0 0 1px rgba(0,224,255,0.22) inset,
+    0 0 18px rgba(0,224,255,0.28);
+}
+
+.avatarPickArt{
+  width:60px;
+  height:60px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(255,255,255,0.04);
+}
+
+.avatarPickLabel{
+  font-size:11px;
+  line-height:1.15;
+  font-weight:800;
+  text-align:center;
+  color:#0f172a;
+}
+
+.avatarPickEmoji{
+  font-size:28px;
+  line-height:1;
+}
 
       .page{min-height:100vh;background:#f8fafc}
       .wrap{max-width:1200px;margin:0 auto;padding:16px}
