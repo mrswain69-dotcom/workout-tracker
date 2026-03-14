@@ -3709,44 +3709,6 @@ const headerAvatarIsPack4Plus =
   typeof headerAvatarImg === "string" &&
   /\/avatars\/pack([4-9]|\d{2,})\//.test(headerAvatarImg);
 
-// ---- Avatar behaviour state (header only for now) ----
-// Priority:
-// fatigued > legend > energised > neutral
-//
-// Rationale:
-// - fatigued reflects current readiness
-// - legend reflects long streak identity
-// - energised reflects solid momentum
-//
-// This stays subtle and performance-aligned rather than flashy.
-const avatarBehaviourState = useMemo(() => {
-  const readinessScore = safeNumber(
-    bodyReadiness?.trainingReadinessScore
-  );
-  const streakDays = safeNumber(currentPlanStreak);
-
-  if (readinessScore > 0 && readinessScore < 45) {
-    return "fatigued";
-  }
-
-  if (streakDays >= 30) {
-    return "legend";
-  }
-
-  if (streakDays >= 7 && readinessScore >= 45) {
-    return "energised";
-  }
-
-  return "neutral";
-}, [
-  bodyReadiness?.trainingReadinessScore,
-  currentPlanStreak,
-]);
-
-const headerAvatarStateClass = headerAvatarIsPack4Plus
-  ? "avatarChipState avatarState-" + avatarBehaviourState
-  : "";
-
   const hasUnclaimedBadges = useMemo(() => {
   return BADGE_CARDS.some((card) => {
     const state = getBadgeCardState(card, badgeStats, claimedRewardsSet);
@@ -4567,6 +4529,44 @@ const bodyReadiness = useMemo(() => {
   };
 }, [recoveryRecommendationToday, readinessNowTick]);
 
+// ---- Avatar behaviour state (header only for now) ----
+// Priority:
+// fatigued > legend > energised > neutral
+//
+// Rationale:
+// - fatigued reflects current readiness
+// - legend reflects long streak identity
+// - energised reflects solid momentum
+//
+// This stays subtle and performance-aligned rather than flashy.
+const avatarBehaviourState = useMemo(() => {
+  const readinessScore = safeNumber(
+    bodyReadiness?.trainingReadinessScore
+  );
+  const streakDays = safeNumber(currentPlanStreak);
+
+  if (readinessScore > 0 && readinessScore < 45) {
+    return "fatigued";
+  }
+
+  if (streakDays >= 30) {
+    return "legend";
+  }
+
+  if (streakDays >= 7 && readinessScore >= 45) {
+    return "energised";
+  }
+
+  return "neutral";
+}, [
+  bodyReadiness?.trainingReadinessScore,
+  currentPlanStreak,
+]);
+
+const headerAvatarStateClass = headerAvatarIsPack4Plus
+  ? "avatarChipState avatarState-" + avatarBehaviourState
+  : "";
+  
 const selectedDayHasRecoveryBlock =
   hasAnyRecoveryBlocks;
 
