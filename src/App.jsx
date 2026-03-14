@@ -8116,9 +8116,6 @@ const targetInfo = buildTargetInfoForMovement({
     </div>
   </div>
 )}
-          />
-        </div>
-      </div>
 
       <div className="mt8">
         <div className="label">Target (optional)</div>
