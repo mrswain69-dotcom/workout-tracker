@@ -244,15 +244,48 @@ function createStrengthBlock() {
   };
 }
 
+const CARDIO_TYPE_OPTIONS = [
+  { value: "run", label: "Run" },
+  { value: "cycle", label: "Cycle" },
+  { value: "walk", label: "Walk" },
+  { value: "swim", label: "Swim" },
+  { value: "row", label: "Row" },
+  { value: "team_sport", label: "Team Sport" },
+  { value: "no_distance", label: "No Distance" },
+  { value: "other", label: "Other" },
+];
+
+const TEAM_SPORT_ACTIVITY_CHIPS = [
+  "Football Match",
+  "Football Training",
+  "Rugby",
+  "Basketball",
+  "Netball",
+  "Hockey",
+];
+
+const NO_DISTANCE_ACTIVITY_CHIPS = [
+  "Badminton",
+  "Karate",
+  "Fencing",
+  "Yoga",
+  "Tai Chi",
+  "Circuits",
+];
+
+function isDistanceHiddenCardioType(cardioType) {
+  return cardioType === "team_sport" || cardioType === "no_distance";
+}
+
 function createCardioBlock() {
   return {
     id: uid(),
     typeId: "cardio",
     label: "",
     note: "",
-    // Built-in types: run, cycle, walk, swim, row, other
-    cardioType: "run", // "run" | "cycle" | "walk" | "swim" | "row" | "other"
+    cardioType: "run",
     cardioTypeOtherLabel: "",
+    activityName: "",
     targetText: "",
     plannedMinutes: "",
   };
@@ -3009,10 +3042,11 @@ useEffect(() => {
 
   // Cardio extra-block drafts
   const [extraCardioNameDraft, setExtraCardioNameDraft] = useState("");
-  const [extraCardioTypeDraft, setExtraCardioTypeDraft] = useState("run");
-  const [extraCardioTargetDraft, setExtraCardioTargetDraft] = useState("");
-  const [extraCardioCoachNoteDraft, setExtraCardioCoachNoteDraft] =
-    useState("");
+const [extraCardioTypeDraft, setExtraCardioTypeDraft] = useState("run");
+const [extraCardioActivityNameDraft, setExtraCardioActivityNameDraft] = useState("");
+const [extraCardioTargetDraft, setExtraCardioTargetDraft] = useState("");
+const [extraCardioCoachNoteDraft, setExtraCardioCoachNoteDraft] =
+  useState("");
 
     // Duration extra-block drafts
   const [extraDurationNameDraft, setExtraDurationNameDraft] = useState("");
@@ -3444,14 +3478,15 @@ const badgeStats = useMemo(() => {
 
         if (typeId === "cardio") {
           return {
-            id: b?.id || `${w}_block_${idx}`,
-            typeId: "cardio",
-            label: b?.label || "",
-            note: typeof b?.note === "string" ? b.note : "",
-            cardioType: b?.cardioType || "run",
-            cardioTypeOtherLabel: b?.cardioTypeOtherLabel || "",
-            targetText: b?.targetText || "",
-          };
+  id: b?.id || `${w}_block_${idx}`,
+  typeId: "cardio",
+  label: b?.label || "",
+  note: typeof b?.note === "string" ? b.note : "",
+  cardioType: b?.cardioType || "run",
+  cardioTypeOtherLabel: b?.cardioTypeOtherLabel || "",
+  activityName: b?.activityName || "",
+  targetText: b?.targetText || "",
+};
         }
 
         if (typeId === "duration") {
@@ -5154,6 +5189,7 @@ function blankLogForDay() {
       // IMPORTANT: preserve cardio metadata so badge stats can identify sport
       cardioType: b.cardioType || "",
       cardioTypeOtherLabel: b.cardioTypeOtherLabel || "",
+      activityName: b.activityName || "",
       targetText: b.targetText || "",
 
       recoveryMode: b.recoveryMode || "full",
@@ -5228,17 +5264,21 @@ function ensureBlocksSnapshot(baseLog) {
 
       // IMPORTANT: preserve cardio metadata for planned cardio blocks
       cardioType:
-        pb.cardioType ||
-        existing?.cardioType ||
-        "",
-      cardioTypeOtherLabel:
-        pb.cardioTypeOtherLabel ||
-        existing?.cardioTypeOtherLabel ||
-        "",
-      targetText:
-        pb.targetText ||
-        existing?.targetText ||
-        "",
+  pb.cardioType ||
+  existing?.cardioType ||
+  "",
+cardioTypeOtherLabel:
+  pb.cardioTypeOtherLabel ||
+  existing?.cardioTypeOtherLabel ||
+  "",
+activityName:
+  pb.activityName ||
+  existing?.activityName ||
+  "",
+targetText:
+  pb.targetText ||
+  existing?.targetText ||
+  "",
 
       recoveryMode:
         pb.recoveryMode ||
@@ -6094,9 +6134,10 @@ async function addExtraCardioBlockForToday(draft) {
   const name = (draft?.name || "").trim();
   if (!name) return;
 
-  const cardioType = draft?.cardioType || "run";
-  const targetText = (draft?.targetText || "").trim();
-  const coachNote = (draft?.coachNote || "").trim();
+const cardioType = draft?.cardioType || "run";
+const activityName = (draft?.activityName || "").trim();
+const targetText = (draft?.targetText || "").trim();
+const coachNote = (draft?.coachNote || "").trim();
 
   const baseLog = ensureBlocksSnapshot(
     logForDay ? { ...logForDay } : blankLogForDay()
@@ -6115,8 +6156,9 @@ async function addExtraCardioBlockForToday(draft) {
     label: name || "Cardio block",
     note: coachNote,
     cardioType,
-    cardioTypeOtherLabel: "",
-    targetText,
+cardioTypeOtherLabel: "",
+activityName,
+targetText,
     cardio: {
       distanceKm: "",
       durationMin: "",
@@ -6332,18 +6374,20 @@ async function addExtraMovement() {
     if (!name) return;
 
     const draft = {
-      name,
-      cardioType: extraCardioTypeDraft || "run",
-      targetText: extraCardioTargetDraft || "",
-      coachNote: extraCardioCoachNoteDraft || "",
-    };
+  name,
+  cardioType: extraCardioTypeDraft || "run",
+  activityName: extraCardioActivityNameDraft || "",
+  targetText: extraCardioTargetDraft || "",
+  coachNote: extraCardioCoachNoteDraft || "",
+};
 
     await addExtraCardioBlockForToday(draft);
 
     setExtraCardioNameDraft("");
-    setExtraCardioTypeDraft("run");
-    setExtraCardioTargetDraft("");
-    setExtraCardioCoachNoteDraft("");
+setExtraCardioTypeDraft("run");
+setExtraCardioActivityNameDraft("");
+setExtraCardioTargetDraft("");
+setExtraCardioCoachNoteDraft("");
     return;
   }
 
@@ -7524,23 +7568,29 @@ const targetInfo = buildTargetInfoForMovement({
               </SecondaryButton>
             </div>
           )}
-            <div className="grid3 mt8">
+            <div
+  className={`mt8 ${
+    isDistanceHiddenCardioType(block.cardioType || "run") ? "grid2" : "grid3"
+  }`}
+>
+  {!isDistanceHiddenCardioType(block.cardioType || "run") && (
   <div>
     <div className="label">Distance (km)</div>
     <input
-  className="input"
-  type="number"
-  min={0}
-  step={0.01}
-  value={cardio.distanceKm ?? ""}
-  onChange={(e) =>
-    updateCardioForBlock(block.id, {
-      distanceKm: e.target.value,
-    })
-  }
-  placeholder="e.g. 2.50"
-/>
+      className="input"
+      type="number"
+      min={0}
+      step={0.01}
+      value={cardio.distanceKm ?? ""}
+      onChange={(e) =>
+        updateCardioForBlock(block.id, {
+          distanceKm: e.target.value,
+        })
+      }
+      placeholder="e.g. 2.50"
+    />
   </div>
+)}
 
   <div>
     <div className="label">Time (minutes)</div>
@@ -7559,7 +7609,8 @@ const targetInfo = buildTargetInfoForMovement({
 />
   </div>
 
-      <div>
+      {!isDistanceHiddenCardioType(block.cardioType || "run") && (
+  <div>
     <div className="label">Average speeds:</div>
     <div className="muted mt4">
       <div>{avgSpeedKmh ? `${avgSpeedKmh.toFixed(2)} km/h` : "— km/h"}</div>
@@ -7580,6 +7631,7 @@ const targetInfo = buildTargetInfoForMovement({
       </div>
     </div>
   </div>
+)}
 </div>
           </div>
         );
@@ -8028,14 +8080,38 @@ const targetInfo = buildTargetInfoForMovement({
           <Select
             value={extraCardioTypeDraft}
             onChange={setExtraCardioTypeDraft}
-            options={[
-              { value: "run", label: "Run" },
-              { value: "cycle", label: "Cycle" },
-              { value: "walk", label: "Walk" },
-              { value: "swim", label: "Swim" },
-              { value: "row", label: "Row" },
-              { value: "other", label: "Other" },
-            ]}
+            options={CARDIO_TYPE_OPTIONS}
+            {(extraCardioTypeDraft === "team_sport" ||
+  extraCardioTypeDraft === "no_distance") && (
+  <div className="mt8">
+    <div className="label">Activity / sport name</div>
+    <Input
+      value={extraCardioActivityNameDraft}
+      onChange={setExtraCardioActivityNameDraft}
+      placeholder={
+        extraCardioTypeDraft === "team_sport"
+          ? "e.g. Football Match"
+          : "e.g. Badminton"
+      }
+    />
+
+    <div className="row mt8" style={{ gap: 8, flexWrap: "wrap" }}>
+      {(extraCardioTypeDraft === "team_sport"
+        ? TEAM_SPORT_ACTIVITY_CHIPS
+        : NO_DISTANCE_ACTIVITY_CHIPS
+      ).map((chip) => (
+        <button
+          key={chip}
+          type="button"
+          className="historyPill"
+          onClick={() => setExtraCardioActivityNameDraft(chip)}
+        >
+          {chip}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
           />
         </div>
       </div>
@@ -9132,20 +9208,17 @@ recovery, or tasks block below.
                       <Select
                         value={block.cardioType || "run"}
                         onChange={(v) =>
-                          updateBlockInDay(block.id, () => ({
-                            cardioType: v,
-                            cardioTypeOtherLabel:
-                              v === "other" ? block.cardioTypeOtherLabel || "" : "",
-                          }))
-                        }
-                        options={[
-                          { value: "run", label: "Run" },
-                          { value: "cycle", label: "Cycle" },
-                          { value: "walk", label: "Walk" },
-                          { value: "swim", label: "Swim" },
-                          { value: "row", label: "Row" },
-                          { value: "other", label: "Other" },
-                        ]}
+  updateBlockInDay(block.id, () => ({
+    cardioType: v,
+    cardioTypeOtherLabel:
+      v === "other" ? block.cardioTypeOtherLabel || "" : "",
+    activityName:
+      v === "team_sport" || v === "no_distance"
+        ? block.activityName || ""
+        : "",
+  }))
+}
+                        options={CARDIO_TYPE_OPTIONS}
                       />
                     </div>
 
@@ -9163,6 +9236,46 @@ recovery, or tasks block below.
                       />
                     </div>
                   )}
+
+                  {(block.cardioType === "team_sport" ||
+  block.cardioType === "no_distance") && (
+  <div className="mt8">
+    <div className="label">Activity / sport name</div>
+    <Input
+      value={block.activityName || ""}
+      onChange={(v) =>
+        updateBlockInDay(block.id, () => ({
+          activityName: v,
+        }))
+      }
+      placeholder={
+        block.cardioType === "team_sport"
+          ? "e.g. Football Match"
+          : "e.g. Badminton"
+      }
+    />
+
+    <div className="row mt8" style={{ gap: 8, flexWrap: "wrap" }}>
+      {(block.cardioType === "team_sport"
+        ? TEAM_SPORT_ACTIVITY_CHIPS
+        : NO_DISTANCE_ACTIVITY_CHIPS
+      ).map((chip) => (
+        <button
+          key={chip}
+          type="button"
+          className="historyPill"
+          onClick={() =>
+            updateBlockInDay(block.id, () => ({
+              activityName: chip,
+            }))
+          }
+        >
+          {chip}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
 
                   <div className="mt8">
                     <div className="label">Target</div>
