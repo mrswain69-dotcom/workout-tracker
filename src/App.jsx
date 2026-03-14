@@ -8065,23 +8065,27 @@ const targetInfo = buildTargetInfoForMovement({
   {/* Cardio extra form */}
   {extraBlockKind === "cardio" && (
     <>
-            <div className="row mt8">
-        <div style={{ flex: 1 }}>
-          <div className="label">Name</div>
-          <Input
-            value={extraCardioNameDraft}
-            onChange={setExtraCardioNameDraft}
-            placeholder="e.g. Extra run / walk"
-          />
-        </div>
-        <div style={{ width: 8 }} />
-        <div style={{ minWidth: 180 }}>
-          <div className="label">Cardio type</div>
-          <Select
-            value={extraCardioTypeDraft}
-            onChange={setExtraCardioTypeDraft}
-            options={CARDIO_TYPE_OPTIONS}
-            {(extraCardioTypeDraft === "team_sport" ||
+        <div className="row mt8">
+  <div style={{ flex: 1 }}>
+    <div className="label">Name</div>
+    <Input
+      value={extraCardioNameDraft}
+      onChange={setExtraCardioNameDraft}
+      placeholder="e.g. Extra run / walk"
+    />
+  </div>
+  <div style={{ width: 8 }} />
+  <div style={{ minWidth: 180 }}>
+    <div className="label">Cardio type</div>
+    <Select
+      value={extraCardioTypeDraft}
+      onChange={setExtraCardioTypeDraft}
+      options={CARDIO_TYPE_OPTIONS}
+    />
+  </div>
+</div>
+
+{(extraCardioTypeDraft === "team_sport" ||
   extraCardioTypeDraft === "no_distance") && (
   <div className="mt8">
     <div className="label">Activity / sport name</div>
