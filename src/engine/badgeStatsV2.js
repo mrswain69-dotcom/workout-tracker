@@ -336,6 +336,157 @@ const PACE_DISTANCES = {
   swim: ["750m", "1500m", "3k"],
 };
 
+// -----------------------------------------------------
+// SPORT MASTERY MAP
+// Phase B only:
+// - recognise sport names from activityName / label / note
+// - count max 1 sport session per sport per day
+// - do NOT yet wire into badge defs / avatar unlocks
+// -----------------------------------------------------
+const SPORT_MASTERY_KEYS = [
+  "football",
+  "rugby",
+  "basketball",
+  "badminton",
+  "tennis",
+  "martial_arts",
+  "fencing",
+  "yoga",
+  "netball",
+  "hockey",
+];
+
+const SPORT_NAME_MATCHERS = [
+  { key: "football", terms: ["football", "soccer"] },
+  { key: "rugby", terms: ["rugby"] },
+  { key: "basketball", terms: ["basketball"] },
+  { key: "badminton", terms: ["badminton"] },
+  { key: "tennis", terms: ["tennis"] },
+  {
+    key: "martial_arts",
+    terms: [
+      "martial arts",
+      "martial",
+      "karate",
+      "judo",
+      "taekwondo",
+      "tae kwon do",
+      "jiu jitsu",
+      "jujitsu",
+      "ju jitsu",
+      "kickboxing",
+      "muay thai",
+      "boxing",
+    ],
+  },
+  { key: "fencing", terms: ["fencing"] },
+  { key: "yoga", terms: ["yoga", "tai chi", "pilates"] },
+  { key: "netball", terms: ["netball"] },
+  { key: "hockey", terms: ["hockey"] },
+];
+
+function normaliseText(v) {
+  return String(v || "")
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getSportKeyFromText(text) {
+  const t = normaliseText(text);
+  if (!t) return null;
+
+  for (const matcher of SPORT_NAME_MATCHERS) {
+    for (const term of matcher.terms) {
+      if (t.includes(term)) return matcher.key;
+    }
+  }
+
+  return null;
+}
+
+function createEmptySportMasteryBucket() {
+  const out = {};
+  for (const key of SPORT_MASTERY_KEYS) {
+    out[key] = {
+      sessions: 0,
+      days: 0,
+      lastDate: null,
+    };
+  }
+  return out;
+}
+
+function getSportKeysForLog(log) {
+  const keys = new Set();
+  const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+
+  for (const b of blocks) {
+    if (!b || b.cancelled) continue;
+
+    const typeId = normaliseText(b.typeId);
+
+    // We only care about cardio + duration style blocks for sport mastery.
+    if (
+      typeId !== "cardio" &&
+      typeId !== "run" &&
+      typeId !== "swim" &&
+      typeId !== "walk" &&
+      typeId !== "row" &&
+      typeId !== "cycle" &&
+      typeId !== "bike" &&
+      typeId !== "duration"
+    ) {
+      continue;
+    }
+
+    // Must have actual logged data
+    let hasData = false;
+
+    if (
+      typeId === "cardio" ||
+      typeId === "run" ||
+      typeId === "swim" ||
+      typeId === "walk" ||
+      typeId === "row" ||
+      typeId === "cycle" ||
+      typeId === "bike"
+    ) {
+      const c = b.cardio || {};
+      hasData = safeNum(c.distanceKm) > 0 || safeNum(c.durationMin) > 0;
+    } else if (typeId === "duration") {
+      hasData = safeNum(b?.duration?.minutes) > 0;
+    }
+
+    if (!hasData) continue;
+
+    // Priority:
+    // 1) explicit activityName
+    // 2) cardioType other/team_sport/no_distance won't give sport identity reliably,
+    //    so also inspect label/note
+    // 3) if still nothing, ignore
+    const candidates = [
+      b?.activityName,
+      b?.label,
+      b?.note,
+      b?.cardioTypeOtherLabel,
+    ];
+
+    let found = null;
+    for (const text of candidates) {
+      found = getSportKeyFromText(text);
+      if (found) break;
+    }
+
+    if (found) {
+      keys.add(found);
+    }
+  }
+
+  return Array.from(keys);
+}
+
 function extractCardioEfforts(log) {
   const out = [];
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
@@ -343,7 +494,6 @@ function extractCardioEfforts(log) {
   for (const b of blocks) {
     const typeId = String(b?.typeId || "").toLowerCase();
 
-    // Accept all cardio-style block ids that may exist in logs
     if (
       typeId !== "cardio" &&
       typeId !== "run" &&
@@ -357,8 +507,16 @@ function extractCardioEfforts(log) {
     }
 
     const c = b.cardio || {};
+    const cardioType = String(b?.cardioType || "").toLowerCase();
 
-        let sport = String(
+    // IMPORTANT:
+    // team_sport / no_distance are real sport sessions for sport mastery,
+    // but they must NOT feed measurable run/bike/swim/row pace-distance badges.
+    if (cardioType === "team_sport" || cardioType === "no_distance") {
+      continue;
+    }
+
+    let sport = String(
       c.sport ||
       b.cardioType ||
       b.sport ||
@@ -366,7 +524,6 @@ function extractCardioEfforts(log) {
       ""
     ).toLowerCase();
 
-    // Recover sport from label if this is a generic cardio block
     if (sport === "cardio") {
       const label = String(b?.label || "").toLowerCase();
       const note = String(b?.note || "").toLowerCase();
@@ -385,7 +542,6 @@ function extractCardioEfforts(log) {
       }
     }
 
-    // Normalise app wording to badge wording
     if (sport === "cycle") sport = "bike";
 
     const km = safeNum(c.distanceKm);
@@ -430,6 +586,11 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
   let totalRecoveryDays = 0;
   let qualifyingRecoveryDays = 0;
 
+    // -----------------------------
+  // Sport mastery (Phase B)
+  // -----------------------------
+  const sportMastery = createEmptySportMasteryBucket();
+
   // -----------------------------
   // Cardio stats
   // -----------------------------
@@ -469,6 +630,17 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
 
     if (recoveryDoneToday) {
       totalRecoveryDays += 1;
+    }
+
+    // Sport mastery:
+    // Count max 1 session per sport per day.
+    const sportKeysForDay = getSportKeysForLog(log);
+    for (const sportKey of sportKeysForDay) {
+      if (!sportMastery[sportKey]) continue;
+
+      sportMastery[sportKey].sessions += 1;
+      sportMastery[sportKey].days += 1;
+      sportMastery[sportKey].lastDate = dateStr;
     }
 
     for (const b of blocks) {
@@ -680,6 +852,7 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
       },
     },
     cardio,
+    sportMastery,
     intelligence: {
       progressiveOverloadEvents: 0, // placeholder until BI engine emits events
       paceImprovementPct4w,
