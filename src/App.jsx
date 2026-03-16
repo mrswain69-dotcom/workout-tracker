@@ -11657,7 +11657,7 @@ function StyleTag() {
   width:100%;
   min-height:148px;
   padding:5px 4px 4px;
-  border-radius:5px;
+  border-radius:18px;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -11753,7 +11753,7 @@ function StyleTag() {
 .avatarPackPremium .avatarPickArt{
   width:85px;
   height:85px;
-  border-radius:5px;
+  border-radius:18px;
   background:rgba(255,255,255,0.05);
   box-shadow:0 0 0 1px rgba(255,255,255,0.04) inset;
 }
