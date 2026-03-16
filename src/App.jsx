@@ -11655,14 +11655,14 @@ function StyleTag() {
 
 .avatarPick{
   width:100%;
-  min-height:112px;
+  min-height:148px;
   padding:5px 4px 4px;
   border-radius:5px;
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:flex-start;
-  gap:8px;
+  gap:4px;
   border:1px solid rgba(255,255,255,0.14);
   background:rgba(0,0,0,0.18);
   transition:
@@ -11692,15 +11692,13 @@ function StyleTag() {
 }
 
 .avatarPickArt{
-  width:100px;
-  height:100px;
-  border-radius:5px;
+  width:100%;
+  min-height:96px;
   display:flex;
   align-items:center;
   justify-content:center;
-  background:rgba(255,255,255,0.04);
-  flex:0 0 auto;
-  transition: transform .18s ease, filter .18s ease;
+  flex:1 1 auto;
+  margin-bottom:2px;
 }
 
 .avatarPickImg{
@@ -11713,9 +11711,9 @@ function StyleTag() {
 
 .avatarPickLabel{
   width:100%;
-  min-height:26px;
+  min-height:22px;
   font-size:11px;
-  line-height:1.15;
+  line-height:1.1;
   font-weight:800;
   text-align:center;
   color:#0f172a;
@@ -11723,6 +11721,10 @@ function StyleTag() {
   overflow-wrap:anywhere;
   word-break:break-word;
   text-wrap:balance;
+  margin-top:auto;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
   transition: transform .18s ease, opacity .18s ease;
 }
 
@@ -11844,23 +11846,29 @@ function StyleTag() {
   }
 
   .avatarPick{
-    min-height:104px;
+    min-height:136px;
     padding:8px 6px 8px;
   }
 
   .avatarPickArt{
-    width:58px;
-    height:58px;
+    width:100%;
+    min-height:86px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:1 1 auto;
   }
 
   .avatarPickImg{
-    width:46px;
-    height:46px;
+    width:86px;
+    height:86px;
   }
 
   .avatarPickLabel{
     font-size:10px;
-    min-height:24px;
+    line-height:1.1;
+    min-height:20px;
+    margin-top:auto;
   }
 }
 
