@@ -11647,13 +11647,14 @@ function StyleTag() {
 
 /* avatar picker */
 .avatarRoster{
-  display:flex;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
   gap:10px;
+  align-items:start;
 }
 
 .avatarPick{
-  width:96px;
+  width:100%;
   min-height:112px;
   padding:10px 8px 9px;
   border-radius:18px;
@@ -11672,6 +11673,7 @@ function StyleTag() {
     filter .18s ease;
   overflow:hidden;
   position:relative;
+  min-width:0;
 }
 
 .avatarPick:hover{
@@ -11740,7 +11742,6 @@ function StyleTag() {
 
 /* Pack 4+ feels more premium */
 .avatarPackPremium .avatarPick{
-  width:104px;
   min-height:124px;
   border-color:rgba(0,229,255,0.18);
   background:
@@ -11768,7 +11769,6 @@ function StyleTag() {
 
 /* Pack 5+ mythic hover pop */
 .avatarPackMythic .avatarPick{
-  width:112px;
   min-height:136px;
 }
 
@@ -11830,6 +11830,38 @@ function StyleTag() {
 
 .avatarRosterLocked{
   opacity:.98;
+}
+
+@media (min-width:700px){
+  .avatarRoster{
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width:380px){
+  .avatarRoster{
+    gap:8px;
+  }
+
+  .avatarPick{
+    min-height:104px;
+    padding:8px 6px 8px;
+  }
+
+  .avatarPickArt{
+    width:58px;
+    height:58px;
+  }
+
+  .avatarPickImg{
+    width:46px;
+    height:46px;
+  }
+
+  .avatarPickLabel{
+    font-size:10px;
+    min-height:24px;
+  }
 }
 
       .page{min-height:100vh;background:#f8fafc}
