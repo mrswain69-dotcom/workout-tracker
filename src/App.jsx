@@ -11656,8 +11656,8 @@ function StyleTag() {
 .avatarPick{
   width:100%;
   min-height:112px;
-  padding:10px 8px 9px;
-  border-radius:18px;
+  padding:5px 4px 4px;
+  border-radius:5px;
   display:flex;
   flex-direction:column;
   align-items:center;
