@@ -10160,13 +10160,13 @@ recovery, or tasks block below.
                     </div>
 
                     <div
-                      className={
-                        "row mt8 avatarRoster " +
-                        (pack.unlockAtXp >= 4000 ? "avatarPackPremium " : "") +
-                        (pack.unlockAtXp >= 5000 ? "avatarPackMythic " : "") +
-                        (!alreadyUnlocked ? "avatarRosterLocked " : "")
-                      }
-                    >
+  className={
+    "mt8 avatarRoster " +
+    (pack.unlockAtXp >= 4000 ? "avatarPackPremium " : "") +
+    (pack.unlockAtXp >= 5000 ? "avatarPackMythic " : "") +
+    (!alreadyUnlocked ? "avatarRosterLocked " : "")
+  }
+>
                       {(pack.avatars || []).map((a) => {
                         const isSelected = selectedAvatarId === a.id;
                         const isLockedPreview = !alreadyUnlocked;
