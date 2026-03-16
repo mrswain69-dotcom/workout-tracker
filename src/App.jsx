@@ -11749,9 +11749,9 @@ function StyleTag() {
 }
 
 .avatarPackPremium .avatarPickArt{
-  width:72px;
-  height:72px;
-  border-radius:18px;
+  width:85px;
+  height:85px;
+  border-radius:5px;
   background:rgba(255,255,255,0.05);
   box-shadow:0 0 0 1px rgba(255,255,255,0.04) inset;
 }
@@ -11773,8 +11773,8 @@ function StyleTag() {
 }
 
 .avatarPackMythic .avatarPickArt{
-  width:76px;
-  height:76px;
+  width:95px;
+  height:95px;
 }
 
 .avatarPackMythic .avatarPick:hover:not(.lockedPreview):not(:disabled){
