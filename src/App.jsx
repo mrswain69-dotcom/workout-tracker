@@ -11692,9 +11692,9 @@ function StyleTag() {
 }
 
 .avatarPickArt{
-  width:72px;
-  height:72px;
-  border-radius:10px;
+  width:85px;
+  height:85px;
+  border-radius:5px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -11704,8 +11704,8 @@ function StyleTag() {
 }
 
 .avatarPickImg{
-  width:64px;
-  height:64px;
+  width:75px;
+  height:75px;
   object-fit:contain;
   display:block;
   transition: transform .18s ease, filter .18s ease, opacity .18s ease;
