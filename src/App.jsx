@@ -37,7 +37,7 @@ import {
   clearFamilyPin,
 } from "./db";
 
-import { BADGE_CARDS, BADGE_DEFS } from "./config/badges";
+import { BADGE_CARDS, BADGE_DEFS, TIERS } from "./config/badges";
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 
 import { AVATAR_PACKS } from "./config/avatars";
@@ -2463,6 +2463,29 @@ function computeCardioKmForDay(log) {
 
 const TIER_ORDER = ["bronze", "silver", "gold", "platinum", "diamond"];
 
+function getSportBadgeFaceText(card) {
+  const title = String(card?.title || "").trim();
+  return title.replace(/\s+Mastery$/i, "").toUpperCase();
+}
+
+function getSportBadgeProgressPct(card, badgeStats) {
+  const value = safeNumber(getByPath({ stats: badgeStats }, card.statKey));
+  const tiers = Array.isArray(card?.tiers) ? card.tiers : [];
+  if (!tiers.length) return 0;
+
+  const earnedIndex = getHighestEarnedTierIndex(card, value);
+  const nextTier = earnedIndex + 1 < tiers.length ? tiers[earnedIndex + 1] : null;
+  const currentTier = earnedIndex >= 0 ? tiers[earnedIndex] : null;
+
+  if (!nextTier) return 100;
+
+  const floor = currentTier ? safeNumber(currentTier.threshold) : 0;
+  const ceiling = safeNumber(nextTier.threshold);
+  const range = Math.max(1, ceiling - floor);
+  const raw = ((value - floor) / range) * 100;
+
+  return clamp(Math.round(raw), 0, 100);
+}
 
 function normaliseClaimedRewards(meta) {
   // Supports legacy format: ["badge_key", ...]
@@ -2688,6 +2711,7 @@ export default function App() {
   const [tab, setTab] = useState("log");
   const [copyDialog, setCopyDialog] = useState(null); // { blockId, days: string[] }
   const [rewardsSubTab, setRewardsSubTab] = useState("badges"); // "badges" | "avatars" | "shop" | "info"
+  const [badgeCategoryView, setBadgeCategoryView] = useState("performance"); // "performance" | "sport_mastery"
   const [badgeView, setBadgeView] = useState("earned"); // "earned" | "all"
   const [claimModal, setClaimModal] = useState(null); // { title, desc }
 const [claimFx, setClaimFx] = useState(null); // reserved for future
@@ -3659,6 +3683,22 @@ const claimedRewardsNorm = useMemo(
   () => normaliseClaimedRewards(plan?.meta),
   [JSON.stringify(plan?.meta?.claimedRewards || [])]
 );
+
+const performanceBadgeCards = useMemo(
+  () => BADGE_CARDS.filter((card) => card.badgeGroup !== "sport_mastery"),
+  []
+);
+
+const sportMasteryBadgeCards = useMemo(
+  () => BADGE_CARDS.filter((card) => card.badgeGroup === "sport_mastery"),
+  []
+);
+
+const visibleBadgeCards =
+  badgeCategoryView === "sport_mastery"
+    ? sportMasteryBadgeCards
+    : performanceBadgeCards;
+  
 const claimedRewardsSet = useMemo(
   () => new Set((claimedRewardsNorm || []).map((c) => c.key)),
   [claimedRewardsNorm]
@@ -9851,6 +9891,27 @@ recovery, or tasks block below.
       <button
         type="button"
         className={
+          "subTabPill " + (badgeCategoryView === "performance" ? "on" : "off")
+        }
+        onClick={() => setBadgeCategoryView("performance")}
+      >
+        Performance
+      </button>
+      <button
+        type="button"
+        className={
+          "subTabPill " + (badgeCategoryView === "sport_mastery" ? "on" : "off")
+        }
+        onClick={() => setBadgeCategoryView("sport_mastery")}
+      >
+        Sport Mastery
+      </button>
+    </div>
+
+    <div className="badgeViewTabs mt8">
+      <button
+        type="button"
+        className={
           "subTabPill " + (badgeView === "earned" ? "on" : "off")
         }
         onClick={() => setBadgeView("earned")}
@@ -9869,7 +9930,7 @@ recovery, or tasks block below.
     </div>
 
           <div className="grid2 mt12">
-          {BADGE_CARDS.map((card) => {
+          {visibleBadgeCards.map((card) => {
   const state = getBadgeCardState(card, badgeStats, claimedRewardsSet);
 
   const showInCurrentView =
@@ -9928,7 +9989,15 @@ recovery, or tasks block below.
   }
 
   const frontOffset = Math.max(0, layers.length - 1) * 22;
-  const faceText = getBadgeFaceText(card);
+    const faceText =
+    card.badgeGroup === "sport_mastery"
+      ? getSportBadgeFaceText(card)
+      : getBadgeFaceText(card);
+
+  const sportProgressPct =
+    card.badgeGroup === "sport_mastery"
+      ? getSportBadgeProgressPct(card, badgeStats)
+      : 0;
 
   return (
     <div
@@ -10051,29 +10120,64 @@ recovery, or tasks block below.
         </div>
       </div>
 
-      <div className="badgeDesc">
+            <div className="badgeDesc">
         {card.desc && (
-    <div className="badgeDescIntro">
-      {card.desc}
-    </div>
-  )}
-        <div className="badgeDescProgress">
-        {typeof card.getProgressText === "function"
-          ? card.getProgressText({
-              value: state.value,
-              nextTier: state.nextTier,
-              currentTier: state.currentTier,
-              highestEarnedIndex: state.highestEarnedIndex,
-              highestClaimedIndex: state.highestClaimedIndex,
-              stats: badgeStats,
-              meta: {
-                earlyCutoffHour: badgeStats?.behaviour?.earlyCutoffHour,
-                nightCutoffHour: badgeStats?.behaviour?.nightCutoffHour,
-                paceImprovementSport: badgeStats?.intelligence?.paceImprovementSport,
-              },
-            })
-          : card.desc}
+          <div className="badgeDescIntro">
+            {card.desc}
           </div>
+        )}
+
+        {card.badgeGroup === "sport_mastery" && (
+          <div className="sportBadgeMiniMeta">
+            <div className="sportBadgeMiniMetaRow">
+              <span className="sportBadgeMiniLabel">Sessions</span>
+              <span className="sportBadgeMiniValue">
+                {safeNumber(badgeStats?.sportMastery?.[card.sportKey]?.sessions)}
+              </span>
+            </div>
+            <div className="sportBadgeMiniMetaRow">
+              <span className="sportBadgeMiniLabel">Current tier</span>
+              <span className="sportBadgeMiniValue">
+                {state.currentTier
+                  ? state.currentTier.tier.charAt(0).toUpperCase() + state.currentTier.tier.slice(1)
+                  : "Not started"}
+              </span>
+            </div>
+
+            {!!state.nextTier && (
+              <div className="sportBadgeProgressWrap">
+                <div className="sportBadgeProgressTop">
+                  <span>Progress to {state.nextTier.tier}</span>
+                  <span>{sportProgressPct}%</span>
+                </div>
+                <div className="sportBadgeProgressBar">
+                  <div
+                    className="sportBadgeProgressFill"
+                    style={{ width: `${sportProgressPct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="badgeDescProgress">
+          {typeof card.getProgressText === "function"
+            ? card.getProgressText({
+                value: state.value,
+                nextTier: state.nextTier,
+                currentTier: state.currentTier,
+                highestEarnedIndex: state.highestEarnedIndex,
+                highestClaimedIndex: state.highestClaimedIndex,
+                stats: badgeStats,
+                meta: {
+                  earlyCutoffHour: badgeStats?.behaviour?.earlyCutoffHour,
+                  nightCutoffHour: badgeStats?.behaviour?.nightCutoffHour,
+                  paceImprovementSport: badgeStats?.intelligence?.paceImprovementSport,
+                },
+              })
+            : card.desc}
+        </div>
       </div>
 
       <div className="badgeTierGrid">
@@ -10106,8 +10210,10 @@ recovery, or tasks block below.
 })}
           </div>
 
-          <div className="mini muted mt12">
-            V1 badges are for Runs. Next: Bike + Swim + PB badges + streak badges.
+            <div className="mini muted mt12">
+            {badgeCategoryView === "sport_mastery"
+              ? "Sport Mastery badges track named sport sessions separately from measurable performance badges."
+              : "Performance badges track measurable outputs like pace, distance, streaks and training stats."}
           </div>
         </div>
       )}
