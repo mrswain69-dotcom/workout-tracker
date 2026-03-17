@@ -84,6 +84,67 @@ const REP_TIERS = [
   { tier: "diamond", threshold: 25, xp: 80, hidden: true },
 ];
 
+const SPORT_MASTERY_TIERS = [
+  { tier: "bronze", threshold: 1, xp: 20 },
+  { tier: "silver", threshold: 5, xp: 30 },
+  { tier: "gold", threshold: 15, xp: 45 },
+  { tier: "platinum", threshold: 40, xp: 65 },
+  { tier: "diamond", threshold: 80, xp: 90 },
+];
+
+const SPORT_MASTERY_PACKS = {
+  football: {
+    label: "Football",
+    family: "sport",
+    iconFile: "icon_sport_football.png",
+  },
+  rugby: {
+    label: "Rugby",
+    family: "sport",
+    iconFile: "icon_sport_rugby.png",
+  },
+  basketball: {
+    label: "Basketball",
+    family: "sport",
+    iconFile: "icon_sport_basketball.png",
+  },
+  badminton: {
+    label: "Badminton",
+    family: "sport",
+    iconFile: "icon_sport_badminton.png",
+  },
+  tennis: {
+    label: "Tennis",
+    family: "sport",
+    iconFile: "icon_sport_tennis.png",
+  },
+  martial_arts: {
+    label: "Martial Arts",
+    family: "sport",
+    iconFile: "icon_sport_martial_arts.png",
+  },
+  fencing: {
+    label: "Fencing",
+    family: "sport",
+    iconFile: "icon_sport_fencing.png",
+  },
+  yoga: {
+    label: "Yoga",
+    family: "sport",
+    iconFile: "icon_sport_yoga.png",
+  },
+  netball: {
+    label: "Netball",
+    family: "sport",
+    iconFile: "icon_sport_netball.png",
+  },
+  hockey: {
+    label: "Hockey",
+    family: "sport",
+    iconFile: "icon_sport_hockey.png",
+  },
+};
+
 // -------------------------------------------------------------
 // SPORT PACKS (distances + pace targets)
 // Keys must match stats engine outputs exactly.
@@ -807,8 +868,59 @@ function addCardioPaceBadges() {
   }
 }
 
+function addSportMasteryBadges() {
+  for (const sportKey of Object.keys(SPORT_MASTERY_PACKS)) {
+    const pack = SPORT_MASTERY_PACKS[sportKey];
+
+    const idPrefix = `badge_sport_${sportKey}_mastery`;
+    const title = `${pack.label} Mastery`;
+    const desc = `Sessions completed in ${pack.label}`;
+    const family = pack.family;
+    const iconFile = pack.iconFile;
+
+    const { tierDefs, tierRules } = makeTierDefs({
+      idPrefix,
+      title,
+      desc,
+      family,
+      iconFile,
+      tiers: SPORT_MASTERY_TIERS,
+    });
+
+    addCard(
+      {
+        id: `sport_${sportKey}_mastery`,
+        title,
+        desc,
+        family,
+        iconFile,
+        statKey: `stats.sportMastery.${sportKey}.sessions`,
+        comparator: COMPARATOR.GTE,
+        badgeGroup: "sport_mastery",
+        sportKey,
+        tiers: tierRules,
+        getProgressText: ({ value, nextTier, stats }) => {
+          const v = Math.floor(safeNum(value));
+          const days = safeNum(stats?.sportMastery?.[sportKey]?.days);
+          const lastDate = stats?.sportMastery?.[sportKey]?.lastDate;
+
+          if (!nextTier) {
+            return `Completed ${v} ${pack.label} sessions across ${days} day${days === 1 ? "" : "s"}${lastDate ? ` · last logged ${lastDate}` : ""}.`;
+          }
+
+          const remaining = Math.max(0, nextTier.threshold - v);
+
+          return `${v} ${pack.label} session${v === 1 ? "" : "s"} across ${days} day${days === 1 ? "" : "s"} — ${remaining} more to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.${lastDate ? ` Last logged ${lastDate}.` : ""}`;
+        },
+      },
+      tierDefs
+    );
+  }
+}
+
 addCardioDistanceRepetitionBadges();
 addCardioPaceBadges();
+addSportMasteryBadges();
 
 export const BADGE_DEFS = ALL_DEFS;
 export const ALL_BADGE_KEYS = new Set(ALL_KEYS);
