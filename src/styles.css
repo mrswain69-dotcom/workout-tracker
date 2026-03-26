@@ -1097,12 +1097,7 @@ button.btn.primary:hover{
 }
 
 .sportAvatarMiniTile.locked{
-  opacity:.82;
-}
-
-.sportAvatarMiniTile.locked .sportAvatarMiniImg{
-  filter:grayscale(1) blur(1.3px) brightness(.78);
-  opacity:.78;
+  opacity:.92;
 }
 
 .sportAvatarMiniArt{
@@ -1111,6 +1106,38 @@ button.btn.primary:hover{
   display:flex;
   align-items:center;
   justify-content:center;
+  position:relative;
+  overflow:hidden;
+  border-radius:14px;
+}
+
+.sportAvatarMiniTile.locked .sportAvatarMiniArt::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.18);
+  backdrop-filter:blur(2px);
+  pointer-events:none;
+  z-index:2;
+}
+
+.sportAvatarMiniTile.locked .sportAvatarMiniArt::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at center,
+      rgba(255,255,255,0.03) 0%,
+      rgba(15,23,42,0.18) 42%,
+      rgba(15,23,42,0.78) 100%);
+  pointer-events:none;
+  z-index:3;
+}
+
+.sportAvatarMiniTile.locked .sportAvatarMiniImg{
+  filter:grayscale(1) blur(8px) brightness(.42) contrast(.70) saturate(0);
+  opacity:.68;
+  transform:scale(.96);
 }
 
 .sportAvatarMiniImg{
@@ -1118,7 +1145,18 @@ button.btn.primary:hover{
   height:88px;
   object-fit:contain;
   display:block;
-  transition:transform .18s ease, filter .18s ease, opacity .18s ease;
+  transition:
+    transform .18s ease,
+    filter .18s ease,
+    opacity .18s ease;
+}
+
+.sportAvatarMiniTile.locked .sportAvatarMiniTitle{
+  opacity:.45;
+}
+
+.sportAvatarMiniTile.locked .sportAvatarMiniMeta{
+  opacity:.35;
 }
 
 .sportAvatarMiniTile:hover{
