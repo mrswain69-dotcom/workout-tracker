@@ -92,7 +92,7 @@ const SPORT_MASTERY_TIERS = [
   { tier: "diamond", threshold: 80, xp: 90 },
 ];
 
-const SPORT_MASTERY_PACKS = {
+export const SPORT_MASTERY_PACKS = {
   football: {
     label: "Football",
     family: "sport",
