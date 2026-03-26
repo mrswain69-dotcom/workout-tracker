@@ -991,3 +991,193 @@ button.btn.primary:hover{
     font-size:11px;
   }
 }
+
+/* --- Sport Mastery avatars --- */
+.sportAvatarSeriesGrid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:14px;
+}
+
+.sportAvatarSeriesCard{
+  min-width:0;
+}
+
+.sportAvatarSeriesHeader{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.sportAvatarSeriesStatus{
+  flex:0 0 auto;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  background:rgba(0,229,255,0.10);
+  color:#0369a1;
+  border:1px solid rgba(0,229,255,0.22);
+}
+
+.sportAvatarProgressWrap{
+  margin-top:10px;
+}
+
+.sportAvatarProgressTop{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:12px;
+  font-weight:700;
+  color:#334155;
+  margin-bottom:6px;
+}
+
+.sportAvatarProgressBar{
+  width:100%;
+  height:10px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(15,23,42,0.08);
+}
+
+.sportAvatarProgressFill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg, #00e5ff 0%, #60a5fa 100%);
+}
+
+.sportAvatarCompleteText{
+  color:#0f766e;
+  font-weight:700;
+}
+
+.sportAvatarMiniGrid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:10px;
+}
+
+.sportAvatarMiniTile{
+  border-radius:16px;
+  padding:10px;
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(0,0,0,0.12);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  min-width:0;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background .18s ease,
+    opacity .18s ease;
+}
+
+.sportAvatarMiniTile.claimable{
+  border-color:rgba(255,215,0,0.40);
+  background:linear-gradient(180deg, rgba(255,215,0,0.08), rgba(0,0,0,0.12));
+  box-shadow:0 0 0 1px rgba(255,215,0,0.10) inset;
+}
+
+.sportAvatarMiniTile.claimed{
+  border-color:rgba(0,229,255,0.22);
+  background:linear-gradient(180deg, rgba(0,229,255,0.06), rgba(0,0,0,0.14));
+}
+
+.sportAvatarMiniTile.selected{
+  border-color:rgba(0,229,255,0.52);
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,0.18) inset,
+    0 8px 20px rgba(0,229,255,0.16);
+}
+
+.sportAvatarMiniTile.locked{
+  opacity:.82;
+}
+
+.sportAvatarMiniTile.locked .sportAvatarMiniImg{
+  filter:grayscale(1) blur(1.3px) brightness(.78);
+  opacity:.78;
+}
+
+.sportAvatarMiniArt{
+  width:100%;
+  min-height:92px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.sportAvatarMiniImg{
+  width:88px;
+  height:88px;
+  object-fit:contain;
+  display:block;
+  transition:transform .18s ease, filter .18s ease, opacity .18s ease;
+}
+
+.sportAvatarMiniTile:hover{
+  transform:translateY(-2px);
+}
+
+.sportAvatarMiniTile.claimed:hover .sportAvatarMiniImg,
+.sportAvatarMiniTile.claimable:hover .sportAvatarMiniImg{
+  transform:scale(1.04);
+}
+
+.sportAvatarMiniTitle{
+  width:100%;
+  font-size:11px;
+  line-height:1.15;
+  font-weight:800;
+  color:#0f172a;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  text-wrap:balance;
+}
+
+.sportAvatarMiniMeta{
+  margin-top:4px;
+  font-size:11px;
+  line-height:1.15;
+  color:#64748b;
+  min-height:26px;
+}
+
+.sportAvatarMiniActions{
+  margin-top:8px;
+  width:100%;
+  display:flex;
+  justify-content:center;
+}
+
+@media (min-width:700px){
+  .sportAvatarMiniGrid{
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width:380px){
+  .sportAvatarMiniTile{
+    padding:8px;
+    border-radius:14px;
+  }
+
+  .sportAvatarMiniImg{
+    width:78px;
+    height:78px;
+  }
+
+  .sportAvatarMiniTitle{
+    font-size:10px;
+  }
+
+  .sportAvatarMiniMeta{
+    font-size:10px;
+  }
+}
