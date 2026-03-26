@@ -3738,6 +3738,39 @@ const sportMasteryBadgeCards = useMemo(
   () => BADGE_CARDS.filter((card) => card.badgeGroup === "sport_mastery"),
   []
 );
+  
+const claimedRewardsSet = useMemo(
+  () => new Set((claimedRewardsNorm || []).map((c) => c.key)),
+  [claimedRewardsNorm]
+);
+const totalBadgeXp = useMemo(() => {
+  let total = 0;
+  for (const c of claimedRewardsNorm || []) {
+    if (!c || !c.key) continue;
+    total += getRewardXpForKey(c.key);
+  }
+  return total;
+}, [claimedRewardsNorm]);
+
+const unlockedAvatarPacksArr = Array.isArray(plan?.meta?.unlockedAvatarPacks)
+  ? plan.meta.unlockedAvatarPacks
+  : [];
+
+// Only treat packs as "unlocked" if this profile's XP meets the threshold
+const unlockedAvatarPacksSet = useMemo(() => {
+  const allowed = new Set();
+  for (const key of unlockedAvatarPacksArr) {
+    const pack = AVATAR_PACKS.find((p) => p.key === key);
+    if (!pack) continue;
+    if (xp >= pack.unlockAtXp) {
+      allowed.add(key);
+    }
+  }
+  return allowed;
+}, [unlockedAvatarPacksArr.join("|"), xp]);
+
+const selectedAvatarId =
+  typeof plan?.meta?.avatarId === "string" ? plan.meta.avatarId : "";
 
 const sportAvatarSeries = useMemo(() => {
   const sportStats = badgeStats?.sportMastery || {};
@@ -3796,39 +3829,6 @@ const sportAvatarSeries = useMemo(() => {
     };
   });
 }, [badgeStats, claimedRewardsSet, selectedAvatarId]);
-  
-const claimedRewardsSet = useMemo(
-  () => new Set((claimedRewardsNorm || []).map((c) => c.key)),
-  [claimedRewardsNorm]
-);
-const totalBadgeXp = useMemo(() => {
-  let total = 0;
-  for (const c of claimedRewardsNorm || []) {
-    if (!c || !c.key) continue;
-    total += getRewardXpForKey(c.key);
-  }
-  return total;
-}, [claimedRewardsNorm]);
-
-const unlockedAvatarPacksArr = Array.isArray(plan?.meta?.unlockedAvatarPacks)
-  ? plan.meta.unlockedAvatarPacks
-  : [];
-
-// Only treat packs as "unlocked" if this profile's XP meets the threshold
-const unlockedAvatarPacksSet = useMemo(() => {
-  const allowed = new Set();
-  for (const key of unlockedAvatarPacksArr) {
-    const pack = AVATAR_PACKS.find((p) => p.key === key);
-    if (!pack) continue;
-    if (xp >= pack.unlockAtXp) {
-      allowed.add(key);
-    }
-  }
-  return allowed;
-}, [unlockedAvatarPacksArr.join("|"), xp]);
-
-const selectedAvatarId =
-  typeof plan?.meta?.avatarId === "string" ? plan.meta.avatarId : "";
 
 const headerAvatar = useMemo(() => {
   // 1) Existing XP avatar packs
