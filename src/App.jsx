@@ -37,7 +37,7 @@ import {
   clearFamilyPin,
 } from "./db";
 
-import { BADGE_CARDS, BADGE_DEFS, TIERS } from "./config/badges";
+import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS } from "./config/badges";
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 
 import { AVATAR_PACKS } from "./config/avatars";
@@ -2463,6 +2463,46 @@ function computeCardioKmForDay(log) {
 
 const TIER_ORDER = ["bronze", "silver", "gold", "platinum", "diamond"];
 
+const SPORT_AVATAR_PRESTIGE_TIERS = [
+  { key: "bronze", label: "Bronze", threshold: 40, xp: 25 },
+  { key: "silver", label: "Silver", threshold: 80, xp: 35 },
+  { key: "gold", label: "Gold", threshold: 120, xp: 50 },
+  { key: "platinum", label: "Platinum", threshold: 160, xp: 70 },
+  { key: "diamond", label: "Diamond", threshold: 200, xp: 95 },
+  { key: "elite", label: "Elite", threshold: 240, xp: 125 },
+  { key: "champion", label: "Champion", threshold: 280, xp: 160 },
+  { key: "unreal", label: "Unreal", threshold: 320, xp: 200 },
+];
+
+function getSportAvatarKey(sportKey, prestigeKey) {
+  return `sport_avatar_${sportKey}_${prestigeKey}`;
+}
+
+function getSportAvatarImageSrc(sportKey, prestigeKey) {
+  return `/avatars/sport/${sportKey}_${prestigeKey}.png`;
+}
+
+function getSportAvatarXpForKey(key) {
+  if (typeof key !== "string" || !key.startsWith("sport_avatar_")) return 0;
+
+  const tier = SPORT_AVATAR_PRESTIGE_TIERS.find((t) =>
+    key.endsWith(`_${t.key}`)
+  );
+
+  return tier ? safeNumber(tier.xp) : 0;
+}
+
+function getSportAvatarProgressPct(sessionCount, currentTier, nextTier) {
+  if (!nextTier) return 100;
+
+  const floor = currentTier ? safeNumber(currentTier.threshold) : 0;
+  const ceiling = safeNumber(nextTier.threshold);
+  const range = Math.max(1, ceiling - floor);
+  const raw = ((safeNumber(sessionCount) - floor) / range) * 100;
+
+  return clamp(Math.round(raw), 0, 100);
+}
+
 function getSportBadgeFaceText(card) {
   const title = String(card?.title || "").trim();
   return title.replace(/\s+Mastery$/i, "").toUpperCase();
@@ -2508,7 +2548,7 @@ function computeClaimedRewardsXp(plan) {
   let sum = 0;
   for (const c of claimed) {
     if (!c?.key) continue;
-    sum += getBadgeXpForKey(c.key);
+    sum += getRewardXpForKey(c.key);
   }
   return sum;
 }
@@ -2690,13 +2730,17 @@ function getBadgeXpForKey(key) {
   return def ? safeNumber(def.xp) : 0;
 }
 
+function getRewardXpForKey(key) {
+  return getBadgeXpForKey(key) || getSportAvatarXpForKey(key);
+}
+
 function computeClaimedRewardsXpByDate(plan) {
   const claimed = normaliseClaimedRewards(plan?.meta);
   const map = {};
 
   for (const c of claimed) {
     if (!c?.claimedAtYmd) continue;
-    const xp = getBadgeXpForKey(c.key);
+    const xp = getRewardXpForKey(c.key);
     if (!xp) continue;
     map[c.claimedAtYmd] = (map[c.claimedAtYmd] || 0) + xp;
   }
@@ -2712,6 +2756,7 @@ export default function App() {
   const [copyDialog, setCopyDialog] = useState(null); // { blockId, days: string[] }
   const [rewardsSubTab, setRewardsSubTab] = useState("badges"); // "badges" | "avatars" | "shop" | "info"
   const [badgeCategoryView, setBadgeCategoryView] = useState("performance"); // "performance" | "sport_mastery"
+  const [avatarCategoryView, setAvatarCategoryView] = useState("xp"); // "xp" | "sport_mastery"
   const [badgeView, setBadgeView] = useState("earned"); // "earned" | "all"
   const [claimModal, setClaimModal] = useState(null); // { title, desc }
 const [claimFx, setClaimFx] = useState(null); // reserved for future
@@ -3694,10 +3739,63 @@ const sportMasteryBadgeCards = useMemo(
   []
 );
 
-const visibleBadgeCards =
-  badgeCategoryView === "sport_mastery"
-    ? sportMasteryBadgeCards
-    : performanceBadgeCards;
+const sportAvatarSeries = useMemo(() => {
+  const sportStats = badgeStats?.sportMastery || {};
+
+  return Object.entries(SPORT_MASTERY_PACKS).map(([sportKey, pack]) => {
+    const stats = sportStats[sportKey] || {};
+    const sessions = safeNumber(stats.sessions);
+    const days = safeNumber(stats.days);
+    const lastDate = stats.lastDate || null;
+
+    let currentPrestige = null;
+    for (const tier of SPORT_AVATAR_PRESTIGE_TIERS) {
+      if (sessions >= tier.threshold) currentPrestige = tier;
+    }
+
+    const nextPrestige =
+      SPORT_AVATAR_PRESTIGE_TIERS.find((tier) => sessions < tier.threshold) ||
+      null;
+
+    const progressPct = getSportAvatarProgressPct(
+      sessions,
+      currentPrestige,
+      nextPrestige
+    );
+
+    return {
+      sportKey,
+      sportLabel: pack.label,
+      sessions,
+      days,
+      lastDate,
+      currentPrestige,
+      nextPrestige,
+      progressPct,
+      avatars: SPORT_AVATAR_PRESTIGE_TIERS.map((tier) => {
+        const avatarKey = getSportAvatarKey(sportKey, tier.key);
+        const claimed = claimedRewardsSet.has(avatarKey);
+        const unlockedBySessions = sessions >= tier.threshold;
+
+        return {
+          id: avatarKey,
+          key: avatarKey,
+          sportKey,
+          sportLabel: pack.label,
+          prestigeKey: tier.key,
+          prestigeLabel: tier.label,
+          threshold: tier.threshold,
+          xp: tier.xp,
+          imgSrc: getSportAvatarImageSrc(sportKey, tier.key),
+          claimed,
+          unlockedBySessions,
+          claimable: unlockedBySessions && !claimed,
+          selected: selectedAvatarId === avatarKey,
+        };
+      }),
+    };
+  });
+}, [badgeStats, claimedRewardsSet, selectedAvatarId]);
   
 const claimedRewardsSet = useMemo(
   () => new Set((claimedRewardsNorm || []).map((c) => c.key)),
@@ -3707,7 +3805,7 @@ const totalBadgeXp = useMemo(() => {
   let total = 0;
   for (const c of claimedRewardsNorm || []) {
     if (!c || !c.key) continue;
-    total += getBadgeXpForKey(c.key);
+    total += getRewardXpForKey(c.key);
   }
   return total;
 }, [claimedRewardsNorm]);
@@ -3733,21 +3831,56 @@ const selectedAvatarId =
   typeof plan?.meta?.avatarId === "string" ? plan.meta.avatarId : "";
 
 const headerAvatar = useMemo(() => {
-  // Only allow avatars from packs this profile has truly unlocked at its current XP
+  // 1) Existing XP avatar packs
   for (const pack of AVATAR_PACKS) {
     if (!unlockedAvatarPacksSet.has(pack.key)) continue;
     for (const a of pack.avatars || []) {
       if (a.id === selectedAvatarId) return a;
     }
   }
+
+  // 2) Sport mastery avatars
+  if (
+    typeof selectedAvatarId === "string" &&
+    selectedAvatarId.startsWith("sport_avatar_") &&
+    claimedRewardsSet.has(selectedAvatarId)
+  ) {
+    const tier = SPORT_AVATAR_PRESTIGE_TIERS.find((t) =>
+      selectedAvatarId.endsWith(`_${t.key}`)
+    );
+
+    if (tier) {
+      const remainder = selectedAvatarId
+        .replace("sport_avatar_", "")
+        .replace(new RegExp(`_${tier.key}$`), "");
+
+      const pack = SPORT_MASTERY_PACKS[remainder];
+
+      if (pack) {
+        return {
+          id: selectedAvatarId,
+          label: `${pack.label} ${tier.label}`,
+          imgSrc: getSportAvatarImageSrc(remainder, tier.key),
+        };
+      }
+    }
+  }
+
   return null;
-}, [selectedAvatarId, unlockedAvatarPacksArr.join("|"), xp]);
+}, [
+  selectedAvatarId,
+  unlockedAvatarPacksArr.join("|"),
+  xp,
+  claimedRewardsNorm,
+]);
 
 const headerAvatarEmoji = headerAvatar?.emoji || headerAvatar?.label || "🙂";
 const headerAvatarImg = headerAvatar?.imgSrc || "";
 const headerAvatarIsPack4Plus =
-  typeof headerAvatarImg === "string" &&
-  /\/avatars\/pack([4-9]|\d{2,})\//.test(headerAvatarImg);
+  (typeof headerAvatarImg === "string" &&
+    /\/avatars\/pack([4-9]|\d{2,})\//.test(headerAvatarImg)) ||
+  (typeof headerAvatarImg === "string" &&
+    /\/avatars\/sport\//.test(headerAvatarImg));
 
   const hasUnclaimedBadges = useMemo(() => {
   return BADGE_CARDS.some((card) => {
@@ -4766,17 +4899,68 @@ function playRewardSound() {
 }
 
 
-async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
-  const claimed = normaliseClaimedRewards(plan?.meta);
-  if (claimed.some((c) => c.key === rewardKey)) return;
+async function claimSportAvatarReward(avatarKey, title, triggerEl) {
+  if (!avatarKey) return;
+  if (claimedRewardsSet.has(avatarKey)) return;
 
-  const next = [
-    ...claimed,
-    { key: rewardKey, claimedAtYmd: typeof claimedAtYmd === "string" ? claimedAtYmd : null },
-  ];
+  const tileEl =
+    triggerEl?.closest(".sportAvatarMiniTile") ||
+    triggerEl?.closest(".panel");
 
-  // Store in meta (syncs across devices)
-  await savePlanMetaNoPin({ claimedRewards: next });
+  const rect = tileEl ? tileEl.getBoundingClientRect() : null;
+
+  const xpReward = safeNumber(getRewardXpForKey(avatarKey));
+  const xpFrom = xp;
+  const xpTo = xpFrom + xpReward;
+
+  setXp(xpTo);
+
+  playBuildUpSound?.();
+
+  await claimRewardKey(avatarKey, getTodayYMD());
+
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
+  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
+
+  setLastClaimedKey(avatarKey);
+  setTimeout(() => setLastClaimedKey(""), 900);
+
+  const confetti = Array.from({ length: 18 }).map((_, i) => ({
+    id: i,
+    x: Math.random() * 140 - 70,
+    y: Math.random() * 80 - 110,
+    r: Math.random() * 360,
+    d: 700 + Math.random() * 450,
+  }));
+
+  setClaimModal({
+    kind: "badge",
+    stage: "shake",
+    title: "Sport avatar unlocked!",
+    desc: title,
+    badgeKey: avatarKey,
+    emoji: "🧬",
+    xpAward: xpReward,
+    xpFrom,
+    xpTo,
+    fromRect: rect
+      ? {
+          x: rect.left,
+          y: rect.top,
+          w: rect.width,
+          h: rect.height,
+        }
+      : null,
+    confetti,
+  });
+
+  setTimeout(() => {
+    playRewardSound?.();
+    playSparkleSound?.();
+    setClaimModal((prev) =>
+      prev ? { ...prev, stage: "boom" } : prev
+    );
+  }, 260);
 }
 
     // ---------- V3 PLAN BLOCK EDIT HELPERS ----------
@@ -10220,112 +10404,263 @@ recovery, or tasks block below.
 
       {rewardsSubTab === "avatars" && (
         <div className="mt16">
-          <div className="muted">
-            Unlock avatar packs as your XP grows. Pick one to show next to your name.
+          <div className="badgeViewTabs mt8">
+            <button
+              type="button"
+              className={
+                "subTabPill " + (avatarCategoryView === "xp" ? "on" : "off")
+              }
+              onClick={() => setAvatarCategoryView("xp")}
+            >
+              XP Avatars
+            </button>
+            <button
+              type="button"
+              className={
+                "subTabPill " +
+                (avatarCategoryView === "sport_mastery" ? "on" : "off")
+              }
+              onClick={() => setAvatarCategoryView("sport_mastery")}
+            >
+              Sport Mastery
+            </button>
           </div>
 
-          <div className="stack mt12">
-            {AVATAR_PACKS.map((pack) => {
-              const unlockedNow = xp >= pack.unlockAtXp;
-              const alreadyUnlocked = unlockedAvatarPacksSet.has(pack.key);
+          {avatarCategoryView === "xp" ? (
+            <>
+              <div className="muted">
+                Unlock avatar packs as your XP grows. Pick one to show next to your name.
+              </div>
 
-              return (
-                <div key={pack.key} className="panel">
-                  <div className="rowBetween">
-                    <div>
-                      <div className="h3">{pack.title}</div>
-                      <div className="mini muted mt4">{pack.desc}</div>
-                    </div>
+              <div className="stack mt12">
+                {AVATAR_PACKS.map((pack) => {
+                  const unlockedNow = xp >= pack.unlockAtXp;
+                  const alreadyUnlocked = unlockedAvatarPacksSet.has(pack.key);
 
-                    {!alreadyUnlocked ? (
-                      <button
-                        type="button"
-                        className={"btn " + (unlockedNow ? "" : "disabled")}
-                        disabled={!unlockedNow}
-                        onClick={async () => {
-                          const next = Array.from(new Set([...(unlockedAvatarPacksArr || []), pack.key]));
-                          await savePlanMetaNoPin({ unlockedAvatarPacks: next });
-                          setClaimModal({
-                            title: "Avatar pack unlocked!",
-                            desc: `${pack.title} is now available.`,
-                          });
-                        }}
-                      >
-                        {unlockedNow ? "Claim" : `Locked (${pack.unlockAtXp} XP)`}
-                      </button>
-                    ) : (
-                      <div className="pill">Unlocked</div>
-                    )}
-                  </div>
+                  return (
+                    <div key={pack.key} className="panel">
+                      <div className="rowBetween">
+                        <div>
+                          <div className="h3">{pack.title}</div>
+                          <div className="mini muted mt4">{pack.desc}</div>
+                        </div>
 
-                                    <div className="mt12">
-                    <div className="mini muted">
-                      {alreadyUnlocked
-                        ? "Choose your avatar:"
-                        : "Preview the pack:"}
-                    </div>
-
-                    <div
-  className={
-    "mt8 avatarRoster " +
-    (pack.unlockAtXp >= 4000 ? "avatarPackPremium " : "") +
-    (pack.unlockAtXp >= 5000 ? "avatarPackMythic " : "") +
-    (!alreadyUnlocked ? "avatarRosterLocked " : "")
-  }
->
-                      {(pack.avatars || []).map((a) => {
-                        const isSelected = selectedAvatarId === a.id;
-                        const isLockedPreview = !alreadyUnlocked;
-
-                        return (
+                        {!alreadyUnlocked ? (
                           <button
-                            key={a.id}
                             type="button"
-                            disabled={isLockedPreview}
-                            className={
-                              "avatarPick " +
-                              (isSelected ? "active " : "") +
-                              (isLockedPreview ? "lockedPreview " : "")
-                            }
+                            className={"btn " + (unlockedNow ? "" : "disabled")}
+                            disabled={!unlockedNow}
                             onClick={async () => {
-                              if (isLockedPreview) return;
-                              await savePlanMetaNoPin({ avatarId: a.id });
+                              const next = Array.from(
+                                new Set([...(unlockedAvatarPacksArr || []), pack.key])
+                              );
+                              await savePlanMetaNoPin({ unlockedAvatarPacks: next });
                               setClaimModal({
-                                title: "Avatar selected!",
-                                desc: "Check the header 👆",
+                                title: "Avatar pack unlocked!",
+                                desc: `${pack.title} is now available.`,
                               });
                             }}
                           >
-                            <div className="avatarPickArt">
-                              {a.imgSrc ? (
-                                <img
-                                  src={a.imgSrc}
-                                  alt={a.label || "Avatar"}
-                                  className="avatarPickImg"
-                                />
-                              ) : (
-                                <span className="avatarPickEmoji">{a.emoji || a.label}</span>
-                              )}
-                            </div>
+                            {unlockedNow ? "Claim" : `Locked (${pack.unlockAtXp} XP)`}
+                          </button>
+                        ) : (
+                          <div className="pill">Unlocked</div>
+                        )}
+                      </div>
 
-                            <div className="avatarPickLabel">
-                              {a.label || "Avatar"}
-                            </div>
+                      <div className="mt12">
+                        <div className="mini muted">
+                          {alreadyUnlocked
+                            ? "Choose your avatar:"
+                            : "Preview the pack:"}
+                        </div>
 
-                            {isLockedPreview && (
-                              <div className="avatarPickLockText">
+                        <div
+                          className={
+                            "mt8 avatarRoster " +
+                            (pack.unlockAtXp >= 4000 ? "avatarPackPremium " : "") +
+                            (pack.unlockAtXp >= 5000 ? "avatarPackMythic " : "") +
+                            (!alreadyUnlocked ? "avatarRosterLocked " : "")
+                          }
+                        >
+                          {(pack.avatars || []).map((a) => {
+                            const isSelected = selectedAvatarId === a.id;
+                            const isLockedPreview = !alreadyUnlocked;
+
+                            return (
+                              <button
+                                key={a.id}
+                                type="button"
+                                disabled={isLockedPreview}
+                                className={
+                                  "avatarPick " +
+                                  (isSelected ? "active " : "") +
+                                  (isLockedPreview ? "lockedPreview " : "")
+                                }
+                                onClick={async () => {
+                                  if (isLockedPreview) return;
+                                  await savePlanMetaNoPin({ avatarId: a.id });
+                                  setClaimModal({
+                                    title: "Avatar selected!",
+                                    desc: "Check the header 👆",
+                                  });
+                                }}
+                              >
+                                <div className="avatarPickArt">
+                                  {a.imgSrc ? (
+                                    <img
+                                      src={a.imgSrc}
+                                      alt={a.label || "Avatar"}
+                                      className="avatarPickImg"
+                                    />
+                                  ) : (
+                                    <span className="avatarPickEmoji">{a.emoji || a.label}</span>
+                                  )}
+                                </div>
+
+                                <div className="avatarPickLabel">
+                                  {a.label || "Avatar"}
+                                </div>
+
+                                {isLockedPreview && (
+                                  <div className="avatarPickLockText">
+                                    Locked
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="muted">
+                Sport Mastery avatars unlock from counted sport sessions, separately from XP avatar packs.
+              </div>
+
+              <div className="sportAvatarSeriesGrid mt12">
+                {sportAvatarSeries.map((series) => (
+                  <div key={series.sportKey} className="panel sportAvatarSeriesCard">
+                    <div className="sportAvatarSeriesHeader">
+                      <div>
+                        <div className="h3">{series.sportLabel}</div>
+                        <div className="mini muted mt4">
+                          {series.sessions} sessions
+                          {series.days > 0 ? ` · ${series.days} day${series.days === 1 ? "" : "s"}` : ""}
+                          {series.lastDate ? ` · last ${series.lastDate}` : ""}
+                        </div>
+                      </div>
+
+                      <div className="sportAvatarSeriesStatus">
+                        {series.currentPrestige
+                          ? series.currentPrestige.label
+                          : "Not started"}
+                      </div>
+                    </div>
+
+                    {series.nextPrestige ? (
+                      <div className="sportAvatarProgressWrap mt12">
+                        <div className="sportAvatarProgressTop">
+                          <span>Progress to {series.nextPrestige.label}</span>
+                          <span>{series.progressPct}%</span>
+                        </div>
+                        <div className="sportAvatarProgressBar">
+                          <div
+                            className="sportAvatarProgressFill"
+                            style={{ width: `${series.progressPct}%` }}
+                          />
+                        </div>
+                        <div className="mini muted mt6">
+                          {Math.max(0, series.nextPrestige.threshold - series.sessions)} more sessions
+                          to unlock {series.sportLabel} {series.nextPrestige.label}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mini mt12 sportAvatarCompleteText">
+                        Full prestige series unlocked.
+                      </div>
+                    )}
+
+                    <div className="sportAvatarMiniGrid mt12">
+                      {series.avatars.map((avatar) => (
+                        <div
+                          key={avatar.key}
+                          className={
+                            "sportAvatarMiniTile " +
+                            (avatar.claimed ? "claimed " : "") +
+                            (avatar.claimable ? "claimable " : "") +
+                            (!avatar.unlockedBySessions ? "locked " : "") +
+                            (avatar.selected ? "selected " : "")
+                          }
+                        >
+                          <div className="sportAvatarMiniArt">
+                            <img
+                              src={avatar.imgSrc}
+                              alt={`${avatar.sportLabel} ${avatar.prestigeLabel}`}
+                              className="sportAvatarMiniImg"
+                            />
+                          </div>
+
+                          <div className="sportAvatarMiniTitle">
+                            {avatar.sportLabel} {avatar.prestigeLabel}
+                          </div>
+
+                          <div className="sportAvatarMiniMeta">
+                            {avatar.threshold} sessions · +{avatar.xp} XP
+                          </div>
+
+                          <div className="sportAvatarMiniActions">
+                            {avatar.claimed ? (
+                              <button
+                                type="button"
+                                className={
+                                  "btn btn-secondary " +
+                                  (avatar.selected ? "disabled" : "")
+                                }
+                                disabled={avatar.selected}
+                                onClick={async () => {
+                                  await savePlanMetaNoPin({ avatarId: avatar.id });
+                                  setClaimModal({
+                                    title: "Avatar selected!",
+                                    desc: `${avatar.sportLabel} ${avatar.prestigeLabel} is now active.`,
+                                  });
+                                }}
+                              >
+                                {avatar.selected ? "Selected" : "Select"}
+                              </button>
+                            ) : avatar.claimable ? (
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={async (e) => {
+                                  await claimSportAvatarReward(
+                                    avatar.key,
+                                    `${avatar.sportLabel} ${avatar.prestigeLabel} unlocked`,
+                                    e.currentTarget
+                                  );
+                                }}
+                              >
+                                Claim
+                              </button>
+                            ) : (
+                              <div className="pill">
                                 Locked
                               </div>
                             )}
-                          </button>
-                        );
-                      })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
