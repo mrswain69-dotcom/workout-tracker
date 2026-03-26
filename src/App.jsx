@@ -3738,6 +3738,11 @@ const sportMasteryBadgeCards = useMemo(
   () => BADGE_CARDS.filter((card) => card.badgeGroup === "sport_mastery"),
   []
 );
+
+const visibleBadgeCards =
+  badgeCategoryView === "sport_mastery"
+    ? sportMasteryBadgeCards
+    : performanceBadgeCards;
   
 const claimedRewardsSet = useMemo(
   () => new Set((claimedRewardsNorm || []).map((c) => c.key)),
