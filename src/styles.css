@@ -1151,16 +1151,6 @@ button.btn.primary:hover{
     opacity .18s ease;
 }
 
-.sportAvatarMiniTile.locked .sportAvatarMiniTitle{
-  color:#ffffff;
-  opacity:.92;
-}
-
-.sportAvatarMiniTile.locked .sportAvatarMiniMeta{
-  color:#9ca3af;
-  opacity:.85;
-}
-
 .sportAvatarMiniTile:hover{
   transform:translateY(-2px);
 }
