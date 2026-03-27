@@ -3366,8 +3366,13 @@ const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
     );
 
     const mapped = rows
-      .map((r) => ({ date_ymd: r.date_ymd, log: getLogRowPayload(r) }))
-      .filter((r) => r.log);
+  .map((r) => ({
+    date_ymd: r.date_ymd,
+    log: getLogRowPayload(r),
+    created_at: r.created_at || null,
+    updated_at: r.updated_at || null,
+  }))
+  .filter((r) => r.log);
 
     setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId));
     setLogsReady(true);
@@ -5310,14 +5315,126 @@ function cloneBlockForPlanPreserveIds(block) {
     );
   }
   
-async function saveLog(nextLog) {
+  function hasBlockActivityForTiming(block) {
+  if (!block || block.cancelled) return false;
+
+  const typeId = String(block.typeId || "").toLowerCase();
+
+  if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+    const setsObj = block.sets && typeof block.sets === "object" ? block.sets : null;
+    return !!(
+      setsObj &&
+      Object.values(setsObj).some(
+        (arr) => Array.isArray(arr) && arr.some((s) => s && setDidSomething(s))
+      )
+    );
+  }
+
+  if (
+    typeId === "cardio" ||
+    typeId === "run" ||
+    typeId === "swim" ||
+    typeId === "walk" ||
+    typeId === "row" ||
+    typeId === "cycle" ||
+    typeId === "bike"
+  ) {
+    const c = block.cardio || {};
+    return safeNumber(c.distanceKm) > 0 || safeNumber(c.durationMin) > 0;
+  }
+
+  if (typeId === "duration") {
+    return safeNumber(block?.duration?.minutes) > 0;
+  }
+
+  if (typeId === "recovery") {
+    return !!block?.recoveryDone;
+  }
+
+  return false;
+}
+
+function stampLogTiming(prevLog, nextLog) {
+  if (!nextLog || !Array.isArray(nextLog.blocks)) return nextLog;
+
+  const prevBlocks = Array.isArray(prevLog?.blocks) ? prevLog.blocks : [];
+  const prevById = new Map(
+    prevBlocks.filter((b) => b && b.id).map((b) => [b.id, b])
+  );
+
+  const nowIso = new Date().toISOString();
+
+  const stampedBlocks = nextLog.blocks.map((block) => {
+    if (!block || !block.id) return block;
+
+    const prev = prevById.get(block.id) || null;
+    const hadBefore = hasBlockActivityForTiming(prev);
+    const hasNow = hasBlockActivityForTiming(block);
+
+    if (!hasNow) {
+      return {
+        ...block,
+        startedAt: block.startedAt || prev?.startedAt || "",
+        loggedAt: block.loggedAt || prev?.loggedAt || "",
+        completedAt: block.completedAt || prev?.completedAt || "",
+        updatedAt: block.updatedAt || prev?.updatedAt || "",
+      };
+    }
+
+    const firstTs =
+      block.startedAt ||
+      prev?.startedAt ||
+      block.loggedAt ||
+      prev?.loggedAt ||
+      nowIso;
+
+    return {
+      ...block,
+      startedAt: firstTs,
+      loggedAt: block.loggedAt || prev?.loggedAt || nowIso,
+      completedAt: nowIso,
+      updatedAt: nowIso,
+    };
+  });
+
+  const times = [];
+
+  for (const b of stampedBlocks) {
+    if (!hasBlockActivityForTiming(b)) continue;
+
+    for (const raw of [b.startedAt, b.loggedAt, b.completedAt, b.updatedAt]) {
+      if (!raw) continue;
+      const ms = new Date(raw).getTime();
+      if (Number.isFinite(ms)) times.push(ms);
+    }
+  }
+
+  const nextMeta = { ...(nextLog.meta || {}) };
+
+  if (times.length) {
+    const earliest = new Date(Math.min(...times)).toISOString();
+    const latest = new Date(Math.max(...times)).toISOString();
+
+    nextMeta.startTs = nextMeta.startTs || earliest;
+    nextMeta.endTs = latest;
+    nextMeta.completedTs = latest;
+  }
+
+  return {
+    ...nextLog,
+    meta: nextMeta,
+    blocks: stampedBlocks,
+  };
+}
+  
+  async function saveLog(nextLog) {
   // Capture identity at the moment save starts
   const familyId = family?.id;
   const profileId = activeProfileId;
   const dateKey = selectedDate;
 
   // Normalise what we store
-  const logToStore = nextLog ? { ...nextLog } : null;
+  const logToStore = nextLog ? stampLogTiming(logForDay, { ...nextLog }) : null;
 
   // 1) Update in-memory state for the currently viewed day
   setLogForDay(logToStore);
@@ -5411,11 +5528,13 @@ async function saveLog(nextLog) {
     // 6) Refresh all logs for this exact profile
     const { data } = await listLogs(familyId, profileId, 2000);
     const mapped = (data || [])
-      .map((r) => ({
-        date_ymd: r.date_ymd,
-        log: getLogRowPayload(r),
-      }))
-      .filter((r) => r.log);
+  .map((r) => ({
+    date_ymd: r.date_ymd,
+    log: getLogRowPayload(r),
+    created_at: r.created_at || null,
+    updated_at: r.updated_at || null,
+  }))
+  .filter((r) => r.log);
 
     const merged = mergeMappedLogsWithLocalCache(
       mapped,
