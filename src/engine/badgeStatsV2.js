@@ -229,7 +229,7 @@ function setDidSomething(s) {
   return reps > 0 || time > 0 || count > 0 || distanceKm > 0 || durationMin > 0;
 }
 
-function getSessionHourWindow(log) {
+function getSessionHourWindow(log, row) {
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
 
   let earliestMs = null;
@@ -248,7 +248,6 @@ function getSessionHourWindow(log) {
   for (const b of blocks) {
     if (!b || b.cancelled) continue;
 
-    // Only count blocks that actually contain meaningful logged activity
     let hasData = false;
     const typeId = String(b.typeId || "").toLowerCase();
 
@@ -286,13 +285,17 @@ function getSessionHourWindow(log) {
     considerRaw(b?.updatedAt);
   }
 
-  // Fallback to session-level metadata only if block-level timestamps are absent
+  // Fallback 1: log-level meta
   if (earliestMs == null && latestMs == null) {
-    const directStart = log?.meta?.startTs;
-    const directEnd = log?.meta?.endTs || log?.meta?.completedTs || null;
+    considerRaw(log?.meta?.startTs);
+    considerRaw(log?.meta?.endTs);
+    considerRaw(log?.meta?.completedTs);
+  }
 
-    if (directStart != null) considerRaw(directStart);
-    if (directEnd != null) considerRaw(directEnd);
+  // Fallback 2: DB row timestamps passed through from App.jsx
+  if (earliestMs == null && latestMs == null) {
+    considerRaw(row?.created_at);
+    considerRaw(row?.updated_at);
   }
 
   if (earliestMs == null && latestMs == null) {
@@ -694,7 +697,7 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
 // Behaviour
 // -----------------------------
 const earlyCutoffHour = isAdult ? 7 : 8;
-const nightCutoffHour = isAdult ? 19 : 18;
+const nightCutoffHour = isAdult ? 20 : 19;
 let earlyBirdSessions = 0;
 let nightSessions = 0;
 
@@ -815,7 +818,7 @@ const lastStrengthScoreByMovement = new Map();
     maxStrengthSetsInSession = Math.max(maxStrengthSetsInSession, sessionSets);
 
 // Behaviour time-based
-const sessionWindow = getSessionHourWindow(log);
+const sessionWindow = getSessionHourWindow(log, row);
 const earliestHour = sessionWindow?.earliestHour;
 const latestHour = sessionWindow?.latestHour;
 
