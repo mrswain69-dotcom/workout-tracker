@@ -229,47 +229,83 @@ function setDidSomething(s) {
   return reps > 0 || time > 0 || count > 0 || distanceKm > 0 || durationMin > 0;
 }
 
-function getSessionStartHour(log) {
-  // 1) Preferred: explicit day/session start timestamp
-  const direct = log?.meta?.startTs;
-  if (direct != null) {
-    const d = typeof direct === "number" ? new Date(direct) : new Date(direct);
-    if (!Number.isNaN(d.getTime())) {
-      return d.getHours();
-    }
-  }
-
-  // 2) Fallback: earliest timestamp found on any non-cancelled block
+function getSessionHourWindow(log) {
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+
   let earliestMs = null;
+  let latestMs = null;
+
+  const considerRaw = (raw) => {
+    if (!raw) return;
+    const d = typeof raw === "number" ? new Date(raw) : new Date(raw);
+    const ms = d.getTime();
+    if (Number.isNaN(ms)) return;
+
+    if (earliestMs == null || ms < earliestMs) earliestMs = ms;
+    if (latestMs == null || ms > latestMs) latestMs = ms;
+  };
 
   for (const b of blocks) {
     if (!b || b.cancelled) continue;
 
-    const candidates = [
-      b?.startedAt,
-      b?.completedAt,
-      b?.loggedAt,
-      b?.createdAt,
-    ];
+    // Only count blocks that actually contain meaningful logged activity
+    let hasData = false;
+    const typeId = String(b.typeId || "").toLowerCase();
 
-    for (const raw of candidates) {
-      if (!raw) continue;
-      const d = typeof raw === "number" ? new Date(raw) : new Date(raw);
-      const ms = d.getTime();
-      if (Number.isNaN(ms)) continue;
-
-      if (earliestMs == null || ms < earliestMs) {
-        earliestMs = ms;
-      }
+    if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+      const setsObj = b.sets && typeof b.sets === "object" ? b.sets : null;
+      hasData = !!(
+        setsObj &&
+        Object.values(setsObj).some(
+          (arr) => Array.isArray(arr) && arr.some(setDidSomething)
+        )
+      );
+    } else if (
+      typeId === "cardio" ||
+      typeId === "run" ||
+      typeId === "swim" ||
+      typeId === "walk" ||
+      typeId === "row" ||
+      typeId === "cycle" ||
+      typeId === "bike"
+    ) {
+      const c = b.cardio || {};
+      hasData = safeNum(c.distanceKm) > 0 || safeNum(c.durationMin) > 0;
+    } else if (typeId === "duration") {
+      hasData = safeNum(b?.duration?.minutes) > 0;
+    } else if (typeId === "recovery") {
+      hasData = !!b?.recoveryDone;
     }
+
+    if (!hasData) continue;
+
+    considerRaw(b?.startedAt);
+    considerRaw(b?.completedAt);
+    considerRaw(b?.loggedAt);
+    considerRaw(b?.createdAt);
+    considerRaw(b?.updatedAt);
   }
 
-  if (earliestMs != null) {
-    return new Date(earliestMs).getHours();
+  // Fallback to session-level metadata only if block-level timestamps are absent
+  if (earliestMs == null && latestMs == null) {
+    const directStart = log?.meta?.startTs;
+    const directEnd = log?.meta?.endTs || log?.meta?.completedTs || null;
+
+    if (directStart != null) considerRaw(directStart);
+    if (directEnd != null) considerRaw(directEnd);
   }
 
-  return null;
+  if (earliestMs == null && latestMs == null) {
+    return {
+      earliestHour: null,
+      latestHour: null,
+    };
+  }
+
+  return {
+    earliestHour: new Date(earliestMs).getHours(),
+    latestHour: new Date(latestMs).getHours(),
+  };
 }
 
 // Green day = all non-cancelled, non-task blocks are "complete" (have data)
@@ -779,10 +815,16 @@ const lastStrengthScoreByMovement = new Map();
     maxStrengthSetsInSession = Math.max(maxStrengthSetsInSession, sessionSets);
 
 // Behaviour time-based
-const sessionHour = getSessionStartHour(log);
-if (sessionHour != null) {
-  if (sessionHour < earlyCutoffHour) earlyBirdSessions += 1;
-  if (sessionHour >= nightCutoffHour) nightSessions += 1;
+const sessionWindow = getSessionHourWindow(log);
+const earliestHour = sessionWindow?.earliestHour;
+const latestHour = sessionWindow?.latestHour;
+
+if (earliestHour != null && earliestHour < earlyCutoffHour) {
+  earlyBirdSessions += 1;
+}
+
+if (latestHour != null && latestHour >= nightCutoffHour) {
+  nightSessions += 1;
 }
 
     // Cardio processing
