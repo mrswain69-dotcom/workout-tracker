@@ -3141,6 +3141,7 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
   useState("");
   const loadDayLogReqRef = useRef(0);
   const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
+  const rewardClaimLockRef = useRef(new Set());
 
   // Strength-like blocks for the selected day (planned + extra one-day)
   let allStrengthBlocksForDay = [];
@@ -4847,7 +4848,42 @@ const selectedDayHasHeavyTrainingBlocks =
     await upsertProfilePlan(family.id, activeProfileId, next);
   }
 
-  
+  async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
+  if (!rewardKey) return false;
+
+  // Prevent double-click farming before React/state catches up
+  if (rewardClaimLockRef.current.has(rewardKey)) {
+    return false;
+  }
+
+  const currentPlan = planRef.current || plan || defaultPlanForFamily();
+  const claimed = normaliseClaimedRewards(currentPlan?.meta);
+
+  const alreadyClaimed = claimed.some((c) => c && c.key === rewardKey);
+  if (alreadyClaimed) {
+    return false;
+  }
+
+  rewardClaimLockRef.current.add(rewardKey);
+
+  try {
+    const nextClaimed = [
+      ...claimed,
+      {
+        key: rewardKey,
+        claimedAtYmd,
+      },
+    ];
+
+    await savePlanMetaNoPin({
+      claimedRewards: nextClaimed,
+    });
+
+    return true;
+  } finally {
+    rewardClaimLockRef.current.delete(rewardKey);
+  }
+}
 
 
 function playRewardSound() {
@@ -4922,7 +4958,11 @@ async function claimSportAvatarReward(avatarKey, title, triggerEl) {
 
   playBuildUpSound?.();
 
-  await claimRewardKey(avatarKey, getTodayYMD());
+  const didClaim = await claimRewardKey(avatarKey, getTodayYMD());
+if (!didClaim) {
+  setXp(computeXpFromLogs(allLogs, planRef.current));
+  return;
+}
 
   setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
   setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
@@ -5271,14 +5311,19 @@ function cloneBlockForPlanPreserveIds(block) {
   }
   
 async function saveLog(nextLog) {
+  // Capture identity at the moment save starts
+  const familyId = family?.id;
+  const profileId = activeProfileId;
+  const dateKey = selectedDate;
+
   // Normalise what we store
   const logToStore = nextLog ? { ...nextLog } : null;
 
-  // 1) Update in-memory state for the selected day (Log tab)
+  // 1) Update in-memory state for the currently viewed day
   setLogForDay(logToStore);
 
-  // 2) Update our per-day cache so navigation feels instant
-  const cacheKey = makeLogCacheKey(family?.id, activeProfileId, selectedDate);
+  // 2) Update per-day in-memory cache immediately
+  const cacheKey = makeLogCacheKey(familyId, profileId, dateKey);
   if (cacheKey) {
     const prev = lastLogByDateRef.current || {};
     if (logToStore) {
@@ -5290,21 +5335,17 @@ async function saveLog(nextLog) {
     }
   }
 
-  // 3) Optimistically update the full logs collection so XP, stats and
-  //    rewards all see the new data immediately (single source of truth).
+  // 3) Optimistically update allLogs for this exact day/profile
   setAllLogs((prev) => {
     const existing = Array.isArray(prev) ? prev : [];
-    // If we don't have the minimum identity info, just keep what we had.
-    if (!family?.id || !activeProfileId || !selectedDate) return existing;
+    if (!familyId || !profileId || !dateKey) return existing;
 
-    const dayKey = selectedDate;
     const idx = existing.findIndex(
-      (r) => (r?.date_ymd || r?.date) === dayKey
+      (r) => (r?.date_ymd || r?.date) === dateKey
     );
 
-    // If we have a log for this day, upsert it into the array.
     if (logToStore) {
-      const updatedRow = { date_ymd: dayKey, log: logToStore };
+      const updatedRow = { date_ymd: dateKey, log: logToStore };
       if (idx >= 0) {
         const copy = existing.slice();
         copy[idx] = updatedRow;
@@ -5313,7 +5354,6 @@ async function saveLog(nextLog) {
       return [...existing, updatedRow];
     }
 
-    // If the log was cleared, remove any existing row for that day.
     if (idx >= 0) {
       const copy = existing.slice();
       copy.splice(idx, 1);
@@ -5323,24 +5363,53 @@ async function saveLog(nextLog) {
     return existing;
   });
 
-  // 4) Persist to the database
-  if (!family?.id || !activeProfileId || !selectedDate) return [];
+  // 4) Persist to DB
+  if (!familyId || !profileId || !dateKey) return [];
 
   setIsSavingLog(true);
   try {
     const { error } = await upsertLog(
-      family.id,
-      activeProfileId,
-      selectedDate,
+      familyId,
+      profileId,
+      dateKey,
       logToStore
     );
+
     if (error) {
       console.error("upsertLog failed", error);
-      return;
+      return [];
     }
 
-    // 5) Refresh logs list (used for stats + XP) so we stay in sync with DB
-    const { data } = await listLogs(family.id, activeProfileId, 2000);
+    // 5) Re-fetch THIS exact day back from DB and replace cache with canonical copy
+    const { data: dayData, error: dayError } = await getLog(
+      familyId,
+      profileId,
+      dateKey
+    );
+
+    if (!dayError) {
+      const row = Array.isArray(dayData) ? dayData[0] : dayData;
+      const canonicalLog = row?.log_json || row?.log || logToStore || null;
+
+      if (cacheKey) {
+        const prev = lastLogByDateRef.current || {};
+        if (canonicalLog) {
+          lastLogByDateRef.current = { ...prev, [cacheKey]: canonicalLog };
+        } else {
+          const copy = { ...prev };
+          delete copy[cacheKey];
+          lastLogByDateRef.current = copy;
+        }
+      }
+
+      // Only push back into visible day if the user is still on the same profile/date
+      if (activeProfileId === profileId && selectedDate === dateKey) {
+        setLogForDay(canonicalLog);
+      }
+    }
+
+    // 6) Refresh all logs for this exact profile
+    const { data } = await listLogs(familyId, profileId, 2000);
     const mapped = (data || [])
       .map((r) => ({
         date_ymd: r.date_ymd,
@@ -5350,24 +5419,15 @@ async function saveLog(nextLog) {
 
     const merged = mergeMappedLogsWithLocalCache(
       mapped,
-      family.id,
-      activeProfileId
+      familyId,
+      profileId
     );
 
     setAllLogs(merged);
 
-    // Keep the selected day pinned to the latest saved version
-    const latestSelected =
-      cacheKey && lastLogByDateRef.current
-        ? lastLogByDateRef.current[cacheKey]
-        : null;
-
-    if (latestSelected) {
-      setLogForDay(latestSelected);
-    }
-
-    // Keep XP in sync immediately after any log save
+    // 7) Keep XP in sync with the refreshed source of truth
     setXp(computeXpFromLogs(merged, planRef.current));
+
     return merged;
   } finally {
     setIsSavingLog(false);
@@ -7454,7 +7514,7 @@ const lastSets = findLastMovementSets(
 const targetInfo = buildTargetInfoForMovement({
   movement: mov,
   lastSets,
-  plannedRepsText: mov.reps,
+  plannedRepsText: mov.initialTarget || mov.reps || "",
 });
 
                             for (let i = 0; i < rowCount; i++) {
@@ -8745,81 +8805,133 @@ the same time tomorrow.
                             <Card className="pad">
                 <div className="h3">Today’s mission</div>
                 <div className="stack mt12">
-                  {planDay.kind === "strength" || planDay.kind === "time" ? (
-                    (planDay.movements || []).map((ex) => {
-                      const lastSets = findLastMovementSets(allLogs, ex.id, ymd(selectedDate));
-                      const lastTxt = summarizeStrengthSets(lastSets);
-                      const initialTarget = { text: ex.targetText || null, reps: ex.targetReps || null, weight: ex.targetWeight || null };
-                      const t = suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup: activeProfile?.age_group || "under16" });
-                      return (
-                        <div key={ex.id} className="mini">
-                          <div className="label">{ex.name}</div>
-                          <div className="muted">Last: {lastTxt}</div>
-                          <div><b>Target:</b> {t.text}</div>
-                        </div>
-                      );
-                    })
-                  ) : planDay.kind === "cardio" ? (
-  (() => {
-    const last = findLastCardio(allLogs, ymd(selectedDate));
-    const lastTxt = summarizeCardio(last);
-    const t = suggestCardioTarget({ lastCardio: last });
+  {plannedBlocksForSelectedDay.length > 0 ? (
+    plannedBlocksForSelectedDay.map((block, blockIdx) => {
+      if (!block) return null;
 
-    const intervalHint =
-      plan?.cardioTargetByWeekday?.[selectedWeekday] ||
-      plan?.runSettings?.[selectedWeekday]?.text ||
-      "";
+      if (
+        (block.typeId === "strength" ||
+          block.typeId === "hiit" ||
+          block.typeId === "box") &&
+        Array.isArray(block.movements) &&
+        block.movements.length
+      ) {
+        return (
+          <div key={block.id || `mission_strength_${blockIdx}`} className="mini">
+            <div className="label">
+              {block.label?.trim()
+                ? block.label
+                : blockIdx === 0
+                ? "Main strength block"
+                : `Strength block ${blockIdx + 1}`}
+            </div>
 
-    // Derive smartwatch-style pace from the target speed, if we have one
-    const pace =
-      t && t.targetSpeedKmh ? getPaceFromSpeedKmh(t.targetSpeedKmh) : null;
+            {(block.movements || []).map((mov) => {
+              const lastSets = findLastMovementSets(
+                allLogs,
+                mov.id,
+                ymd(selectedDate)
+              );
 
-    return (
-      <div className="mini">
-        <div className="label">Cardio</div>
-        <div className="muted">Last: {lastTxt}</div>
+              const targetInfo = buildTargetInfoForMovement({
+                movement: mov,
+                lastSets,
+                plannedRepsText: mov.initialTarget || mov.reps || "",
+              });
 
-        <div>
-          <b>Target:</b> {t.text}
-        </div>
-
-        {pace ? (
-          <div className="muted mt4">
-            Smartwatch target: ~{pace.perKm} /km or {pace.perMile} /mile
-          </div>
-        ) : null}
-
-        {intervalHint ? (
-          <div className="muted mt8">{intervalHint}</div>
-        ) : null}
-      </div>
-    );
-  })()
-) : (
-                    <div className="muted">Log your session and keep your streak alive.</div>
-                  )}
-                      {plannedBlocksForSelectedDay.length > 0 && (
-      <div className="muted">
-        <b>Planned blocks:</b>{" "}
-        {plannedBlocksForSelectedDay
-          .map((b, idx) => {
-            const allTypes = plan?.activityTypes || builtInTypes();
-            const typeName =
-              allTypes.find((t) => t.id === b.typeId)?.name || "Activity";
-
-            if (b.label && b.label.trim()) {
-              return b.label.trim();
-            }
-
-            // Fallbacks when there’s no custom label
-            if (idx === 0) return typeName;        // primary block
-            return `${typeName} ${idx + 1}`;       // extra blocks
-          })
-          .join(" · ")}
-      </div>
-    )}
-
+              return (
+                <div key={mov.id} className="mt8">
+                  <div className="label">{mov.name || "Movement"}</div>
+                  <div className="muted">
+                    {targetInfo.text || "Log once to generate targets."}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        );
+      }
+
+      if (block.typeId === "cardio") {
+        const last = findLastCardio(allLogs, ymd(selectedDate));
+        const t = suggestCardioTarget({ lastCardio: last });
+        const pace =
+          t && t.targetSpeedKmh ? getPaceFromSpeedKmh(t.targetSpeedKmh) : null;
+
+        return (
+          <div key={block.id || `mission_cardio_${blockIdx}`} className="mini">
+            <div className="label">
+              {block.label?.trim()
+                ? block.label
+                : block.activityName?.trim()
+                ? block.activityName
+                : "Cardio"}
+            </div>
+            <div className="muted">
+              <b>Target:</b> {t.text}
+            </div>
+            {pace ? (
+              <div className="muted mt4">
+                Smartwatch target: ~{pace.perKm} /km or {pace.perMile} /mile
+              </div>
+            ) : null}
+            {block.targetText ? (
+              <div className="muted mt4">{block.targetText}</div>
+            ) : null}
+          </div>
+        );
+      }
+
+      if (block.typeId === "duration") {
+        return (
+          <div key={block.id || `mission_duration_${blockIdx}`} className="mini">
+            <div className="label">
+              {block.label?.trim() ? block.label : "Duration block"}
+            </div>
+            <div className="muted">
+              Target: {block.plannedMinutes || "0"} min
+            </div>
+          </div>
+        );
+      }
+
+      if (block.typeId === "recovery") {
+        return (
+          <div key={block.id || `mission_recovery_${blockIdx}`} className="mini">
+            <div className="label">
+              {block.label?.trim() ? block.label : "Recovery"}
+            </div>
+            <div className="muted">
+              {block.note ||
+                "Recovery is where adaptation happens. Smart athletes recover well so they can push harder next session."}
+            </div>
+          </div>
+        );
+      }
+
+      return null;
+    })
+  ) : (
+    <div className="muted">Log your session and keep your streak alive.</div>
+  )}
+
+  {plannedBlocksForSelectedDay.length > 0 && (
+    <div className="muted">
+      <b>Planned blocks:</b>{" "}
+      {plannedBlocksForSelectedDay
+        .map((b, idx) => {
+          const allTypes = plan?.activityTypes || builtInTypes();
+          const typeName =
+            allTypes.find((t) => t.id === b.typeId)?.name || "Activity";
+
+          if (b.label && b.label.trim()) return b.label.trim();
+          if (idx === 0) return typeName;
+          return `${typeName} ${idx + 1}`;
+        })
+        .join(" · ")}
+    </div>
+  )}
+</div>
               </Card>
 
 <Card className="pad">
@@ -10255,7 +10367,11 @@ recovery, or tasks block below.
 
   playBuildUpSound?.();
 
-  await claimRewardKey(badgeKeyToClaim, getTodayYMD());
+  const didClaim = await claimRewardKey(badgeKeyToClaim, getTodayYMD());
+if (!didClaim) {
+  setXp(computeXpFromLogs(allLogs, planRef.current));
+  return;
+}
 
   setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
   setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
