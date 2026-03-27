@@ -694,7 +694,7 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
 // Behaviour
 // -----------------------------
 const earlyCutoffHour = isAdult ? 7 : 8;
-const nightCutoffHour = isAdult ? 20 : 19;
+const nightCutoffHour = isAdult ? 19 : 18;
 let earlyBirdSessions = 0;
 let nightSessions = 0;
 
