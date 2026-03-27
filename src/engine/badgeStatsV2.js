@@ -229,6 +229,49 @@ function setDidSomething(s) {
   return reps > 0 || time > 0 || count > 0 || distanceKm > 0 || durationMin > 0;
 }
 
+function getSessionStartHour(log) {
+  // 1) Preferred: explicit day/session start timestamp
+  const direct = log?.meta?.startTs;
+  if (direct != null) {
+    const d = typeof direct === "number" ? new Date(direct) : new Date(direct);
+    if (!Number.isNaN(d.getTime())) {
+      return d.getHours();
+    }
+  }
+
+  // 2) Fallback: earliest timestamp found on any non-cancelled block
+  const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+  let earliestMs = null;
+
+  for (const b of blocks) {
+    if (!b || b.cancelled) continue;
+
+    const candidates = [
+      b?.startedAt,
+      b?.completedAt,
+      b?.loggedAt,
+      b?.createdAt,
+    ];
+
+    for (const raw of candidates) {
+      if (!raw) continue;
+      const d = typeof raw === "number" ? new Date(raw) : new Date(raw);
+      const ms = d.getTime();
+      if (Number.isNaN(ms)) continue;
+
+      if (earliestMs == null || ms < earliestMs) {
+        earliestMs = ms;
+      }
+    }
+  }
+
+  if (earliestMs != null) {
+    return new Date(earliestMs).getHours();
+  }
+
+  return null;
+}
+
 // Green day = all non-cancelled, non-task blocks are "complete" (have data)
 function isDayGreen(log) {
   if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
@@ -487,6 +530,50 @@ function getSportKeysForLog(log) {
   return Array.from(keys);
 }
 
+function scoreStrengthSets(sets) {
+  const arr = Array.isArray(sets) ? sets : [];
+  let total = 0;
+
+  for (const s of arr) {
+    if (!setDidSomething(s)) continue;
+
+    const reps = safeNum(s.reps);
+    const weight = safeNum(s.weight);
+    const time = safeNum(s.timeSeconds);
+    const count = safeNum(s.count);
+
+    // Weight x reps is the strongest signal.
+    // Reps/time/count still contribute if weight is absent.
+    total += reps * weight;
+    total += reps * 0.5;
+    total += time * 0.1;
+    total += count * 0.5;
+  }
+
+  return total;
+}
+
+function getLoggedStrengthSetsByMovement(log) {
+  const out = {};
+  const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+
+  for (const b of blocks) {
+    if (!b || b.cancelled) continue;
+    if (b.typeId !== "strength" && b.typeId !== "hiit" && b.typeId !== "box") continue;
+
+    const setsObj = b.sets && typeof b.sets === "object" ? b.sets : {};
+    for (const [movementId, arr] of Object.entries(setsObj)) {
+      const sets = Array.isArray(arr) ? arr : [];
+      if (!sets.some(setDidSomething)) continue;
+
+      if (!out[movementId]) out[movementId] = [];
+      out[movementId].push(...sets);
+    }
+  }
+
+  return out;
+}
+
 function extractCardioEfforts(log) {
   const out = [];
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
@@ -567,13 +654,19 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
   let totalReps = 0;
   let maxStrengthSetsInSession = 0;
 
-  // -----------------------------
-  // Behaviour
-  // -----------------------------
-  const earlyCutoffHour = isAdult ? 7 : 8;
-  const nightCutoffHour = isAdult ? 20 : 19;
-  let earlyBirdSessions = 0;
-  let nightSessions = 0;
+// -----------------------------
+// Behaviour
+// -----------------------------
+const earlyCutoffHour = isAdult ? 7 : 8;
+const nightCutoffHour = isAdult ? 20 : 19;
+let earlyBirdSessions = 0;
+let nightSessions = 0;
+
+// -----------------------------
+// Progressive overload
+// -----------------------------
+let progressiveOverloadEvents = 0;
+const lastStrengthScoreByMovement = new Map();
 
   // -----------------------------
   // Streak (green days)
@@ -628,6 +721,24 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
 
     const recoveryDoneToday = hasRecoveryDone(log);
 
+    // Progressive overload:
+    // count 1 event whenever the current logged score for a movement
+    // beats the last previously logged score for that same movement.
+    const strengthSetsByMovement = getLoggedStrengthSetsByMovement(log);
+    for (const [movementId, sets] of Object.entries(strengthSetsByMovement)) {
+      const currentScore = scoreStrengthSets(sets);
+      if (currentScore <= 0) continue;
+
+      const lastScore = lastStrengthScoreByMovement.get(movementId);
+      if (lastScore != null && currentScore > lastScore) {
+        progressiveOverloadEvents += 1;
+      }
+
+      if (lastScore == null || currentScore > lastScore) {
+        lastStrengthScoreByMovement.set(movementId, currentScore);
+      }
+    }
+
     if (recoveryDoneToday) {
       totalRecoveryDays += 1;
     }
@@ -667,16 +778,12 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
 
     maxStrengthSetsInSession = Math.max(maxStrengthSetsInSession, sessionSets);
 
-    // Behaviour time-based (needs startTs)
-    const startTs = log?.meta?.startTs;
-    if (startTs != null) {
-      const d = typeof startTs === "number" ? new Date(startTs) : new Date(startTs);
-      if (!Number.isNaN(d.getTime())) {
-        const hour = d.getHours();
-        if (hour < earlyCutoffHour) earlyBirdSessions += 1;
-        if (hour >= nightCutoffHour) nightSessions += 1;
-      }
-    }
+// Behaviour time-based
+const sessionHour = getSessionStartHour(log);
+if (sessionHour != null) {
+  if (sessionHour < earlyCutoffHour) earlyBirdSessions += 1;
+  if (sessionHour >= nightCutoffHour) nightSessions += 1;
+}
 
     // Cardio processing
     const efforts = extractCardioEfforts(log);
@@ -854,10 +961,10 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
     cardio,
     sportMastery,
     intelligence: {
-      progressiveOverloadEvents: 0, // placeholder until BI engine emits events
-      paceImprovementPct4w,
-      paceImprovementSport,
-    },
+  progressiveOverloadEvents,
+  paceImprovementPct4w,
+  paceImprovementSport,
+},
   };
 
 }
