@@ -249,7 +249,8 @@ const CARDIO_TYPE_OPTIONS = [
   { value: "cycle", label: "Cycle" },
   { value: "walk", label: "Walk" },
   { value: "swim", label: "Swim" },
-  { value: "row", label: "Row" },
+  { value: "row", label: "Outdoor Rowing" },
+  { value: "indoor_rowing", label: "Indoor Rowing" },
   { value: "team_sport", label: "Team Sport" },
   { value: "no_distance", label: "No Distance" },
   { value: "other", label: "Other" },
@@ -9676,6 +9677,8 @@ recovery, or tasks block below.
     activityName:
       v === "team_sport" || v === "no_distance"
         ? block.activityName || ""
+        : v === "indoor_rowing"
+        ? block.activityName || "Indoor Rowing"
         : "",
   }))
 }
@@ -9698,8 +9701,9 @@ recovery, or tasks block below.
                     </div>
                   )}
 
-                  {(block.cardioType === "team_sport" ||
-  block.cardioType === "no_distance") && (
+                                    {(block.cardioType === "team_sport" ||
+  block.cardioType === "no_distance" ||
+  block.cardioType === "indoor_rowing") && (
   <div className="mt8">
     <div className="label">Activity / sport name</div>
     <Input
@@ -9712,14 +9716,19 @@ recovery, or tasks block below.
       placeholder={
         block.cardioType === "team_sport"
           ? "e.g. Football Match"
+          : block.cardioType === "indoor_rowing"
+          ? "e.g. Indoor Rowing"
           : "e.g. Badminton"
       }
     />
 
     <div className="row mt8" style={{ gap: 8, flexWrap: "wrap" }}>
-      {(block.cardioType === "team_sport"
-        ? TEAM_SPORT_ACTIVITY_CHIPS
-        : NO_DISTANCE_ACTIVITY_CHIPS
+      {(
+        block.cardioType === "team_sport"
+          ? TEAM_SPORT_ACTIVITY_CHIPS
+          : block.cardioType === "indoor_rowing"
+          ? ["Indoor Rowing", "Erg", "Concept2", "Rowing Machine"]
+          : NO_DISTANCE_ACTIVITY_CHIPS
       ).map((chip) => (
         <button
           key={chip}
