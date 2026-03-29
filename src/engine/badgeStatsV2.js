@@ -436,6 +436,7 @@ const SPORT_MASTERY_KEYS = [
   "yoga",
   "netball",
   "hockey",
+  "indoor_rowing",
 ];
 
 const SPORT_NAME_MATCHERS = [
@@ -465,6 +466,20 @@ const SPORT_NAME_MATCHERS = [
   { key: "yoga", terms: ["yoga", "tai chi", "pilates"] },
   { key: "netball", terms: ["netball"] },
   { key: "hockey", terms: ["hockey"] },
+  {
+    key: "indoor_rowing",
+    terms: [
+      "indoor rowing",
+      "indoor row",
+      "erg",
+      "erg row",
+      "erg rowing",
+      "rowing machine",
+      "concept2",
+      "concept 2",
+      "indoor erg",
+    ],
+  },
 ];
 
 function normaliseText(v) {
@@ -650,6 +665,9 @@ function extractCardioEfforts(log) {
       ""
     ).toLowerCase();
 
+    // Indoor rowing should feed measurable rowing performance badges too.
+    if (sport === "indoor_rowing") sport = "row";
+
     if (sport === "cardio") {
       const label = String(b?.label || "").toLowerCase();
       const note = String(b?.note || "").toLowerCase();
@@ -657,8 +675,24 @@ function extractCardioEfforts(log) {
       if (label.includes("run") || note.includes("run")) sport = "run";
       else if (label.includes("walk") || note.includes("walk")) sport = "walk";
       else if (label.includes("swim") || note.includes("swim")) sport = "swim";
-      else if (label.includes("row") || note.includes("row")) sport = "row";
       else if (
+        label.includes("indoor rowing") ||
+        note.includes("indoor rowing") ||
+        label.includes("indoor row") ||
+        note.includes("indoor row") ||
+        label.includes("rowing machine") ||
+        note.includes("rowing machine") ||
+        label.includes("concept2") ||
+        note.includes("concept2") ||
+        label.includes("concept 2") ||
+        note.includes("concept 2") ||
+        label.includes("erg") ||
+        note.includes("erg") ||
+        label.includes("row") ||
+        note.includes("row")
+      ) {
+        sport = "row";
+      } else if (
         label.includes("bike") ||
         label.includes("cycle") ||
         note.includes("bike") ||
