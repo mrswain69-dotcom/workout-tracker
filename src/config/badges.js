@@ -148,6 +148,11 @@ export const SPORT_MASTERY_PACKS = {
     family: "sport",
     iconFile: "icon_sport_indoor_rowing.png",
   },
+  outdoor_rowing: {
+    label: "Outdoor Rowing",
+    family: "sport",
+    iconFile: "icon_sport_outdoor_rowing.png",
+  },
 };
 
 // -------------------------------------------------------------
