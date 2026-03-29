@@ -9669,7 +9669,7 @@ recovery, or tasks block below.
                      <div className="label">Cardio type</div>
                       <Select
                         value={block.cardioType || "run"}
-                        onChange={(v) =>
+                       onChange={(v) =>
   updateBlockInDay(block.id, () => ({
     cardioType: v,
     cardioTypeOtherLabel:
@@ -9679,6 +9679,8 @@ recovery, or tasks block below.
         ? block.activityName || ""
         : v === "indoor_rowing"
         ? block.activityName || "Indoor Rowing"
+        : v === "row"
+        ? block.activityName || "Outdoor Rowing"
         : "",
   }))
 }
@@ -9701,9 +9703,10 @@ recovery, or tasks block below.
                     </div>
                   )}
 
-                                    {(block.cardioType === "team_sport" ||
+                                                     {(block.cardioType === "team_sport" ||
   block.cardioType === "no_distance" ||
-  block.cardioType === "indoor_rowing") && (
+  block.cardioType === "indoor_rowing" ||
+  block.cardioType === "row") && (
   <div className="mt8">
     <div className="label">Activity / sport name</div>
     <Input
@@ -9713,21 +9716,25 @@ recovery, or tasks block below.
           activityName: v,
         }))
       }
-      placeholder={
+            placeholder={
         block.cardioType === "team_sport"
           ? "e.g. Football Match"
           : block.cardioType === "indoor_rowing"
           ? "e.g. Indoor Rowing"
+          : block.cardioType === "row"
+          ? "e.g. Outdoor Rowing"
           : "e.g. Badminton"
       }
     />
 
     <div className="row mt8" style={{ gap: 8, flexWrap: "wrap" }}>
-      {(
+            {(
         block.cardioType === "team_sport"
           ? TEAM_SPORT_ACTIVITY_CHIPS
           : block.cardioType === "indoor_rowing"
           ? ["Indoor Rowing", "Erg", "Concept2", "Rowing Machine"]
+          : block.cardioType === "row"
+          ? ["Outdoor Rowing", "Water Rowing", "Sculling", "Boat Rowing"]
           : NO_DISTANCE_ACTIVITY_CHIPS
       ).map((chip) => (
         <button
