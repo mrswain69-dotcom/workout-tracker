@@ -11941,14 +11941,21 @@ function StyleTag() {
   left:50%;
   top:35%;
   transform:translate(-50%, -50%);
-  font-size:15px;
+  width:78%;
+  max-width:78%;
+  font-size:12px;
   font-weight:900;
-  letter-spacing:.06em;
+  letter-spacing:.05em;
+  line-height:1.05;
   text-transform:uppercase;
+  text-align:center;
   color:rgba(255,255,255,.18);
   text-shadow:0 1px 0 rgba(0,0,0,.25);
-  white-space:nowrap;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-word;
   z-index:1;
+  pointer-events:none;
 }
 
 .wtBadgeIcon{
