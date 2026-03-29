@@ -143,6 +143,11 @@ export const SPORT_MASTERY_PACKS = {
     family: "sport",
     iconFile: "icon_sport_hockey.png",
   },
+  indoor_rowing: {
+    label: "Indoor Rowing",
+    family: "sport",
+    iconFile: "icon_sport_indoor_rowing.png",
+  },
 };
 
 // -------------------------------------------------------------
