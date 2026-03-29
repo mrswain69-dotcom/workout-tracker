@@ -437,6 +437,7 @@ const SPORT_MASTERY_KEYS = [
   "netball",
   "hockey",
   "indoor_rowing",
+  "outdoor_rowing",
 ];
 
 const SPORT_NAME_MATCHERS = [
@@ -466,7 +467,7 @@ const SPORT_NAME_MATCHERS = [
   { key: "yoga", terms: ["yoga", "tai chi", "pilates"] },
   { key: "netball", terms: ["netball"] },
   { key: "hockey", terms: ["hockey"] },
-  {
+    {
     key: "indoor_rowing",
     terms: [
       "indoor rowing",
@@ -478,6 +479,24 @@ const SPORT_NAME_MATCHERS = [
       "concept2",
       "concept 2",
       "indoor erg",
+    ],
+  },
+  {
+    key: "outdoor_rowing",
+    terms: [
+      "outdoor rowing",
+      "outdoor row",
+      "water rowing",
+      "open water rowing",
+      "boat rowing",
+      "river rowing",
+      "lake rowing",
+      "crew rowing",
+      "sculling",
+      "single scull",
+      "double scull",
+      "quad scull",
+      "coastal rowing",
     ],
   },
 ];
@@ -563,17 +582,30 @@ function getSportKeysForLog(log) {
     // 2) cardioType other/team_sport/no_distance won't give sport identity reliably,
     //    so also inspect label/note
     // 3) if still nothing, ignore
-    const candidates = [
-      b?.activityName,
-      b?.label,
-      b?.note,
-      b?.cardioTypeOtherLabel,
-    ];
-
+    // Explicit cardio type routing first for rowing split
     let found = null;
-    for (const text of candidates) {
-      found = getSportKeyFromText(text);
-      if (found) break;
+
+    const cardioType = normaliseText(b?.cardioType);
+
+    if (cardioType === "indoor_rowing") {
+      found = "indoor_rowing";
+    } else if (cardioType === "row") {
+      found = "outdoor_rowing";
+    }
+
+    // Then allow text-based sport recognition
+    if (!found) {
+      const candidates = [
+        b?.activityName,
+        b?.label,
+        b?.note,
+        b?.cardioTypeOtherLabel,
+      ];
+
+      for (const text of candidates) {
+        found = getSportKeyFromText(text);
+        if (found) break;
+      }
     }
 
     if (found) {
