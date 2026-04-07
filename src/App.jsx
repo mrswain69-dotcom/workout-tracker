@@ -1397,40 +1397,13 @@ function isDayGreen(log) {
   for (const block of log.blocks) {
     if (!block) continue;
 
-    // NEW: cancelled blocks do not count, and also don’t block the day.
-    if (block.cancelled) {
-      continue;
-    }
-    
-    const typeId = block.typeId;
-
-    // Ignore pure task blocks for day-complete logic and streaks
-    if (typeId === "tasks") {
-      continue;
-    }
-
-    let hasData = false;
-
-        if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
-     function isDayGreen(log) {
-  if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
-
-  let any = false;
-
-  for (const block of log.blocks) {
-    if (!block) continue;
-
-    // NEW: cancelled blocks do not count, and also don’t block the day.
-    if (block.cancelled) {
-      continue;
-    }
+    // cancelled blocks do not count, and also do not block the day
+    if (block.cancelled) continue;
 
     const typeId = block.typeId;
 
     // Ignore pure task blocks for day-complete logic and streaks
-    if (typeId === "tasks") {
-      continue;
-    }
+    if (typeId === "tasks") continue;
 
     let hasData = false;
 
@@ -1442,9 +1415,7 @@ function isDayGreen(log) {
         );
     } else if (typeId === "cardio") {
       const c = block.cardio || {};
-      hasData =
-        Number(c.distanceKm) > 0 ||
-        Number(c.durationMin) > 0;
+      hasData = Number(c.distanceKm) > 0 || Number(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = Number(block?.duration?.minutes) > 0;
     } else if (typeId === "recovery") {
@@ -1455,7 +1426,6 @@ function isDayGreen(log) {
     any = true;
   }
 
-  // Must have at least one non-task block with data
   return any;
 }
 
@@ -1489,7 +1459,7 @@ function blockHasSameDayLoggedActivity(block, targetYmd) {
     hasData = !!block?.recoveryDone;
   }
 
-  if (!hasData) return true;
+  if (!hasData) return false;
 
   const firstLogTs =
     block.loggedAt ||
@@ -5941,47 +5911,11 @@ function updateBlockLog(log, blockId, patch) {
 }
   
 async function claimDailyBonus(e, anchorEl) {
-  const qualifies = isDayGreen(logForDay);
-
-  if (!qualifies) {
-    window.alert(
-      "Finish logging today’s plan first (fill in your sets / movements), then claim the bonus!"
-    );
-    return;
-  }
-
-  if (logForDay?.meta?.challengeClaimed) return;
-
-  const rect = anchorEl ? anchorEl.getBoundingClientRect() : null;
-  const xpFrom = xp;
-
-  playBuildUpSound();
-
-  const next = logForDay ? { ...logForDay } : blankLogForDay();
-  next.meta = { ...(next.meta || {}), challengeClaimed: true };
-
-  // saveLog already updates logForDay + allLogs optimistically,
-  // so the claimed state becomes reliable immediately.
-  const refreshedLogs = await saveLog(next);
-  const logsForXp = refreshedLogs || allLogs;
-  const xpTo = computeXpFromLogs(logsForXp, planRef.current);
-
-  setXp(xpTo);
-
-  const confetti = Array.from({ length: 22 }).map((_, i) => ({
-    id: i,
-    x: Math.random() * 160 - 80,
-    y: Math.random() * 95 - 120,
-    r: Math.random() * 360,
-    d: 750 + Math.random() * 520,
-  }));
-
-  async function claimDailyBonus(e, anchorEl) {
   const qualifies = isEligibleForSameDayDailyBonus(logForDay, selectedDate);
 
   if (!qualifies) {
     window.alert(
-      "Daily Bonus can only be claimed when today’s planned activity was logged on that same day."
+      "Daily Bonus can only be claimed when the day was completed and logged on that same date."
     );
     return;
   }
@@ -5996,8 +5930,6 @@ async function claimDailyBonus(e, anchorEl) {
   const next = logForDay ? { ...logForDay } : blankLogForDay();
   next.meta = { ...(next.meta || {}), challengeClaimed: true };
 
-  // saveLog already updates logForDay + allLogs optimistically,
-  // so the claimed state becomes reliable immediately.
   const refreshedLogs = await saveLog(next);
   const logsForXp = refreshedLogs || allLogs;
   const xpTo = computeXpFromLogs(logsForXp, planRef.current);
