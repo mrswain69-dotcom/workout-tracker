@@ -1412,6 +1412,29 @@ function isDayGreen(log) {
     let hasData = false;
 
         if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+     function isDayGreen(log) {
+  if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
+
+  let any = false;
+
+  for (const block of log.blocks) {
+    if (!block) continue;
+
+    // NEW: cancelled blocks do not count, and also don’t block the day.
+    if (block.cancelled) {
+      continue;
+    }
+
+    const typeId = block.typeId;
+
+    // Ignore pure task blocks for day-complete logic and streaks
+    if (typeId === "tasks") {
+      continue;
+    }
+
+    let hasData = false;
+
+    if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
       hasData =
         block.sets &&
         Object.values(block.sets).some(
@@ -1434,6 +1457,65 @@ function isDayGreen(log) {
 
   // Must have at least one non-task block with data
   return any;
+}
+
+function sameYmdFromIso(iso, targetYmd) {
+  if (!iso || !targetYmd) return false;
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return false;
+  return ymd(d) === targetYmd;
+}
+
+function blockHasSameDayLoggedActivity(block, targetYmd) {
+  if (!block || block.cancelled) return false;
+
+  const typeId = String(block.typeId || "").toLowerCase();
+  if (typeId === "tasks") return false;
+
+  let hasData = false;
+
+  if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+    hasData =
+      block.sets &&
+      Object.values(block.sets).some(
+        (arr) => Array.isArray(arr) && arr.some((s) => s && setDidSomething(s))
+      );
+  } else if (typeId === "cardio") {
+    const c = block.cardio || {};
+    hasData = Number(c.distanceKm) > 0 || Number(c.durationMin) > 0;
+  } else if (typeId === "duration") {
+    hasData = Number(block?.duration?.minutes) > 0;
+  } else if (typeId === "recovery") {
+    hasData = !!block?.recoveryDone;
+  }
+
+  if (!hasData) return true;
+
+  const firstLogTs =
+    block.loggedAt ||
+    block.startedAt ||
+    block.completedAt ||
+    block.updatedAt ||
+    "";
+
+  return sameYmdFromIso(firstLogTs, targetYmd);
+}
+
+function isEligibleForSameDayDailyBonus(log, targetYmd) {
+  if (!isDayGreen(log)) return false;
+  if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
+
+  const qualifyingBlocks = log.blocks.filter((block) => {
+    if (!block || block.cancelled) return false;
+    const typeId = String(block.typeId || "").toLowerCase();
+    return typeId !== "tasks";
+  });
+
+  if (!qualifyingBlocks.length) return false;
+
+  return qualifyingBlocks.every((block) =>
+    blockHasSameDayLoggedActivity(block, targetYmd)
+  );
 }
 
 function countSetsLoggedInLog(log) {
@@ -5894,6 +5976,42 @@ async function claimDailyBonus(e, anchorEl) {
     d: 750 + Math.random() * 520,
   }));
 
+  async function claimDailyBonus(e, anchorEl) {
+  const qualifies = isEligibleForSameDayDailyBonus(logForDay, selectedDate);
+
+  if (!qualifies) {
+    window.alert(
+      "Daily Bonus can only be claimed when today’s planned activity was logged on that same day."
+    );
+    return;
+  }
+
+  if (logForDay?.meta?.challengeClaimed) return;
+
+  const rect = anchorEl ? anchorEl.getBoundingClientRect() : null;
+  const xpFrom = xp;
+
+  playBuildUpSound();
+
+  const next = logForDay ? { ...logForDay } : blankLogForDay();
+  next.meta = { ...(next.meta || {}), challengeClaimed: true };
+
+  // saveLog already updates logForDay + allLogs optimistically,
+  // so the claimed state becomes reliable immediately.
+  const refreshedLogs = await saveLog(next);
+  const logsForXp = refreshedLogs || allLogs;
+  const xpTo = computeXpFromLogs(logsForXp, planRef.current);
+
+  setXp(xpTo);
+
+  const confetti = Array.from({ length: 22 }).map((_, i) => ({
+    id: i,
+    x: Math.random() * 160 - 80,
+    y: Math.random() * 95 - 120,
+    r: Math.random() * 360,
+    d: 750 + Math.random() * 520,
+  }));
+
   setClaimModal({
     kind: "badge",
     stage: "shake",
@@ -9060,6 +9178,13 @@ the same time tomorrow.
                   <div className="challenge">
   <div>
     Daily Bonus <span className="muted">(+15 XP)</span>
+    {!logForDay?.meta?.challengeClaimed &&
+    isDayGreen(logForDay) &&
+    !isEligibleForSameDayDailyBonus(logForDay, selectedDate) ? (
+      <div className="muted mini mt4">
+        Must be logged on the same day.
+      </div>
+    ) : null}
   </div>
   <div className="row" style={{ gap: 10 }}>
     {logForDay?.meta?.challengeClaimed ? (
@@ -9067,8 +9192,13 @@ the same time tomorrow.
     ) : (
       <button
         type="button"
-        className={"btn " + (isDayGreen(logForDay) ? "" : "btnDisabled")}
-        disabled={!isDayGreen(logForDay)}
+        className={
+          "btn " +
+          (isEligibleForSameDayDailyBonus(logForDay, selectedDate)
+            ? ""
+            : "btnDisabled")
+        }
+        disabled={!isEligibleForSameDayDailyBonus(logForDay, selectedDate)}
         onClick={(e) => claimDailyBonus(e, e.currentTarget)}
       >
         Claim
