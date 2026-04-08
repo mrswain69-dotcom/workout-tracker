@@ -256,5 +256,53 @@ export const AVATAR_PACKS = [
     ],
   },
 
+{
+    key: "avatar_pack_7_ascended_sport_elites",
+    title: "Avatar Pack 7 – Ascended Sport Elites",
+    desc: "Unlock at 7,000 XP",
+    unlockAtXp: 7000,
+    avatars: [
+      {
+        id: "ase_aero_cyclist_v2",
+        label: "Aero Cyclist V2",
+        imgSrc: "/avatars/pack7/aero-cyclist-v2.png",
+      },
+      {
+        id: "ase_court_architect_v2",
+        label: "Court Architect V2",
+        imgSrc: "/avatars/pack7/court-architect-v2.png",
+      },
+      {
+        id: "ase_endurance_phantom_v2",
+        label: "Endurance Phantom V2",
+        imgSrc: "/avatars/pack7/endurance-phantom-v2.png",
+      },
+      {
+        id: "ase_hydro_blade_v2",
+        label: "Hydro Blade V2",
+        imgSrc: "/avatars/pack7/hydro-blade-v2.png",
+      },
+      {
+        id: "ase_iron_operator_v2",
+        label: "Iron Operator V2",
+        imgSrc: "/avatars/pack7/iron-operator-v2.png",
+      },
+      {
+        id: "ase_precision_fighter_v2",
+        label: "Precision Fighter V2",
+        imgSrc: "/avatars/pack7/precision-fighter-v2.png",
+      },
+      {
+        id: "ase_rally_specialist_v2",
+        label: "Rally Specialist V2",
+        imgSrc: "/avatars/pack7/rally-specialist-v2.png",
+      },
+      {
+        id: "ase_velocity_striker_v2",
+        label: "Velocity Striker V2",
+        imgSrc: "/avatars/pack7/velocity-striker-v2.png",
+      },
+    ],
+  },
   
 ];
