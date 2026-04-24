@@ -683,6 +683,8 @@ function updateBlocksForPlanWeekday(plan, weekday, updater) {
 
 // -------- Calculations ----------
 function setDidSomething(s) {
+  if (!s || typeof s !== "object") return false;
+
   const reps = safeNumber(s.reps);
   const time = safeNumber(s.timeSeconds);
   const count = safeNumber(s.count);
@@ -691,6 +693,8 @@ function setDidSomething(s) {
   return reps > 0 || time > 0 || count > 0 || distanceKm > 0 || durationMin > 0;
 }
 function setVolume(s) {
+  if (!s || typeof s !== "object") return 0;
+
   const reps = safeNumber(s.reps);
   const w = safeNumber(s.weight);
   return reps * w;
@@ -699,8 +703,10 @@ function scoreSets(sets) {
   if (!Array.isArray(sets)) return 0;
   let score = 0;
   for (const s of sets) {
-    // Strength volume is the main signal
-    score += setVolume(s);
+  if (!s || typeof s !== "object") continue;
+
+  // Strength volume is the main signal
+  score += setVolume(s);
 
     // Small bonuses for reps / time / distance
     score += safeNumber(s.reps) * 0.5;
