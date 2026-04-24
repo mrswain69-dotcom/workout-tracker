@@ -3505,51 +3505,6 @@ const todayYmd = useMemo(() => getTodayYMD(), [readinessNowTick]);
 
 const isAdult = activeProfile?.age_group === "adult";
 
-const sanitisedAllLogsForBadges = useMemo(() => {
-  return (allLogs || [])
-    .filter((r) => r && r.log && typeof r.log === "object")
-    .map((r) => {
-      const log = r.log || {};
-
-      const blocks = Array.isArray(log.blocks)
-        ? log.blocks
-            .filter((b) => b && typeof b === "object")
-            .map((b) => {
-              const nextBlock = { ...b };
-
-              if (nextBlock.sets && typeof nextBlock.sets === "object") {
-                nextBlock.sets = Object.fromEntries(
-                  Object.entries(nextBlock.sets).map(([movementId, arr]) => [
-                    movementId,
-                    Array.isArray(arr)
-                      ? arr.filter((s) => s && typeof s === "object")
-                      : [],
-                  ])
-                );
-              }
-
-              if (!Array.isArray(nextBlock.movements)) {
-                nextBlock.movements = [];
-              }
-
-              if (!Array.isArray(nextBlock.tasks)) {
-                nextBlock.tasks = [];
-              }
-
-              return nextBlock;
-            })
-        : [];
-
-      return {
-        ...r,
-        log: {
-          ...log,
-          blocks,
-        },
-      };
-    });
-}, [allLogs]);
-
 const sanitiseLogTree = (value) => {
   if (Array.isArray(value)) {
     return value
