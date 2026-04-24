@@ -3550,16 +3550,53 @@ const sanitisedAllLogsForBadges = useMemo(() => {
     });
 }, [allLogs]);
 
+const sanitiseLogTree = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item !== null && item !== undefined)
+      .map(sanitiseLogTree);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, v]) => v !== null && v !== undefined)
+        .map(([k, v]) => [k, sanitiseLogTree(v)])
+    );
+  }
+
+  return value;
+};
+
+const sanitisedAllLogsForBadges = useMemo(() => {
+  return (allLogs || [])
+    .filter((row) => row && typeof row === "object")
+    .map((row) => {
+      const cleanRow = sanitiseLogTree(row);
+
+      return {
+        ...cleanRow,
+        log: sanitiseLogTree(row.log || row.log_json || {}),
+        log_json: sanitiseLogTree(row.log_json || row.log || {}),
+      };
+    });
+}, [allLogs]);
+
 const badgeStats = useMemo(() => {
-  const result = buildBadgeStatsV2({
-    allLogs: sanitisedAllLogsForBadges,
-    todayYmd,
-    isAdult,
-  });
+  try {
+    const result = buildBadgeStatsV2({
+      allLogs: sanitisedAllLogsForBadges,
+      todayYmd,
+      isAdult,
+    });
 
-  console.log("BADGE_STATS_V2", result);
+    console.log("BADGE_STATS_V2", result);
 
-  return result;
+    return result;
+  } catch (e) {
+    console.error("BADGE_STATS_V2 failed after sanitise", e);
+    return {};
+  }
 }, [sanitisedAllLogsForBadges, todayYmd, isAdult]);
 
   function updateProfilePlanInState(profileId, nextPlan) {
