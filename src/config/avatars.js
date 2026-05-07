@@ -304,5 +304,57 @@ export const AVATAR_PACKS = [
       },
     ],
   },
+
+{
+    key: "avatar_pack_6_sport_elites",
+    title: "Avatar Pack 6 – Sport Elites",
+    desc: "Unlock at 6,000 XP",
+    unlockAtXp: 6000,
+    avatars: [
+      {
+        id: "se_aero_cyclist",
+        label: "Aero Cyclist",
+        imgSrc: "/avatars/pack6/aero-cyclist.png",
+      },
+      {
+        id: "se_court_architect",
+        label: "Court Architect",
+        imgSrc: "/avatars/pack6/court-architect.png",
+      },
+      {
+        id: "se_endurance_phantom",
+        label: "Endurance Phantom",
+        imgSrc: "/avatars/pack6/endurance-phantom.png",
+      },
+      {
+        id: "se_hydro_blade",
+        label: "Hydro Blade",
+        imgSrc: "/avatars/pack6/hydro-blade.png",
+      },
+      {
+        id: "se_iron_operator",
+        label: "Iron Operator",
+        imgSrc: "/avatars/pack6/iron-operator.png",
+      },
+      {
+        id: "se_precision_fighter",
+        label: "Precision Fighter",
+        imgSrc: "/avatars/pack6/precision-fighter.png",
+      },
+      {
+        id: "se_rally_specialist",
+        label: "Rally Specialist",
+        imgSrc: "/avatars/pack6/rally-specialist.png",
+      },
+      {
+        id: "se_velocity_striker",
+        label: "Velocity Striker",
+        imgSrc: "/avatars/pack6/velocity-striker.png",
+      },
+    ],
+  },
+
+  
+];
   
 ];
