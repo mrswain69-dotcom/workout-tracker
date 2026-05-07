@@ -306,55 +306,52 @@ export const AVATAR_PACKS = [
   },
 
 {
-    key: "avatar_pack_6_sport_elites",
-    title: "Avatar Pack 6 – Sport Elites",
-    desc: "Unlock at 6,000 XP",
-    unlockAtXp: 6000,
-    avatars: [
-      {
-        id: "se_aero_cyclist",
-        label: "Aero Cyclist",
-        imgSrc: "/avatars/pack6/aero-cyclist.png",
-      },
-      {
-        id: "se_court_architect",
-        label: "Court Architect",
-        imgSrc: "/avatars/pack6/court-architect.png",
-      },
-      {
-        id: "se_endurance_phantom",
-        label: "Endurance Phantom",
-        imgSrc: "/avatars/pack6/endurance-phantom.png",
-      },
-      {
-        id: "se_hydro_blade",
-        label: "Hydro Blade",
-        imgSrc: "/avatars/pack6/hydro-blade.png",
-      },
-      {
-        id: "se_iron_operator",
-        label: "Iron Operator",
-        imgSrc: "/avatars/pack6/iron-operator.png",
-      },
-      {
-        id: "se_precision_fighter",
-        label: "Precision Fighter",
-        imgSrc: "/avatars/pack6/precision-fighter.png",
-      },
-      {
-        id: "se_rally_specialist",
-        label: "Rally Specialist",
-        imgSrc: "/avatars/pack6/rally-specialist.png",
-      },
-      {
-        id: "se_velocity_striker",
-        label: "Velocity Striker",
-        imgSrc: "/avatars/pack6/velocity-striker.png",
-      },
-    ],
-  },
-
-  
-];
+  key: "avatar_pack_8_iconic_legends",
+  title: "Avatar Pack 8 – Iconic Legends",
+  desc: "Unlock at 8,000 XP",
+  unlockAtXp: 8000,
+  avatars: [
+    {
+      id: "il_shadow_guardian",
+      label: "Shadow Guardian",
+      imgSrc: "/avatars/pack8/shadow-guardian.png",
+    },
+    {
+      id: "il_web_sprinter",
+      label: "Web Sprinter",
+      imgSrc: "/avatars/pack8/web-sprinter.png",
+    },
+    {
+      id: "il_arc_champion",
+      label: "Arc Champion",
+      imgSrc: "/avatars/pack8/arc-champion.png",
+    },
+    {
+      id: "il_amazon_warrior",
+      label: "Amazon Warrior",
+      imgSrc: "/avatars/pack8/amazon-warrior.png",
+    },
+    {
+      id: "il_lightning_speedster",
+      label: "Lightning Speedster",
+      imgSrc: "/avatars/pack8/lightning-speedster.png",
+    },
+    {
+      id: "il_cosmic_panther",
+      label: "Cosmic Panther",
+      imgSrc: "/avatars/pack8/cosmic-panther.png",
+    },
+    {
+      id: "il_mystic_blademaster",
+      label: "Mystic Blademaster",
+      imgSrc: "/avatars/pack8/mystic-blademaster.png",
+    },
+    {
+      id: "il_titan_ranger",
+      label: "Titan Ranger",
+      imgSrc: "/avatars/pack8/titan-ranger.png",
+    },
+  ],
+},
   
 ];
