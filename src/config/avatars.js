@@ -349,7 +349,7 @@ export const AVATAR_PACKS = [
     {
       id: "il_bone_reaper",
       label: "Bone Reaper",
-      imgSrc: "/avatars/pack8/bone_reaper.png",
+      imgSrc: "/avatars/pack8/bone-reaper.png",
     },
   ],
 },
