@@ -402,5 +402,71 @@ export const AVATAR_PACKS = [
     },
   ],
 },
+
+{
+  key: "avatar_pack_10_prestige_athletes",
+  title: "Avatar Pack 10 – Prestige Athlete Archetypes",
+  desc: "Unlock at 10,000 XP",
+  unlockAtXp: 10000,
+  prestigePack: true,
+  avatars: [
+    {
+      id: "pa_velocity_ronin",
+      label: "Velocity Ronin",
+      imgSrc: "/avatars/pack10/velocity-ronin.png",
+      prestige: true,
+      subtitle: "Sprint Specialist",
+    },
+    {
+      id: "pa_court_architect",
+      label: "Court Architect",
+      imgSrc: "/avatars/pack10/court-architect.png",
+      prestige: true,
+      subtitle: "Basketball Strategist",
+    },
+    {
+      id: "pa_hydro_blade",
+      label: "Hydro Blade",
+      imgSrc: "/avatars/pack10/hydro-blade.png",
+      prestige: true,
+      subtitle: "Swim / Triathlon Elite",
+    },
+    {
+      id: "pa_glacier_climber",
+      label: "Glacier Climber",
+      imgSrc: "/avatars/pack10/glacier-climber.png",
+      prestige: true,
+      subtitle: "Mountain Endurance",
+    },
+    {
+      id: "pa_rugby_titan",
+      label: "Rugby Titan",
+      imgSrc: "/avatars/pack10/rugby-titan.png",
+      prestige: true,
+      subtitle: "Power & Impact",
+    },
+    {
+      id: "pa_net_command",
+      label: "Net Command",
+      imgSrc: "/avatars/pack10/net-command.png",
+      prestige: true,
+      subtitle: "Volleyball Dominator",
+    },
+    {
+      id: "pa_field_dominator",
+      label: "Field Dominator",
+      imgSrc: "/avatars/pack10/field-dominator.png",
+      prestige: true,
+      subtitle: "Hockey Specialist",
+    },
+    {
+      id: "pa_pitch_leader",
+      label: "Pitch Leader",
+      imgSrc: "/avatars/pack10/pitch-leader.png",
+      prestige: true,
+      subtitle: "Football Captain",
+    },
+  ],
+},
   
 ];
