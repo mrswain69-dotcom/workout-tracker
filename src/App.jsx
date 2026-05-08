@@ -3989,6 +3989,29 @@ const headerAvatarIsPack4Plus =
   (typeof headerAvatarImg === "string" &&
     /\/avatars\/sport\//.test(headerAvatarImg));
 
+const avatarFramesEnabled = plan?.meta?.avatarFramesEnabled !== false;
+
+const selectedAvatarFrame =
+  typeof plan?.meta?.avatarFrame === "string" && plan.meta.avatarFrame
+    ? plan.meta.avatarFrame
+    : "prestige_cyan_gold";
+
+const headerAvatarIsPrestige =
+  avatarFramesEnabled &&
+  !!headerAvatar &&
+  (
+    headerAvatar.prestige === true ||
+    headerAvatar.prestigePack === true ||
+    (
+      typeof headerAvatarImg === "string" &&
+      /\/avatars\/pack(1[0-9]|[2-9][0-9])\//.test(headerAvatarImg)
+    )
+  );
+
+const headerAvatarFrameClass = headerAvatarIsPrestige
+  ? `avatarFrame-${selectedAvatarFrame}`
+  : "";
+  
   const hasUnclaimedBadges = useMemo(() => {
   return BADGE_CARDS.some((card) => {
     const state = getBadgeCardState(card, badgeStats, claimedRewardsSet);
@@ -7500,9 +7523,13 @@ const cardioProgress = useMemo(() => {
     <h1 className="title">
   <span className="titleRow">
     <span
-  className={`avatarChip ${headerAvatarStateClass}`}
+  className={`avatarChip ${headerAvatarStateClass} ${headerAvatarIsPrestige ? "avatarChipPrestige " : ""}${headerAvatarFrameClass}`}
   aria-hidden="true"
-  title={`Avatar state: ${avatarBehaviourState}`}
+  title={
+    headerAvatarIsPrestige
+      ? `${headerAvatar?.label || "Prestige avatar"} · ${headerAvatar?.subtitle || "Prestige unlocked"}`
+      : `Avatar state: ${avatarBehaviourState}`
+  }
 >
   {headerAvatarImg ? (
     <img
@@ -10310,26 +10337,27 @@ recovery, or tasks block below.
       <div className="row" style={{ gap: 16, alignItems: "stretch" }}>
         {/* Left: current avatar */}
         <div
-          className="panel"
-          style={{
-            flex: 1,
-            minHeight: 104,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+  className={`panel selectedAvatarPanel ${headerAvatarIsPrestige ? "selectedAvatarPanelPrestige " : ""}${headerAvatarFrameClass}`}
+  style={{
+    flex: 1,
+    minHeight: 104,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
           {headerAvatarImg ? (
             <img
-              src={headerAvatarImg}
-              alt={headerAvatarEmoji}
-              style={{
-                width: headerAvatarIsPack4Plus ? 168 : 144,
-                height: headerAvatarIsPack4Plus ? 168 : 144,
-                objectFit: "contain",
-                borderRadius: 16,
-              }}
-            />
+  src={headerAvatarImg}
+  alt={headerAvatarEmoji}
+  className={headerAvatarIsPrestige ? "selectedAvatarImg selectedAvatarImgPrestige" : "selectedAvatarImg"}
+  style={{
+    width: headerAvatarIsPack4Plus ? 168 : 144,
+    height: headerAvatarIsPack4Plus ? 168 : 144,
+    objectFit: "contain",
+    borderRadius: 16,
+  }}
+/>
           ) : (
             <div
               style={{
@@ -10838,11 +10866,12 @@ if (!didClaim) {
 
                         <div
                           className={
-                            "mt8 avatarRoster " +
-                            (pack.unlockAtXp >= 4000 ? "avatarPackPremium " : "") +
-                            (pack.unlockAtXp >= 5000 ? "avatarPackMythic " : "") +
-                            (!alreadyUnlocked ? "avatarRosterLocked " : "")
-                          }
+  "mt8 avatarRoster " +
+  (pack.unlockAtXp >= 4000 ? "avatarPackPremium " : "") +
+  (pack.unlockAtXp >= 5000 ? "avatarPackMythic " : "") +
+  (pack.unlockAtXp >= 10000 ? "avatarPackPrestige " : "") +
+  (!alreadyUnlocked ? "avatarRosterLocked " : "")
+}
                         >
                           {(pack.avatars || []).map((a) => {
                             const isSelected = selectedAvatarId === a.id;
@@ -10854,10 +10883,11 @@ if (!didClaim) {
                                 type="button"
                                 disabled={isLockedPreview}
                                 className={
-                                  "avatarPick " +
-                                  (isSelected ? "active " : "") +
-                                  (isLockedPreview ? "lockedPreview " : "")
-                                }
+  "avatarPick " +
+  (a.prestige ? "prestigeAvatarPick " : "") +
+  (isSelected ? "active " : "") +
+  (isLockedPreview ? "lockedPreview " : "")
+}
                                 onClick={async () => {
                                   if (isLockedPreview) return;
                                   await savePlanMetaNoPin({ avatarId: a.id });
@@ -10880,8 +10910,11 @@ if (!didClaim) {
                                 </div>
 
                                 <div className="avatarPickLabel">
-                                  {a.label || "Avatar"}
-                                </div>
+  <span>{a.label || "Avatar"}</span>
+  {a.subtitle ? (
+    <span className="avatarPickSubtitle">{a.subtitle}</span>
+  ) : null}
+</div>
 
                                 {isLockedPreview && (
                                   <div className="avatarPickLockText">
@@ -11347,9 +11380,70 @@ if (!didClaim) {
               </div>
 
               <div className="panel mt16">
-                <div className="h3">Export/Import</div>
-                <div className="muted">For now, export/import can be added later (cloud is your backup).</div>
-              </div>
+  <div className="h3">Avatar frames</div>
+  <div className="muted mt8">
+    Prestige frames apply to 10,000 XP+ avatars. You can turn them off if you prefer a cleaner look.
+  </div>
+
+  <div className="rowBetween mt12">
+    <div>
+      <div className="label">Prestige frame effects</div>
+      <div className="mini muted">
+        Current status: {avatarFramesEnabled ? <b>ON</b> : <b>OFF</b>}
+      </div>
+    </div>
+
+    <SecondaryButton
+      onClick={async () => {
+        if (!(await ensureUnlocked("change avatar frame settings"))) return;
+        await savePlanMetaNoPin({
+          avatarFramesEnabled: !avatarFramesEnabled,
+        });
+      }}
+    >
+      {avatarFramesEnabled ? "Turn frames off" : "Turn frames on"}
+    </SecondaryButton>
+  </div>
+
+  {avatarFramesEnabled && (
+    <div className="mt12">
+      <div className="label">Selected prestige frame</div>
+      <Select
+        value={selectedAvatarFrame}
+        onChange={async (v) => {
+          if (!(await ensureUnlocked("change avatar frame"))) return;
+          await savePlanMetaNoPin({
+            avatarFrame: v,
+          });
+        }}
+        options={[
+          { value: "prestige_cyan_gold", label: "Cyan / Gold Prestige" },
+          { value: "prestige_red_black", label: "Red / Black Power" },
+          { value: "prestige_neon_lime", label: "Neon Lime Speed" },
+          { value: "prestige_pink_cyan", label: "Pink / Cyan Elite" },
+          { value: "prestige_ice_blue", label: "Ice Blue Focus" },
+        ]}
+      />
+
+      <div className="avatarFramePreviewRow mt12">
+        {["prestige_cyan_gold", "prestige_red_black", "prestige_neon_lime", "prestige_pink_cyan", "prestige_ice_blue"].map((frameKey) => (
+          <button
+            key={frameKey}
+            type="button"
+            className={`avatarFramePreview avatarFrame-${frameKey} ${selectedAvatarFrame === frameKey ? "active" : ""}`}
+            onClick={async () => {
+              if (!(await ensureUnlocked("change avatar frame"))) return;
+              await savePlanMetaNoPin({
+                avatarFrame: frameKey,
+              });
+            }}
+            aria-label={`Select ${frameKey} avatar frame`}
+          />
+        ))}
+      </div>
+    </div>
+  )}
+</div>
 
               <div className="panel mt16">
                 <div className="h3">Sign out</div>
@@ -12576,6 +12670,253 @@ function StyleTag() {
   box-shadow:
     0 0 0 1px rgba(0,229,255,0.28) inset,
     0 0 24px rgba(0,229,255,0.34);
+}
+
+/* Pack 10+ prestige avatar system */
+.avatarPackPrestige{
+  gap:12px;
+}
+
+.avatarPackPrestige .avatarPick{
+  min-height:164px;
+  border-color:rgba(255,215,0,0.24);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(0,229,255,0.13), transparent 42%),
+    linear-gradient(180deg, rgba(255,215,0,0.08), rgba(0,0,0,0.22));
+}
+
+.avatarPackPrestige .avatarPickArt{
+  width:112px;
+  height:112px;
+  border-radius:20px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,0.10), transparent 58%),
+    rgba(255,255,255,0.04);
+}
+
+.avatarPackPrestige .avatarPickImg{
+  width:112px;
+  height:112px;
+}
+
+.avatarPackPrestige .avatarPick:hover:not(.lockedPreview):not(:disabled){
+  transform:translateY(-7px) scale(1.065);
+  border-color:rgba(255,215,0,0.62);
+  box-shadow:
+    0 16px 34px rgba(0,229,255,0.20),
+    0 0 24px rgba(255,215,0,0.20),
+    0 0 0 1px rgba(255,215,0,0.18) inset;
+}
+
+.avatarPackPrestige .avatarPick:hover:not(.lockedPreview):not(:disabled) .avatarPickImg{
+  transform:scale(1.08);
+}
+
+.avatarPackPrestige .avatarPick.active{
+  border-color:rgba(255,215,0,0.82);
+  box-shadow:
+    0 0 0 1px rgba(255,215,0,0.32) inset,
+    0 0 0 2px rgba(0,229,255,0.18),
+    0 0 30px rgba(255,215,0,0.28);
+}
+
+.avatarPickSubtitle{
+  display:block;
+  margin-top:3px;
+  font-size:9px;
+  line-height:1.05;
+  font-weight:800;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:#64748b;
+}
+
+.avatarPackPrestige .avatarPickSubtitle{
+  color:#475569;
+}
+
+.selectedAvatarPanel{
+  position:relative;
+  overflow:hidden;
+}
+
+.selectedAvatarPanelPrestige{
+  border-color:rgba(255,215,0,0.46) !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(0,229,255,0.14), transparent 46%),
+    linear-gradient(180deg, rgba(255,215,0,0.08), rgba(15,17,23,0.08)) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,215,0,0.12) inset,
+    0 16px 34px rgba(15,23,42,0.10),
+    0 0 28px rgba(0,229,255,0.16);
+}
+
+.selectedAvatarPanelPrestige::before{
+  content:"";
+  position:absolute;
+  inset:-35%;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(255,215,0,0.00) 70deg,
+      rgba(255,215,0,0.22) 95deg,
+      rgba(0,229,255,0.22) 118deg,
+      transparent 150deg,
+      transparent 360deg
+    );
+  animation:prestigeFrameSweep 4.8s linear infinite;
+  pointer-events:none;
+  opacity:.75;
+}
+
+.selectedAvatarPanelPrestige::after{
+  content:"";
+  position:absolute;
+  inset:10px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.16);
+  pointer-events:none;
+}
+
+.selectedAvatarImg{
+  position:relative;
+  z-index:1;
+}
+
+.selectedAvatarImgPrestige{
+  filter:drop-shadow(0 10px 18px rgba(0,0,0,0.20));
+  animation:prestigeAvatarIdle 4.2s ease-in-out infinite;
+}
+
+.avatarChipPrestige{
+  width:42px;
+  height:42px;
+  background:
+    radial-gradient(circle, rgba(0,229,255,0.16), rgba(0,0,0,0.24) 68%);
+  border-color:rgba(255,215,0,0.58);
+  box-shadow:
+    0 0 0 1px rgba(255,215,0,0.20) inset,
+    0 0 12px rgba(255,215,0,0.22),
+    0 0 16px rgba(0,229,255,0.16);
+}
+
+.avatarChipPrestige .headerAvatarImg{
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,0.30));
+}
+
+.avatarFrame-prestige_cyan_gold{
+  --avatar-frame-a:#00E5FF;
+  --avatar-frame-b:#FFD700;
+}
+
+.avatarFrame-prestige_red_black{
+  --avatar-frame-a:#FF4D4D;
+  --avatar-frame-b:#111827;
+}
+
+.avatarFrame-prestige_neon_lime{
+  --avatar-frame-a:#00FF88;
+  --avatar-frame-b:#D9FF00;
+}
+
+.avatarFrame-prestige_pink_cyan{
+  --avatar-frame-a:#FF4DF3;
+  --avatar-frame-b:#00E5FF;
+}
+
+.avatarFrame-prestige_ice_blue{
+  --avatar-frame-a:#7DD3FC;
+  --avatar-frame-b:#DBEAFE;
+}
+
+.selectedAvatarPanelPrestige.avatarFrame-prestige_cyan_gold,
+.avatarChipPrestige.avatarFrame-prestige_cyan_gold,
+.avatarFramePreview.avatarFrame-prestige_cyan_gold{
+  border-color:rgba(255,215,0,0.62);
+  box-shadow:
+    0 0 0 1px rgba(255,215,0,0.18) inset,
+    0 0 18px rgba(0,229,255,0.22),
+    0 0 24px rgba(255,215,0,0.16);
+}
+
+.selectedAvatarPanelPrestige.avatarFrame-prestige_red_black,
+.avatarChipPrestige.avatarFrame-prestige_red_black,
+.avatarFramePreview.avatarFrame-prestige_red_black{
+  border-color:rgba(255,77,77,0.68);
+  box-shadow:
+    0 0 0 1px rgba(255,77,77,0.18) inset,
+    0 0 20px rgba(255,77,77,0.24);
+}
+
+.selectedAvatarPanelPrestige.avatarFrame-prestige_neon_lime,
+.avatarChipPrestige.avatarFrame-prestige_neon_lime,
+.avatarFramePreview.avatarFrame-prestige_neon_lime{
+  border-color:rgba(0,255,136,0.68);
+  box-shadow:
+    0 0 0 1px rgba(0,255,136,0.18) inset,
+    0 0 20px rgba(0,255,136,0.24);
+}
+
+.selectedAvatarPanelPrestige.avatarFrame-prestige_pink_cyan,
+.avatarChipPrestige.avatarFrame-prestige_pink_cyan,
+.avatarFramePreview.avatarFrame-prestige_pink_cyan{
+  border-color:rgba(255,77,243,0.68);
+  box-shadow:
+    0 0 0 1px rgba(255,77,243,0.16) inset,
+    0 0 18px rgba(255,77,243,0.18),
+    0 0 22px rgba(0,229,255,0.16);
+}
+
+.selectedAvatarPanelPrestige.avatarFrame-prestige_ice_blue,
+.avatarChipPrestige.avatarFrame-prestige_ice_blue,
+.avatarFramePreview.avatarFrame-prestige_ice_blue{
+  border-color:rgba(125,211,252,0.74);
+  box-shadow:
+    0 0 0 1px rgba(125,211,252,0.18) inset,
+    0 0 22px rgba(125,211,252,0.22);
+}
+
+.avatarFramePreviewRow{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.avatarFramePreview{
+  width:46px;
+  height:34px;
+  border-radius:12px;
+  border:2px solid rgba(148,163,184,0.36);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255,255,255,0.18), transparent 44%),
+    linear-gradient(135deg, var(--avatar-frame-a, #00E5FF), var(--avatar-frame-b, #FFD700));
+  cursor:pointer;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease;
+}
+
+.avatarFramePreview:hover{
+  transform:translateY(-2px);
+}
+
+.avatarFramePreview.active{
+  border-color:rgba(15,23,42,0.72);
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.9),
+    0 0 20px rgba(0,229,255,0.26);
+}
+
+@keyframes prestigeFrameSweep{
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
+}
+
+@keyframes prestigeAvatarIdle{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.035);}
 }
 
 /* Pack 5+ mythic hover pop */
