@@ -10909,11 +10909,24 @@ if (!didClaim) {
                                   )}
                                 </div>
 
-                                <div className="avatarPickLabel">
-  <span>{a.label || "Avatar"}</span>
-  {a.subtitle ? (
-    <span className="avatarPickSubtitle">{a.subtitle}</span>
-  ) : null}
+                                <div className={`avatarPickLabel ${isLockedPreview ? "avatarPickLabelLocked" : ""}`}>
+  {isLockedPreview ? (
+    <>
+      <span>Classified</span>
+      {pack.unlockAtXp >= 10000 ? (
+        <span className="avatarPickSubtitle">Prestige avatar</span>
+      ) : (
+        <span className="avatarPickSubtitle">Locked avatar</span>
+      )}
+    </>
+  ) : (
+    <>
+      <span>{a.label || "Avatar"}</span>
+      {a.subtitle ? (
+        <span className="avatarPickSubtitle">{a.subtitle}</span>
+      ) : null}
+    </>
+  )}
 </div>
 
                                 {isLockedPreview && (
@@ -12729,6 +12742,30 @@ function StyleTag() {
   letter-spacing:.03em;
   text-transform:uppercase;
   color:#64748b;
+}
+
+.avatarPickLabelLocked{
+  color:#64748b;
+  opacity:.82;
+}
+
+.avatarPickLabelLocked span:first-child{
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  font-size:10px;
+}
+
+.avatarPickLabelLocked .avatarPickSubtitle{
+  color:#94a3b8;
+  opacity:.72;
+}
+
+.avatarPackPrestige .avatarPickLabelLocked span:first-child{
+  color:rgba(255,255,255,0.74);
+}
+
+.avatarPackPrestige .avatarPickLabelLocked .avatarPickSubtitle{
+  color:rgba(255,215,0,0.62);
 }
 
 .avatarPackPrestige .avatarPickSubtitle{
