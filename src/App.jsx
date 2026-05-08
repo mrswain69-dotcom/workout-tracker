@@ -12970,8 +12970,40 @@ function StyleTag() {
 .avatarPick.lockedPreview .avatarPickImg,
 .avatarPick:disabled .avatarPickArt,
 .avatarPick:disabled .avatarPickImg{
-  filter:grayscale(1) blur(1.6px) brightness(.78);
-  opacity:.78;
+  filter: grayscale(1) blur(2.4px) brightness(.42) contrast(1.25);
+  opacity: .46;
+}
+
+/* Pack 10 locked avatars should feel classified / silhouette-only */
+.avatarPackPrestige .avatarPick.lockedPreview .avatarPickImg,
+.avatarPackPrestige .avatarPick:disabled .avatarPickImg{
+  filter: grayscale(1) blur(3.8px) brightness(.22) contrast(1.65);
+  opacity: .34;
+}
+
+.avatarPackPrestige .avatarPick.lockedPreview .avatarPickArt,
+.avatarPackPrestige .avatarPick:disabled .avatarPickArt{
+  background:
+    radial-gradient(circle at 50% 42%, rgba(15,23,42,0.82), rgba(15,23,42,0.96) 68%);
+  box-shadow:
+    inset 0 0 26px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(255,255,255,0.05);
+}
+
+.avatarPackPrestige .avatarPick.lockedPreview::after,
+.avatarPackPrestige .avatarPick:disabled::after{
+  content: "LOCKED";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,0.72);
+  background: rgba(15,23,42,0.72);
+  border: 1px solid rgba(255,255,255,0.10);
 }
 
 .avatarPick.lockedPreview .avatarPickLabel,
