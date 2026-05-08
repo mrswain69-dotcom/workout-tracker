@@ -353,5 +353,54 @@ export const AVATAR_PACKS = [
     },
   ],
 },
+
+{
+  key: "avatar_pack_9_iconic_legends2",
+  title: "Avatar Pack 9 – Apex Beings 2",
+  desc: "Unlock at 9,000 XP",
+  unlockAtXp: 9000,
+  avatars: [
+    {
+      id: "il_gravity_monk",
+      label: "Gravity Monk",
+      imgSrc: "/avatars/pack8/gravity-monk.png",
+    },
+    {
+      id: "il_lunar_beastmaster",
+      label: "Lunar Beastmaster",
+      imgSrc: "/avatars/pack8/lunar-beastmaster.png",
+    },
+    {
+      id: "il_neon_samurai",
+      label: "Neon Samurai",
+      imgSrc: "/avatars/pack8/neon-samurai.png",
+    },
+    {
+      id: "il_plasma_engineer",
+      label: "Plasma Engineer",
+      imgSrc: "/avatars/pack8/plasma-engineer.png",
+    },
+    {
+      id: "il_rift-assassin",
+      label: "Rift Assassin",
+      imgSrc: "/avatars/pack8/rift-assassin.png",
+    },
+    {
+      id: "il_solar_paladin",
+      label: "Solar Paladin",
+      imgSrc: "/avatars/pack8/solar-paladin.png",
+    },
+    {
+      id: "il_storm_mechanic",
+      label: "Storm Mechanic",
+      imgSrc: "/avatars/pack8/storm-mechanic.png",
+    },
+    {
+      id: "il_venom-huntress",
+      label: "Venom Huntress",
+      imgSrc: "/avatars/pack8/venom-huntress.png",
+    },
+  ],
+},
   
 ];
