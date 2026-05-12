@@ -235,6 +235,10 @@ function getSessionHourWindow(log, row) {
   let earliestMs = null;
   let latestMs = null;
 
+  // Behaviour badges must only count real logged activity.
+  // Streak Saver days must NOT count towards Early Bird / Night Grinder.
+  let hasBehaviourEligibleActivity = false;
+
   const considerRaw = (raw) => {
     if (!raw) return;
     const d = typeof raw === "number" ? new Date(raw) : new Date(raw);
@@ -272,11 +276,14 @@ function getSessionHourWindow(log, row) {
       hasData = safeNum(c.distanceKm) > 0 || safeNum(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = safeNum(b?.duration?.minutes) > 0;
-    } else if (typeId === "recovery") {
-      hasData = !!b?.recoveryDone;
+       } else if (typeId === "recovery") {
+      // Recovery and Streak Saver should not feed Early Bird / Night Grinder.
+      hasData = false;
     }
 
     if (!hasData) continue;
+
+    hasBehaviourEligibleActivity = true;
 
     considerRaw(b?.startedAt);
     considerRaw(b?.completedAt);
@@ -285,14 +292,23 @@ function getSessionHourWindow(log, row) {
     considerRaw(b?.updatedAt);
   }
 
-  // Fallback 1: log-level meta
+  // If there was no real activity block, do not use fallback timestamps.
+  // This prevents Streak Saver-only logs from becoming Early Bird / Night Grinder sessions.
+  if (!hasBehaviourEligibleActivity) {
+    return {
+      earliestHour: null,
+      latestHour: null,
+    };
+  }
+
+  // Fallback 1: log-level meta, but only after confirming real activity exists.
   if (earliestMs == null && latestMs == null) {
     considerRaw(log?.meta?.startTs);
     considerRaw(log?.meta?.endTs);
     considerRaw(log?.meta?.completedTs);
   }
 
-  // Fallback 2: DB row timestamps passed through from App.jsx
+  // Fallback 2: DB row timestamps, but only after confirming real activity exists.
   if (earliestMs == null && latestMs == null) {
     considerRaw(row?.created_at);
     considerRaw(row?.updated_at);
