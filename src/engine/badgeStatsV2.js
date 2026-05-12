@@ -311,6 +311,10 @@ function getSessionHourWindow(log, row) {
   };
 }
 
+function isStreakCountingDay(log) {
+  return isDayGreen(log) || !!log?.meta?.streakSaved;
+}
+
 // Green day = all non-cancelled, non-task blocks are "complete" (have data)
 function isDayGreen(log) {
   if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
@@ -817,8 +821,9 @@ const lastStrengthScoreByMovement = new Map();
     const dateStr = row?.date_ymd || row?.date;
     if (!log || !dateStr) continue;
 
-    // Green-day marking for streak
-    greenByDate.set(dateStr, isDayGreen(log));
+    // Streak-day marking for badge streak stats.
+// Must match the App.jsx streak XP logic, including saved streak days.
+greenByDate.set(dateStr, isStreakCountingDay(log));
 
     // Strength processing (strength only counts sets/reps/volume)
     let sessionSets = 0;
