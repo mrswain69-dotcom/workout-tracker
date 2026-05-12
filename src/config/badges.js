@@ -709,12 +709,22 @@ const SPORT_PACKS = {
       comparator: COMPARATOR.GTE,
       tiers: tierRules,
       getProgressText: ({ value, nextTier, meta }) => {
-        const v = Math.round(safeNum(value) * 10) / 10;
-        const sport = meta?.paceImprovementBestSport ? String(meta.paceImprovementBestSport).toUpperCase() : null;
-        if (!nextTier) return `Best historical pace improvement: ${v}%${sport ? ` (${sport})` : ""}.`;
-        const remaining = Math.max(0, nextTier.threshold - v);
-        return `Best historical pace improvement: ${v}%${sport ? ` (${sport})` : ""} — ${remaining}% to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
-      },
+  const v = Math.round(safeNum(value) * 10) / 10;
+  const sport = meta?.paceImprovementBestSport
+    ? String(meta.paceImprovementBestSport).toUpperCase()
+    : null;
+
+  const vText = v.toFixed(1);
+
+  if (!nextTier) {
+    return `Best historical pace improvement: ${vText}%${sport ? ` (${sport})` : ""}.`;
+  }
+
+  const remaining = Math.max(0, nextTier.threshold - v);
+  const remainingText = (Math.round(remaining * 10) / 10).toFixed(1);
+
+  return `Best historical pace improvement: ${vText}%${sport ? ` (${sport})` : ""} — ${remainingText}% to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
+},
     },
     tierDefs
   );
