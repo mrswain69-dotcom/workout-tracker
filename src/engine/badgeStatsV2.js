@@ -812,6 +812,7 @@ const lastStrengthScoreByMovement = new Map();
   // -----------------------------
   // Cardio stats
   // -----------------------------
+  const paceEvents = []; // historical estimated times used for best-ever pace improvement badge
   const cardio = {};
   for (const sport of Object.keys(SPORT_DISTANCES)) {
     cardio[sport] = {
@@ -938,7 +939,17 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
         const dist = SPORT_DISTANCES[sport].find((d) => d.key === key);
         if (!dist) continue;
         if (e.km >= dist.km) {
-          const est = estimateTimeSecForDistance(e, dist.km);
+                    const est = estimateTimeSecForDistance(e, dist.km);
+
+          if (est != null && est > 0) {
+            paceEvents.push({
+              date: dateStr,
+              sport,
+              key,
+              timeSec: est,
+            });
+          }
+
           cardio[sport].bestTimeSec[key] = bestTime(cardio[sport].bestTimeSec[key], est);
 
           if (dayDiff >= 0 && dayDiff < 28) {
@@ -1043,6 +1054,64 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
 
   paceImprovementPct4w = Math.round(paceImprovementPct4w * 10) / 10;
 
+  // Historical best pace improvement.
+  // This is the stat used by the Pace Improvement badge.
+  // It scans historical 28-day windows and finds the best improvement ever achieved.
+  // If workout history changes, this value recalculates and badges update honestly.
+  let paceImprovementBestPct = 0;
+  let paceImprovementBestSport = null;
+
+  const uniqueDates = Array.from(
+    new Set(paceEvents.map((e) => e.date).filter(Boolean))
+  ).sort((a, b) => (a < b ? -1 : 1));
+
+  function bestTimeInWindow({ sport, key, startYmd, endYmd }) {
+    let best = null;
+
+    for (const e of paceEvents) {
+      if (e.sport !== sport || e.key !== key) continue;
+      if (e.date < startYmd || e.date > endYmd) continue;
+      best = bestTime(best, e.timeSec);
+    }
+
+    return best;
+  }
+
+  for (const endDate of uniqueDates) {
+    const currentStart = ymdAddDays(endDate, -27);
+    const currentEnd = endDate;
+
+    const previousStart = ymdAddDays(endDate, -55);
+    const previousEnd = ymdAddDays(endDate, -28);
+
+    for (const sport of Object.keys(PACE_DISTANCES)) {
+      for (const key of PACE_DISTANCES[sport]) {
+        const prev = bestTimeInWindow({
+          sport,
+          key,
+          startYmd: previousStart,
+          endYmd: previousEnd,
+        });
+
+        const cur = bestTimeInWindow({
+          sport,
+          key,
+          startYmd: currentStart,
+          endYmd: currentEnd,
+        });
+
+        const imp = improvement(prev, cur);
+
+        if (imp != null && imp > paceImprovementBestPct) {
+          paceImprovementBestPct = imp;
+          paceImprovementBestSport = sport;
+        }
+      }
+    }
+  }
+
+  paceImprovementBestPct = Math.round(paceImprovementBestPct * 10) / 10;
+
   return {
     lifts: {
       totalVolumeKg: Math.round(totalVolumeKg),
@@ -1092,11 +1161,17 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
     },
     cardio,
     sportMastery,
-    intelligence: {
-  progressiveOverloadEvents,
-  paceImprovementPct4w,
-  paceImprovementSport,
-},
+        intelligence: {
+      progressiveOverloadEvents,
+
+      // Current rolling improvement, useful for live progress text / diagnostics.
+      paceImprovementPct4w,
+      paceImprovementSport,
+
+      // Historical best improvement, used for the badge so earned history remains valid.
+      paceImprovementBestPct,
+      paceImprovementBestSport,
+    },
   };
 
 }
