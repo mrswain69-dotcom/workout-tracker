@@ -705,15 +705,15 @@ const SPORT_PACKS = {
       desc,
       family,
       iconFile,
-      statKey: "stats.intelligence.paceImprovementPct4w",
+      statKey: "stats.intelligence.paceImprovementBestPct",
       comparator: COMPARATOR.GTE,
       tiers: tierRules,
       getProgressText: ({ value, nextTier, meta }) => {
         const v = Math.round(safeNum(value) * 10) / 10;
-        const sport = meta?.paceImprovementSport ? String(meta.paceImprovementSport).toUpperCase() : null;
-        if (!nextTier) return `Pace improvement: ${v}%${sport ? ` (${sport})` : ""}.`;
+        const sport = meta?.paceImprovementBestSport ? String(meta.paceImprovementBestSport).toUpperCase() : null;
+        if (!nextTier) return `Best historical pace improvement: ${v}%${sport ? ` (${sport})` : ""}.`;
         const remaining = Math.max(0, nextTier.threshold - v);
-        return `Pace improvement: ${v}%${sport ? ` (${sport})` : ""} — ${remaining}% to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
+        return `Best historical pace improvement: ${v}%${sport ? ` (${sport})` : ""} — ${remaining}% to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`;
       },
     },
     tierDefs
