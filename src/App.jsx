@@ -4087,7 +4087,6 @@ const XP_RULES = {
     60: 200,
     90: 300,
     180: 600,
-    365: 2000,
   },
 };
 
@@ -4325,11 +4324,16 @@ function computeStreakBonusMap(records) {
     map.set(date, log);
   }
 
-  // Collect all "green" days
-  const completeDates = [];
-  for (const [date, log] of map.entries()) {
-    if (isDayGreen(log)) completeDates.push(date);
-  }
+  // Collect all streak-counting days.
+// This must match getCurrentPlanStreak(), otherwise the UI streak
+// can show 90 days while XP calculation sees fewer days.
+const completeDates = [];
+for (const [date, log] of map.entries()) {
+  const streakDay =
+    isDayGreen(log) || (log.meta && log.meta.streakSaved);
+
+  if (streakDay) completeDates.push(date);
+}
 
   if (!completeDates.length) return {};
 
