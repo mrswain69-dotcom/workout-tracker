@@ -143,6 +143,11 @@ export const SPORT_MASTERY_PACKS = {
     family: "sport",
     iconFile: "icon_sport_hockey.png",
   },
+  cricket: {
+    label: "Cricket",
+    family: "sport",
+    iconFile: "icon_sport_cricket.png",
+  },
   indoor_rowing: {
     label: "Indoor Rowing",
     family: "sport",
