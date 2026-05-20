@@ -12782,14 +12782,22 @@ function StyleTag() {
 }
 
 .selectedAvatarPanelPrestige{
-  border-color:rgba(255,215,0,0.46) !important;
+  border-color:color-mix(in srgb, var(--avatar-frame-b, #FFD700) 52%, transparent) !important;
   background:
-    radial-gradient(circle at 50% 35%, rgba(0,229,255,0.14), transparent 46%),
-    linear-gradient(180deg, rgba(255,215,0,0.08), rgba(15,17,23,0.08)) !important;
+    radial-gradient(
+      circle at 50% 35%,
+      color-mix(in srgb, var(--avatar-frame-a, #00E5FF) 16%, transparent),
+      transparent 46%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--avatar-frame-b, #FFD700) 10%, transparent),
+      rgba(15,17,23,0.08)
+    ) !important;
   box-shadow:
-    0 0 0 1px rgba(255,215,0,0.12) inset,
+    0 0 0 1px color-mix(in srgb, var(--avatar-frame-b, #FFD700) 16%, transparent) inset,
     0 16px 34px rgba(15,23,42,0.10),
-    0 0 28px rgba(0,229,255,0.16);
+    0 0 28px color-mix(in srgb, var(--avatar-frame-a, #00E5FF) 18%, transparent);
 }
 
 .selectedAvatarPanelPrestige::before{
@@ -12800,9 +12808,9 @@ function StyleTag() {
     conic-gradient(
       from 0deg,
       transparent 0deg,
-      rgba(255,215,0,0.00) 70deg,
-      rgba(255,215,0,0.22) 95deg,
-      rgba(0,229,255,0.22) 118deg,
+      color-mix(in srgb, var(--avatar-frame-b, #FFD700) 0%, transparent) 70deg,
+      color-mix(in srgb, var(--avatar-frame-b, #FFD700) 24%, transparent) 95deg,
+      color-mix(in srgb, var(--avatar-frame-a, #00E5FF) 24%, transparent) 118deg,
       transparent 150deg,
       transparent 360deg
     );
