@@ -456,6 +456,7 @@ const SPORT_MASTERY_KEYS = [
   "yoga",
   "netball",
   "hockey",
+  "cricket",
   "indoor_rowing",
   "outdoor_rowing",
 ];
@@ -487,6 +488,25 @@ const SPORT_NAME_MATCHERS = [
   { key: "yoga", terms: ["yoga", "tai chi", "pilates"] },
   { key: "netball", terms: ["netball"] },
   { key: "hockey", terms: ["hockey"] },
+  {
+    key: "cricket",
+    terms: [
+      "cricket",
+      "cricket training",
+      "cricket practice",
+      "cricket match",
+      "batting",
+      "bowling",
+      "fielding",
+      "nets",
+      "net session",
+      "cricket nets",
+      "wicket keeping",
+      "wicketkeeping",
+      "wicket keeper",
+      "wicketkeeper",
+    ],
+  },
     {
     key: "indoor_rowing",
     terms: [
