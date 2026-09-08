@@ -24,7 +24,9 @@ jobs:
           fetch-depth: 0
 
       - name: Apply Stage 14 history and recommendation patch
-        run: node scripts/stage14-apply.mjs
+        run: |
+          node scripts/stage14-apply.mjs
+          sed -i '1i// @vitest-environment jsdom' src/components/sessions/SessionHistory.test.jsx
 
       - name: Validate working-tree whitespace
         run: git diff --check
