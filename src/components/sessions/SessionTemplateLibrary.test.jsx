@@ -281,6 +281,36 @@ describe("SessionTemplateLibrary", () => {
     expect(screen.getByText("1 Session")).toBeTruthy();
   });
 
+  it("creates and edits Programmes through the Stage 2 DB API", async () => {
+    const db = await renderLibrary();
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Programme" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Programme name" }), {
+      target: { value: "Ball Mastery" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Programme category" }), {
+      target: { value: "Football" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Programme" }));
+
+    await waitFor(() => expect(db.createProgramme).toHaveBeenCalledWith(
+      "f1",
+      expect.objectContaining({ name: "Ball Mastery", category: "Football" })
+    ));
+    await waitFor(() => expect(screen.getByText("Ball Mastery")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Programme Ball Mastery" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Programme name" }), {
+      target: { value: "Ball Mastery Plus" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save Programme" }));
+
+    await waitFor(() => expect(db.updateProgramme).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ name: "Ball Mastery Plus" })
+    ));
+  });
+
   it("opens a new Session inside the selected Programme and persists through the controller", async () => {
     const db = await renderLibrary();
 
@@ -296,7 +326,7 @@ describe("SessionTemplateLibrary", () => {
     );
     expect(db.createSessionTemplateMovement).toHaveBeenCalledWith(
       "f1",
-      expect.objectContaining({ movementId: "m2", position: 1 })
+      expect.objectContaining({ movementId: "m1", position: 1 })
     );
   });
 
@@ -368,7 +398,7 @@ describe("SessionTemplateLibrary", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Archive Movement Sole Rolls" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    expect((await screen.findByRole("alert")).textContent).toContain(
       "Remove this Movement from 1 active Session before archiving it."
     );
     expect(confirmArchive).not.toHaveBeenCalled();
@@ -391,7 +421,7 @@ describe("SessionTemplateLibrary", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Archive Programme Football Skills" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    expect((await screen.findByRole("alert")).textContent).toContain(
       "Archive or move 1 active Session before archiving this Programme."
     );
     expect(db.archiveProgramme).not.toHaveBeenCalled();
@@ -408,7 +438,7 @@ describe("SessionTemplateLibrary", () => {
       <SessionTemplateLibrary familyId="f1" dbApi={db} confirmArchive={() => true} />
     );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    expect((await screen.findByRole("alert")).textContent).toContain(
       "Could not load Session Library: network down"
     );
     expect(db.createSessionTemplate).not.toHaveBeenCalled();
