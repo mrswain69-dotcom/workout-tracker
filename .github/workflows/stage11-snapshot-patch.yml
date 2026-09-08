@@ -1,0 +1,49 @@
+name: Stage 11 Snapshot Patch
+
+on:
+  push:
+    branches:
+      - feature/phase1-sessions
+    paths:
+      - scripts/stage11-apply.mjs
+      - .github/workflows/stage11-snapshot-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-stage11:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/phase1-sessions
+          fetch-depth: 0
+
+      - name: Apply guarded Stage 11 patch
+        run: node scripts/stage11-apply.mjs
+
+      - name: Validate patch whitespace
+        run: git diff --check
+
+      - name: Run tests
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Commit Stage 11 integration
+        run: |
+          if git diff --quiet; then
+            echo "No Stage 11 patch changes were required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.jsx src/engine/sessionEngine.js src/engine/sessionEngine.test.js
+          git commit -m "Add immutable Session log snapshots"
+          git push origin HEAD:feature/phase1-sessions
