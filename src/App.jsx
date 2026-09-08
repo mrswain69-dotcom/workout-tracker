@@ -41,6 +41,10 @@ import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS } from "./config/ba
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 
 import { AVATAR_PACKS } from "./config/avatars";
+import SessionPlanBlockEditor, {
+  createSessionPlanBlock,
+  normaliseSessionPlanBlock,
+} from "./components/sessions/SessionPlanBlockEditor.jsx";
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -3710,6 +3714,13 @@ const badgeStats = useMemo(() => {
           };
         }
 
+        if (typeId === "session") {
+          return normaliseSessionPlanBlock(
+            b,
+            b?.id || `${w}_block_${idx}`
+          );
+        }
+
         // Fallback: unknown type → treat as duration block
         return {
           id: b?.id || `${w}_block_${idx}`,
@@ -5174,6 +5185,8 @@ if (!didClaim) {
       newBlock = createRecoveryBlock();
     } else if (typeId === "tasks") {
       newBlock = createTasksBlock();
+    } else if (typeId === "session") {
+      newBlock = createSessionPlanBlock(uid());
     } else {
       return;
     }
@@ -9441,7 +9454,7 @@ the same time tomorrow.
         {blocksForSelectedPlanDay.length === 0 && (
           <div className="muted">
             No blocks yet for {planWeekday}. Add a strength, cardio, duration,
-recovery, or tasks block below.
+            recovery, session, or tasks block below.
           </div>
         )}
 
@@ -9460,6 +9473,7 @@ recovery, or tasks block below.
                     {typeId === "cardio" && "Cardio"}
                     {typeId === "duration" && "Duration"}
                     {typeId === "recovery" && "Recovery"}
+                    {typeId === "session" && "Session"}
                     {typeId === "tasks" && "Tasks"}
                   </div>
                   <SecondaryButton
@@ -9470,7 +9484,13 @@ recovery, or tasks block below.
                   </SecondaryButton>
                 </div>
                 <div className="mt8">
-                  <b>{block.label || "(no name yet)"}</b>
+                  <b>
+                    {block.label ||
+                      (typeId === "session"
+                        ? block.sessionTemplateNameSnapshot
+                        : "") ||
+                      "(no name yet)"}
+                  </b>
                 </div>
                 {block.note && (
                   <div className="muted mt4">
@@ -9495,6 +9515,7 @@ recovery, or tasks block below.
                     {typeId === "cardio" && "Cardio"}
                     {typeId === "duration" && "Duration"}
                     {typeId === "recovery" && "Recovery"}
+                    {typeId === "session" && "Session"}
                     {typeId === "tasks" && "Tasks"}
                   </span>
                   {typeId === "strength" || typeId === "hiit" || typeId === "box" ? (
@@ -9624,6 +9645,8 @@ recovery, or tasks block below.
                       ? "e.g. Yoga flow"
                       : typeId === "tasks"
                       ? "e.g. Recovery tasks"
+                      : typeId === "session"
+                      ? "e.g. Football Skills — Session A"
                       : "e.g. Upper body"
                   }
                 />
@@ -9977,6 +10000,16 @@ recovery, or tasks block below.
                 </>
               )}
               
+              {typeId === "session" && (
+                <SessionPlanBlockEditor
+                  familyId={family?.id}
+                  block={block}
+                  onChange={(patch) =>
+                    updateBlockInDay(block.id, () => patch)
+                  }
+                />
+              )}
+
               {typeId === "tasks" && (
                 <>
                   <div className="mt12">
@@ -10084,6 +10117,12 @@ recovery, or tasks block below.
           </PrimaryButton>
           <PrimaryButton
             className="btnSmall"
+            onClick={() => addBlockToDay("session")}
+          >
+            + Session block
+          </PrimaryButton>
+          <PrimaryButton
+            className="btnSmall"
             onClick={() => addBlockToDay("tasks")}
           >
             + Tasks block
@@ -10119,10 +10158,16 @@ recovery, or tasks block below.
                         {b.typeId === "box" && "Box"}
                         {b.typeId === "cardio" && "Cardio"}
                         {b.typeId === "duration" && "Duration"}
+                        {b.typeId === "recovery" && "Recovery"}
+                        {b.typeId === "session" && "Session"}
                         {b.typeId === "tasks" && "Tasks"}
                       </span>
                       <span className="ml4">
-                        {b.label || "(no name)"}
+                        {b.label ||
+                          (b.typeId === "session"
+                            ? b.sessionTemplateNameSnapshot
+                            : "") ||
+                          "(no name)"}
                       </span>
                     </li>
                   ))}

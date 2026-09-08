@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { loadSessionLibrary } from "../../db.js";
 import { normaliseSessionLibrary } from "./sessionLibraryController.js";
 
+const DEFAULT_DB_API = Object.freeze({ loadSessionLibrary });
+
 function cleanText(value, fallback = "") {
   if (value === null || value === undefined) return fallback;
   const text = String(value).trim();
@@ -110,7 +112,7 @@ export default function SessionPlanBlockEditor({
   block,
   onChange,
   disabled = false,
-  dbApi = { loadSessionLibrary },
+  dbApi = DEFAULT_DB_API,
 }) {
   const safeBlock = normaliseSessionPlanBlock(block);
   const [library, setLibrary] = useState(() => normaliseSessionLibrary({}));
