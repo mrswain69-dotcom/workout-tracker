@@ -46,6 +46,14 @@ import {
   reconcileSessionLogBlockSnapshot,
   sessionHasActivity,
 } from "./engine/sessionEngine.js";
+import {
+  SESSION_COMPLETION_XP,
+  getSessionBlockLoadScore,
+  getSessionBlockTrainingMinutes,
+  getSessionBlockXp,
+  sessionBlockHasActivity,
+  sessionBlockIsComplete,
+} from "./engine/sessionCore.js";
 
 import { AVATAR_PACKS } from "./config/avatars";
 import SessionPlanBlockEditor, {
@@ -1436,6 +1444,8 @@ function isDayGreen(log) {
       hasData = Number(c.distanceKm) > 0 || Number(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = Number(block?.duration?.minutes) > 0;
+    } else if (typeId === "session") {
+      hasData = sessionBlockIsComplete(block);
     } else if (typeId === "recovery") {
       hasData = !!block?.recoveryDone;
     }
@@ -1473,9 +1483,11 @@ function blockHasSameDayLoggedActivity(block, targetYmd) {
     hasData = Number(c.distanceKm) > 0 || Number(c.durationMin) > 0;
   } else if (typeId === "duration") {
     hasData = Number(block?.duration?.minutes) > 0;
-  } else if (typeId === "recovery") {
-    hasData = !!block?.recoveryDone;
-  }
+  } else if (typeId === "session") {
+      hasData = sessionBlockIsComplete(block);
+    } else if (typeId === "recovery") {
+      hasData = !!block?.recoveryDone;
+    }
 
   if (!hasData) return false;
 
@@ -1533,9 +1545,10 @@ function computeTotalMinutesForDay(log) {
 
   const blocks = Array.isArray(log.blocks) ? log.blocks : [];
 
-  // 2) New model: sum minutes from per-block cardio + duration
+  // 2) New model: sum minutes from per-block cardio + duration + structured Sessions
   let blockCardioMin = 0;
   let blockDurationMin = 0;
+  let blockSessionMin = 0;
 
   if (blocks.length) {
     for (const b of blocks) {
@@ -1549,12 +1562,16 @@ function computeTotalMinutesForDay(log) {
         // duration blocks use duration.minutes
         blockDurationMin += safeNumber(b.duration.minutes);
       }
+
+      if (b.typeId === "session") {
+        blockSessionMin += getSessionBlockTrainingMinutes(b);
+      }
     }
   }
 
-  if (blockCardioMin > 0 || blockDurationMin > 0) {
-    // e.g. 5 km / 25 min run + 20 min yoga = 45
-    return blockCardioMin + blockDurationMin;
+  if (blockCardioMin > 0 || blockDurationMin > 0 || blockSessionMin > 0) {
+    // e.g. 25 min run + 20 min yoga + 15 min skill Session = 60
+    return blockCardioMin + blockDurationMin + blockSessionMin;
   }
 
   // 3) Legacy fallback ONLY if we have no blocks snapshot
@@ -1612,6 +1629,10 @@ function isTrainingBlockForRecoveryLogic(block) {
 
   if (typeId === "duration") {
     return safeNumber(block?.duration?.minutes) > 0;
+  }
+
+  if (typeId === "session") {
+    return sessionBlockHasActivity(block);
   }
 
   return false;
@@ -1791,6 +1812,10 @@ function getBlockLoadScoreForApp(block) {
     return Math.round(mins * 0.7);
   }
 
+  if (typeId === "session") {
+    return getSessionBlockLoadScore(block);
+  }
+
   if (typeId === "tasks" || typeId === "recovery") {
     return 0;
   }
@@ -1828,7 +1853,9 @@ function getDayLoadSummaryForApp(log) {
     const typeId = String(b.typeId || "").toLowerCase();
     const load = getBlockLoadScoreForApp(b);
 
-    if (load > 0) hadTraining = true;
+    if (load > 0 || (typeId === "session" && sessionBlockHasActivity(b))) {
+      hadTraining = true;
+    }
     if (typeId === "recovery" && b.recoveryDone) hadRecovery = true;
 
     totalLoad += load;
@@ -1854,6 +1881,10 @@ function getDayLoadSummaryForApp(log) {
     } else if (typeId === "duration") {
       cardioEnergyLoad += load * 0.6;
       nervousLoad += load * 0.25;
+    } else if (typeId === "session") {
+      // Skill Sessions are moderate physical work with a meaningful coordination load.
+      nervousLoad += load * 0.65;
+      cardioEnergyLoad += load * 0.55;
     }
   }
 
@@ -2001,6 +2032,10 @@ function getFirstBlockTimestampMs(log) {
 
     if (typeId === "duration") {
       return safeNumber(b?.duration?.minutes) > 0;
+    }
+
+    if (typeId === "session") {
+      return sessionBlockHasActivity(b);
     }
 
     if (typeId === "recovery") {
@@ -4101,6 +4136,7 @@ const XP_RULES = {
   cardioPerMin: 1 / 2,       // +1 XP per 2 minutes (rounded up)
   cardioPerKm: 1 / 0.5,      // +1 XP per 0.5km (rounded up)
   durationPerMin: 2 / 10,    // +2 XP per 10 minutes
+  sessionComplete: SESSION_COMPLETION_XP, // fixed total XP for a completed structured Session
   taskDefault: 5,            // fallback if a task has no xpValue
   blockComplete: 5,          // +5 XP per completed workout block (non-task)
 
@@ -4205,6 +4241,10 @@ function blockHasData(block) {
 
   if (typeId === "recovery") {
     return !!block.recoveryDone;
+  }
+
+  if (typeId === "session") {
+    return sessionBlockHasActivity(block);
   }
 
   if (typeId === "tasks") {
@@ -4324,6 +4364,11 @@ function baseXpForLog(log, plan) {
         if (blockXp > 0) total += XP_RULES.blockComplete;
         break;
       }
+      case "session": {
+        // Session XP is completion-only and already represents the whole block.
+        total += getSessionBlockXp(block);
+        break;
+      }
       case "recovery": {
         const blockXp = xpForRecoveryBlock(block);
         total += blockXp;
@@ -4435,6 +4480,7 @@ const buildXpDebugRows = (records, plan) => {
     let strengthXp = 0;
     let cardioXp = 0;
     let durationXp = 0;
+    let sessionXp = 0;
     let recoveryXp = 0;
 let tasksXp = 0;
 let dayCompleteXp = 0;
@@ -4522,6 +4568,11 @@ let progressCount = 0;
           break;
         }
 
+        case "session": {
+          sessionXp += getSessionBlockXp(block);
+          break;
+        }
+
         case "recovery": {
           const blockXp = xpForRecoveryBlock(block);
           recoveryXp += blockXp;
@@ -4586,7 +4637,7 @@ let progressCount = 0;
     const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
 const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;
 
-const nonBonusXp = strengthXp + cardioXp + durationXp + recoveryXp + tasksXp + dayCompleteXp;
+const nonBonusXp = strengthXp + cardioXp + durationXp + sessionXp + recoveryXp + tasksXp + dayCompleteXp;
 const progXp = strengthProgressXp + cardioProgressXp;
 
 const totalXp = nonBonusXp + progXp + streakXp + dailyBonusXp + badgeClaimXp;
@@ -4603,6 +4654,7 @@ rows.push({
   strengthXp,
   cardioXp,
   durationXp,
+  sessionXp,
   recoveryXp,
   tasksXp,
   dayCompleteXp,
@@ -4657,6 +4709,7 @@ rows.push({
       strengthXp: 0,
       cardioXp: 0,
       durationXp: 0,
+      sessionXp: 0,
       tasksXp: 0,
       dayCompleteXp: 0,
       dailyBonusXp: 0,
@@ -7394,6 +7447,15 @@ async function removeExtraMovement(blockId) {
           w.durationMin += mins;
           w.durationBlocks += 1;
           dayDurationMin += mins;
+        }
+      } else if (typeId === "session") {
+        if (sessionBlockHasActivity(b)) {
+          didAnything = true;
+          const mins = getSessionBlockTrainingMinutes(b);
+          if (mins > 0) {
+            w.durationMin += mins;
+            dayDurationMin += mins;
+          }
         }
       } else if (typeId === "tasks") {
         const done = b.tasksDone || {};
@@ -11461,6 +11523,7 @@ if (!didClaim) {
                   XP is based on minutes and km (auto) - +1 XP per 2 minutes & +1 XP per 0.5km, plus 5 XP per logged cardio block. If you only know time
                   and not distance, use a Duration block instead.</div>
                 <div><b>Duration:</b> XP from minutes (2 XP per 10 minutes, plus 5 XP per logged duration block)</div>
+                <div><b>Sessions:</b> +10 XP when a structured Session is completed. Drill counts/results do not add XP.</div>
                 <div><b>Tasks:</b> XP per task completed (as shown on the task log)</div>
                 <div><b>Progression bonuses:</b> beat your last time/effort (+20 XP for Cardio blocks and +10 XP for Strength movements)</div>
                 <div><b>Streak bonuses:</b> keep days green 🔥 (2→5XP, 3→10XP, 5→20XP, 10→50XP,
@@ -11499,6 +11562,7 @@ if (!didClaim) {
       <th style={{ textAlign: "right" }}>Strength</th>
       <th style={{ textAlign: "right" }}>Cardio</th>
       <th style={{ textAlign: "right" }}>Duration</th>
+      <th style={{ textAlign: "right" }}>Session</th>
       <th style={{ textAlign: "right" }}>Tasks</th>
       <th style={{ textAlign: "right" }}>Day</th>
       <th style={{ textAlign: "right" }}>Daily</th>
@@ -11533,6 +11597,7 @@ if (!didClaim) {
 </td>
 
 <td style={{ textAlign: "right" }}>{r.durationXp || 0}</td>
+<td style={{ textAlign: "right" }}>{r.sessionXp || 0}</td>
 <td style={{ textAlign: "right" }}>{r.tasksXp || 0}</td>
 
 <td
@@ -11560,7 +11625,7 @@ if (!didClaim) {
   and earned 60% of normal cardio XP.
 </div>
 <div className="mini muted mt4">
-  Tip: “Non-bonus” = Strength + Cardio + Duration + Tasks + Day. Bonuses are Daily, Prog, Streak and Badges.
+  Tip: “Non-bonus” = Strength + Cardio + Duration + Session + Tasks + Day. Bonuses are Daily, Prog, Streak and Badges.
 </div>
           </div>
 
