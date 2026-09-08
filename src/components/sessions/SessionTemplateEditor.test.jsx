@@ -273,7 +273,7 @@ describe("SessionTemplateEditor", () => {
       <SessionTemplateEditor
         template={{ programmeId: "", name: "" }}
         templateMovements={[]}
-        programmes={programmes}
+        programmes={[]}
         canonicalMovements={movements}
         onSave={() => {}}
       />
@@ -356,7 +356,7 @@ describe("SessionTemplateEditor", () => {
           }),
         ]),
       }),
-      expect.objectContaining({ source: "movement", movementIndex: 0 })
+      expect.objectContaining({ source: "tracking-method", movementIndex: 0 })
     );
   });
 });
