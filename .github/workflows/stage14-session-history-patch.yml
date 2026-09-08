@@ -1,4 +1,4 @@
-name: Stage 14 Session History Patch
+name: Stage 14 Session History Closure Gate
 
 on:
   push:
@@ -11,22 +11,17 @@ permissions:
   contents: write
 
 jobs:
-  apply-stage14:
+  validate-stage14:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout feature branch
+      - name: Checkout corrected feature branch
         uses: actions/checkout@v4
         with:
           ref: feature/phase1-sessions
           fetch-depth: 0
-
-      - name: Apply Stage 14 history and recommendation patch
-        run: |
-          node scripts/stage14-apply.mjs
-          sed -i '1i// @vitest-environment jsdom' src/components/sessions/SessionHistory.test.jsx
 
       - name: Validate working-tree whitespace
         run: git diff --check
@@ -34,10 +29,10 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Run tests
+      - name: Run complete test suite
         run: npm test
 
-      - name: Build app
+      - name: Build production app
         run: npm run build
 
       - name: Remove temporary Stage 14 patch machinery
@@ -45,14 +40,15 @@ jobs:
           rm -f scripts/stage14-apply.mjs
           rm -f .github/workflows/stage14-session-history-patch.yml
 
-      - name: Commit Stage 14
+      - name: Commit validated Stage 14 cleanup
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          git diff --cached --check
           if git diff --cached --quiet; then
-            echo "No Stage 14 changes were required."
+            echo "No temporary Stage 14 files remain."
             exit 0
           fi
-          git commit -m "Add Stage 14 Session history and recommendations"
+          git commit -m "Complete Stage 14 Session history gate"
           git push origin HEAD:feature/phase1-sessions
