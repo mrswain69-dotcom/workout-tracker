@@ -44,6 +44,7 @@ import {
   buildSessionLogBlockSnapshot,
   hydrateSessionSnapshotsInLog,
   reconcileSessionLogBlockSnapshot,
+  sessionHasActivity,
 } from "./engine/sessionEngine.js";
 
 import { AVATAR_PACKS } from "./config/avatars";
@@ -51,6 +52,7 @@ import SessionPlanBlockEditor, {
   createSessionPlanBlock,
   normaliseSessionPlanBlock,
 } from "./components/sessions/SessionPlanBlockEditor.jsx";
+import SessionLogger from "./components/sessions/SessionLogger.jsx";
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -3321,6 +3323,22 @@ const allTasksBlocksForDay = [
 ];
 
 const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
+
+// Structured Session blocks. Once a daily snapshot exists it is authoritative;
+// before the first Start tap we fall back to the lightweight weekly Plan reference.
+const sessionBlocksFromLog = Array.isArray(logForDay?.blocks)
+  ? logForDay.blocks.filter((b) => b && b.typeId === "session")
+  : [];
+
+const sessionPlannedBlocks = plannedBlocksForSelectedDay.filter(
+  (b) => b && b.typeId === "session"
+);
+
+const allSessionBlocksForDay = sessionBlocksFromLog.length
+  ? sessionBlocksFromLog
+  : sessionPlannedBlocks;
+
+const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
   
   function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
@@ -5493,6 +5511,10 @@ function cloneBlockForPlanPreserveIds(block) {
     return !!block?.recoveryDone;
   }
 
+  if (typeId === "session") {
+    return sessionHasActivity(block);
+  }
+
   return false;
 }
 
@@ -6293,6 +6315,107 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     await saveLog(next);
     setLogForDay(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+
+
+  async function prepareSessionBlockForLogging(blockId) {
+    if (!blockId || !family?.id) return;
+
+    const base = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
+    const existingBlock = getBlockLog(base, blockId) || {};
+
+    // A resolved historical/current Session never needs to be rebuilt. Start only
+    // establishes a sensible timer anchor if it does not already have one.
+    if (existingBlock.session && typeof existingBlock.session === "object") {
+      if (!existingBlock.startedAt) {
+        const next = updateBlockLog(base, blockId, {
+          startedAt: new Date().toISOString(),
+        });
+        await saveLog(next);
+      }
+      return;
+    }
+
+    try {
+      const { data: sessionLibrary, error } = await loadSessionLibrary(
+        family.id,
+        { includeArchived: true }
+      );
+
+      if (error) {
+        console.error("Unable to prepare Session logger", error);
+        window.alert(
+          "This Session could not be loaded right now. Please check your connection and try again."
+        );
+        return;
+      }
+
+      const hydrated = hydrateSessionSnapshotsInLog(base, sessionLibrary || {});
+      const hydratedBlock = getBlockLog(hydrated, blockId);
+
+      if (!hydratedBlock?.session) {
+        window.alert(
+          "The Session template could not be found. It may have been removed before this day was started."
+        );
+        return;
+      }
+
+      const next = updateBlockLog(hydrated, blockId, {
+        startedAt: hydratedBlock.startedAt || new Date().toISOString(),
+      });
+
+      await saveLog(next);
+    } catch (error) {
+      console.error("Unable to prepare Session logger", error);
+      window.alert(
+        "This Session could not be loaded right now. Please check your connection and try again."
+      );
+    }
+  }
+
+  async function updateSessionForBlock(blockId, nextSession, meta = {}) {
+    if (!blockId || !nextSession || typeof nextSession !== "object") return;
+
+    const base = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
+    const existingBlock = getBlockLog(base, blockId) || {};
+    const previousSession =
+      existingBlock.session && typeof existingBlock.session === "object"
+        ? existingBlock.session
+        : null;
+
+    let sessionToSave = { ...nextSession };
+
+    // Capture a real elapsed duration when a currently-running Session is first
+    // completed. If the timer anchor is stale (for example a historical edit),
+    // leave actualDurationSec alone and the engine can fall back to planned time.
+    if (sessionToSave.completed && !previousSession?.completed) {
+      const hasActualDuration = Number(sessionToSave.actualDurationSec) > 0;
+      const startedMs = existingBlock.startedAt
+        ? new Date(existingBlock.startedAt).getTime()
+        : NaN;
+      const elapsedSec = Number.isFinite(startedMs)
+        ? Math.round((Date.now() - startedMs) / 1000)
+        : 0;
+
+      if (!hasActualDuration && elapsedSec > 0 && elapsedSec <= 12 * 60 * 60) {
+        sessionToSave = {
+          ...sessionToSave,
+          actualDurationSec: Math.max(1, elapsedSec),
+        };
+      }
+    }
+
+    const next = updateBlockLog(base, blockId, { session: sessionToSave });
+    await saveLog(next);
+
+    if (meta?.source === "session-complete") {
+      const ctx = await ensureAudio();
+      if (ctx) playBling(ctx, 2, victoryTheme);
+    }
   }
 
   async function toggleRecoveryForBlock(blockId, recoveryDone) {
@@ -8100,6 +8223,92 @@ const targetInfo = buildTargetInfoForMovement({
                   </div>
                 )}
               
+{/* Structured Session blocks log */}
+{hasAnySessionBlocks && (
+  <div className="panel mt16 session-log-panel">
+    <div className="h2">Session log</div>
+
+    {allSessionBlocksForDay.map((block) => {
+      const blockLog = getBlockLog(logForDay, block.id) || block || {};
+      const isCancelled = !!blockLog.cancelled;
+      const frozenSession =
+        blockLog.session && typeof blockLog.session === "object"
+          ? blockLog.session
+          : null;
+      const label =
+        blockLog.label ||
+        block.label ||
+        blockLog.sessionTemplateNameSnapshot ||
+        block.sessionTemplateNameSnapshot ||
+        "Session";
+      const note =
+        typeof blockLog.note === "string"
+          ? blockLog.note
+          : typeof block.note === "string"
+          ? block.note
+          : "";
+
+      return (
+        <div key={block.id} className="mt12 session-log-block">
+          <div className="row between session-log-block__top">
+            <div className="h3">{label}</div>
+            <label
+              className="mini"
+              style={{ opacity: isCancelled ? 1 : 0.55 }}
+              title="Mark this Session as cancelled when it was impossible to do. It will be handled by the normal cancellation rules."
+            >
+              <input
+                type="checkbox"
+                checked={isCancelled}
+                onChange={(e) =>
+                  toggleBlockCancelled(block.id, e.target.checked)
+                }
+              />
+              <span>Cancelled</span>
+            </label>
+          </div>
+
+          {note ? <div className="muted mt4">{note}</div> : null}
+
+          {isCancelled ? (
+            <div className="session-log-block__cancelled mt8">
+              Session cancelled — logging controls are paused.
+            </div>
+          ) : null}
+
+          {!frozenSession ? (
+            <div className="session-log-preflight mt8">
+              <div>
+                <div className="session-log-preflight__title">Ready to train?</div>
+                <div className="muted mini mt4">
+                  Start Session freezes today's exact drill definition into the log before you enter results.
+                </div>
+              </div>
+              <PrimaryButton
+                onClick={() => prepareSessionBlockForLogging(block.id)}
+                disabled={isCancelled || isSavingLog}
+              >
+                Start Session
+              </PrimaryButton>
+            </div>
+          ) : (
+            <div className="mt8">
+              <SessionLogger
+                session={frozenSession}
+                blockLabel={label}
+                disabled={isCancelled}
+                onChange={(nextSession, meta) =>
+                  updateSessionForBlock(block.id, nextSession, meta)
+                }
+              />
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+)}
+
 {/* Cardio blocks log */}
 {hasAnyCardioBlocks && (
   <div className="panel mt16">
