@@ -27,9 +27,6 @@ jobs:
         run: |
           node scripts/stage14-apply.mjs
           sed -i '1i// @vitest-environment jsdom' src/components/sessions/SessionHistory.test.jsx
-          sed -i 's/session-movement-sole-rolls/session-movement-tm-sole-rolls/g' src/components/sessions/SessionHistory.test.jsx
-          sed -i 's/session-movement-first-touch/session-movement-tm-first-touch/g' src/components/sessions/SessionHistory.test.jsx
-          sed -i 's/session-movement-keepy-ups/session-movement-tm-keepy-ups/g' src/components/sessions/SessionHistory.test.jsx
 
       - name: Validate working-tree whitespace
         run: git diff --check
