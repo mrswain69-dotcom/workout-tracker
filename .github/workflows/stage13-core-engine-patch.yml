@@ -1,0 +1,55 @@
+name: Stage 13 Session Core Engine Patch
+
+on:
+  push:
+    branches:
+      - feature/phase1-sessions
+    paths:
+      - scripts/stage13-apply.mjs
+      - src/engine/sessionCore.js
+      - src/engine/sessionCore.test.js
+      - src/engine/badgeStatsV2.test.js
+      - .github/workflows/stage13-core-engine-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-stage13:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/phase1-sessions
+          fetch-depth: 0
+
+      - name: Apply guarded Stage 13 patch
+        run: node scripts/stage13-apply.mjs
+
+      - name: Validate patch whitespace
+        run: git diff --check
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Commit Stage 13 integration
+        run: |
+          if git diff --quiet; then
+            echo "No Stage 13 patch changes were required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.jsx src/engine/badgeStatsV2.js
+          git commit -m "Integrate Sessions with core workout engines"
+          git push origin HEAD:feature/phase1-sessions
