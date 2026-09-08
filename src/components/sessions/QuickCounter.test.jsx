@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import QuickCounter, {
   applyQuickCounterDelta,
   normaliseQuickCounterValue,
 } from "./QuickCounter.jsx";
+
+afterEach(cleanup);
 
 describe("QuickCounter", () => {
   it("preserves rapid increments even before the controlled prop rerenders", () => {
@@ -43,7 +45,7 @@ describe("QuickCounter", () => {
       0,
       expect.objectContaining({ source: "decrement", delta: -5, previous: 3 })
     );
-    expect(screen.getByRole("button", { name: "Decrease by 1" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Decrease by 1" }).disabled).toBe(true);
   });
 
   it("clamps increments at the maximum", () => {
@@ -58,7 +60,7 @@ describe("QuickCounter", () => {
       20,
       expect.objectContaining({ source: "increment", delta: 5, previous: 18 })
     );
-    expect(screen.getByRole("button", { name: "Increase by 1" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Increase by 1" }).disabled).toBe(true);
   });
 
   it("allows direct correction by typing a replacement value", () => {
@@ -94,9 +96,9 @@ describe("QuickCounter", () => {
     render(<QuickCounter value={9} disabled onChange={onChange} label="Reps" />);
 
     for (const button of screen.getAllByRole("button")) {
-      expect(button).toBeDisabled();
+      expect(button.disabled).toBe(true);
     }
-    expect(screen.getByRole("spinbutton", { name: "Reps" })).toBeDisabled();
+    expect(screen.getByRole("spinbutton", { name: "Reps" }).disabled).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "Increase by 10" }));
     expect(onChange).not.toHaveBeenCalled();
