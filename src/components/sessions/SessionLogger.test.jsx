@@ -236,7 +236,8 @@ describe("SessionLogger", () => {
     initial.movements[2].skipped = true;
     render(<LoggerHarness initialSession={initial} />);
 
-    expect(screen.getByText(/1 of 2 active drills done/)).toBeTruthy();
+    const progress = screen.getByLabelText("Session movement progress");
+    expect(progress.textContent).toContain("1 of 2 active drills done");
     expect(screen.getByText("1 skipped")).toBeTruthy();
     expect(getSessionLoggerProgress(initial)).toEqual({
       total: 3,
@@ -260,7 +261,7 @@ describe("SessionLogger", () => {
     render(<LoggerHarness disabled />);
 
     expect(screen.getByRole("button", { name: "Complete Session" }).disabled).toBe(true);
-    expect(screen.getByRole("button", { name: "Done" }).disabled).toBe(true);
+    expect(screen.getAllByRole("button", { name: "Done" })[0].disabled).toBe(true);
     expect(screen.getAllByRole("button", { name: "Skip" })[0].disabled).toBe(true);
   });
 
