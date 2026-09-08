@@ -131,7 +131,7 @@ function definitionFixture() {
 function mockDb() {
   return {
     createSessionTemplate: vi.fn(async (_familyId, template) => ({
-      data: { id: "new-template", ...template },
+      data: { ...template, id: "new-template" },
       error: null,
     })),
     updateSessionTemplate: vi.fn(async (id, patch) => ({
@@ -139,7 +139,7 @@ function mockDb() {
       error: null,
     })),
     createSessionTemplateMovement: vi.fn(async (_familyId, row) => ({
-      data: { id: `new-${row.position}`, ...row },
+      data: { ...row, id: `new-${row.position}` },
       error: null,
     })),
     updateSessionTemplateMovement: vi.fn(async (id, patch) => ({
