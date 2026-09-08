@@ -33,12 +33,18 @@ import {
   createPlanTemplate,
   updatePlanTemplate,
   deletePlanTemplate,
+  loadSessionLibrary,
   setFamilyPinHash,
   clearFamilyPin,
 } from "./db";
 
 import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS } from "./config/badges";
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
+import {
+  buildSessionLogBlockSnapshot,
+  hydrateSessionSnapshotsInLog,
+  reconcileSessionLogBlockSnapshot,
+} from "./engine/sessionEngine.js";
 
 import { AVATAR_PACKS } from "./config/avatars";
 import SessionPlanBlockEditor, {
@@ -5569,8 +5575,44 @@ function stampLogTiming(prevLog, nextLog) {
   const profileId = activeProfileId;
   const dateKey = selectedDate;
 
-  // Normalise what we store
-  const logToStore = nextLog ? stampLogTiming(logForDay, { ...nextLog }) : null;
+  // Resolve any newly planned Session blocks into immutable definition snapshots
+  // before the log is persisted. Existing block.session snapshots are never refreshed.
+  let preparedLog = nextLog ? { ...nextLog } : null;
+
+  const hasUnresolvedSessionSnapshot =
+    !!preparedLog &&
+    Array.isArray(preparedLog.blocks) &&
+    preparedLog.blocks.some(
+      (b) => b && b.typeId === "session" && !b.session
+    );
+
+  if (hasUnresolvedSessionSnapshot && familyId) {
+    try {
+      const { data: sessionLibrary, error: sessionLibraryError } =
+        await loadSessionLibrary(familyId, { includeArchived: true });
+
+      if (sessionLibraryError) {
+        console.warn(
+          "Session snapshot library load failed; keeping the saved template anchor for retry",
+          sessionLibraryError
+        );
+      } else {
+        preparedLog = hydrateSessionSnapshotsInLog(
+          preparedLog,
+          sessionLibrary || {}
+        );
+      }
+    } catch (sessionSnapshotError) {
+      console.warn(
+        "Session snapshot hydration failed; keeping the saved template anchor for retry",
+        sessionSnapshotError
+      );
+    }
+  }
+
+  const logToStore = preparedLog
+    ? stampLogTiming(logForDay, preparedLog)
+    : null;
 
   // 1) Update in-memory state for the currently viewed day
   setLogForDay(logToStore);
@@ -5724,7 +5766,20 @@ function blankLogForDay() {
         // Plan V2: per-block snapshot for this day.
     // We now keep ID / type / label / note plus empty cardio & duration slots
     // so later we can bind UI + XP onto these.
-            blocks: plannedBlocks.map((b) => ({
+            blocks: plannedBlocks.map((b) =>
+      b?.typeId === "session"
+        ? {
+            ...buildSessionLogBlockSnapshot(b),
+            cardio: {
+              distanceKm: "",
+              durationMin: "",
+              avgSpeedKmh: "",
+            },
+            duration: {
+              minutes: "",
+            },
+          }
+        : ({
       id: b.id,
       typeId: b.typeId,
       label: b.label || "",
@@ -5779,6 +5834,27 @@ function ensureBlocksSnapshot(baseLog) {
     if (!pb || !pb.id) continue;
 
     const existing = existingById.get(pb.id);
+
+    if (pb.typeId === "session") {
+      const sessionBlock = reconcileSessionLogBlockSnapshot(pb, existing);
+      const sessionCardio =
+        existing && existing.cardio && typeof existing.cardio === "object"
+          ? existing.cardio
+          : { distanceKm: "", durationMin: "", avgSpeedKmh: "" };
+      const sessionDuration =
+        existing && existing.duration && typeof existing.duration === "object"
+          ? existing.duration
+          : { minutes: "" };
+
+      mergedBlocks.push({
+        ...sessionBlock,
+        cardio: sessionCardio,
+        duration: sessionDuration,
+      });
+
+      existingById.delete(pb.id);
+      continue;
+    }
 
     const baseCardio =
       existing && existing.cardio && typeof existing.cardio === "object"

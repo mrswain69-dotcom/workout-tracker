@@ -2,14 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   aggregateMovementHistory,
   aggregateSessionHistory,
+  buildSessionLogBlockSnapshot,
   buildSessionSnapshot,
   getAttemptSuccessTotals,
+  hydrateSessionSnapshotsInLog,
   getBestScore,
   getRecommendedNextSession,
   getSessionDistribution,
   movementHasRecordedResult,
   movementWasPerformed,
   normaliseMovementResult,
+  reconcileSessionLogBlockSnapshot,
   sessionHasActivity,
   sessionIsCompleted,
 } from "./sessionEngine.js";
@@ -169,6 +172,161 @@ describe("buildSessionSnapshot", () => {
     expect(snapshot.templateVersion).toBe(1);
     expect(snapshot.movements[0].displayLabel).toBe("Sole Rolls");
     expect(snapshot.movements[0].trackingConfig.quickSteps).toEqual([1, 5, 10]);
+  });
+});
+
+describe("Session Plan-to-log snapshot reconciliation", () => {
+  it("builds the daily Session block from the lightweight Plan reference", () => {
+    const library = makeLibrary();
+    const block = buildSessionLogBlockSnapshot(
+      {
+        id: "plan-session-a",
+        typeId: "session",
+        label: "Tuesday ball work",
+        note: "Sharp touches",
+        sessionTemplateId: "session-a",
+        sessionTemplateNameSnapshot: "Session A — Close Control",
+        plannedDurationSecOverride: 750,
+      },
+      library
+    );
+
+    expect(block.id).toBe("plan-session-a");
+    expect(block.sessionTemplateId).toBe("session-a");
+    expect(block.sessionTemplateNameSnapshot).toBe("Session A — Close Control");
+    expect(block.plannedDurationSecOverride).toBe(750);
+    expect(block.session.templateId).toBe("session-a");
+    expect(block.session.templateVersion).toBe(1);
+    expect(block.session.plannedDurationSec).toBe(750);
+    expect(block.session.movements[0].displayLabel).toBe("Sole Rolls");
+  });
+
+  it("never replaces an existing frozen Session snapshot with a newer template", () => {
+    const library = makeLibrary();
+    const original = buildSessionLogBlockSnapshot(
+      {
+        id: "plan-session",
+        typeId: "session",
+        label: "Original label",
+        note: "Original note",
+        sessionTemplateId: "session-a",
+        sessionTemplateNameSnapshot: "Session A — Close Control",
+      },
+      library
+    );
+    original.session.movements[0].completed = true;
+    original.session.movements[0].result = { overall: { count: 33 } };
+
+    library.templates[0].name = "Close Control v2";
+    library.templates[0].version = 2;
+    library.templateMovements[0].display_label = "Renamed Sole Rolls";
+
+    const reconciled = reconcileSessionLogBlockSnapshot(
+      {
+        id: "plan-session",
+        typeId: "session",
+        label: "Current plan label",
+        note: "Current plan note",
+        sessionTemplateId: "session-b",
+        sessionTemplateNameSnapshot: "Session B — First Touch & Protection",
+      },
+      original,
+      library
+    );
+
+    expect(reconciled.label).toBe("Original label");
+    expect(reconciled.note).toBe("Original note");
+    expect(reconciled.session.templateId).toBe("session-a");
+    expect(reconciled.session.templateVersion).toBe(1);
+    expect(reconciled.session.name).toBe("Close Control");
+    expect(reconciled.session.movements[0].displayLabel).toBe("Sole Rolls");
+    expect(reconciled.session.movements[0].result).toEqual({
+      overall: { count: 33 },
+    });
+  });
+
+  it("anchors an unresolved historical block to its originally saved template reference", () => {
+    const library = makeLibrary();
+    const unresolved = buildSessionLogBlockSnapshot({
+      id: "plan-session",
+      typeId: "session",
+      label: "Saved label",
+      note: "Saved note",
+      sessionTemplateId: "session-a",
+      sessionTemplateNameSnapshot: "Session A — Close Control",
+      plannedDurationSecOverride: 600,
+    });
+
+    expect(unresolved.session).toBeNull();
+
+    const reconciled = reconcileSessionLogBlockSnapshot(
+      {
+        id: "plan-session",
+        typeId: "session",
+        label: "New plan label",
+        sessionTemplateId: "session-b",
+        sessionTemplateNameSnapshot: "Session B — First Touch & Protection",
+        plannedDurationSecOverride: 900,
+      },
+      unresolved,
+      library
+    );
+
+    expect(reconciled.label).toBe("Saved label");
+    expect(reconciled.note).toBe("Saved note");
+    expect(reconciled.sessionTemplateId).toBe("session-a");
+    expect(reconciled.sessionTemplateNameSnapshot).toBe("Session A — Close Control");
+    expect(reconciled.plannedDurationSecOverride).toBe(600);
+    expect(reconciled.session.templateId).toBe("session-a");
+    expect(reconciled.session.plannedDurationSec).toBe(600);
+  });
+
+  it("hydrates missing Session snapshots without changing unrelated blocks", () => {
+    const library = makeLibrary();
+    const unresolved = buildSessionLogBlockSnapshot({
+      id: "plan-session",
+      typeId: "session",
+      sessionTemplateId: "session-c",
+      sessionTemplateNameSnapshot: "Session C — Direction & Weak Foot",
+    });
+    const strengthBlock = {
+      id: "strength-1",
+      typeId: "strength",
+      sets: { squat: [{ reps: 10 }] },
+    };
+    const log = {
+      weekday: "Tue",
+      blocks: [strengthBlock, unresolved],
+    };
+
+    const hydrated = hydrateSessionSnapshotsInLog(log, library);
+
+    expect(hydrated).not.toBe(log);
+    expect(hydrated.blocks[0]).toBe(strengthBlock);
+    expect(hydrated.blocks[1].session.templateId).toBe("session-c");
+    expect(hydrated.blocks[1].session.movements).toHaveLength(2);
+  });
+
+  it("is idempotent for a log that already contains a frozen Session snapshot", () => {
+    const library = makeLibrary();
+    const frozen = buildSessionLogBlockSnapshot(
+      {
+        id: "plan-session",
+        typeId: "session",
+        sessionTemplateId: "session-a",
+      },
+      library
+    );
+    const log = { blocks: [frozen] };
+
+    library.templates[0].name = "Later edit";
+    library.templates[0].version = 99;
+
+    const hydrated = hydrateSessionSnapshotsInLog(log, library);
+
+    expect(hydrated).toBe(log);
+    expect(hydrated.blocks[0].session.name).toBe("Close Control");
+    expect(hydrated.blocks[0].session.templateVersion).toBe(1);
   });
 });
 

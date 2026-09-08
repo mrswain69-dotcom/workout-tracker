@@ -246,6 +246,166 @@ export function buildSessionSnapshot(templateOrId, library = {}) {
   };
 }
 
+function normaliseNullableDurationSec(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.round(n));
+}
+
+function getPlanBlockTemplateId(block) {
+  return cleanText(
+    valueOf(block, "sessionTemplateId", "session_template_id"),
+    ""
+  );
+}
+
+function getPlanBlockTemplateNameSnapshot(block) {
+  return cleanText(
+    valueOf(
+      block,
+      "sessionTemplateNameSnapshot",
+      "session_template_name_snapshot"
+    ),
+    ""
+  );
+}
+
+function getPlanBlockDurationOverride(block) {
+  return normaliseNullableDurationSec(
+    valueOf(
+      block,
+      "plannedDurationSecOverride",
+      "planned_duration_sec_override",
+      null
+    )
+  );
+}
+
+function formatSessionSnapshotName(session) {
+  if (!session || typeof session !== "object") return "";
+  const name = cleanText(session.name, "Session");
+  const code = cleanText(session.displayCode, "");
+  return code ? `Session ${code} — ${name}` : name;
+}
+
+/**
+ * Convert the lightweight weekly Plan reference into the Session-shaped log
+ * block contract. If the definition library is not available yet, the stable
+ * template reference and display snapshots are still retained and session is
+ * left null so it can be hydrated before persistence.
+ */
+export function buildSessionLogBlockSnapshot(planBlock = {}, library = {}) {
+  const templateId = getPlanBlockTemplateId(planBlock);
+  const durationOverride = getPlanBlockDurationOverride(planBlock);
+  const session = templateId ? buildSessionSnapshot(templateId, library) : null;
+
+  if (session && durationOverride !== null) {
+    session.plannedDurationSec = durationOverride;
+  }
+
+  const rawNote = valueOf(planBlock, "note", "note", "");
+  const nameSnapshot =
+    getPlanBlockTemplateNameSnapshot(planBlock) ||
+    formatSessionSnapshotName(session);
+
+  return {
+    id: cleanText(valueOf(planBlock, "id", "id"), ""),
+    typeId: "session",
+    label: cleanText(valueOf(planBlock, "label", "label"), ""),
+    note: typeof rawNote === "string" ? rawNote : "",
+    sessionTemplateId: templateId,
+    sessionTemplateNameSnapshot: nameSnapshot,
+    plannedDurationSecOverride: durationOverride,
+    session,
+  };
+}
+
+/**
+ * Reconcile a planned Session block into an existing daily log. Once a real
+ * Session snapshot exists it is authoritative and is never refreshed from the
+ * current Plan or Session Library. An unresolved historical block also keeps
+ * its original template/name/duration anchors while waiting for hydration.
+ */
+export function reconcileSessionLogBlockSnapshot(
+  plannedBlock = {},
+  existingBlock = null,
+  library = {}
+) {
+  const existing =
+    existingBlock && typeof existingBlock === "object" ? existingBlock : null;
+
+  if (existing?.session && typeof existing.session === "object") {
+    return {
+      ...existing,
+      id: cleanText(existing.id, cleanText(plannedBlock?.id, "")),
+      typeId: "session",
+      session: existing.session,
+    };
+  }
+
+  const existingTemplateId = getPlanBlockTemplateId(existing);
+  const anchored = !!existingTemplateId;
+
+  const source = {
+    ...(plannedBlock || {}),
+    ...(anchored && hasOwn(existing, "label")
+      ? { label: existing.label }
+      : {}),
+    ...(anchored && hasOwn(existing, "note")
+      ? { note: existing.note }
+      : {}),
+    ...(anchored
+      ? { sessionTemplateId: existingTemplateId }
+      : {}),
+    ...(anchored && hasOwn(existing, "sessionTemplateNameSnapshot")
+      ? {
+          sessionTemplateNameSnapshot:
+            existing.sessionTemplateNameSnapshot,
+        }
+      : {}),
+    ...(anchored && hasOwn(existing, "plannedDurationSecOverride")
+      ? {
+          plannedDurationSecOverride:
+            existing.plannedDurationSecOverride,
+        }
+      : {}),
+  };
+
+  const built = buildSessionLogBlockSnapshot(source, library);
+
+  return {
+    ...(existing || {}),
+    ...built,
+    id:
+      cleanText(existing?.id, "") ||
+      cleanText(plannedBlock?.id, "") ||
+      built.id,
+    typeId: "session",
+    session: built.session || null,
+  };
+}
+
+/**
+ * Hydrate only Session blocks that do not yet have a frozen definition. This
+ * is deliberately idempotent: existing snapshots/results are returned intact.
+ */
+export function hydrateSessionSnapshotsInLog(log, library = {}) {
+  if (!log || !Array.isArray(log.blocks)) return log;
+
+  let changed = false;
+  const blocks = log.blocks.map((block) => {
+    if (!block || block.typeId !== "session") return block;
+    if (block.session && typeof block.session === "object") return block;
+
+    const next = reconcileSessionLogBlockSnapshot(block, block, library);
+    if (next.session && typeof next.session === "object") changed = true;
+    return next;
+  });
+
+  return changed ? { ...log, blocks } : log;
+}
+
 function normaliseResultBucket(method, rawBucket = {}, config = {}) {
   const raw = rawBucket && typeof rawBucket === "object" && !Array.isArray(rawBucket)
     ? rawBucket
