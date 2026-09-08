@@ -1,22 +1,17 @@
-name: Stage 13 Session Core Engine Patch
+name: Stage 13 Repository Cleanup
 
 on:
   push:
     branches:
       - feature/phase1-sessions
     paths:
-      - scripts/stage13-apply.mjs
-      - scripts/stage13-run.mjs
-      - src/engine/sessionCore.js
-      - src/engine/sessionCore.test.js
-      - src/engine/badgeStatsV2.test.js
       - .github/workflows/stage13-core-engine-patch.yml
 
 permissions:
   contents: write
 
 jobs:
-  apply-stage13:
+  cleanup-stage13:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -28,10 +23,31 @@ jobs:
           ref: feature/phase1-sessions
           fetch-depth: 0
 
-      - name: Apply guarded Stage 13 patch
-        run: node scripts/stage13-run.mjs
+      - name: Restore badge file line endings and remove temporary patch machinery
+        run: |
+          python - <<'PY'
+          from pathlib import Path
 
-      - name: Validate patch whitespace
+          path = Path('src/engine/badgeStatsV2.js')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('\r\n', '\n').replace('\r', '\n')
+          path.write_bytes(text.replace('\n', '\r\n').encode('utf-8'))
+          PY
+          rm -f scripts/stage13-apply.mjs
+          rm -f scripts/stage13-run.mjs
+          rm -f .github/workflows/stage13-core-engine-patch.yml
+
+      - name: Guard against line-ending churn
+        run: |
+          stats="$(git diff --numstat origin/main -- src/engine/badgeStatsV2.js)"
+          echo "$stats"
+          changes="$(printf '%s\n' "$stats" | awk 'NF >= 2 { total += $1 + $2 } END { print total + 0 }')"
+          if [ "$changes" -gt 200 ]; then
+            echo "badgeStatsV2.js still has an unexpectedly large diff: $changes changed lines"
+            exit 1
+          fi
+
+      - name: Validate cleanup whitespace
         run: git diff --check
 
       - name: Install dependencies
@@ -43,14 +59,14 @@ jobs:
       - name: Build app
         run: npm run build
 
-      - name: Commit Stage 13 integration
+      - name: Commit repository cleanup
         run: |
-          if git diff --quiet; then
-            echo "No Stage 13 patch changes were required."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/App.jsx src/engine/badgeStatsV2.js
-          git commit -m "Integrate Sessions with core workout engines"
+          git add -A src/engine/badgeStatsV2.js scripts .github/workflows/stage13-core-engine-patch.yml
+          if git diff --cached --quiet; then
+            echo "No repository cleanup changes were required."
+            exit 0
+          fi
+          git commit -m "Clean Stage 13 repository artifacts"
           git push origin HEAD:feature/phase1-sessions
