@@ -6,6 +6,7 @@ on:
       - feature/phase1-sessions
     paths:
       - scripts/stage13-apply.mjs
+      - scripts/stage13-run.mjs
       - src/engine/sessionCore.js
       - src/engine/sessionCore.test.js
       - src/engine/badgeStatsV2.test.js
@@ -28,7 +29,7 @@ jobs:
           fetch-depth: 0
 
       - name: Apply guarded Stage 13 patch
-        run: node scripts/stage13-apply.mjs
+        run: node scripts/stage13-run.mjs
 
       - name: Validate patch whitespace
         run: git diff --check
