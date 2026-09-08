@@ -17,6 +17,16 @@ const completionReplacement = `// App green-day and same-day completion both use
 
 source = source.slice(0, start) + completionReplacement + source.slice(end);
 
+const badgeReadNeedle = `let badge = fs.readFileSync(badgePath, "utf8");`;
+const badgeReadCount = source.split(badgeReadNeedle).length - 1;
+if (badgeReadCount !== 1) {
+  throw new Error(`Could not isolate badgeStatsV2 read safely; found ${badgeReadCount}.`);
+}
+source = source.replace(
+  badgeReadNeedle,
+  `${badgeReadNeedle}\nbadge = badge.replace(/\\r\\n/g, "\\n");`
+);
+
 const oldBadgeImportPatch = `badge = replaceExact(\n  badge,\n  \`// src/engine/badgeStatsV2.js\\n//\`,\n  \`// src/engine/badgeStatsV2.js\\nimport {\\n  sessionBlockHasActivity,\\n  sessionBlockIsComplete,\\n} from "./sessionCore.js";\\n\\n//\`,\n  "Session core badge import"\n);`;
 
 const badgePatchCount = source.split(oldBadgeImportPatch).length - 1;
