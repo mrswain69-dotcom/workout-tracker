@@ -24,7 +24,7 @@ if (badgeReadCount !== 1) {
 }
 source = source.replace(
   badgeReadNeedle,
-  `${badgeReadNeedle}\nbadge = badge.replace(/\\r\\n/g, "\\n");`
+  `${badgeReadNeedle}\nbadge = badge.replace(/\\r\\n/g, "\\n");\nbadge = badge.replace(/^[ \\t]+$/gm, "");`
 );
 
 const oldBadgeImportPatch = `badge = replaceExact(\n  badge,\n  \`// src/engine/badgeStatsV2.js\\n//\`,\n  \`// src/engine/badgeStatsV2.js\\nimport {\\n  sessionBlockHasActivity,\\n  sessionBlockIsComplete,\\n} from "./sessionCore.js";\\n\\n//\`,\n  "Session core badge import"\n);`;
