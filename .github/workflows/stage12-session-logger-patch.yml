@@ -6,6 +6,7 @@ on:
       - feature/phase1-sessions
     paths:
       - scripts/stage12-apply.mjs
+      - src/components/sessions/SessionLogger.test.jsx
       - .github/workflows/stage12-session-logger-patch.yml
 
 permissions:
