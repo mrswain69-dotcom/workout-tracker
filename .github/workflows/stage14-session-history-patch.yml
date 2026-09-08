@@ -1,0 +1,56 @@
+name: Stage 14 Session History Patch
+
+on:
+  push:
+    branches:
+      - feature/phase1-sessions
+    paths:
+      - .github/workflows/stage14-session-history-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-stage14:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/phase1-sessions
+          fetch-depth: 0
+
+      - name: Apply Stage 14 history and recommendation patch
+        run: node scripts/stage14-apply.mjs
+
+      - name: Validate working-tree whitespace
+        run: git diff --check
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Remove temporary Stage 14 patch machinery
+        run: |
+          rm -f scripts/stage14-apply.mjs
+          rm -f .github/workflows/stage14-session-history-patch.yml
+
+      - name: Commit Stage 14
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No Stage 14 changes were required."
+            exit 0
+          fi
+          git commit -m "Add Stage 14 Session history and recommendations"
+          git push origin HEAD:feature/phase1-sessions
