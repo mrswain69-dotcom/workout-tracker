@@ -48,7 +48,21 @@ jobs:
           fi
 
       - name: Validate cleanup whitespace
-        run: git diff --check
+        run: |
+          git diff --check -- . ':(exclude)src/engine/badgeStatsV2.js'
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/engine/badgeStatsV2.js')
+          problems = []
+          for number, line in enumerate(path.read_bytes().splitlines(), start=1):
+              if line.endswith((b' ', b'\t')):
+                  problems.append(number)
+
+          if problems:
+              print(f"Trailing spaces/tabs in badgeStatsV2.js at lines: {problems[:20]}")
+              raise SystemExit(1)
+          PY
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
