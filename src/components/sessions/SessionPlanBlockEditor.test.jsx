@@ -244,9 +244,6 @@ describe("SessionPlanBlockEditor", () => {
     const dbApi = makeDbApi({ data: null, error: new Error("network down") });
     renderEditor({ onChange, dbApi });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent
-      ? null
-      : null;
     expect((await screen.findByRole("alert")).textContent).toContain("network down");
     expect(onChange).not.toHaveBeenCalled();
   });
