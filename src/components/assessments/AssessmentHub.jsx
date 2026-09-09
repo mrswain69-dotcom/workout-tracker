@@ -132,6 +132,9 @@ export default function AssessmentHub({
     return counts;
   }, [library.templateTests]);
 
+  // Start/resume actions own their visible error state and can safely swallow
+  // an error because they are direct click handlers. Runner save/complete/cancel
+  // actions must rethrow so AssessmentRunner never displays a false success.
   const perform = async (work) => {
     setBusy(true);
     setError("");
@@ -141,6 +144,20 @@ export default function AssessmentHub({
     } catch (workError) {
       setError(workError?.message || String(workError));
       return null;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const performRunnerAction = async (work) => {
+    setBusy(true);
+    setError("");
+    setStatus("");
+    try {
+      return await work();
+    } catch (workError) {
+      setError(workError?.message || String(workError));
+      throw workError;
     } finally {
       setBusy(false);
     }
@@ -222,9 +239,13 @@ export default function AssessmentHub({
         runState={runState}
         athleteName={athleteName}
         busy={busy}
-        onSaveProgress={(payload) => perform(() => saveProgress(payload))}
-        onComplete={(payload) => perform(() => complete(payload))}
-        onCancel={() => perform(cancel)}
+        onSaveProgress={(payload) =>
+          performRunnerAction(() => saveProgress(payload))
+        }
+        onComplete={(payload) =>
+          performRunnerAction(() => complete(payload))
+        }
+        onCancel={() => performRunnerAction(cancel)}
         onClose={() => setRunState(null)}
       />
     );
