@@ -89,7 +89,14 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Verify Recharts public API used by the app
-        run: node --input-type=module -e "import * as R from 'recharts'; for (const k of ['LineChart','Line','XAxis','YAxis','Tooltip','ResponsiveContainer','CartesianGrid']) if (!R[k]) throw new Error('Missing Recharts export: '+k)"
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import * as R from 'recharts'
+          for (const k of ['LineChart','Line','XAxis','YAxis','Tooltip','ResponsiveContainer','CartesianGrid']) {
+            if (!R[k]) throw new Error(`Missing Recharts export ${k}`)
+          }
+          NODE
 
       - name: Run full test suite
         run: npm test
