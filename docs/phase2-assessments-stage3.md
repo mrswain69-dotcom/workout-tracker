@@ -44,20 +44,11 @@ Historical `assessment_runs` and `assessment_test_results` deliberately remain o
 ### Whole editable library
 - `loadAssessmentLibrary`
 
-`loadAssessmentLibrary` returns only:
-- Assessment Templates
-- canonical Tests
-- ordered Template/Test membership
-- shared Development Tags
-- Test/Development-Tag links
-
-It does not read Assessment history.
+`loadAssessmentLibrary` returns only Assessment Templates, canonical Tests, ordered Template/Test membership, shared Development Tags and Test/Development-Tag links. It does not read Assessment history.
 
 ## Editor contracts
 
-The controller converts Stage 1 snake_case database rows into camelCase editor contracts.
-
-Canonical Test metric fields are normalized through the Stage 2 `assessmentMetricEngine`, so Stage 3 cannot silently invent a second interpretation of metric settings.
+The controller converts Stage 1 snake_case database rows into camelCase editor contracts. Canonical Test metric fields are normalized through the Stage 2 `assessmentMetricEngine`, so Stage 3 cannot silently invent a second interpretation of metric settings.
 
 ## Canonical Test reuse
 
@@ -95,9 +86,7 @@ Behavior:
 
 ## Shared Development Tags
 
-Stage 3 does not create a second Assessment tag system.
-
-Tests use the same `development_tags` table already used by Session Movements, connected through `test_development_tags`.
+Stage 3 does not create a second Assessment tag system. Tests use the same `development_tags` table already used by Session Movements, connected through `test_development_tags`.
 
 This preserves:
 
