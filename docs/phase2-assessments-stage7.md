@@ -209,7 +209,7 @@ After the Stage 7 transaction:
 Protected profile-plan fingerprints remain exactly:
 
 - Paul: `a715c519932be388cebe88722439de8b`
-- Wilf: `278e036e4257e2eeff7b02b417029403f`
+- Wilf: `278e036e425e2eeff7b02b417029403f`
 - Xander: `b3b95dc0668da96dfcfeccdea21b6cfe`
 
 Existing Session definition/history structure remains intact:
