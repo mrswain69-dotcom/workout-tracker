@@ -26,6 +26,12 @@ function finiteInteger(value, fallback = 0) {
   return Math.round(n);
 }
 
+function finiteComparableInput(value) {
+  if (value === "" || value === null || value === undefined) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -163,6 +169,7 @@ function scalarAttemptInputs(bucket) {
     if (Array.isArray(bucket.attempts)) return bucket.attempts;
     if (bucket.value !== undefined) return [bucket.value];
     if (bucket.retained !== undefined) return [bucket.retained];
+    return [];
   }
   return [bucket];
 }
@@ -176,6 +183,7 @@ function attemptsSuccessesInputs(bucket) {
     if (!Array.isArray(bucket.attempts) && bucket.attempts !== undefined) {
       return [bucket];
     }
+    return [];
   }
   return [bucket];
 }
@@ -376,13 +384,11 @@ function comparableFromResult(result, definition, dimension) {
     result.comparableDimensions &&
     typeof result.comparableDimensions === "object"
   ) {
-    const value = result.comparableDimensions[dimension];
-    return Number.isFinite(Number(value)) ? Number(value) : null;
+    return finiteComparableInput(result.comparableDimensions[dimension]);
   }
 
   const normalised = normaliseAssessmentResult(definition, result);
-  const value = normalised.comparableDimensions[dimension];
-  return Number.isFinite(Number(value)) ? Number(value) : null;
+  return finiteComparableInput(normalised.comparableDimensions[dimension]);
 }
 
 export function isBetterAssessmentValue(
@@ -391,9 +397,9 @@ export function isBetterAssessmentValue(
   previousValue
 ) {
   const definition = normaliseAssessmentMetricDefinition(rawDefinition);
-  const current = Number(currentValue);
-  const previous = Number(previousValue);
-  if (!Number.isFinite(current) || !Number.isFinite(previous)) return null;
+  const current = finiteComparableInput(currentValue);
+  const previous = finiteComparableInput(previousValue);
+  if (current === null || previous === null) return null;
   if (current === previous) return false;
   return definition.scoringDirection === "lower"
     ? current < previous
@@ -406,9 +412,9 @@ export function canCalculatePercentageImprovement(
   previousValue
 ) {
   const definition = normaliseAssessmentMetricDefinition(rawDefinition);
-  const current = Number(currentValue);
-  const previous = Number(previousValue);
-  if (!Number.isFinite(current) || !Number.isFinite(previous)) return false;
+  const current = finiteComparableInput(currentValue);
+  const previous = finiteComparableInput(previousValue);
+  if (current === null || previous === null) return false;
   if (definition.metricConfig.percentageImprovement === "never") return false;
   if (previous <= 0) return false;
   if (
@@ -432,8 +438,8 @@ export function calculatePercentageImprovement(
     return null;
   }
 
-  const current = Number(currentValue);
-  const previous = Number(previousValue);
+  const current = finiteComparableInput(currentValue);
+  const previous = finiteComparableInput(previousValue);
   const raw =
     definition.scoringDirection === "lower"
       ? ((previous - current) / previous) * 100
