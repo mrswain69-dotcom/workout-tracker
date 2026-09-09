@@ -12,6 +12,7 @@ import {
   getAssessmentRun,
   listAssessmentRuns,
   listAssessmentTestResults,
+  loadCompletedAssessmentHistory,
   updateAssessmentRun,
   updateAssessmentTestResult,
 } from "./assessmentRunDb.js";
@@ -32,17 +33,19 @@ function mutationChain(resultData = { id: "row-1" }) {
   return chain;
 }
 
-function listChain(data = []) {
+function listChain(data = [], error = null) {
   const chain = {
     data,
-    error: null,
+    error,
     select: vi.fn(),
     eq: vi.fn(),
+    in: vi.fn(),
     order: vi.fn(),
     limit: vi.fn(),
   };
   chain.select.mockReturnValue(chain);
   chain.eq.mockReturnValue(chain);
+  chain.in.mockReturnValue(chain);
   chain.order.mockReturnValue(chain);
   chain.limit.mockReturnValue(chain);
   return chain;
@@ -143,6 +146,47 @@ describe("Assessment run DB adapters", () => {
     expect(chain.eq).toHaveBeenCalledWith("test_id", "test-1");
     expect(chain.order).toHaveBeenNthCalledWith(1, "assessment_run_id", { ascending: true });
     expect(chain.order).toHaveBeenNthCalledWith(2, "position", { ascending: true });
+    expect(chain.limit).toHaveBeenCalledWith(1000);
+  });
+
+  it("filters Test results by a bounded set of completed run ids", async () => {
+    const chain = listChain([{ id: "result-1" }]);
+    mock.from.mockReturnValue(chain);
+    await listAssessmentTestResults("f1", {
+      assessmentRunIds: ["run-1", "run-2", "run-1", ""],
+    });
+    expect(chain.in).toHaveBeenCalledWith("assessment_run_id", ["run-1", "run-2"]);
+  });
+
+  it("loads completed profile history without reading other statuses", async () => {
+    const runsChain = listChain([
+      { id: "run-2", status: "completed" },
+      { id: "run-1", status: "completed" },
+    ]);
+    const resultsChain = listChain([
+      { id: "result-1", assessment_run_id: "run-1" },
+      { id: "result-2", assessment_run_id: "run-2" },
+    ]);
+    mock.from.mockImplementation((table) =>
+      table === "assessment_runs" ? runsChain : resultsChain
+    );
+
+    const result = await loadCompletedAssessmentHistory("f1", "p1");
+    expect(result.error).toBeNull();
+    expect(result.data.runs).toHaveLength(2);
+    expect(result.data.results).toHaveLength(2);
+    expect(runsChain.eq).toHaveBeenCalledWith("family_id", "f1");
+    expect(runsChain.eq).toHaveBeenCalledWith("profile_id", "p1");
+    expect(runsChain.eq).toHaveBeenCalledWith("status", "completed");
+    expect(resultsChain.in).toHaveBeenCalledWith("assessment_run_id", ["run-2", "run-1"]);
+  });
+
+  it("returns an empty successful history without querying Test results when no completed runs exist", async () => {
+    const runsChain = listChain([]);
+    mock.from.mockReturnValue(runsChain);
+    const result = await loadCompletedAssessmentHistory("f1", "p1");
+    expect(result).toEqual({ data: { runs: [], results: [] }, error: null });
+    expect(mock.from).toHaveBeenCalledTimes(1);
   });
 
   it("creates a historical Test row with frozen snapshots and raw/retained result objects", async () => {
