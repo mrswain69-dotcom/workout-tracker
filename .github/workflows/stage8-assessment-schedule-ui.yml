@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/stage8-assessment-schedule-ui.yml
       - scripts/stage8-assessment-schedule-ui.mjs
+      - scripts/stage8-assessment-schedule-ui-v2.mjs
 
 permissions:
   contents: write
@@ -25,7 +26,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Apply guarded Stage 8 UI integration
-        run: node scripts/stage8-assessment-schedule-ui.mjs
+        run: node scripts/stage8-assessment-schedule-ui-v2.mjs
       - name: Test
         run: npm test
       - name: Build
