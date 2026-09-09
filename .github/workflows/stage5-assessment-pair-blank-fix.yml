@@ -1,0 +1,31 @@
+name: Stage 5 Assessment Pair Blank Fix
+
+on:
+  push:
+    branches:
+      - feature/phase2-assessments
+    paths:
+      - .github/workflows/stage5-assessment-pair-blank-fix.yml
+      - scripts/stage5-fix-assessment-pair-blanks.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/phase2-assessments
+          fetch-depth: 0
+      - name: Apply blank-input guard
+        run: node scripts/stage5-fix-assessment-pair-blanks.mjs
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/engine/assessmentMetricEngine.js
+          git diff --cached --check
+          git commit -m "Treat blank attempts-successes fields as incomplete"
+          git push origin HEAD:feature/phase2-assessments
