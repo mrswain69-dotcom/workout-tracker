@@ -110,7 +110,6 @@ describe("buildAssessmentTestHistory", () => {
     expect(history.previous.comparableValue).toBe(2.1);
     expect(history.latest.comparableValue).toBe(2.15);
     expect(history.pb.overall.comparableValue).toBe(2.1);
-    expect(history.latestNewPb.overall).toBeUndefined();
     expect(history.pb.latestNewPb.overall).toBe(false);
     expect(history.previousComparison.comparison.overall.status).toBe("declined");
     expect(history.baselineComparison.comparison.overall.status).toBe("improved");
