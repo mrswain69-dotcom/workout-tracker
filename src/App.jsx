@@ -4669,7 +4669,6 @@ rows.push({
   // Kept for older bits of UI that expect these names
   baseXp: nonBonusXp,
   progressXp: strengthProgressXp,
-  cardioProgressXp,
   extraXp: cardioXp, // legacy column used as "cardio" previously
   bonus: dayCompleteXp,
 
