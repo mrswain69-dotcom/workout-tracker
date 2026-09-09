@@ -55,47 +55,9 @@ It does not read Assessment history.
 
 ## Editor contracts
 
-The controller converts Stage 1 snake_case database rows into camelCase editor contracts:
+The controller converts Stage 1 snake_case database rows into camelCase editor contracts.
 
-### Assessment Template
-- id
-- familyId
-- name
-- category
-- description
-- version
-- sortOrder
-- archived
-
-### Canonical Test
-- id
-- familyId
-- name
-- description
-- version
-- metricType
-- unit
-- scoringDirection
-- attemptCount
-- resultStrategy
-- sideMode
-- allowNegative
-- pbEligible
-- metricConfig
-- archived
-
-Test metric fields are normalized through the Stage 2 `assessmentMetricEngine`, so Stage 3 cannot silently invent a second interpretation of metric settings.
-
-### Ordered Template Test
-- id
-- assessmentTemplateId
-- testId
-- position
-- sectionLabel
-- displayLabel
-- instructions
-- protocolText
-- configOverride
+Canonical Test metric fields are normalized through the Stage 2 `assessmentMetricEngine`, so Stage 3 cannot silently invent a second interpretation of metric settings.
 
 ## Canonical Test reuse
 
@@ -118,13 +80,6 @@ A Test is a reusable canonical definition. An Assessment Template stores ordered
 
 This avoids collisions with the Stage 1 unique `(assessment_template_id, position)` constraint.
 
-Definition fingerprints intentionally ignore:
-- database row IDs
-- current version
-- library sort order
-
-They include meaningful Assessment content and ordered Test membership.
-
 ## Canonical Test persistence and versioning
 
 `persistCanonicalTest()` manages a canonical Test plus its exact Development Tag links.
@@ -138,15 +93,13 @@ Behavior:
 - removed links are deleted
 - newly selected links are upserted
 
-Test definition fingerprints include metric semantics and exclude database identity/version metadata.
-
 ## Shared Development Tags
 
 Stage 3 does not create a second Assessment tag system.
 
 Tests use the same `development_tags` table already used by Session Movements, connected through `test_development_tags`.
 
-This preserves the Phase 2/Phase 4 architecture:
+This preserves:
 
 `Movement -> Development Tags <- Test`
 
@@ -155,30 +108,10 @@ without a football-specific Movement/Test foreign key.
 ## Automated verification
 
 Stage 3 adds:
-
 - `src/components/assessments/assessmentLibraryController.test.js` — 16 tests
 - `src/assessmentDb.test.js` — 5 tests
 
-Coverage includes:
-- library sorting and normalization
-- snake_case → camelCase mapping
-- ordered Assessment definition assembly
-- active Assessment/Test usage
-- exact Test Development Tag IDs
-- Assessment fingerprints/change detection
-- Test fingerprints/change detection
-- metric-rule validation delegated to Stage 2
-- new Assessment creation at version 1
-- no-op save behavior
-- safe reorder/delete/create/version bump behavior
-- rejection of foreign retained membership rows
-- canonical Test creation
-- exact Development Tag synchronization
-- definition edit version bump
-- tag-only edit without version bump
-- Supabase write-payload mapping to Stage 1 columns
-- Test/Development-Tag composite upsert behavior
-- editable-library loading without Assessment history
+Coverage includes library normalization, snake_case mapping, ordered definition assembly, active usage, exact Development Tag IDs, fingerprints/change detection, metric-rule validation, safe create/reorder/delete/version-bump behavior, canonical Test persistence, exact tag synchronization, DB write-payload mapping and library loading without history.
 
 Final Stage 3 implementation gate:
 - 16/16 test files passed
@@ -189,15 +122,7 @@ Final Stage 3 implementation gate:
 
 ## Safety / non-goals
 
-Stage 3 made no:
-- Supabase schema changes
-- live Assessment seed inserts
-- Assessment run/result history writes
-- profile plan edits
-- historical workout-log edits
-- Session Library mutations
-
-The Stage 0/1 live safety fingerprints therefore remain the controlling production baseline until a later stage intentionally changes live data.
+Stage 3 made no Supabase schema/data changes, no Assessment history writes, no profile-plan edits, no historical workout-log edits and no Session Library mutations.
 
 ## Next
 
