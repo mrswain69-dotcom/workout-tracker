@@ -41,11 +41,12 @@ function resultError(result, fallback) {
 
 function dimensionComparable(entry, dimension) {
   if (!entry) return null;
-  if (entry.metric.sideMode === "separate") {
-    const value = Number(entry.comparableDimensions?.[dimension]);
-    return Number.isFinite(value) ? value : null;
-  }
-  const value = Number(entry.comparableValue);
+  const raw =
+    entry.metric.sideMode === "separate"
+      ? entry.comparableDimensions?.[dimension]
+      : entry.comparableValue;
+  if (raw === "" || raw === null || raw === undefined) return null;
+  const value = Number(raw);
   return Number.isFinite(value) ? value : null;
 }
 
@@ -74,9 +75,15 @@ function comparisonPart(dimension, metric) {
   const amount = Math.abs(Number(dimension.improvementValue || 0));
   const unit = comparisonUnit(metric);
   const amountText = `${amount}${unit ? ` ${unit}` : ""}`;
-  const percentage = Number.isFinite(Number(dimension.percentageImprovement))
+  const percentageValue =
+    dimension.percentageImprovement === null ||
+    dimension.percentageImprovement === undefined ||
+    dimension.percentageImprovement === ""
+      ? null
+      : Number(dimension.percentageImprovement);
+  const percentage = Number.isFinite(percentageValue)
     ? ` (${signedNumber(
-        dimension.percentageImprovement,
+        percentageValue,
         metric.metricConfig.percentageDecimalPlaces
       )}%)`
     : "";
@@ -253,11 +260,11 @@ function TestHistoryCard({ history }) {
       <div className="assessment-history__trends">
         {metric.sideMode === "separate" ? (
           <>
-            <TrendStrip entries={history.entries} dimension="left" label="Left result" />
-            <TrendStrip entries={history.entries} dimension="right" label="Right result" />
+            <TrendStrip entries={history.entries.filter((entry) => entry.metricKey === history.metricKey)} dimension="left" label="Left result" />
+            <TrendStrip entries={history.entries.filter((entry) => entry.metricKey === history.metricKey)} dimension="right" label="Right result" />
           </>
         ) : (
-          <TrendStrip entries={history.entries} label="Result" />
+          <TrendStrip entries={history.entries.filter((entry) => entry.metricKey === history.metricKey)} label="Result" />
         )}
       </div>
 

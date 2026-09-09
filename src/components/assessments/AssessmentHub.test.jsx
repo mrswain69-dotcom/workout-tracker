@@ -122,6 +122,10 @@ function resultRow() {
 function mockDb({ library = definitionLibrary(), runs = [] } = {}) {
   return {
     loadAssessmentLibrary: vi.fn(async () => ({ data: library, error: null })),
+    loadCompletedAssessmentHistory: vi.fn(async () => ({
+      data: { runs: [], results: [] },
+      error: null,
+    })),
     listAssessmentRuns: vi.fn(async () => ({ data: runs, error: null })),
     createAssessmentRun: vi.fn(async (_familyId, payload) => ({
       data: {
@@ -237,6 +241,14 @@ describe("AssessmentHub", () => {
     expect(screen.getByText("Stored Snapshot Benchmark")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Live Definition Name" })).toBeNull();
     expect(db.getAssessmentRun).toHaveBeenCalledWith("f1", "run-1");
+  });
+
+  it("opens profile-scoped derived progress from the Assess hub", async () => {
+    const db = mockDb();
+    await renderHub(db);
+    fireEvent.click(screen.getByRole("button", { name: "Progress" }));
+    expect(await screen.findByRole("heading", { name: /Wilf’s Assessment progress/i })).toBeTruthy();
+    expect(db.loadCompletedAssessmentHistory).toHaveBeenCalledWith("f1", "p1");
   });
 
   it("cancels by status update and never calls a delete path", async () => {

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import * as assessmentDefinitionDb from "../../assessmentDb.js";
 import * as assessmentRunDb from "../../assessmentRunDb.js";
 import AssessmentRunner from "./AssessmentRunner.jsx";
+import AssessmentHistory from "./AssessmentHistory.jsx";
 import {
   assessmentRunDraftFromRows,
   cancelAssessmentRun,
@@ -40,6 +41,7 @@ const styles = `
 .assessment-hub__header,.assessment-hub__card-top,.assessment-hub__run{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .assessment-hub__header h2{margin:0}.assessment-hub__header p{margin:4px 0 0;color:#64748b;font-size:13px}
 .assessment-hub__eyebrow{text-transform:uppercase;font-size:11px;font-weight:850;letter-spacing:.08em;color:#64748b}
+.assessment-hub__modes{display:flex;gap:8px;flex-wrap:wrap}.assessment-hub__modes button[aria-pressed="true"]{font-weight:850;box-shadow:inset 0 0 0 2px rgba(255,122,24,.38)}
 .assessment-hub__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
 .assessment-hub__card,.assessment-hub__resume{border:1px solid rgba(15,23,42,.12);border-radius:16px;padding:14px;background:#fff}
 .assessment-hub__card h3,.assessment-hub__resume h3{margin:0;font-size:16px}.assessment-hub__card p{font-size:13px;color:#475569}.assessment-hub__meta{font-size:12px;color:#64748b;margin-top:4px}
@@ -69,6 +71,7 @@ export default function AssessmentHub({
 }) {
   const [library, setLibrary] = useState(() => emptyAssessmentLibrary());
   const [runs, setRuns] = useState([]);
+  const [mode, setMode] = useState("run");
   const [runState, setRunState] = useState(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -219,6 +222,7 @@ export default function AssessmentHub({
     setRunState(null);
     setStatus("Assessment completed and added to history.");
     await refresh();
+    setMode("progress");
     return completed;
   };
 
@@ -232,6 +236,13 @@ export default function AssessmentHub({
     await refresh();
     return cancelled;
   };
+
+  const modeControls = (
+    <div className="assessment-hub__modes" role="tablist" aria-label="Assessment modes">
+      <button type="button" aria-pressed={mode === "run"} onClick={() => setMode("run")}>Run</button>
+      <button type="button" aria-pressed={mode === "progress"} onClick={() => setMode("progress")}>Progress</button>
+    </div>
+  );
 
   if (runState) {
     return (
@@ -251,9 +262,25 @@ export default function AssessmentHub({
     );
   }
 
+  if (mode === "progress") {
+    return (
+      <section className="assessment-hub">
+        <style>{styles}</style>
+        {modeControls}
+        <AssessmentHistory
+          familyId={familyId}
+          profileId={profileId}
+          athleteName={athleteName}
+          dbApi={dbApi}
+        />
+      </section>
+    );
+  }
+
   return (
     <section className="assessment-hub">
       <style>{styles}</style>
+      {modeControls}
       <div className="assessment-hub__header">
         <div>
           <div className="assessment-hub__eyebrow">Performance benchmark</div>
