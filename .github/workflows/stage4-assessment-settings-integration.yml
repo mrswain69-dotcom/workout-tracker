@@ -1,0 +1,135 @@
+name: Stage 4 Assessment Settings Integration
+
+on:
+  push:
+    branches:
+      - feature/phase2-assessments
+    paths:
+      - .github/workflows/stage4-assessment-settings-integration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/phase2-assessments
+          fetch-depth: 0
+      - name: Patch parent Settings integration
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          library_path = Path('src/components/assessments/AssessmentTemplateLibrary.jsx')
+          library = library_path.read_text()
+
+          signature = '''export default function AssessmentTemplateLibrary({
+            familyId,
+            dbApi = assessmentDb,
+            confirmArchive = defaultConfirm,
+            onLibraryChange,
+          }) {'''
+          signature_next = '''export default function AssessmentTemplateLibrary({
+            familyId,
+            dbApi = assessmentDb,
+            confirmArchive = defaultConfirm,
+            onLibraryChange,
+            authorizeMutation = async () => true,
+          }) {'''
+          assert library.count(signature) == 1, 'AssessmentTemplateLibrary signature anchor changed'
+          library = library.replace(signature, signature_next, 1)
+
+          save_test = '''  const saveTest = async ({ test, developmentTagIds }) => {
+            const editorState = testEditor;'''
+          save_test_next = '''  const saveTest = async ({ test, developmentTagIds }) => {
+            if (!(await authorizeMutation("change Assessment Test definitions"))) return;
+            const editorState = testEditor;'''
+          assert library.count(save_test) == 1, 'saveTest anchor changed'
+          library = library.replace(save_test, save_test_next, 1)
+
+          archive_test = '''  const archiveTest = async (test) => {
+            const usage = activeAssessmentsUsingTest(library, test.id);'''
+          archive_test_next = '''  const archiveTest = async (test) => {
+            const usage = activeAssessmentsUsingTest(library, test.id);'''
+          assert library.count(archive_test) == 1, 'archiveTest anchor changed'
+          # Authorization belongs after the active-use guard and archive confirmation, immediately before mutation.
+          archive_mutation = '''    if (!confirmArchive(`Archive Test “${test.name}”?`)) return;
+            await perform(async () => {'''
+          archive_mutation_next = '''    if (!confirmArchive(`Archive Test “${test.name}”?`)) return;
+            if (!(await authorizeMutation("archive an Assessment Test"))) return;
+            await perform(async () => {'''
+          assert library.count(archive_mutation) == 1, 'archive Test mutation anchor changed'
+          library = library.replace(archive_mutation, archive_mutation_next, 1)
+
+          save_assessment = '''  const saveAssessment = async (definition) => {
+            const editorState = assessmentEditor;'''
+          save_assessment_next = '''  const saveAssessment = async (definition) => {
+            if (!(await authorizeMutation("change Assessment definitions"))) return;
+            const editorState = assessmentEditor;'''
+          assert library.count(save_assessment) == 1, 'saveAssessment anchor changed'
+          library = library.replace(save_assessment, save_assessment_next, 1)
+
+          archive_assessment = '''  const archiveAssessment = async (template) => {
+            if (!confirmArchive(`Archive Assessment “${template.name}”?`)) return;
+            await perform(async () => {'''
+          archive_assessment_next = '''  const archiveAssessment = async (template) => {
+            if (!confirmArchive(`Archive Assessment “${template.name}”?`)) return;
+            if (!(await authorizeMutation("archive an Assessment"))) return;
+            await perform(async () => {'''
+          assert library.count(archive_assessment) == 1, 'archiveAssessment anchor changed'
+          library = library.replace(archive_assessment, archive_assessment_next, 1)
+          library_path.write_text(library)
+
+          app_path = Path('src/App.jsx')
+          app = app_path.read_text()
+
+          import_anchor = 'import SessionLogger from "./components/sessions/SessionLogger.jsx";'
+          import_next = import_anchor + '\nimport AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx";'
+          assert app.count(import_anchor) == 1, 'App import anchor changed'
+          assert 'AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx"' not in app, 'Assessment import already present'
+          app = app.replace(import_anchor, import_next, 1)
+
+          settings_anchor = '''              <div className="panel mt16">
+                <div className="h3">Sign out</div>
+                <div className="muted mt8">Use this on shared devices.</div>
+                <div className="row mt12">
+                  <SecondaryButton onClick={doSignOut}>Sign out</SecondaryButton>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}'''
+          settings_next = '''              <div className="panel mt16">
+                <div className="h3">Sign out</div>
+                <div className="muted mt8">Use this on shared devices.</div>
+                <div className="row mt12">
+                  <SecondaryButton onClick={doSignOut}>Sign out</SecondaryButton>
+                </div>
+              </div>
+            </Card>
+
+            <div className="panel" style={{ gridColumn: "1 / -1" }}>
+              <AssessmentTemplateLibrary
+                familyId={family?.id || ""}
+                authorizeMutation={(reason) => ensureUnlocked(reason)}
+              />
+            </div>
+          </div>
+        )}'''
+          assert app.count(settings_anchor) == 1, 'Settings integration anchor changed'
+          app = app.replace(settings_anchor, settings_next, 1)
+          app_path.write_text(app)
+          PY
+      - name: Commit Stage 4 Settings integration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.jsx src/components/assessments/AssessmentTemplateLibrary.jsx
+          git diff --cached --check
+          git commit -m "Expose Assessment authoring in parent Settings"
+          git push origin HEAD:feature/phase2-assessments
