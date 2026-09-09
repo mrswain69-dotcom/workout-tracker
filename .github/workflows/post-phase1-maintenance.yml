@@ -24,7 +24,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Apply narrowly-scoped maintenance fixes
         shell: bash
@@ -35,16 +34,9 @@ jobs:
           app = Path('src/App.jsx')
           text = app.read_text(encoding='utf-8')
           old = '''  baseXp: nonBonusXp,
-            progressXp: strengthProgressXp,
-            cardioProgressXp,
-            extraXp: cardioXp, // legacy column used as "cardio" previously'''
-          # App.jsx has historical indentation in this area, so fall back to the
-          # exact semantic sequence if the visually-indented form differs.
-          if old not in text:
-              old = '''  baseXp: nonBonusXp,
-            progressXp: strengthProgressXp,
-            cardioProgressXp,
-            extraXp: cardioXp, // legacy column used as "cardio" previously'''.replace('            ', '  ')
+          progressXp: strengthProgressXp,
+          cardioProgressXp,
+          extraXp: cardioXp, // legacy column used as "cardio" previously'''.replace('          ', '  ')
           if text.count(old) != 1:
               raise SystemExit(f'Expected one duplicate cardioProgressXp sequence, found {text.count(old)}')
           new = old.replace('  cardioProgressXp,\n', '', 1)
@@ -71,7 +63,7 @@ jobs:
           PY
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run tests
         run: npm test
