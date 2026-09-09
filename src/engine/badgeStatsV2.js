@@ -1,4 +1,9 @@
 // src/engine/badgeStatsV2.js
+import {
+  sessionBlockHasActivity,
+  sessionBlockIsComplete,
+} from "./sessionCore.js";
+
 //
 // Builds stats used by badges.js.
 // Inputs:
@@ -72,6 +77,10 @@ function isTrainingBlock(block) {
 
   if (typeId === "duration") {
     return safeNum(block?.duration?.minutes) > 0;
+  }
+
+  if (typeId === "session") {
+    return sessionBlockHasActivity(block);
   }
 
   return false;
@@ -276,7 +285,9 @@ function getSessionHourWindow(log, row) {
       hasData = safeNum(c.distanceKm) > 0 || safeNum(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = safeNum(b?.duration?.minutes) > 0;
-       } else if (typeId === "recovery") {
+    } else if (typeId === "session") {
+      hasData = sessionBlockHasActivity(b);
+    } else if (typeId === "recovery") {
       // Recovery and Streak Saver should not feed Early Bird / Night Grinder.
       hasData = false;
     }
@@ -368,6 +379,8 @@ function isDayGreen(log) {
       hasData = safeNum(c.distanceKm) > 0 || safeNum(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = safeNum(block?.duration?.minutes) > 0;
+    } else if (typeId === "session") {
+      hasData = sessionBlockIsComplete(block);
     } else if (typeId === "recovery") {
       hasData = !!block?.recoveryDone;
     }
@@ -592,7 +605,8 @@ function getSportKeysForLog(log) {
       typeId !== "row" &&
       typeId !== "cycle" &&
       typeId !== "bike" &&
-      typeId !== "duration"
+      typeId !== "duration" &&
+      typeId !== "session"
     ) {
       continue;
     }
@@ -613,6 +627,8 @@ function getSportKeysForLog(log) {
       hasData = safeNum(c.distanceKm) > 0 || safeNum(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = safeNum(b?.duration?.minutes) > 0;
+    } else if (typeId === "session") {
+      hasData = sessionBlockHasActivity(b);
     }
 
     if (!hasData) continue;
@@ -637,6 +653,9 @@ function getSportKeysForLog(log) {
     if (!found) {
       const candidates = [
         b?.activityName,
+        b?.session?.programmeName,
+        b?.session?.name,
+        b?.session?.description,
         b?.label,
         b?.note,
         b?.cardioTypeOtherLabel,
@@ -1047,7 +1066,7 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
     recoveryDayMap,
     today
   );
-  
+
   // -----------------------------
   // Pace improvement (best improvement across sports/pace distances)
   // improvement = (prev - cur) / prev * 100

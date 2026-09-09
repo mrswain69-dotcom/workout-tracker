@@ -33,14 +33,34 @@ import {
   createPlanTemplate,
   updatePlanTemplate,
   deletePlanTemplate,
+  loadSessionLibrary,
   setFamilyPinHash,
   clearFamilyPin,
 } from "./db";
 
 import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS } from "./config/badges";
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
+import {
+  buildSessionLogBlockSnapshot,
+  hydrateSessionSnapshotsInLog,
+  reconcileSessionLogBlockSnapshot,
+  sessionHasActivity,
+} from "./engine/sessionEngine.js";
+import {
+  SESSION_COMPLETION_XP,
+  getSessionBlockLoadScore,
+  getSessionBlockTrainingMinutes,
+  getSessionBlockXp,
+  sessionBlockHasActivity,
+  sessionBlockIsComplete,
+} from "./engine/sessionCore.js";
 
 import { AVATAR_PACKS } from "./config/avatars";
+import SessionPlanBlockEditor, {
+  createSessionPlanBlock,
+  normaliseSessionPlanBlock,
+} from "./components/sessions/SessionPlanBlockEditor.jsx";
+import SessionLogger from "./components/sessions/SessionLogger.jsx";
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -1424,6 +1444,8 @@ function isDayGreen(log) {
       hasData = Number(c.distanceKm) > 0 || Number(c.durationMin) > 0;
     } else if (typeId === "duration") {
       hasData = Number(block?.duration?.minutes) > 0;
+    } else if (typeId === "session") {
+      hasData = sessionBlockIsComplete(block);
     } else if (typeId === "recovery") {
       hasData = !!block?.recoveryDone;
     }
@@ -1461,9 +1483,11 @@ function blockHasSameDayLoggedActivity(block, targetYmd) {
     hasData = Number(c.distanceKm) > 0 || Number(c.durationMin) > 0;
   } else if (typeId === "duration") {
     hasData = Number(block?.duration?.minutes) > 0;
-  } else if (typeId === "recovery") {
-    hasData = !!block?.recoveryDone;
-  }
+  } else if (typeId === "session") {
+      hasData = sessionBlockIsComplete(block);
+    } else if (typeId === "recovery") {
+      hasData = !!block?.recoveryDone;
+    }
 
   if (!hasData) return false;
 
@@ -1521,9 +1545,10 @@ function computeTotalMinutesForDay(log) {
 
   const blocks = Array.isArray(log.blocks) ? log.blocks : [];
 
-  // 2) New model: sum minutes from per-block cardio + duration
+  // 2) New model: sum minutes from per-block cardio + duration + structured Sessions
   let blockCardioMin = 0;
   let blockDurationMin = 0;
+  let blockSessionMin = 0;
 
   if (blocks.length) {
     for (const b of blocks) {
@@ -1537,12 +1562,16 @@ function computeTotalMinutesForDay(log) {
         // duration blocks use duration.minutes
         blockDurationMin += safeNumber(b.duration.minutes);
       }
+
+      if (b.typeId === "session") {
+        blockSessionMin += getSessionBlockTrainingMinutes(b);
+      }
     }
   }
 
-  if (blockCardioMin > 0 || blockDurationMin > 0) {
-    // e.g. 5 km / 25 min run + 20 min yoga = 45
-    return blockCardioMin + blockDurationMin;
+  if (blockCardioMin > 0 || blockDurationMin > 0 || blockSessionMin > 0) {
+    // e.g. 25 min run + 20 min yoga + 15 min skill Session = 60
+    return blockCardioMin + blockDurationMin + blockSessionMin;
   }
 
   // 3) Legacy fallback ONLY if we have no blocks snapshot
@@ -1600,6 +1629,10 @@ function isTrainingBlockForRecoveryLogic(block) {
 
   if (typeId === "duration") {
     return safeNumber(block?.duration?.minutes) > 0;
+  }
+
+  if (typeId === "session") {
+    return sessionBlockHasActivity(block);
   }
 
   return false;
@@ -1779,6 +1812,10 @@ function getBlockLoadScoreForApp(block) {
     return Math.round(mins * 0.7);
   }
 
+  if (typeId === "session") {
+    return getSessionBlockLoadScore(block);
+  }
+
   if (typeId === "tasks" || typeId === "recovery") {
     return 0;
   }
@@ -1816,7 +1853,9 @@ function getDayLoadSummaryForApp(log) {
     const typeId = String(b.typeId || "").toLowerCase();
     const load = getBlockLoadScoreForApp(b);
 
-    if (load > 0) hadTraining = true;
+    if (load > 0 || (typeId === "session" && sessionBlockHasActivity(b))) {
+      hadTraining = true;
+    }
     if (typeId === "recovery" && b.recoveryDone) hadRecovery = true;
 
     totalLoad += load;
@@ -1842,6 +1881,10 @@ function getDayLoadSummaryForApp(log) {
     } else if (typeId === "duration") {
       cardioEnergyLoad += load * 0.6;
       nervousLoad += load * 0.25;
+    } else if (typeId === "session") {
+      // Skill Sessions are moderate physical work with a meaningful coordination load.
+      nervousLoad += load * 0.65;
+      cardioEnergyLoad += load * 0.55;
     }
   }
 
@@ -1989,6 +2032,10 @@ function getFirstBlockTimestampMs(log) {
 
     if (typeId === "duration") {
       return safeNumber(b?.duration?.minutes) > 0;
+    }
+
+    if (typeId === "session") {
+      return sessionBlockHasActivity(b);
     }
 
     if (typeId === "recovery") {
@@ -3311,6 +3358,22 @@ const allTasksBlocksForDay = [
 ];
 
 const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
+
+// Structured Session blocks. Once a daily snapshot exists it is authoritative;
+// before the first Start tap we fall back to the lightweight weekly Plan reference.
+const sessionBlocksFromLog = Array.isArray(logForDay?.blocks)
+  ? logForDay.blocks.filter((b) => b && b.typeId === "session")
+  : [];
+
+const sessionPlannedBlocks = plannedBlocksForSelectedDay.filter(
+  (b) => b && b.typeId === "session"
+);
+
+const allSessionBlocksForDay = sessionBlocksFromLog.length
+  ? sessionBlocksFromLog
+  : sessionPlannedBlocks;
+
+const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
   
   function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
@@ -3710,6 +3773,13 @@ const badgeStats = useMemo(() => {
           };
         }
 
+        if (typeId === "session") {
+          return normaliseSessionPlanBlock(
+            b,
+            b?.id || `${w}_block_${idx}`
+          );
+        }
+
         // Fallback: unknown type → treat as duration block
         return {
           id: b?.id || `${w}_block_${idx}`,
@@ -4066,6 +4136,7 @@ const XP_RULES = {
   cardioPerMin: 1 / 2,       // +1 XP per 2 minutes (rounded up)
   cardioPerKm: 1 / 0.5,      // +1 XP per 0.5km (rounded up)
   durationPerMin: 2 / 10,    // +2 XP per 10 minutes
+  sessionComplete: SESSION_COMPLETION_XP, // fixed total XP for a completed structured Session
   taskDefault: 5,            // fallback if a task has no xpValue
   blockComplete: 5,          // +5 XP per completed workout block (non-task)
 
@@ -4170,6 +4241,10 @@ function blockHasData(block) {
 
   if (typeId === "recovery") {
     return !!block.recoveryDone;
+  }
+
+  if (typeId === "session") {
+    return sessionBlockHasActivity(block);
   }
 
   if (typeId === "tasks") {
@@ -4289,6 +4364,11 @@ function baseXpForLog(log, plan) {
         if (blockXp > 0) total += XP_RULES.blockComplete;
         break;
       }
+      case "session": {
+        // Session XP is completion-only and already represents the whole block.
+        total += getSessionBlockXp(block);
+        break;
+      }
       case "recovery": {
         const blockXp = xpForRecoveryBlock(block);
         total += blockXp;
@@ -4400,6 +4480,7 @@ const buildXpDebugRows = (records, plan) => {
     let strengthXp = 0;
     let cardioXp = 0;
     let durationXp = 0;
+    let sessionXp = 0;
     let recoveryXp = 0;
 let tasksXp = 0;
 let dayCompleteXp = 0;
@@ -4487,6 +4568,11 @@ let progressCount = 0;
           break;
         }
 
+        case "session": {
+          sessionXp += getSessionBlockXp(block);
+          break;
+        }
+
         case "recovery": {
           const blockXp = xpForRecoveryBlock(block);
           recoveryXp += blockXp;
@@ -4551,7 +4637,7 @@ let progressCount = 0;
     const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
 const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;
 
-const nonBonusXp = strengthXp + cardioXp + durationXp + recoveryXp + tasksXp + dayCompleteXp;
+const nonBonusXp = strengthXp + cardioXp + durationXp + sessionXp + recoveryXp + tasksXp + dayCompleteXp;
 const progXp = strengthProgressXp + cardioProgressXp;
 
 const totalXp = nonBonusXp + progXp + streakXp + dailyBonusXp + badgeClaimXp;
@@ -4568,6 +4654,7 @@ rows.push({
   strengthXp,
   cardioXp,
   durationXp,
+  sessionXp,
   recoveryXp,
   tasksXp,
   dayCompleteXp,
@@ -4622,6 +4709,7 @@ rows.push({
       strengthXp: 0,
       cardioXp: 0,
       durationXp: 0,
+      sessionXp: 0,
       tasksXp: 0,
       dayCompleteXp: 0,
       dailyBonusXp: 0,
@@ -5174,6 +5262,8 @@ if (!didClaim) {
       newBlock = createRecoveryBlock();
     } else if (typeId === "tasks") {
       newBlock = createTasksBlock();
+    } else if (typeId === "session") {
+      newBlock = createSessionPlanBlock(uid());
     } else {
       return;
     }
@@ -5474,6 +5564,10 @@ function cloneBlockForPlanPreserveIds(block) {
     return !!block?.recoveryDone;
   }
 
+  if (typeId === "session") {
+    return sessionHasActivity(block);
+  }
+
   return false;
 }
 
@@ -5556,8 +5650,44 @@ function stampLogTiming(prevLog, nextLog) {
   const profileId = activeProfileId;
   const dateKey = selectedDate;
 
-  // Normalise what we store
-  const logToStore = nextLog ? stampLogTiming(logForDay, { ...nextLog }) : null;
+  // Resolve any newly planned Session blocks into immutable definition snapshots
+  // before the log is persisted. Existing block.session snapshots are never refreshed.
+  let preparedLog = nextLog ? { ...nextLog } : null;
+
+  const hasUnresolvedSessionSnapshot =
+    !!preparedLog &&
+    Array.isArray(preparedLog.blocks) &&
+    preparedLog.blocks.some(
+      (b) => b && b.typeId === "session" && !b.session
+    );
+
+  if (hasUnresolvedSessionSnapshot && familyId) {
+    try {
+      const { data: sessionLibrary, error: sessionLibraryError } =
+        await loadSessionLibrary(familyId, { includeArchived: true });
+
+      if (sessionLibraryError) {
+        console.warn(
+          "Session snapshot library load failed; keeping the saved template anchor for retry",
+          sessionLibraryError
+        );
+      } else {
+        preparedLog = hydrateSessionSnapshotsInLog(
+          preparedLog,
+          sessionLibrary || {}
+        );
+      }
+    } catch (sessionSnapshotError) {
+      console.warn(
+        "Session snapshot hydration failed; keeping the saved template anchor for retry",
+        sessionSnapshotError
+      );
+    }
+  }
+
+  const logToStore = preparedLog
+    ? stampLogTiming(logForDay, preparedLog)
+    : null;
 
   // 1) Update in-memory state for the currently viewed day
   setLogForDay(logToStore);
@@ -5711,7 +5841,20 @@ function blankLogForDay() {
         // Plan V2: per-block snapshot for this day.
     // We now keep ID / type / label / note plus empty cardio & duration slots
     // so later we can bind UI + XP onto these.
-            blocks: plannedBlocks.map((b) => ({
+            blocks: plannedBlocks.map((b) =>
+      b?.typeId === "session"
+        ? {
+            ...buildSessionLogBlockSnapshot(b),
+            cardio: {
+              distanceKm: "",
+              durationMin: "",
+              avgSpeedKmh: "",
+            },
+            duration: {
+              minutes: "",
+            },
+          }
+        : ({
       id: b.id,
       typeId: b.typeId,
       label: b.label || "",
@@ -5766,6 +5909,27 @@ function ensureBlocksSnapshot(baseLog) {
     if (!pb || !pb.id) continue;
 
     const existing = existingById.get(pb.id);
+
+    if (pb.typeId === "session") {
+      const sessionBlock = reconcileSessionLogBlockSnapshot(pb, existing);
+      const sessionCardio =
+        existing && existing.cardio && typeof existing.cardio === "object"
+          ? existing.cardio
+          : { distanceKm: "", durationMin: "", avgSpeedKmh: "" };
+      const sessionDuration =
+        existing && existing.duration && typeof existing.duration === "object"
+          ? existing.duration
+          : { minutes: "" };
+
+      mergedBlocks.push({
+        ...sessionBlock,
+        cardio: sessionCardio,
+        duration: sessionDuration,
+      });
+
+      existingById.delete(pb.id);
+      continue;
+    }
 
     const baseCardio =
       existing && existing.cardio && typeof existing.cardio === "object"
@@ -6204,6 +6368,107 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     await saveLog(next);
     setLogForDay(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
+  }
+
+
+  async function prepareSessionBlockForLogging(blockId) {
+    if (!blockId || !family?.id) return;
+
+    const base = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
+    const existingBlock = getBlockLog(base, blockId) || {};
+
+    // A resolved historical/current Session never needs to be rebuilt. Start only
+    // establishes a sensible timer anchor if it does not already have one.
+    if (existingBlock.session && typeof existingBlock.session === "object") {
+      if (!existingBlock.startedAt) {
+        const next = updateBlockLog(base, blockId, {
+          startedAt: new Date().toISOString(),
+        });
+        await saveLog(next);
+      }
+      return;
+    }
+
+    try {
+      const { data: sessionLibrary, error } = await loadSessionLibrary(
+        family.id,
+        { includeArchived: true }
+      );
+
+      if (error) {
+        console.error("Unable to prepare Session logger", error);
+        window.alert(
+          "This Session could not be loaded right now. Please check your connection and try again."
+        );
+        return;
+      }
+
+      const hydrated = hydrateSessionSnapshotsInLog(base, sessionLibrary || {});
+      const hydratedBlock = getBlockLog(hydrated, blockId);
+
+      if (!hydratedBlock?.session) {
+        window.alert(
+          "The Session template could not be found. It may have been removed before this day was started."
+        );
+        return;
+      }
+
+      const next = updateBlockLog(hydrated, blockId, {
+        startedAt: hydratedBlock.startedAt || new Date().toISOString(),
+      });
+
+      await saveLog(next);
+    } catch (error) {
+      console.error("Unable to prepare Session logger", error);
+      window.alert(
+        "This Session could not be loaded right now. Please check your connection and try again."
+      );
+    }
+  }
+
+  async function updateSessionForBlock(blockId, nextSession, meta = {}) {
+    if (!blockId || !nextSession || typeof nextSession !== "object") return;
+
+    const base = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
+    const existingBlock = getBlockLog(base, blockId) || {};
+    const previousSession =
+      existingBlock.session && typeof existingBlock.session === "object"
+        ? existingBlock.session
+        : null;
+
+    let sessionToSave = { ...nextSession };
+
+    // Capture a real elapsed duration when a currently-running Session is first
+    // completed. If the timer anchor is stale (for example a historical edit),
+    // leave actualDurationSec alone and the engine can fall back to planned time.
+    if (sessionToSave.completed && !previousSession?.completed) {
+      const hasActualDuration = Number(sessionToSave.actualDurationSec) > 0;
+      const startedMs = existingBlock.startedAt
+        ? new Date(existingBlock.startedAt).getTime()
+        : NaN;
+      const elapsedSec = Number.isFinite(startedMs)
+        ? Math.round((Date.now() - startedMs) / 1000)
+        : 0;
+
+      if (!hasActualDuration && elapsedSec > 0 && elapsedSec <= 12 * 60 * 60) {
+        sessionToSave = {
+          ...sessionToSave,
+          actualDurationSec: Math.max(1, elapsedSec),
+        };
+      }
+    }
+
+    const next = updateBlockLog(base, blockId, { session: sessionToSave });
+    await saveLog(next);
+
+    if (meta?.source === "session-complete") {
+      const ctx = await ensureAudio();
+      if (ctx) playBling(ctx, 2, victoryTheme);
+    }
   }
 
   async function toggleRecoveryForBlock(blockId, recoveryDone) {
@@ -7183,6 +7448,15 @@ async function removeExtraMovement(blockId) {
           w.durationBlocks += 1;
           dayDurationMin += mins;
         }
+      } else if (typeId === "session") {
+        if (sessionBlockHasActivity(b)) {
+          didAnything = true;
+          const mins = getSessionBlockTrainingMinutes(b);
+          if (mins > 0) {
+            w.durationMin += mins;
+            dayDurationMin += mins;
+          }
+        }
       } else if (typeId === "tasks") {
         const done = b.tasksDone || {};
         const anyTasks = Object.values(done).some(Boolean);
@@ -8011,6 +8285,92 @@ const targetInfo = buildTargetInfoForMovement({
                   </div>
                 )}
               
+{/* Structured Session blocks log */}
+{hasAnySessionBlocks && (
+  <div className="panel mt16 session-log-panel">
+    <div className="h2">Session log</div>
+
+    {allSessionBlocksForDay.map((block) => {
+      const blockLog = getBlockLog(logForDay, block.id) || block || {};
+      const isCancelled = !!blockLog.cancelled;
+      const frozenSession =
+        blockLog.session && typeof blockLog.session === "object"
+          ? blockLog.session
+          : null;
+      const label =
+        blockLog.label ||
+        block.label ||
+        blockLog.sessionTemplateNameSnapshot ||
+        block.sessionTemplateNameSnapshot ||
+        "Session";
+      const note =
+        typeof blockLog.note === "string"
+          ? blockLog.note
+          : typeof block.note === "string"
+          ? block.note
+          : "";
+
+      return (
+        <div key={block.id} className="mt12 session-log-block">
+          <div className="row between session-log-block__top">
+            <div className="h3">{label}</div>
+            <label
+              className="mini"
+              style={{ opacity: isCancelled ? 1 : 0.55 }}
+              title="Mark this Session as cancelled when it was impossible to do. It will be handled by the normal cancellation rules."
+            >
+              <input
+                type="checkbox"
+                checked={isCancelled}
+                onChange={(e) =>
+                  toggleBlockCancelled(block.id, e.target.checked)
+                }
+              />
+              <span>Cancelled</span>
+            </label>
+          </div>
+
+          {note ? <div className="muted mt4">{note}</div> : null}
+
+          {isCancelled ? (
+            <div className="session-log-block__cancelled mt8">
+              Session cancelled — logging controls are paused.
+            </div>
+          ) : null}
+
+          {!frozenSession ? (
+            <div className="session-log-preflight mt8">
+              <div>
+                <div className="session-log-preflight__title">Ready to train?</div>
+                <div className="muted mini mt4">
+                  Start Session freezes today's exact drill definition into the log before you enter results.
+                </div>
+              </div>
+              <PrimaryButton
+                onClick={() => prepareSessionBlockForLogging(block.id)}
+                disabled={isCancelled || isSavingLog}
+              >
+                Start Session
+              </PrimaryButton>
+            </div>
+          ) : (
+            <div className="mt8">
+              <SessionLogger
+                session={frozenSession}
+                blockLabel={label}
+                disabled={isCancelled}
+                onChange={(nextSession, meta) =>
+                  updateSessionForBlock(block.id, nextSession, meta)
+                }
+              />
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+)}
+
 {/* Cardio blocks log */}
 {hasAnyCardioBlocks && (
   <div className="panel mt16">
@@ -9441,7 +9801,7 @@ the same time tomorrow.
         {blocksForSelectedPlanDay.length === 0 && (
           <div className="muted">
             No blocks yet for {planWeekday}. Add a strength, cardio, duration,
-recovery, or tasks block below.
+            recovery, session, or tasks block below.
           </div>
         )}
 
@@ -9460,6 +9820,7 @@ recovery, or tasks block below.
                     {typeId === "cardio" && "Cardio"}
                     {typeId === "duration" && "Duration"}
                     {typeId === "recovery" && "Recovery"}
+                    {typeId === "session" && "Session"}
                     {typeId === "tasks" && "Tasks"}
                   </div>
                   <SecondaryButton
@@ -9470,7 +9831,13 @@ recovery, or tasks block below.
                   </SecondaryButton>
                 </div>
                 <div className="mt8">
-                  <b>{block.label || "(no name yet)"}</b>
+                  <b>
+                    {block.label ||
+                      (typeId === "session"
+                        ? block.sessionTemplateNameSnapshot
+                        : "") ||
+                      "(no name yet)"}
+                  </b>
                 </div>
                 {block.note && (
                   <div className="muted mt4">
@@ -9495,6 +9862,7 @@ recovery, or tasks block below.
                     {typeId === "cardio" && "Cardio"}
                     {typeId === "duration" && "Duration"}
                     {typeId === "recovery" && "Recovery"}
+                    {typeId === "session" && "Session"}
                     {typeId === "tasks" && "Tasks"}
                   </span>
                   {typeId === "strength" || typeId === "hiit" || typeId === "box" ? (
@@ -9624,6 +9992,8 @@ recovery, or tasks block below.
                       ? "e.g. Yoga flow"
                       : typeId === "tasks"
                       ? "e.g. Recovery tasks"
+                      : typeId === "session"
+                      ? "e.g. Football Skills — Session A"
                       : "e.g. Upper body"
                   }
                 />
@@ -9977,6 +10347,16 @@ recovery, or tasks block below.
                 </>
               )}
               
+              {typeId === "session" && (
+                <SessionPlanBlockEditor
+                  familyId={family?.id}
+                  block={block}
+                  onChange={(patch) =>
+                    updateBlockInDay(block.id, () => patch)
+                  }
+                />
+              )}
+
               {typeId === "tasks" && (
                 <>
                   <div className="mt12">
@@ -10084,6 +10464,12 @@ recovery, or tasks block below.
           </PrimaryButton>
           <PrimaryButton
             className="btnSmall"
+            onClick={() => addBlockToDay("session")}
+          >
+            + Session block
+          </PrimaryButton>
+          <PrimaryButton
+            className="btnSmall"
             onClick={() => addBlockToDay("tasks")}
           >
             + Tasks block
@@ -10119,10 +10505,16 @@ recovery, or tasks block below.
                         {b.typeId === "box" && "Box"}
                         {b.typeId === "cardio" && "Cardio"}
                         {b.typeId === "duration" && "Duration"}
+                        {b.typeId === "recovery" && "Recovery"}
+                        {b.typeId === "session" && "Session"}
                         {b.typeId === "tasks" && "Tasks"}
                       </span>
                       <span className="ml4">
-                        {b.label || "(no name)"}
+                        {b.label ||
+                          (b.typeId === "session"
+                            ? b.sessionTemplateNameSnapshot
+                            : "") ||
+                          "(no name)"}
                       </span>
                     </li>
                   ))}
@@ -11131,6 +11523,7 @@ if (!didClaim) {
                   XP is based on minutes and km (auto) - +1 XP per 2 minutes & +1 XP per 0.5km, plus 5 XP per logged cardio block. If you only know time
                   and not distance, use a Duration block instead.</div>
                 <div><b>Duration:</b> XP from minutes (2 XP per 10 minutes, plus 5 XP per logged duration block)</div>
+                <div><b>Sessions:</b> +10 XP when a structured Session is completed. Drill counts/results do not add XP.</div>
                 <div><b>Tasks:</b> XP per task completed (as shown on the task log)</div>
                 <div><b>Progression bonuses:</b> beat your last time/effort (+20 XP for Cardio blocks and +10 XP for Strength movements)</div>
                 <div><b>Streak bonuses:</b> keep days green 🔥 (2→5XP, 3→10XP, 5→20XP, 10→50XP,
@@ -11169,6 +11562,7 @@ if (!didClaim) {
       <th style={{ textAlign: "right" }}>Strength</th>
       <th style={{ textAlign: "right" }}>Cardio</th>
       <th style={{ textAlign: "right" }}>Duration</th>
+      <th style={{ textAlign: "right" }}>Session</th>
       <th style={{ textAlign: "right" }}>Tasks</th>
       <th style={{ textAlign: "right" }}>Day</th>
       <th style={{ textAlign: "right" }}>Daily</th>
@@ -11203,6 +11597,7 @@ if (!didClaim) {
 </td>
 
 <td style={{ textAlign: "right" }}>{r.durationXp || 0}</td>
+<td style={{ textAlign: "right" }}>{r.sessionXp || 0}</td>
 <td style={{ textAlign: "right" }}>{r.tasksXp || 0}</td>
 
 <td
@@ -11230,7 +11625,7 @@ if (!didClaim) {
   and earned 60% of normal cardio XP.
 </div>
 <div className="mini muted mt4">
-  Tip: “Non-bonus” = Strength + Cardio + Duration + Tasks + Day. Bonuses are Daily, Prog, Streak and Badges.
+  Tip: “Non-bonus” = Strength + Cardio + Duration + Session + Tasks + Day. Bonuses are Daily, Prog, Streak and Badges.
 </div>
           </div>
 
