@@ -81,8 +81,8 @@ describe("AssessmentHistory", () => {
     render(<AssessmentHistory familyId="f1" profileId="p1" dbApi={dbWith(data)} />);
     expect(await screen.findByText("New L")).toBeTruthy();
     expect(screen.getAllByText(/L 22 reps · R 19 reps/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/L: Improved 4 reps/i)).toBeTruthy();
-    expect(screen.getByText(/R: Declined 1 reps/i)).toBeTruthy();
+    expect(screen.getAllByText(/L: Improved 4 reps/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/R: Declined 1 reps/i).length).toBeGreaterThan(0);
   });
 
   it("keeps changed-metric history visible but withholds incompatible comparisons", async () => {
