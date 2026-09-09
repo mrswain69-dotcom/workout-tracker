@@ -139,6 +139,16 @@ function scalarFrom(value, definition) {
 
 function attemptsSuccessesFrom(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (
+    value.attempts === "" ||
+    value.attempts === null ||
+    value.attempts === undefined ||
+    value.successes === "" ||
+    value.successes === null ||
+    value.successes === undefined
+  ) {
+    return null;
+  }
   const attempts = Number(value.attempts);
   const successes = Number(value.successes);
   if (!Number.isFinite(attempts) || !Number.isFinite(successes)) return null;
