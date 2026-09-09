@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import * as assessmentDefinitionDb from "../../assessmentDb.js";
 import * as assessmentRunDb from "../../assessmentRunDb.js";
+import * as assessmentScheduleDb from "../../assessmentScheduleDb.js";
+import { buildAssessmentScheduleStatuses } from "../../engine/assessmentScheduleEngine.js";
 import AssessmentRunner from "./AssessmentRunner.jsx";
 import AssessmentHistory from "./AssessmentHistory.jsx";
 import {
@@ -17,7 +19,11 @@ import {
   normaliseAssessmentLibrary,
 } from "./assessmentLibraryController.js";
 
-const defaultDb = { ...assessmentDefinitionDb, ...assessmentRunDb };
+const defaultDb = {
+  ...assessmentDefinitionDb,
+  ...assessmentRunDb,
+  ...assessmentScheduleDb,
+};
 
 function cleanText(value, fallback = "") {
   if (value === null || value === undefined) return fallback;
@@ -36,6 +42,42 @@ function defaultConfirm(message) {
   return window.confirm(message);
 }
 
+function formatScheduleDate(ymd) {
+  const text = cleanText(ymd);
+  if (!text) return "";
+  const date = new Date(`${text}T00:00:00`);
+  if (!Number.isFinite(date.getTime())) return text;
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+
+function scheduleStateLabel(state) {
+  if (state === "due") return "Due this week";
+  if (state === "overdue") return "Overdue";
+  if (state === "completed") return "Completed this cycle";
+  if (state === "in_progress") return "In progress";
+  if (state === "upcoming") return "Upcoming";
+  return "Schedule";
+}
+
+function scheduleTimingText(status) {
+  const start = formatScheduleDate(status.cycleStartYmd);
+  const end = formatScheduleDate(status.cycleEndYmd);
+  if (status.state === "completed") {
+    const completed = formatScheduleDate(status.completedRun?.date_ymd || status.completedRun?.dateYmd);
+    return `Completed ${completed}. Next benchmark week starts ${formatScheduleDate(status.nextCycleStartYmd)}.`;
+  }
+  if (status.state === "in_progress") {
+    return "Assessment in progress — saved results can be resumed without changing the frozen test definition.";
+  }
+  if (status.state === "overdue") {
+    return `Recommended window was ${start}–${end}; complete it before the next cycle when practical.`;
+  }
+  if (status.state === "upcoming") {
+    return `First benchmark week: ${start}–${end}.`;
+  }
+  return `Benchmark week: ${start}–${end}.`;
+}
+
 const styles = `
 .assessment-hub{display:flex;flex-direction:column;gap:14px}
 .assessment-hub__header,.assessment-hub__card-top,.assessment-hub__run{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
@@ -43,8 +85,10 @@ const styles = `
 .assessment-hub__eyebrow{text-transform:uppercase;font-size:11px;font-weight:850;letter-spacing:.08em;color:#64748b}
 .assessment-hub__modes{display:flex;gap:8px;flex-wrap:wrap}.assessment-hub__modes button[aria-pressed="true"]{font-weight:850;box-shadow:inset 0 0 0 2px rgba(255,122,24,.38)}
 .assessment-hub__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.assessment-hub__card,.assessment-hub__resume{border:1px solid rgba(15,23,42,.12);border-radius:16px;padding:14px;background:#fff}
-.assessment-hub__card h3,.assessment-hub__resume h3{margin:0;font-size:16px}.assessment-hub__card p{font-size:13px;color:#475569}.assessment-hub__meta{font-size:12px;color:#64748b;margin-top:4px}
+.assessment-hub__card,.assessment-hub__resume,.assessment-hub__schedule{border:1px solid rgba(15,23,42,.12);border-radius:16px;padding:14px;background:#fff}
+.assessment-hub__card h3,.assessment-hub__resume h3,.assessment-hub__schedule h3{margin:0;font-size:16px}.assessment-hub__card p,.assessment-hub__schedule p{font-size:13px;color:#475569}.assessment-hub__meta{font-size:12px;color:#64748b;margin-top:4px}
+.assessment-hub__schedule{border-width:2px}.assessment-hub__schedule--due{border-color:rgba(255,122,24,.55);background:#fffaf5}.assessment-hub__schedule--overdue{border-color:#f59e0b;background:#fffbeb}.assessment-hub__schedule--completed{border-color:#86efac;background:#f0fdf4}.assessment-hub__schedule--in_progress{border-color:#93c5fd;background:#eff6ff}
+.assessment-hub__schedule-state{display:inline-flex;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#334155;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.assessment-hub__schedule ul{margin:8px 0 0;padding-left:18px;color:#475569;font-size:12px}.assessment-hub__schedule li+li{margin-top:4px}
 .assessment-hub__section-title{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#475569}
 .assessment-hub__runs{display:flex;flex-direction:column;gap:8px}.assessment-hub__run{align-items:center;border-top:1px solid #e2e8f0;padding-top:9px;margin-top:9px}.assessment-hub__run:first-child{border-top:0;padding-top:0;margin-top:0}
 .assessment-hub__empty{padding:18px;border:1px dashed #cbd5e1;border-radius:14px;color:#64748b;background:rgba(255,255,255,.55)}
@@ -71,6 +115,8 @@ export default function AssessmentHub({
 }) {
   const [library, setLibrary] = useState(() => emptyAssessmentLibrary());
   const [runs, setRuns] = useState([]);
+  const [completedRuns, setCompletedRuns] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [mode, setMode] = useState("run");
   const [runState, setRunState] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -82,18 +128,29 @@ export default function AssessmentHub({
     if (!familyId || !profileId) {
       setLibrary(emptyAssessmentLibrary());
       setRuns([]);
+      setCompletedRuns([]);
+      setSchedules([]);
       return;
     }
 
     setLoading(true);
     setError("");
     try {
-      const [libraryResult, runsResult] = await Promise.all([
+      const [libraryResult, runsResult, completedRunsResult, schedulesResult] = await Promise.all([
         dbApi.loadAssessmentLibrary(familyId),
         dbApi.listAssessmentRuns(familyId, {
           profileId,
           status: "in_progress",
           limit: 50,
+        }),
+        dbApi.listAssessmentRuns(familyId, {
+          profileId,
+          status: "completed",
+          limit: 500,
+        }),
+        dbApi.listAssessmentSchedules(familyId, {
+          profileId,
+          activeOnly: true,
         }),
       ]);
       const libraryError = resultError(
@@ -106,9 +163,21 @@ export default function AssessmentHub({
         "Could not load in-progress Assessments"
       );
       if (runsError) throw runsError;
+      const completedRunsError = resultError(
+        completedRunsResult,
+        "Could not load completed Assessment schedule history"
+      );
+      if (completedRunsError) throw completedRunsError;
+      const schedulesError = resultError(
+        schedulesResult,
+        "Could not load Assessment schedules"
+      );
+      if (schedulesError) throw schedulesError;
 
       setLibrary(normaliseAssessmentLibrary(libraryResult?.data || {}));
       setRuns(runsResult?.data || []);
+      setCompletedRuns(completedRunsResult?.data || []);
+      setSchedules(schedulesResult?.data || []);
     } catch (loadError) {
       setError(loadError?.message || String(loadError));
     } finally {
@@ -134,6 +203,19 @@ export default function AssessmentHub({
     }
     return counts;
   }, [library.templateTests]);
+  const templatesById = useMemo(
+    () => new Map(library.templates.map((template) => [cleanText(template.id), template])),
+    [library.templates]
+  );
+  const scheduleStatuses = useMemo(
+    () =>
+      buildAssessmentScheduleStatuses({
+        schedules,
+        runs: [...completedRuns, ...runs],
+        todayYmd,
+      }),
+    [schedules, completedRuns, runs, todayYmd]
+  );
 
   // Start/resume actions own their visible error state and can safely swallow
   // an error because they are direct click handlers. Runner save/complete/cancel
@@ -293,6 +375,75 @@ export default function AssessmentHub({
       {error ? <div role="alert" className="assessment-hub__error">{error}</div> : null}
       {status ? <div role="status" className="assessment-hub__status">{status}</div> : null}
 
+      {scheduleStatuses.length ? (
+        <>
+          <div className="assessment-hub__section-title">Scheduled benchmarks</div>
+          <div className="assessment-hub__grid">
+            {scheduleStatuses.map((scheduleStatus) => {
+              const template = templatesById.get(
+                scheduleStatus.schedule.assessmentTemplateId
+              );
+              if (!template) return null;
+              const guidance = Array.isArray(
+                scheduleStatus.schedule.workflowConfig?.guidance
+              )
+                ? scheduleStatus.schedule.workflowConfig.guidance.filter(Boolean)
+                : [];
+              return (
+                <article
+                  className={`assessment-hub__schedule assessment-hub__schedule--${scheduleStatus.state}`}
+                  key={scheduleStatus.schedule.id}
+                >
+                  <div className="assessment-hub__card-top">
+                    <div>
+                      <div className="assessment-hub__schedule-state">
+                        {scheduleStateLabel(scheduleStatus.state)}
+                      </div>
+                      <h3 style={{ marginTop: 8 }}>{template.name}</h3>
+                      <div className="assessment-hub__meta">
+                        Every {scheduleStatus.schedule.cadenceDays} days · {scheduleStatus.schedule.windowDays}-day benchmark window
+                      </div>
+                    </div>
+                    {scheduleStatus.state === "in_progress" ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => resume(scheduleStatus.inProgressRun.id)}
+                      >
+                        Resume
+                      </button>
+                    ) : scheduleStatus.state === "due" ||
+                      scheduleStatus.state === "overdue" ? (
+                      <button
+                        type="button"
+                        disabled={busy || !todayYmd}
+                        onClick={() => start(template.id)}
+                      >
+                        Start scheduled benchmark
+                      </button>
+                    ) : null}
+                  </div>
+                  <p>{scheduleTimingText(scheduleStatus)}</p>
+                  {guidance.length ||
+                  scheduleStatus.schedule.workflowConfig?.allowSplitAcrossDays ? (
+                    <ul>
+                      {guidance.map((item, index) => (
+                        <li key={`${scheduleStatus.schedule.id}-guidance-${index}`}>
+                          {item}
+                        </li>
+                      ))}
+                      {scheduleStatus.schedule.workflowConfig?.allowSplitAcrossDays ? (
+                        <li>Save progress and resume later if splitting the benchmark gives a cleaner test.</li>
+                      ) : null}
+                    </ul>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </>
+      ) : null}
+
       {runs.length ? (
         <div className="assessment-hub__resume">
           <div className="assessment-hub__section-title">Resume in-progress</div>
@@ -335,7 +486,7 @@ export default function AssessmentHub({
         </div>
       ) : (
         <div className="assessment-hub__empty">
-          No active Assessment Templates yet. Stage 7 will seed the shared Football Monthly Benchmark after the generic runner/history path is verified.
+          No active Assessment Templates are available for this family.
         </div>
       )}
     </section>

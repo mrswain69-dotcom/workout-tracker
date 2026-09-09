@@ -119,14 +119,23 @@ function resultRow() {
   };
 }
 
-function mockDb({ library = definitionLibrary(), runs = [] } = {}) {
+function mockDb({
+  library = definitionLibrary(),
+  runs = [],
+  completedRuns = [],
+  schedules = [],
+} = {}) {
   return {
     loadAssessmentLibrary: vi.fn(async () => ({ data: library, error: null })),
     loadCompletedAssessmentHistory: vi.fn(async () => ({
       data: { runs: [], results: [] },
       error: null,
     })),
-    listAssessmentRuns: vi.fn(async () => ({ data: runs, error: null })),
+    listAssessmentRuns: vi.fn(async (_familyId, options = {}) => ({
+      data: options.status === "completed" ? completedRuns : runs,
+      error: null,
+    })),
+    listAssessmentSchedules: vi.fn(async () => ({ data: schedules, error: null })),
     createAssessmentRun: vi.fn(async (_familyId, payload) => ({
       data: {
         ...runRow(),
@@ -194,12 +203,12 @@ describe("AssessmentHub", () => {
       },
     });
     await renderHub(db);
-    expect(await screen.findByText(/Stage 7 will seed the shared Football Monthly Benchmark/)).toBeTruthy();
+    expect(await screen.findByText(/No active Assessment Templates are available/)).toBeTruthy();
     expect(db.createAssessmentRun).not.toHaveBeenCalled();
     expect(db.createAssessmentTestResult).not.toHaveBeenCalled();
   });
 
-  it("scopes resumable history to the selected profile", async () => {
+  it("scopes resumable, completed and schedule data to the selected profile", async () => {
     const db = mockDb();
     await renderHub(db);
     expect(db.listAssessmentRuns).toHaveBeenCalledWith("f1", {
@@ -207,6 +216,74 @@ describe("AssessmentHub", () => {
       status: "in_progress",
       limit: 50,
     });
+    expect(db.listAssessmentRuns).toHaveBeenCalledWith("f1", {
+      profileId: "p1",
+      status: "completed",
+      limit: 500,
+    });
+    expect(db.listAssessmentSchedules).toHaveBeenCalledWith("f1", {
+      profileId: "p1",
+      activeOnly: true,
+    });
+  });
+
+  it("shows an upcoming recurring benchmark without creating fake history", async () => {
+    const db = mockDb({
+      schedules: [
+        {
+          id: "schedule-1",
+          family_id: "f1",
+          profile_id: "p1",
+          assessment_template_id: "a1",
+          start_date: "2026-09-21",
+          cadence_days: 28,
+          window_days: 7,
+          workflow_config: {
+            guidance: ["Use repeatable conditions."],
+            allowSplitAcrossDays: true,
+          },
+          active: true,
+        },
+      ],
+    });
+    await renderHub(db);
+    expect(await screen.findByText("Upcoming")).toBeTruthy();
+    expect(screen.getByText(/First benchmark week:.*21.*27/)).toBeTruthy();
+    expect(screen.getByText("Use repeatable conditions.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Start scheduled benchmark" })).toBeNull();
+    expect(db.createAssessmentRun).not.toHaveBeenCalled();
+  });
+
+  it("launches the immutable runner from a due scheduled benchmark", async () => {
+    const db = mockDb({
+      schedules: [
+        {
+          id: "schedule-1",
+          family_id: "f1",
+          profile_id: "p1",
+          assessment_template_id: "a1",
+          start_date: "2026-09-21",
+          cadence_days: 28,
+          window_days: 7,
+          workflow_config: {},
+          active: true,
+        },
+      ],
+    });
+    await renderHub(db, { todayYmd: "2026-09-24" });
+    expect(await screen.findByText("Due this week")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Start scheduled benchmark" })
+    );
+    await waitFor(() => expect(db.createAssessmentRun).toHaveBeenCalledTimes(1));
+    expect(db.createAssessmentRun).toHaveBeenCalledWith(
+      "f1",
+      expect.objectContaining({
+        profileId: "p1",
+        assessmentTemplateId: "a1",
+        dateYmd: "2026-09-24",
+      })
+    );
   });
 
   it("starts an Assessment from the live definition and immediately persists its snapshot", async () => {
