@@ -268,9 +268,9 @@ Do not mix the following into the Assessment foundation:
 
 ## Proposed Phase 2 implementation sequence
 
-- Stage 0 — baseline, requirements, architecture and safety invariants (this document)
-- Stage 1 — additive Assessment foundation schema, relationships and RLS
-- Stage 2 — generic metric/result engine with automated tests
+- Stage 0 — baseline, requirements, architecture and safety invariants (complete)
+- Stage 1 — additive Assessment foundation schema, relationships and RLS (complete)
+- Stage 2 — generic metric/result engine with automated tests (complete)
 - Stage 3 — Assessment DB access/library controller
 - Stage 4 — Assessment Template/Test authoring UI
 - Stage 5 — Assessment runner/logger with immutable snapshots
