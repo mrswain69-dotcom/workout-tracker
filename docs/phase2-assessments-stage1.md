@@ -1,125 +1,89 @@
 # Phase 2 Assessments — Stage 1 Database Foundation & RLS
 
-Status: COMPLETE / APPLIED / VERIFIED.
+Status: Stage 1 complete and verified.
 
-Stage 1 is an additive database-only foundation. It does not seed Assessment content, change profile plans, change Session definitions, or rewrite historical workout logs.
+Stage 1 added the generic Assessment database foundation only. No Assessment seed data, profile-plan changes, workout-log rewrites or football-specific schema were introduced.
 
-## Applied Supabase migrations
-
-Project: `chdoyavyydwaewpuzbsb`
+## Applied live Supabase migrations
 
 - `20260909172708_phase2_assessment_foundation`
 - `20260909172745_phase2_assessment_grant_hardening`
 
-## New generic tables
+## Tables created
 
-### Definition layer
+### `assessment_templates`
+Family-owned editable Assessment definitions with category, description, version, sort order and soft archive.
 
-1. `assessment_templates`
-   - family-owned editable Assessment definitions
-   - name/category/description
-   - version/sort order/archive state
+### `tests`
+Canonical reusable Tests with metric type, unit, higher/lower scoring direction, configured attempt count, retained-result strategy, side mode, signed-value allowance, PB eligibility, metric configuration and soft archive.
 
-2. `tests`
-   - canonical reusable Test definitions
-   - metric type and unit
-   - higher/lower scoring direction
-   - attempt count
-   - single/best/average retained-result strategy
-   - side mode
-   - negative-value allowance
-   - PB eligibility
-   - extensible metric configuration JSON
-   - version/archive state
+### `assessment_template_tests`
+Ordered membership of Tests within an Assessment Template, including section label, display label, instructions, protocol text and optional config override.
 
-3. `assessment_template_tests`
-   - ordered Test membership inside an Assessment Template
-   - section label
-   - display label/instructions/protocol
-   - template-specific configuration override JSON
+### `test_development_tags`
+Many-to-many bridge between canonical Tests and the existing shared `development_tags` table.
 
-4. `test_development_tags`
-   - reusable many-to-many Test ↔ existing `development_tags` bridge
-   - no football-specific Movement/Test relationship added
+### `assessment_runs`
+Historical athlete Assessment occasions with family/profile/template/date/status/version and immutable template snapshot.
 
-### History layer
+### `assessment_test_results`
+Historical Test results with immutable metric/test snapshots, raw result data, retained result, scalar comparable value where meaningful, comparable dimensions, validity and notes.
 
-5. `assessment_runs`
-   - one profile performing one Assessment Template on one date
-   - in-progress/completed/cancelled status
-   - source template/version
-   - immutable template snapshot
-   - notes/timestamps
+## Data integrity
 
-6. `assessment_test_results`
-   - one Test result within an Assessment run
-   - source canonical Test and optional template-Test relationship
-   - immutable Test/metric snapshots
-   - raw result data
-   - retained result data
-   - scalar comparable value where meaningful
-   - extensible comparable-dimensions JSON for left/right or other dimensional results
-   - validity and notes
+Composite family-aware foreign keys protect cross-family definition/history relationships.
 
-## History protection
+Assessment run RLS additionally requires the referenced profile to belong to the same family.
 
-Assessment runs and Test results do not expose DELETE through the authenticated API. Historical corrections will use controlled updates while PB/baseline state remains derived from retained history.
+Verification after migration:
 
-Definitions use soft archive. Ordered template membership and Test/Development-Tag relationships can be deleted/reordered as part of future authoring UI.
+- all FK/orphan checks: 0
+- all six Assessment tables: 0 rows
+- no Football Monthly Benchmark data seeded
 
-## RLS and Data API boundary
+## RLS and API privilege model
 
-All six new public tables have RLS enabled.
+All six tables have RLS enabled.
 
-Policy counts:
+Policies explicitly target `authenticated` and use `(select auth.uid())` through the family owner relationship.
 
-- `assessment_templates`: 3 — SELECT / INSERT / UPDATE
-- `tests`: 3 — SELECT / INSERT / UPDATE
-- `assessment_template_tests`: 4 — SELECT / INSERT / UPDATE / DELETE
-- `test_development_tags`: 3 — SELECT / INSERT / DELETE
-- `assessment_runs`: 3 — SELECT / INSERT / UPDATE
-- `assessment_test_results`: 3 — SELECT / INSERT / UPDATE
+Definitions:
+- Assessment Templates: select/insert/update; soft archive instead of delete
+- Tests: select/insert/update; soft archive instead of delete
+- Template/Test membership: select/insert/update/delete
+- Test/Development-Tag links: select/insert/delete
 
-All policies target `authenticated` explicitly and use family ownership through `families.owner_user_id = (select auth.uid())`.
+History:
+- Assessment runs: select/insert/update; no delete policy
+- Assessment Test results: select/insert/update; no delete policy
 
-Assessment run policies additionally require `profile_id` to belong to the same `family_id`, preventing cross-family athlete assignment through the authenticated API.
+The grant-hardening migration:
 
-Anonymous table privileges were revoked on all six tables.
-
-Authenticated privileges were hardened after Supabase default public-schema grants were observed:
-
-- `assessment_templates`: INSERT / SELECT / UPDATE
-- `tests`: INSERT / SELECT / UPDATE
-- `assessment_template_tests`: DELETE / INSERT / SELECT / UPDATE
-- `test_development_tags`: DELETE / INSERT / SELECT
-- `assessment_runs`: INSERT / SELECT / UPDATE
-- `assessment_test_results`: INSERT / SELECT / UPDATE
-
-No authenticated TRUNCATE, REFERENCES or TRIGGER privilege remains on these tables.
+- revokes all Assessment-table privileges from `anon`;
+- removes default broad authenticated privileges such as TRUNCATE/REFERENCES/TRIGGER;
+- grants only the operations supported by the intended API surface.
 
 ## RLS smoke test
 
-A temporary Assessment Template was inserted as the real family owner while running as the `authenticated` role, successfully read by that owner, and then rolled back.
+A temporary transaction was used to exercise RLS without retaining data.
 
-A separate insert attempt using an unrelated authenticated identity was rejected with:
+- family owner authenticated identity: temporary Assessment Template insert/read succeeded;
+- unrelated authenticated identity: insert into that family was rejected by RLS;
+- transaction rolled back;
+- final Assessment row counts remained zero.
 
-`new row violates row-level security policy for table "assessment_templates"`
+## Supabase advisors
 
-No smoke-test rows remain.
+Security advisor after Stage 1:
 
-## Referential integrity / indexing
+- no Assessment-table/RLS security warning;
+- only the pre-existing project-level `auth_leaked_password_protection` warning remains.
 
-Composite foreign keys preserve same-family relationships between Assessment definitions and history.
+Performance advisor after Stage 1:
 
-Stage 1 added covering indexes for family filters, template/Test relationships and history lookups. Post-migration Supabase performance advisors produced no new unindexed-FK warnings for any Assessment table and no new auth-RLS-initplan warnings for any Assessment table.
-
-The new-table `unused_index` notices are expected at Stage 1 because all Assessment tables intentionally contain zero rows.
-
-## Security advisor result
-
-The only Supabase security advisor warning remains the pre-existing account-level `auth_leaked_password_protection` warning. No new Assessment/RLS security warning was reported.
-
-Reference: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+- no new Assessment unindexed-foreign-key warning;
+- no new Assessment `auth_rls_initplan` warning;
+- new Assessment indexes appear as unused, which is expected while every new table deliberately contains zero rows.
 
 ## Stage 0 fingerprint proof
 
@@ -130,24 +94,21 @@ Immediately before Stage 1 DDL:
 - Paul plan: `a715c519932be388cebe88722439de8b`
 - Wilf plan: `278e036e425e2eeff7b02b417029403f`
 - Xander plan: `b3b95dc0668da96dfcfeccdea21b6cfe`
-- Session Library: 1 programme / 15 movements / 3 templates / 17 template movements / 6 development tags / 44 movement-tag links
-- Assessment tables: none
+- Session Library: 1 / 15 / 3 / 17 / 6 / 44
 
-After both migrations and RLS smoke testing:
+After both migrations, RLS smoke testing and grant hardening, the fingerprints were exactly unchanged:
 
 - workout logs: 499
 - workout-log hash: `91b10f9431340a9f82c7aaa179974972`
 - Paul plan: `a715c519932be388cebe88722439de8b`
 - Wilf plan: `278e036e425e2eeff7b02b417029403f`
 - Xander plan: `b3b95dc0668da96dfcfeccdea21b6cfe`
-- Session Library: 1 / 15 / 3 / 17 / 6 / 44 unchanged
-- all six Assessment table row counts: 0
-- all tested Assessment relationship orphan counts: 0
+- Session Library: 1 / 15 / 3 / 17 / 6 / 44
 
-Therefore Stage 1 did not alter any Stage 0 workout-log, plan or Session-Library fingerprint.
+Stage 1 therefore met the additive/non-destructive acceptance guard.
 
-## Stage 1 acceptance result
+## Next stage
 
-PASS.
+Stage 2 — generic Assessment metric/result engine with automated tests — is now complete and documented in `docs/phase2-assessments-stage2.md`.
 
-The database is now ready for Phase 2 / Stage 2: the generic metric/result engine and automated tests. Stage 2 should not seed the Football Monthly Benchmark yet.
+Next implementation stage: Stage 3 — Assessment DB access/library controller.
