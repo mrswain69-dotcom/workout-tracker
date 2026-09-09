@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import AssessmentHistory from "./AssessmentHistory.jsx";
 
 function run(id, date, notes = "") {
@@ -45,6 +45,8 @@ function dbWith(data) {
   return { loadCompletedAssessmentHistory: vi.fn(async () => ({ data, error: null })) };
 }
 
+afterEach(cleanup);
+
 describe("AssessmentHistory", () => {
   it("shows the no-history state and scopes the read to the selected athlete", async () => {
     const dbApi = dbWith({ runs: [], results: [] });
@@ -61,9 +63,9 @@ describe("AssessmentHistory", () => {
     render(<AssessmentHistory familyId="f1" profileId="p1" athleteName="Wilf" dbApi={dbWith(data)} />);
     const heading = await screen.findByRole("heading", { name: "10 m acceleration" });
     const card = heading.closest("article");
-    expect(within(card).getByText("2.1 s")).toBeTruthy();
-    expect(within(card).getByText("2.05 s")).toBeTruthy();
-    expect(within(card).getByText("2.2 s")).toBeTruthy();
+    expect(within(card).getAllByText("2.1 s").length).toBeGreaterThan(0);
+    expect(within(card).getAllByText("2.05 s").length).toBeGreaterThan(0);
+    expect(within(card).getAllByText("2.2 s").length).toBeGreaterThan(0);
     expect(within(card).getByText(/Declined 0.05 s/i)).toBeTruthy();
     expect(within(card).getByText(/Improved 0.1 s/i)).toBeTruthy();
   });
@@ -78,7 +80,7 @@ describe("AssessmentHistory", () => {
     };
     render(<AssessmentHistory familyId="f1" profileId="p1" dbApi={dbWith(data)} />);
     expect(await screen.findByText("New L")).toBeTruthy();
-    expect(screen.getByText(/L 22 reps · R 19 reps/)).toBeTruthy();
+    expect(screen.getAllByText(/L 22 reps · R 19 reps/).length).toBeGreaterThan(0);
     expect(screen.getByText(/L: Improved 4 reps/i)).toBeTruthy();
     expect(screen.getByText(/R: Declined 1 reps/i)).toBeTruthy();
   });
@@ -99,7 +101,7 @@ describe("AssessmentHistory", () => {
       results: [result("x1", "r1", 2.1)],
     });
     const { rerender } = render(<AssessmentHistory familyId="f1" profileId="wilf" athleteName="Wilf" dbApi={dbApi} />);
-    await screen.findByText("10 m acceleration");
+    await screen.findByRole("heading", { name: "10 m acceleration" });
     fireEvent.click(screen.getByRole("button", { name: "Completed Assessments" }));
     expect(screen.getByRole("heading", { name: "Monthly Benchmark" })).toBeTruthy();
     expect(screen.getByText("Dry pitch")).toBeTruthy();
