@@ -1,0 +1,101 @@
+name: Post Phase 1 maintenance patch
+
+on:
+  push:
+    branches:
+      - maintenance/post-phase1-warnings
+    paths:
+      - .github/workflows/post-phase1-maintenance.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout maintenance branch
+        uses: actions/checkout@v4
+        with:
+          ref: maintenance/post-phase1-warnings
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply narrowly-scoped maintenance fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          app = Path('src/App.jsx')
+          text = app.read_text(encoding='utf-8')
+          old = '''  baseXp: nonBonusXp,
+            progressXp: strengthProgressXp,
+            cardioProgressXp,
+            extraXp: cardioXp, // legacy column used as "cardio" previously'''
+          # App.jsx has historical indentation in this area, so fall back to the
+          # exact semantic sequence if the visually-indented form differs.
+          if old not in text:
+              old = '''  baseXp: nonBonusXp,
+            progressXp: strengthProgressXp,
+            cardioProgressXp,
+            extraXp: cardioXp, // legacy column used as "cardio" previously'''.replace('            ', '  ')
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one duplicate cardioProgressXp sequence, found {text.count(old)}')
+          new = old.replace('  cardioProgressXp,\n', '', 1)
+          app.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          Path('vite.config.js').write_text("""import { defineConfig } from 'vite'
+          import react from '@vitejs/plugin-react'
+
+          export default defineConfig({
+            plugins: [react()],
+            build: {
+              rollupOptions: {
+                output: {
+                  manualChunks: {
+                    'react-vendor': ['react', 'react-dom'],
+                    'charts-vendor': ['recharts'],
+                    'supabase-vendor': ['@supabase/supabase-js'],
+                  },
+                },
+              },
+            },
+          })
+          """.replace('          ', ''), encoding='utf-8')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build and reject inherited warning regressions
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee /tmp/build.log
+          if grep -Fq 'Duplicate key "cardioProgressXp"' /tmp/build.log; then
+            echo 'Duplicate cardioProgressXp warning is still present.'
+            exit 1
+          fi
+          if grep -Fq 'Some chunks are larger than 500 kB after minification' /tmp/build.log; then
+            echo 'Oversized chunk warning is still present.'
+            exit 1
+          fi
+
+      - name: Commit tested fixes
+        shell: bash
+        run: |
+          git config user.name "Workout Tracker Maintenance"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/App.jsx vite.config.js
+          git diff --cached --check
+          git commit -m "Clean inherited build warnings"
+          git push origin HEAD:maintenance/post-phase1-warnings
