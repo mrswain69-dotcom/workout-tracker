@@ -16,6 +16,22 @@ function finiteOrNull(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+function boundedLimit(value, fallback = 100, max = 1000) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(1, Math.min(max, Math.round(n)));
+}
+
+function uniqueIds(values = []) {
+  return [
+    ...new Set(
+      (Array.isArray(values) ? values : [])
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+    ),
+  ];
+}
+
 export async function listAssessmentRuns(
   familyId,
   {
@@ -31,7 +47,7 @@ export async function listAssessmentRuns(
     .eq("family_id", familyId)
     .order("date_ymd", { ascending: false })
     .order("started_at", { ascending: false })
-    .limit(Math.max(1, Math.min(500, Number(limit) || 100)));
+    .limit(boundedLimit(limit, 100, 500));
 
   if (profileId) query = query.eq("profile_id", profileId);
   if (assessmentTemplateId) {
@@ -93,20 +109,74 @@ export async function updateAssessmentRun(runId, patch = {}) {
 
 export async function listAssessmentTestResults(
   familyId,
-  { assessmentRunId = null, testId = null } = {}
+  {
+    assessmentRunId = null,
+    assessmentRunIds = [],
+    testId = null,
+    limit = 1000,
+  } = {}
 ) {
   let query = supabase
     .from("assessment_test_results")
     .select("*")
     .eq("family_id", familyId)
     .order("assessment_run_id", { ascending: true })
-    .order("position", { ascending: true });
+    .order("position", { ascending: true })
+    .limit(boundedLimit(limit, 1000, 1000));
 
-  if (assessmentRunId) query = query.eq("assessment_run_id", assessmentRunId);
+  if (assessmentRunId) {
+    query = query.eq("assessment_run_id", assessmentRunId);
+  } else {
+    const runIds = uniqueIds(assessmentRunIds);
+    if (runIds.length) query = query.in("assessment_run_id", runIds);
+  }
   if (testId) query = query.eq("test_id", testId);
 
   const { data, error } = await query;
   return { data: data || [], error };
+}
+
+export async function loadCompletedAssessmentHistory(
+  familyId,
+  profileId,
+  { runLimit = 500 } = {}
+) {
+  if (!familyId || !profileId) {
+    return { data: { runs: [], results: [] }, error: null };
+  }
+
+  const runsResult = await listAssessmentRuns(familyId, {
+    profileId,
+    status: "completed",
+    limit: boundedLimit(runLimit, 500, 500),
+  });
+  if (runsResult.error) {
+    return { data: { runs: [], results: [] }, error: runsResult.error };
+  }
+
+  const runs = runsResult.data || [];
+  const runIds = uniqueIds(runs.map((run) => run.id));
+  if (!runIds.length) {
+    return { data: { runs, results: [] }, error: null };
+  }
+
+  const results = [];
+  // Keep each result request below the common PostgREST 1000-row response cap.
+  // A 25-run chunk comfortably covers the current benchmark size while still
+  // allowing hundreds of historical monthly runs without one query per run.
+  for (let index = 0; index < runIds.length; index += 25) {
+    const chunk = runIds.slice(index, index + 25);
+    const result = await listAssessmentTestResults(familyId, {
+      assessmentRunIds: chunk,
+      limit: 1000,
+    });
+    if (result.error) {
+      return { data: { runs: [], results: [] }, error: result.error };
+    }
+    results.push(...(result.data || []));
+  }
+
+  return { data: { runs, results }, error: null };
 }
 
 export async function createAssessmentTestResult(familyId, result = {}) {
