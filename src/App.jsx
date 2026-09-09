@@ -61,6 +61,7 @@ import SessionPlanBlockEditor, {
   normaliseSessionPlanBlock,
 } from "./components/sessions/SessionPlanBlockEditor.jsx";
 import SessionLogger from "./components/sessions/SessionLogger.jsx";
+import AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx";
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -11864,6 +11865,13 @@ if (!didClaim) {
                 </div>
               </div>
             </Card>
+
+            <div className="panel" style={{ gridColumn: "1 / -1" }}>
+              <AssessmentTemplateLibrary
+                familyId={family?.id || ""}
+                authorizeMutation={(reason) => ensureUnlocked(reason)}
+              />
+            </div>
           </div>
         )}
 

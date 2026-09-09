@@ -144,6 +144,7 @@ export default function AssessmentTemplateLibrary({
   dbApi = assessmentDb,
   confirmArchive = defaultConfirm,
   onLibraryChange,
+  authorizeMutation = async () => true,
 }) {
   const [library, setLibrary] = useState(() => emptyAssessmentLibrary());
   const [view, setView] = useState("assessments");
@@ -247,6 +248,7 @@ export default function AssessmentTemplateLibrary({
   };
 
   const saveTest = async ({ test, developmentTagIds }) => {
+    if (!(await authorizeMutation("change Assessment Test definitions"))) return;
     const editorState = testEditor;
     await perform(async () => {
       const saved = await persistCanonicalTest({
@@ -270,6 +272,7 @@ export default function AssessmentTemplateLibrary({
       return;
     }
     if (!confirmArchive(`Archive Test “${test.name}”?`)) return;
+    if (!(await authorizeMutation("archive an Assessment Test"))) return;
     await perform(async () => {
       await expectMutation(dbApi.archiveTest(test.id, true), "Could not archive Test");
       if (testEditor?.test?.id === test.id) setTestEditor(null);
@@ -310,6 +313,7 @@ export default function AssessmentTemplateLibrary({
   };
 
   const saveAssessment = async (definition) => {
+    if (!(await authorizeMutation("change Assessment definitions"))) return;
     const editorState = assessmentEditor;
     await perform(async () => {
       const saved = await persistAssessmentDefinition({
@@ -326,6 +330,7 @@ export default function AssessmentTemplateLibrary({
 
   const archiveAssessment = async (template) => {
     if (!confirmArchive(`Archive Assessment “${template.name}”?`)) return;
+    if (!(await authorizeMutation("archive an Assessment"))) return;
     await perform(async () => {
       await expectMutation(
         dbApi.archiveAssessmentTemplate(template.id, true),
