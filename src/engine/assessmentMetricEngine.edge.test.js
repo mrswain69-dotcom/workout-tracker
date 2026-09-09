@@ -37,4 +37,25 @@ describe("assessment metric missing-value regressions", () => {
     expect(comparison.overall.status).toBe("unavailable");
     expect(comparison.overall.percentageImprovement).toBeNull();
   });
+
+  it("does not coerce blank attempts/successes fields to entered zeroes", () => {
+    const definition = {
+      metric_type: "attempts_successes",
+      scoring_direction: "higher",
+      result_strategy: "single",
+      side_mode: "none",
+      metric_config: { comparisonMode: "successes" },
+    };
+
+    const blankSuccesses = normaliseAssessmentResult(definition, {
+      overall: { results: [{ attempts: 10, successes: "" }] },
+    });
+    expect(blankSuccesses.valid).toBe(false);
+
+    const realZero = normaliseAssessmentResult(definition, {
+      overall: { results: [{ attempts: 10, successes: 0 }] },
+    });
+    expect(realZero.valid).toBe(true);
+    expect(realZero.retainedResult).toEqual({ attempts: 10, successes: 0 });
+  });
 });
