@@ -33,13 +33,10 @@ jobs:
 
           app = Path('src/App.jsx')
           text = app.read_text(encoding='utf-8')
-          old = '''  baseXp: nonBonusXp,
-          progressXp: strengthProgressXp,
-          cardioProgressXp,
-          extraXp: cardioXp, // legacy column used as "cardio" previously'''.replace('          ', '  ')
+          old = '  cardioProgressXp,\n  extraXp: cardioXp, // legacy column used as "cardio" previously'
           if text.count(old) != 1:
               raise SystemExit(f'Expected one duplicate cardioProgressXp sequence, found {text.count(old)}')
-          new = old.replace('  cardioProgressXp,\n', '', 1)
+          new = '  extraXp: cardioXp, // legacy column used as "cardio" previously'
           app.write_text(text.replace(old, new, 1), encoding='utf-8')
 
           Path('vite.config.js').write_text("""import { defineConfig } from 'vite'
