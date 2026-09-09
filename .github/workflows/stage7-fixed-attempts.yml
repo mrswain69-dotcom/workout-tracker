@@ -1,0 +1,39 @@
+name: Stage 7 Fixed Trial Integration
+
+on:
+  push:
+    branches:
+      - feature/phase2-assessments
+    paths:
+      - .github/workflows/stage7-fixed-attempts.yml
+      - scripts/stage7-fixed-attempts.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/phase2-assessments
+          fetch-depth: 0
+      - name: Apply guarded fixed-trial integration
+        run: node scripts/stage7-fixed-attempts.mjs
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/engine/assessmentMetricEngine.js \
+            src/engine/assessmentHistoryEngine.js \
+            src/components/assessments/AssessmentResultInput.jsx \
+            src/components/assessments/AssessmentTestEditor.jsx \
+            src/engine/assessmentMetricEngine.test.js \
+            src/engine/assessmentHistoryEngine.test.js \
+            src/components/assessments/AssessmentResultInput.test.jsx \
+            src/components/assessments/AssessmentTestEditor.test.jsx
+          git diff --cached --check
+          git commit -m "Support fixed-trial Assessment results"
+          git push origin HEAD:feature/phase2-assessments
