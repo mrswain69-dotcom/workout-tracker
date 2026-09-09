@@ -62,6 +62,7 @@ import SessionPlanBlockEditor, {
 } from "./components/sessions/SessionPlanBlockEditor.jsx";
 import SessionLogger from "./components/sessions/SessionLogger.jsx";
 import AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx";
+import AssessmentHub from "./components/assessments/AssessmentHub.jsx";
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -7839,9 +7840,9 @@ const cardioProgress = useMemo(() => {
 
       <div className="tabsRow">
         <div className="tabs">
-          {["log", "stats", "plan", "rewards"].map((t) => (
+          {["log", "stats", "plan", "assessments", "rewards"].map((t) => (
             <SecondaryButton key={t} onClick={() => setTab(t)}>
-              {t[0].toUpperCase() + t.slice(1)}
+              {t === "assessments" ? "Assess" : t[0].toUpperCase() + t.slice(1)}
             </SecondaryButton>
           ))}
         </div>
@@ -10727,6 +10728,17 @@ the same time tomorrow.
 )}
 
         
+{tab === "assessments" && (
+  <div className="panel">
+    <AssessmentHub
+      familyId={family?.id || ""}
+      profileId={activeProfileId}
+      athleteName={activeProfile?.name || "Athlete"}
+      todayYmd={todayYmd}
+    />
+  </div>
+)}
+
 {tab === "rewards" && (
   <div className="grid2cols">
     <Card className="pad" style={{ minWidth: 0 }}>

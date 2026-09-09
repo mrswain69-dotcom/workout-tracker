@@ -814,14 +814,15 @@ button.btn.primary:hover{
 
   .tabs {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     overflow: visible;
   }
 
   .tabs .btn {
     width: 100%;
     min-width: 0;
-    padding-inline: 8px;
+    padding-inline: 6px;
+    font-size: 12px;
   }
 
   .logTopRow,
