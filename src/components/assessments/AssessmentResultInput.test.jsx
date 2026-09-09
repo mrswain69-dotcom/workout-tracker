@@ -113,6 +113,32 @@ describe("AssessmentResultInput", () => {
     expect(screen.getByLabelText("Result validation")).toBeTruthy();
   });
 
+  it("prefills and locks fixed trial counts while emitting them with successes", () => {
+    const onChange = vi.fn();
+    render(
+      <AssessmentResultInput
+        metric={{
+          metricType: "attempts_successes",
+          scoringDirection: "higher",
+          attemptCount: 1,
+          resultStrategy: "single",
+          sideMode: "none",
+          metricConfig: { comparisonMode: "successes", fixedAttempts: 10 },
+        }}
+        value={{}}
+        onChange={onChange}
+      />
+    );
+    expect(screen.getByLabelText("Result attempt 1 attempts").value).toBe("10");
+    expect(screen.getByLabelText("Result attempt 1 attempts").disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Result attempt 1 successes"), {
+      target: { value: "8" },
+    });
+    expect(onChange).toHaveBeenLastCalledWith({
+      overall: { results: [{ attempts: 10, successes: "8" }] },
+    });
+  });
+
   it("accepts an explicitly entered zero successes value", () => {
     render(
       <AssessmentResultInput

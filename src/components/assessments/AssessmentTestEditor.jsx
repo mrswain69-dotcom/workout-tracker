@@ -204,7 +204,14 @@ export default function AssessmentTestEditor({
             <option value="lower">Lower is better</option>
           </select>
         </Field>
-        <Field label="Attempts">
+        <Field
+          label={attemptsSuccesses ? "Result entries" : "Attempts"}
+          hint={
+            attemptsSuccesses
+              ? "Usually 1 aggregate result; fixed trials are set in Metric details."
+              : ""
+          }
+        >
           <input
             aria-label="Attempt count"
             type="number"
@@ -370,7 +377,25 @@ export default function AssessmentTestEditor({
           </label>
 
           {attemptsSuccesses ? (
-            <div className="assessment-editor__grid assessment-editor__grid--two">
+            <div className="assessment-editor__grid assessment-editor__grid--three">
+              <Field label="Fixed trials per result" hint="e.g. 10 for successes /10">
+                <input
+                  aria-label="Fixed attempts per result"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={draft.metricConfig.fixedAttempts ?? ""}
+                  disabled={saving}
+                  onChange={(event) =>
+                    setMetricConfig({
+                      fixedAttempts:
+                        event.target.value === ""
+                          ? null
+                          : Math.max(1, Number(event.target.value) || 1),
+                    })
+                  }
+                />
+              </Field>
               <Field label="Compare using">
                 <select
                   aria-label="Attempts successes comparison mode"

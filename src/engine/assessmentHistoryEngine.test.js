@@ -74,6 +74,28 @@ describe("assessmentMetricComparisonKey", () => {
     expect(a).toBe(b);
   });
 
+  it("treats fixed trial changes as incompatible for raw-success comparisons but not rate comparisons", () => {
+    const successes10 = assessmentMetricComparisonKey({
+      metricType: "attempts_successes",
+      metricConfig: { comparisonMode: "successes", fixedAttempts: 10 },
+    });
+    const successes8 = assessmentMetricComparisonKey({
+      metricType: "attempts_successes",
+      metricConfig: { comparisonMode: "successes", fixedAttempts: 8 },
+    });
+    expect(successes10).not.toBe(successes8);
+
+    const rate10 = assessmentMetricComparisonKey({
+      metricType: "attempts_successes",
+      metricConfig: { comparisonMode: "rate", fixedAttempts: 10 },
+    });
+    const rate8 = assessmentMetricComparisonKey({
+      metricType: "attempts_successes",
+      metricConfig: { comparisonMode: "rate", fixedAttempts: 8 },
+    });
+    expect(rate10).toBe(rate8);
+  });
+
   it("separates histories when unit, direction or side semantics change", () => {
     const base = assessmentMetricComparisonKey({
       metricType: "numeric",

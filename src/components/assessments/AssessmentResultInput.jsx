@@ -21,11 +21,11 @@ function scalarAttempts(value, dimension, count) {
   return Array.from({ length: count }, (_, index) => source[index] ?? "");
 }
 
-function pairAttempts(value, dimension, count) {
+function pairAttempts(value, dimension, count, fixedAttempts = null) {
   const bucket = dimensionBucket(value, dimension);
   const source = Array.isArray(bucket.results) ? bucket.results : [];
   return Array.from({ length: count }, (_, index) => ({
-    attempts: source[index]?.attempts ?? "",
+    attempts: fixedAttempts ?? source[index]?.attempts ?? "",
     successes: source[index]?.successes ?? "",
   }));
 }
@@ -59,6 +59,7 @@ export default function AssessmentResultInput({
   );
   const dimensions = metric.sideMode === "separate" ? ["left", "right"] : ["overall"];
   const isPair = metric.metricType === "attempts_successes";
+  const fixedAttempts = isPair ? metric.metricConfig.fixedAttempts : null;
 
   const updateScalar = (dimension, index, nextValue) => {
     const root = { ...jsonObject(value) };
@@ -70,7 +71,12 @@ export default function AssessmentResultInput({
 
   const updatePair = (dimension, index, field, nextValue) => {
     const root = { ...jsonObject(value) };
-    const results = pairAttempts(value, dimension, metric.attemptCount);
+    const results = pairAttempts(
+      value,
+      dimension,
+      metric.attemptCount,
+      fixedAttempts
+    );
     results[index] = { ...results[index], [field]: nextValue };
     root[dimension] = { ...dimensionBucket(value, dimension), results };
     onChange?.(root);
@@ -87,7 +93,12 @@ export default function AssessmentResultInput({
             ? "Left"
             : "Right";
         const scalars = scalarAttempts(value, dimension, metric.attemptCount);
-        const pairs = pairAttempts(value, dimension, metric.attemptCount);
+        const pairs = pairAttempts(
+          value,
+          dimension,
+          metric.attemptCount,
+          fixedAttempts
+        );
 
         return (
           <div className="assessment-result-input__dimension" key={dimension}>
@@ -106,7 +117,7 @@ export default function AssessmentResultInput({
                           type="number"
                           min="0"
                           step="1"
-                          disabled={disabled}
+                          disabled={disabled || fixedAttempts !== null}
                           value={pairs[index].attempts}
                           onChange={(event) =>
                             updatePair(

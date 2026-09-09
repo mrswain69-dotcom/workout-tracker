@@ -253,6 +253,23 @@ describe("attempts/successes metrics", () => {
     expect(result.displayValue).toBe("7/10");
   });
 
+  it("enforces a configured fixed number of trials per attempts/successes result", () => {
+    const definition = {
+      metric_type: "attempts_successes",
+      result_strategy: "single",
+      metric_config: { fixedAttempts: 10 },
+    };
+    expect(
+      normaliseAssessmentResult(definition, { attempts: 10, successes: 7 }).valid
+    ).toBe(true);
+    const invalid = normaliseAssessmentResult(definition, {
+      attempts: 8,
+      successes: 7,
+    });
+    expect(invalid.valid).toBe(false);
+    expect(invalid.errors[0]).toMatch(/must use 10 attempts/i);
+  });
+
   it("can compare attempts/successes by success rate", () => {
     const definition = {
       metric_type: "attempts_successes",

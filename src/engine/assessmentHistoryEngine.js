@@ -47,6 +47,11 @@ export function assessmentMetricComparisonKey(rawMetric = {}) {
     scoringDirection: metric.scoringDirection,
     sideMode: metric.sideMode,
     comparisonMode: metric.metricConfig.comparisonMode,
+    fixedAttempts:
+      metric.metricType === "attempts_successes" &&
+      metric.metricConfig.comparisonMode === "successes"
+        ? metric.metricConfig.fixedAttempts
+        : null,
   });
 }
 

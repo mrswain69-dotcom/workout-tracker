@@ -109,6 +109,11 @@ export function normaliseAssessmentMetricDefinition(raw = {}) {
         "rate"
           ? "rate"
           : "successes",
+      fixedAttempts:
+        Number.isInteger(Number(metricConfig.fixedAttempts)) &&
+        Number(metricConfig.fixedAttempts) > 0
+          ? Number(metricConfig.fixedAttempts)
+          : null,
     },
   };
 }
@@ -302,6 +307,12 @@ function evaluateDimension(bucket, definition, dimension) {
         : scalarFrom(input, definition);
     if (parsed === null) {
       errors.push(`${dimension} attempt ${index + 1} is not a valid result.`);
+    } else if (
+      definition.metricType === "attempts_successes" &&
+      definition.metricConfig.fixedAttempts !== null &&
+      parsed.attempts !== definition.metricConfig.fixedAttempts
+    ) {
+      errors.push(`${dimension} attempt ${index + 1} must use ${definition.metricConfig.fixedAttempts} attempts.`);
     } else {
       attempts.push(parsed);
     }

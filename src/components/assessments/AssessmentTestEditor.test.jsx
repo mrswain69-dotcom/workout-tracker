@@ -130,6 +130,7 @@ describe("AssessmentTestEditor", () => {
   it("shows attempts/successes comparison controls only for that metric", () => {
     renderEditor({ value: { name: "First touch", metricType: "attempts_successes" } });
     fireEvent.click(screen.getByText("Metric details"));
+    expect(screen.getByLabelText("Fixed attempts per result")).toBeTruthy();
     expect(screen.getByLabelText("Attempts successes comparison mode")).toBeTruthy();
     expect(screen.getByLabelText("Show success rate beside result")).toBeTruthy();
   });
