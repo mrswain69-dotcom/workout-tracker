@@ -57,6 +57,7 @@ function comparisonStatusLabel(status) {
     unchanged: "Unchanged",
     mixed: "Mixed",
     unavailable: "No comparison",
+    baseline: "Baseline",
   };
   return labels[status] || "Baseline";
 }
@@ -120,6 +121,10 @@ export function buildAssessmentTestChartRows(assessmentProgress = null) {
           ? point.left !== null || point.right !== null
           : point.overall !== null
       ).length;
+      const baselineOnly = points.length <= 1;
+      const resolvedStatus = baselineOnly
+        ? "baseline"
+        : cleanText(status?.status, "unavailable");
       return {
         testId,
         testName: cleanText(history?.testName, "Test"),
@@ -137,13 +142,11 @@ export function buildAssessmentTestChartRows(assessmentProgress = null) {
         latestValue: latest?.displayValue || "—",
         latestDateYmd: latest?.dateYmd || "",
         latestDateLabel: latest?.label || "",
-        status: cleanText(status?.status, points.length > 1 ? "unavailable" : "baseline"),
-        statusLabel: comparisonStatusLabel(
-          status?.status || (points.length > 1 ? "unavailable" : "baseline")
-        ),
-        comparisonAvailable: status?.comparisonAvailable === true,
+        status: resolvedStatus,
+        statusLabel: comparisonStatusLabel(resolvedStatus),
+        comparisonAvailable: baselineOnly ? false : status?.comparisonAvailable === true,
         comparisonReason: cleanText(status?.comparisonReason),
-        comparisonDimensions: buildComparisonDimensions(status),
+        comparisonDimensions: baselineOnly ? [] : buildComparisonDimensions(status),
         latestPbCount: pbCounts.get(testId) || 0,
         hasChart: numericPointCount >= 2,
         points,
