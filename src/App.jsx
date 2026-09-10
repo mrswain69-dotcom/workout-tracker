@@ -64,6 +64,7 @@ import SessionLogger from "./components/sessions/SessionLogger.jsx";
 import AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx";
 import AssessmentHub from "./components/assessments/AssessmentHub.jsx";
 import ProgressDashboard from "./components/progress/ProgressDashboard.jsx";
+const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -3008,6 +3009,7 @@ useEffect(() => {
   }; // log | stats | plan | rewards | settings
   const [sessionReady, setSessionReady] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
 
   const [family, setFamily] = useState(null);
   const [profiles, setProfiles] = useState([]);
@@ -7827,6 +7829,21 @@ const cardioProgress = useMemo(() => {
   )}
 </span>
     <span>{activeProfile?.name || "Profile"}</span>
+    <button
+      type="button"
+      className="groupHeaderButton"
+      onClick={() => setShowGroups(true)}
+      disabled={!activeProfileId}
+      aria-label="Open Groups"
+      title="Groups & Teams"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="16.5" cy="9" r="2.4" stroke="currentColor" strokeWidth="1.6" opacity="0.75" />
+        <path d="M3.5 18c.6-3.3 2.6-5 5.5-5s4.9 1.7 5.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M14 14c2.8-.5 5.2.8 6.1 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.75" />
+      </svg>
+    </button>
   </span>
 </h1>
 
@@ -7856,7 +7873,15 @@ const cardioProgress = useMemo(() => {
   </div>
 </header>
 
-
+{showGroups && (
+  <React.Suspense fallback={<div className="groupHubBackdrop"><div className="groupHubShell"><div className="groupHubEmpty">Loading Groups…</div></div></div>}>
+    <GroupHub
+      profiles={profiles}
+      activeProfileId={activeProfileId}
+      onClose={() => setShowGroups(false)}
+    />
+  </React.Suspense>
+)}
 
         <Card className="pad motivator">
           <div className="motGrid">
