@@ -87,6 +87,8 @@ describe("Phase 3 Stage 7 training range engine", () => {
     expect(views.lifetime.summary.completedSessions).toBe(3);
     expect(views.recent28.startDate).toBe("2026-08-14");
     expect(views.month.startDate).toBe("2026-09-01");
+    expect(views.month.endDate).toBe("2026-09-30");
+    expect(views.month.trend.at(-1).endDate).toBe("2026-09-10");
     expect(views.lifetime.startDate).toBe("");
   });
 
