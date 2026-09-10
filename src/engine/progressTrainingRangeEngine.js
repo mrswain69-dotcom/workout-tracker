@@ -80,13 +80,21 @@ export function buildLifetimeTrainingTrendSeries(logs = []) {
     .filter(Boolean);
 }
 
-function buildRangeView({ key, window, logs, sessionTemplates, trend }) {
+function buildRangeView({
+  key,
+  window,
+  logs,
+  sessionTemplates,
+  trend,
+  displayEndDate = window.endDate,
+}) {
   const summary = buildTrainingWindowSummary(logs, window);
   return {
     key,
     label: window.label,
     startDate: window.startDate,
     endDate: window.endDate,
+    displayEndDate,
     summary,
     trend,
     sessionBalance: buildSessionBalance(logs, sessionTemplates, window),
@@ -124,6 +132,7 @@ export function buildTrainingRangeViews({
       logs: scopedLogs,
       sessionTemplates,
       trend: buildTrainingTrendSeries(scopedLogs, monthTrendWindow),
+      displayEndDate: windows.referenceDate,
     }),
     lifetime: buildRangeView({
       key: "lifetime",
