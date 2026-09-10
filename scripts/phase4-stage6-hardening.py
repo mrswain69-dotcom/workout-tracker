@@ -8,7 +8,10 @@ def replace_once(path_string, old, new, label):
         path.write_text(text.replace(old, new, 1), encoding="utf-8")
         print(f"{label}: applied")
         return
-    if new and new in text:
+    if new == "":
+        print(f"{label}: already removed")
+        return
+    if new in text:
         print(f"{label}: already applied")
         return
     raise SystemExit(f"{label}: expected anchor not found")
