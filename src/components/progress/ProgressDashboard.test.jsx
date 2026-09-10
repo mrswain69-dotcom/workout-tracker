@@ -84,7 +84,7 @@ describe("ProgressDashboard Stage 4 shell", () => {
     expect(screen.getAllByText("No baseline yet").length).toBeGreaterThan(0);
     expect(screen.getByText(/No structured Sessions logged yet/)).toBeTruthy();
     expect(screen.getByText(/First benchmark:/)).toBeTruthy();
-    expect(screen.getByText(/21 Sept 2026/)).toBeTruthy();
+    expect(screen.getAllByText(/21 Sept 2026/).length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("4d")).toBeTruthy();
     expect(screen.getByText("1,680")).toBeTruthy();
     expect(screen.getByText("A")).toBeTruthy();
