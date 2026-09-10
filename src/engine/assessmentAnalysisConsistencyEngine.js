@@ -1,6 +1,7 @@
 import {
   buildTrainingWindowSummary,
   buildSessionBalance,
+  scopeProgressLogs,
 } from "./progressTrainingEngine.js";
 
 function cleanText(value, fallback = "") {
@@ -67,12 +68,12 @@ export function buildObservedTrainingConsistency({
   profileId = "",
   interval = null,
 } = {}) {
+  const scopedLogs = scopeProgressLogs(logs, profileId);
   const periods = buildAnalysisSevenDayPeriods(interval).map((period) => {
-    const summary = buildTrainingWindowSummary(logs, {
+    const summary = buildTrainingWindowSummary(scopedLogs, {
       startDate: period.startDate,
       endDate: period.endDate,
       label: `Period ${period.index + 1}`,
-      profileId,
     });
     return {
       ...period,
@@ -85,11 +86,10 @@ export function buildObservedTrainingConsistency({
   const eligiblePeriods = periods.length;
   const activePeriods = periods.filter((period) => period.active).length;
   const totalSummary = interval?.valid
-    ? buildTrainingWindowSummary(logs, {
+    ? buildTrainingWindowSummary(scopedLogs, {
         startDate: interval.startDate,
         endDate: interval.endDate,
         label: "Between Assessments",
-        profileId,
       })
     : buildTrainingWindowSummary([], { label: "Between Assessments" });
 
@@ -116,6 +116,7 @@ export function buildBetweenAssessmentTrainingSummary({
   interval = null,
   sessionTemplates = [],
 } = {}) {
+  const scopedLogs = scopeProgressLogs(logs, profileId);
   if (!interval?.valid) {
     return {
       interval,
@@ -131,16 +132,14 @@ export function buildBetweenAssessmentTrainingSummary({
     };
   }
 
-  const summary = buildTrainingWindowSummary(logs, {
+  const summary = buildTrainingWindowSummary(scopedLogs, {
     startDate: interval.startDate,
     endDate: interval.endDate,
     label: "Between Assessments",
-    profileId,
   });
-  const sessionDistribution = buildSessionBalance(logs, sessionTemplates, {
+  const sessionDistribution = buildSessionBalance(scopedLogs, sessionTemplates, {
     startDate: interval.startDate,
     endDate: interval.endDate,
-    profileId,
   });
 
   return {
