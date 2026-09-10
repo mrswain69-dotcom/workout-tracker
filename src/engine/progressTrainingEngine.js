@@ -175,6 +175,47 @@ export function buildTrainingWindowSummary(
   };
 }
 
+// Stage 5 chart contract: split a supplied date range into consecutive 7-day
+// buckets. For the locked rolling-28-day Progress window this yields exactly
+// four periods whose totals reconcile to `recent28` without inventing future
+// days or switching to a competing calendar-week definition.
+export function buildTrainingTrendSeries(
+  logs = [],
+  { startDate = "", endDate = "" } = {}
+) {
+  if (!isYmd(startDate) || !isYmd(endDate) || startDate > endDate) return [];
+
+  const rows = [];
+  let cursor = startDate;
+  while (cursor && cursor <= endDate) {
+    const proposedEnd = shiftProgressYmd(cursor, 6);
+    const bucketEnd = !proposedEnd || proposedEnd > endDate ? endDate : proposedEnd;
+    const summary = buildTrainingWindowSummary(logs, {
+      startDate: cursor,
+      endDate: bucketEnd,
+    });
+
+    rows.push({
+      startDate: cursor,
+      endDate: bucketEnd,
+      completedSessions: summary.completedSessions,
+      partialSessions: summary.partialSessions,
+      activeSessionDays: summary.activeSessionDays,
+      completedSessionDays: summary.completedSessionDays,
+      totalMinutes: summary.totalMinutes,
+      recordedExecutions: summary.recordedExecutions,
+      attempts: summary.attempts,
+      successes: summary.successes,
+      accuracyPct: summary.accuracyPct,
+    });
+
+    if (bucketEnd === endDate) break;
+    cursor = shiftProgressYmd(bucketEnd, 1);
+  }
+
+  return rows;
+}
+
 function templateIdOf(template) {
   return cleanText(valueOf(template, "id", "id", ""), "");
 }
@@ -289,6 +330,7 @@ export function buildTrainingProgress({
   const month = buildTrainingWindowSummary(scopedLogs, windows.month);
   const recent28 = buildTrainingWindowSummary(scopedLogs, windows.recent28);
   const lifetime = buildTrainingWindowSummary(scopedLogs, windows.lifetime);
+  const trainingTrend = buildTrainingTrendSeries(scopedLogs, windows.recent28);
   const sessionBalance = buildSessionBalance(
     scopedLogs,
     sessionTemplates,
@@ -303,6 +345,7 @@ export function buildTrainingProgress({
     month,
     recent28,
     lifetime,
+    trainingTrend,
     sessionBalance,
     movementTotals,
     hasStructuredSessionHistory:
