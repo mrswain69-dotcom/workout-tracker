@@ -1,0 +1,49 @@
+name: Stage 4 Group Hub Patch
+
+on:
+  push:
+    branches:
+      - feature/group-team-ecosystem
+    paths:
+      - .github/workflows/stage4-group-hub-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/group-team-ecosystem
+          fetch-depth: 0
+      - name: Wire Consistency into Group Hub
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/groups/GroupHub.jsx')
+          text = p.read_text()
+          old_import = 'import GroupWeeklyXp from "./GroupWeeklyXp.jsx";\n'
+          new_import = old_import + 'import GroupConsistency from "./GroupConsistency.jsx";\n'
+          if text.count(old_import) != 1 or 'import GroupConsistency from "./GroupConsistency.jsx";' in text:
+            raise SystemExit('Unexpected Group Hub import state')
+          text = text.replace(old_import, new_import, 1)
+
+          marker = '''                  <GroupWeeklyXp\n                    group={selectedGroup}\n                    membership={ownMembership}\n                    isAdmin={isAdmin}\n                    onGroupChanged={refreshGroups}\n                  />\n\n                  <section className="groupHubPanel">'''
+          replacement = '''                  <GroupWeeklyXp\n                    group={selectedGroup}\n                    membership={ownMembership}\n                    isAdmin={isAdmin}\n                    onGroupChanged={refreshGroups}\n                  />\n\n                  <GroupConsistency\n                    group={selectedGroup}\n                    membership={ownMembership}\n                  />\n\n                  <section className="groupHubPanel">'''
+          if text.count(marker) != 1:
+            raise SystemExit(f'Expected one GroupWeeklyXp render marker, found {text.count(marker)}')
+          text = text.replace(marker, replacement, 1)
+          p.write_text(text)
+          PY
+      - name: Commit Group Hub integration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/groups/GroupHub.jsx
+          git diff --cached --quiet && exit 1
+          git commit -m "Integrate Consistency into Group Hub"
+          git push origin HEAD:feature/group-team-ecosystem
