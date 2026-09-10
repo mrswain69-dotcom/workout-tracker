@@ -180,7 +180,7 @@ describe("Stage 6 AssessmentProgressDetails", () => {
     expect(screen.getByLabelText("Single-leg calf raises Assessment history chart")).toBeTruthy();
     expect(screen.getByText("Left: Improved · +10%")).toBeTruthy();
     expect(screen.getByText("Right: Declined · -10%")).toBeTruthy();
-    expect(screen.getByText("Different units are never plotted on the same performance axis.")).toBeTruthy();
+    expect(screen.getByText(/Different units are never plotted on the same performance axis/)).toBeTruthy();
   });
 });
 
