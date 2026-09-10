@@ -31,8 +31,6 @@ import "./ProgressDashboardStage7.css";
 
 const AssessmentAnalysisSection = lazy(() => import("./AssessmentAnalysisSection.jsx"));
 
-const AssessmentAnalysisSection = lazy(() => import("./AssessmentAnalysisSection.jsx"));
-
 const DEFAULT_DB_API = Object.freeze({
   loadSessionLibrary,
   loadAssessmentLibrary,

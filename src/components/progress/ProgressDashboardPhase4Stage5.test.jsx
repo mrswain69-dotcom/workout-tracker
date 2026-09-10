@@ -156,6 +156,7 @@ describe("Phase 4 Stage 5 ProgressDashboard integration", () => {
 
     await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
     await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
     const analysis = screen.getByLabelText("Assessment Analysis");
     const analysisScreen = within(analysis);
     const comparison = analysisScreen.getByLabelText("Assessment comparison period");
@@ -188,6 +189,7 @@ describe("Phase 4 Stage 5 ProgressDashboard integration", () => {
     );
 
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
+    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
     await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
     await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
     const analysis = screen.getByLabelText("Assessment Analysis");
