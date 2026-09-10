@@ -155,7 +155,7 @@ Permanent Workout Tracker CI run #335 / ID `34463481846`:
 
 Stage 7 documentation head `a55ffdd0c3a418cd6bb2c6e1d9039ecd8ee75267` passed permanent Workout Tracker CI run #336 / ID `34463764023`, and the same exact SHA received a successful Vercel deployment status.
 
-This final verification-record edit is documentation-only; Stage 8 will perform the next full exact-head release gate before merge.
+The subsequent documentation-only closure commit does not alter executable application code. Stage 8 will perform the next full exact-head release gate before merge.
 
 ## Production data safety verification
 
