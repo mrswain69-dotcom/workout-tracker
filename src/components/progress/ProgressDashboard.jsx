@@ -20,6 +20,10 @@ import { buildAssessmentProgress } from "../../engine/progressAssessmentEngine.j
 import { buildDevelopmentTrendsFromAssessmentProgress } from "../../engine/progressDevelopmentTrendEngine.js";
 import { buildTrainingProgress } from "../../engine/progressTrainingEngine.js";
 import { buildProgressViewModel } from "../../engine/progressViewModel.js";
+import {
+  AssessmentProgressDetails,
+  DevelopmentTrendDetails,
+} from "./AssessmentDevelopmentProgress.jsx";
 import "./ProgressDashboard.css";
 
 const DEFAULT_DB_API = Object.freeze({
@@ -606,6 +610,8 @@ export default function ProgressDashboard({
           <div className="progress-schedule__title">{model.assessment.schedule.title}</div>
           <div className="progress-schedule__detail">{model.assessment.schedule.detail}</div>
         </div>
+
+        <AssessmentProgressDetails assessmentProgress={assessmentProgress} />
       </div>
 
       <div className="progress-section">
@@ -623,10 +629,12 @@ export default function ProgressDashboard({
             note="Compatible benchmark history"
           />
           <div className="progress-development-summary__note">
-            Detailed Test charts and Development Trend rows arrive in Stage 6 once
-            benchmark history exists.
+            Direction comes from compatible Assessment history. Strong arrows mean
+            sustained/aligned recent evidence, not a causal training claim.
           </div>
         </div>
+
+        <DevelopmentTrendDetails developmentTrends={developmentTrends} />
       </div>
 
       <div className="progress-legacy-bridge">
