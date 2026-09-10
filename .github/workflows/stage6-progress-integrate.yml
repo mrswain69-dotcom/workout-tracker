@@ -1,0 +1,37 @@
+name: Stage 6 Progress Integration
+
+on:
+  push:
+    branches:
+      - feature/phase3-progress-dashboard
+    paths:
+      - scripts/stage6-progress-integrate.mjs
+      - .github/workflows/stage6-progress-integrate.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v7
+        with:
+          ref: feature/phase3-progress-dashboard
+          fetch-depth: 0
+
+      - name: Apply Stage 6 dashboard integration
+        run: node scripts/stage6-progress-integrate.mjs
+
+      - name: Commit integration if changed
+        run: |
+          if git diff --quiet; then
+            echo "No integration changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/progress/ProgressDashboard.jsx
+          git commit -m "Integrate Stage 6 Progress details"
+          git push origin HEAD:feature/phase3-progress-dashboard
