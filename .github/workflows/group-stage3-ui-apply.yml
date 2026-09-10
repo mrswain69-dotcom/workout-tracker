@@ -1,0 +1,34 @@
+name: Group Stage 3 UI Apply
+
+on:
+  push:
+    branches: [feature/group-team-ecosystem]
+    paths:
+      - scripts/group-stage3-ui-apply.mjs
+      - .github/workflows/group-stage3-ui-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/group-team-ecosystem
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node scripts/group-stage3-ui-apply.mjs
+      - name: Commit Stage 3 Group UI integration
+        run: |
+          if git diff --quiet; then
+            echo "Stage 3 Group UI integration already applied."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/groups/groupDb.js src/groups/GroupHub.jsx src/groups/GroupHub.test.jsx src/groups/groupStage3Integration.test.js
+          git commit -m "Integrate Weekly XP into Group Hub"
+          git push origin HEAD:feature/group-team-ecosystem
