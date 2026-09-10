@@ -6,6 +6,9 @@ import {
 } from "./assessmentAnalysisConsistencyEngine.js";
 import { buildAssessmentSessionFocus } from "./assessmentAnalysisFocusEngine.js";
 
+export const ASSESSMENT_ANALYSIS_CAUSATION_BOUNDARY =
+  "Analysis describes recorded training alongside benchmark change; it does not establish that training caused the result.";
+
 function cleanText(value, fallback = "") {
   if (value === null || value === undefined) return fallback;
   const text = String(value).trim();
@@ -51,6 +54,57 @@ function testPbCount(testId, assessmentProgress) {
   return (assessmentProgress?.latestPbEvents || []).filter(
     (event) => cleanText(event?.testId, "") === cleanText(testId, "")
   ).length;
+}
+
+function evidenceCounts(tests = []) {
+  const counts = { high: 0, medium: 0, low: 0, none: 0 };
+  for (const test of Array.isArray(tests) ? tests : []) {
+    const level = cleanText(test?.evidenceLevel, "none");
+    if (Object.prototype.hasOwnProperty.call(counts, level)) counts[level] += 1;
+    else counts.none += 1;
+  }
+  return counts;
+}
+
+function assessmentResultSentence(summary = {}) {
+  const parts = [];
+  if (summary.improved > 0) parts.push(`${summary.improved} improved`);
+  if (summary.declined > 0) parts.push(`${summary.declined} declined`);
+  if (summary.unchanged > 0) parts.push(`${summary.unchanged} unchanged`);
+  if (summary.mixed > 0) parts.push(`${summary.mixed} mixed`);
+  if (summary.unavailable > 0) parts.push(`${summary.unavailable} without a compatible comparison`);
+
+  const testsSentence = parts.length
+    ? `Latest Test outcomes: ${parts.join(", ")}.`
+    : "No compatible latest Test comparisons were available.";
+  const pbSentence = summary.latestPbCount > 0
+    ? ` ${summary.latestPbCount} new PB${summary.latestPbCount === 1 ? "" : "s"} were recorded in the latest Assessment.`
+    : " No new PB was recorded in the latest Assessment.";
+  return `${testsSentence}${pbSentence}`;
+}
+
+function trainingContextSentence(training = {}, consistency = {}) {
+  const completedSessions = count(training?.completedSessions);
+  const activeDays = count(training?.activeSessionDays);
+  const intervalDays = count(training?.interval?.calendarDays);
+  const consistencyPct = Number(consistency?.consistencyPct);
+  const consistencyText = Number.isFinite(consistencyPct)
+    ? ` Observed structured training was present in ${count(consistency?.activePeriods)} of ${count(consistency?.eligiblePeriods)} seven-day periods (${consistencyPct.toFixed(1).replace(/\.0$/, "")}%); this is a training-rhythm measure, not plan adherence.`
+    : "";
+  const periodText = intervalDays > 0 ? ` across the ${intervalDays}-day between-Assessment interval` : " between Assessments";
+  return `${completedSessions} completed structured Session${completedSessions === 1 ? "" : "s"} were recorded${periodText} on ${activeDays} completed Session day${activeDays === 1 ? "" : "s"}.${consistencyText}`;
+}
+
+function focusSentence(sessionFocus = {}) {
+  const focus = sessionFocus?.possibleNextFocus;
+  if (focus?.available) {
+    return `Possible next focus: ${cleanText(focus.reason, "A related active Session was underrepresented between benchmarks.")}`;
+  }
+  const rows = Array.isArray(sessionFocus?.sessionBalance) ? sessionFocus.sessionBalance : [];
+  if (rows.length > 1 && rows.every((row) => row?.underrepresented === false)) {
+    return "No Session-balance focus is suggested because the related active Sessions were evenly represented in the recorded interval.";
+  }
+  return "No Session-balance focus is suggested from the available recorded evidence.";
 }
 
 export function buildAssessmentTestAnalyses(assessmentTrainingEvidence = null) {
@@ -112,10 +166,11 @@ export function buildAssessmentAnalysis({
   };
 
   if (evidence.state !== "analysis_ready") {
+    const completedAssessments = count(evidence.assessmentProgress?.completedAssessmentCount);
     return {
       ...base,
       summary: {
-        completedAssessments: count(evidence.assessmentProgress?.completedAssessmentCount),
+        completedAssessments,
         latestPbCount: 0,
         improved: 0,
         declined: 0,
@@ -138,8 +193,16 @@ export function buildAssessmentAnalysis({
         },
       },
       tests: [],
-      causationBoundary:
-        "Analysis describes recorded training alongside benchmark change; it does not establish that training caused the result.",
+      evidenceCounts: { high: 0, medium: 0, low: 0, none: 0 },
+      taxonomyFallbackUsed: false,
+      overallNarrative:
+        evidence.state === "baseline_only"
+          ? "A baseline Assessment is established. Complete the same Assessment Template again before between-benchmark Analysis is available."
+          : "Complete an Assessment to establish a benchmark before between-benchmark Analysis is available.",
+      resultNarrative: "",
+      trainingNarrative: "",
+      focusNarrative: "",
+      causationBoundary: ASSESSMENT_ANALYSIS_CAUSATION_BOUNDARY,
     };
   }
 
@@ -165,23 +228,41 @@ export function buildAssessmentAnalysis({
   });
   const tests = buildAssessmentTestAnalyses(evidence);
   const progress = evidence.assessmentProgress;
+  const summary = {
+    completedAssessments: count(progress?.completedAssessmentCount),
+    latestPbCount: count(progress?.latestPbCount),
+    improved: (progress?.improvedTests || []).length,
+    declined: (progress?.decliningTests || []).length,
+    unchanged: (progress?.unchangedTests || []).length,
+    mixed: (progress?.mixedTests || []).length,
+    unavailable: (progress?.unavailableTests || []).length,
+  };
+  const resultNarrative = assessmentResultSentence(summary);
+  const trainingNarrative = trainingContextSentence(
+    betweenAssessmentTraining,
+    observedConsistency
+  );
+  const focusNarrative = focusSentence(sessionFocus);
+  const counts = evidenceCounts(tests);
+  const taxonomyFallbackUsed = tests.some(
+    (test) =>
+      test?.developmentTagSource === "current_taxonomy" ||
+      test?.training?.usedCurrentTaxonomyFallback === true
+  );
 
   return {
     ...base,
-    summary: {
-      completedAssessments: count(progress?.completedAssessmentCount),
-      latestPbCount: count(progress?.latestPbCount),
-      improved: (progress?.improvedTests || []).length,
-      declined: (progress?.decliningTests || []).length,
-      unchanged: (progress?.unchangedTests || []).length,
-      mixed: (progress?.mixedTests || []).length,
-      unavailable: (progress?.unavailableTests || []).length,
-    },
+    summary,
     betweenAssessmentTraining,
     observedConsistency,
     sessionFocus,
     tests,
-    causationBoundary:
-      "Analysis describes recorded training alongside benchmark change; it does not establish that training caused the result.",
+    evidenceCounts: counts,
+    taxonomyFallbackUsed,
+    resultNarrative,
+    trainingNarrative,
+    focusNarrative,
+    overallNarrative: `${resultNarrative} ${trainingNarrative} ${focusNarrative}`,
+    causationBoundary: ASSESSMENT_ANALYSIS_CAUSATION_BOUNDARY,
   };
 }
