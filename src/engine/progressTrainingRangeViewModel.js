@@ -15,6 +15,18 @@ function cleanText(value, fallback = "") {
   return text || fallback;
 }
 
+function formatMonthKey(monthKey) {
+  const text = cleanText(monthKey);
+  if (!/^\d{4}-\d{2}$/.test(text)) return text;
+  const date = new Date(`${text}-01T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return text;
+  return new Intl.DateTimeFormat("en-GB", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 function buildDistribution(rows = []) {
   const safeRows = Array.isArray(rows) ? rows : [];
   const total = safeRows.reduce(
@@ -61,7 +73,7 @@ function buildTrend(rows = [], key = "recent28") {
     endDate: cleanText(row?.endDate),
     label:
       key === "lifetime"
-        ? cleanText(row?.monthKey, cleanText(row?.startDate).slice(0, 7))
+        ? formatMonthKey(cleanText(row?.monthKey, cleanText(row?.startDate).slice(0, 7)))
         : formatProgressRangeLabel(row?.startDate, row?.endDate),
     completedSessions: Math.max(0, finiteNumber(row?.completedSessions)),
     partialSessions: Math.max(0, finiteNumber(row?.partialSessions)),
@@ -84,11 +96,17 @@ function buildRangePresentation(key, range = null) {
 
   return {
     key,
-    label: cleanText(range?.label, key === "recent28" ? "Last 4 weeks" : key === "month" ? "This month" : "All time"),
+    label: cleanText(
+      range?.label,
+      key === "recent28" ? "Last 4 weeks" : key === "month" ? "This month" : "All time"
+    ),
     dateLabel:
       key === "lifetime"
         ? "All genuine structured history"
-        : formatProgressRangeLabel(range?.startDate, range?.endDate),
+        : formatProgressRangeLabel(
+            range?.startDate,
+            range?.displayEndDate || range?.endDate
+          ),
     completedSessions: Math.max(0, finiteNumber(summary.completedSessions)),
     partialSessions: Math.max(0, finiteNumber(summary.partialSessions)),
     activeSessionDays: Math.max(0, finiteNumber(summary.activeSessionDays)),
