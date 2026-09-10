@@ -102,7 +102,7 @@ function focusSentence(sessionFocus = {}) {
   }
   const rows = Array.isArray(sessionFocus?.sessionBalance) ? sessionFocus.sessionBalance : [];
   if (rows.length > 1 && rows.every((row) => row?.underrepresented === false)) {
-    return "No Session-balance focus is suggested because the related active Sessions were evenly represented in the recorded interval.";
+    return "No Session-balance focus is suggested; the related active Sessions were evenly represented in the recorded interval.";
   }
   return "No Session-balance focus is suggested from the available recorded evidence.";
 }
