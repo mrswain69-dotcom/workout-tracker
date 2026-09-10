@@ -1,0 +1,61 @@
+name: Stage 4 Session Completion Patch
+
+on:
+  push:
+    branches:
+      - feature/group-team-ecosystem
+    paths:
+      - .github/workflows/stage4-session-completion-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/group-team-ecosystem
+          fetch-depth: 0
+      - name: Add immutable Session completion timestamp
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/components/sessions/SessionLogger.jsx')
+          text = p.read_text()
+          replacements = [
+            (
+              'export function completeSessionForLogging(session) {',
+              'export function completeSessionForLogging(session, completedAt = "") {'
+            ),
+            (
+              '  return {\n    ...safe,\n    completed: true,\n    movements,\n  };',
+              '  return {\n    ...safe,\n    completed: true,\n    completedAt:\n      cleanText(completedAt, "") ||\n      cleanText(safe.completedAt, "") ||\n      new Date().toISOString(),\n    movements,\n  };'
+            ),
+            (
+              '  return {\n    ...safe,\n    completed: false,\n    movements: Array.isArray(safe.movements)',
+              '  return {\n    ...safe,\n    completed: false,\n    completedAt: "",\n    movements: Array.isArray(safe.movements)'
+            ),
+            (
+              '    emit(completeSessionForLogging(current), { source: "session-complete" });',
+              '    emit(completeSessionForLogging(current, new Date().toISOString()), { source: "session-complete" });'
+            ),
+          ]
+          for old, new in replacements:
+            count = text.count(old)
+            if count != 1:
+              raise SystemExit(f'Expected exactly one SessionLogger patch target, found {count}: {old[:70]}')
+            text = text.replace(old, new, 1)
+          p.write_text(text)
+          PY
+      - name: Commit Session timestamp hardening
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/sessions/SessionLogger.jsx
+          git diff --cached --quiet && exit 1
+          git commit -m "Harden Session completion timestamps for Consistency"
+          git push origin HEAD:feature/group-team-ecosystem
