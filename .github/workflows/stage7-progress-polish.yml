@@ -6,6 +6,7 @@ on:
       - feature/phase3-progress-dashboard
     paths:
       - scripts/stage7-progress-polish.mjs
+      - .github/workflows/stage7-progress-polish.yml
 
 permissions:
   contents: write
