@@ -46,7 +46,32 @@ replaceOnce(
   `  groupDb.listGroupInvites.mockResolvedValue({ data: [], error: null });\n  groupDb.loadGroupXpLeaderboard.mockResolvedValue({\n    data: {\n      scoreVersion: 1,\n      scopeMode: "group_start",\n      competitionStartDate: "2026-09-10",\n      current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] },\n      history: [],\n    },\n    error: null,\n  });\n  groupDb.updateGroupXpHistoryScope.mockResolvedValue({ data: { xp_history_scope: "group_start" }, error: null });`
 );
 
-const contract = `import fs from "node:fs";\nimport { describe, expect, it } from "vitest";\n\ndescribe("Group Stage 3 integration contract", () => {\n  it("keeps Group mutations server-authorized and leaderboard scoring in the Edge Function", () => {\n    const db = fs.readFileSync(new URL("./groupDb.js", import.meta.url), "utf8");\n    expect(db).toContain('supabase.functions.invoke("group-xp-leaderboard"');\n    expect(db).toContain('supabase.rpc("group_update_xp_history_scope"');\n    expect(db).not.toMatch(/from\("group_weekly_xp_results"\).*\.(insert|update|upsert|delete)/s);\n  });\n\n  it("renders Weekly XP before the member-management panel", () => {\n    const hub = fs.readFileSync(new URL("./GroupHub.jsx", import.meta.url), "utf8");\n    expect(hub.indexOf("<GroupWeeklyXp")).toBeGreaterThan(-1);\n    expect(hub.indexOf("<GroupWeeklyXp")).toBeLessThan(hub.indexOf("<h4>Members</h4>"));\n  });\n\n  it("does not add untruthful Improvement or Consistency leaderboard placeholders", () => {\n    const weekly = fs.readFileSync(new URL("./GroupWeeklyXp.jsx", import.meta.url), "utf8");\n    expect(weekly).not.toContain("Improvement leaderboard");\n    expect(weekly).not.toContain("Consistency leaderboard");\n  });\n});\n`;
+replaceOnce(
+  'supabase/functions/group-xp-leaderboard/index.ts',
+  `.select("id,profile_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled")\n      .eq("group_id", groupId)\n      .eq("status", "active")\n      .order("joined_at", { ascending: true });`,
+  `.select("id,profile_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,status,joined_at,left_at")\n      .eq("group_id", groupId)\n      .order("joined_at", { ascending: true });`
+);
+
+replaceOnce(
+  'supabase/functions/group-xp-leaderboard/index.ts',
+  `    const activeMembers = memberships || [];\n    const profileIds = activeMembers.map((member) => member.profile_id).filter(Boolean);`,
+  `    const allMemberships = memberships || [];\n    const activeMembers = allMemberships.filter((member: any) => member.status === "active");\n    const profileIds = [...new Set(allMemberships.map((member: any) => member.profile_id).filter(Boolean))];`
+);
+
+replaceOnce(
+  'supabase/functions/group-xp-leaderboard/index.ts',
+  '    for (const member of activeMembers) {\n      ledgerByMembership.set(',
+  '    for (const member of allMemberships) {\n      ledgerByMembership.set('
+);
+
+replaceOnce(
+  'supabase/functions/group-xp-leaderboard/index.ts',
+  `        const eligibleFrom = scopeMode === "group_start" ? maxYmd(window.startDate, groupStart) : window.startDate;\n        const inserts = activeMembers.map((member: any) => ({`,
+  `        const eligibleFrom = scopeMode === "group_start" ? maxYmd(window.startDate, groupStart) : window.startDate;\n        const historyMembers = allMemberships.filter((member: any) => {\n          if (member.status === "active") return true;\n          const joinedDate = String(member.joined_at || "").slice(0, 10);\n          const leftDate = String(member.left_at || "").slice(0, 10);\n          return !!joinedDate && joinedDate <= window.endDate && (!leftDate || leftDate >= window.startDate);\n        });\n        const inserts = historyMembers.map((member: any) => ({`
+);
+
+const contract = `import fs from "node:fs";\nimport { describe, expect, it } from "vitest";\n\ndescribe("Group Stage 3 integration contract", () => {\n  it("keeps Group mutations server-authorized and leaderboard scoring in the Edge Function", () => {\n    const db = fs.readFileSync(new URL("./groupDb.js", import.meta.url), "utf8");\n    expect(db).toContain('supabase.functions.invoke("group-xp-leaderboard"');\n    expect(db).toContain('supabase.rpc("group_update_xp_history_scope"');\n    expect(db).not.toMatch(/from\("group_weekly_xp_results"\).*\.(insert|update|upsert|delete)/s);\n  });\n\n  it("renders Weekly XP before the member-management panel", () => {\n    const hub = fs.readFileSync(new URL("./GroupHub.jsx", import.meta.url), "utf8");\n    expect(hub.indexOf("<GroupWeeklyXp")).toBeGreaterThan(-1);\n    expect(hub.indexOf("<GroupWeeklyXp")).toBeLessThan(hub.indexOf("<h4>Members</h4>"));\n  });\n\n  it("does not add untruthful Improvement or Consistency leaderboard placeholders", () => {\n    const weekly = fs.readFileSync(new URL("./GroupWeeklyXp.jsx", import.meta.url), "utf8");\n    expect(weekly).not.toContain("Improvement leaderboard");\n    expect(weekly).not.toContain("Consistency leaderboard");\n  });\n\n  it("keeps raw scoring private and preserves relevant former members in closed weeks", () => {\n    const edge = fs.readFileSync(new URL("../../supabase/functions/group-xp-leaderboard/index.ts", import.meta.url), "utf8");\n    expect(edge).toContain("Active Group membership required");\n    expect(edge).toContain('member.status === "active"');\n    expect(edge).toContain("joinedDate <= window.endDate");\n    expect(edge).toContain("leftDate >= window.startDate");\n    expect(edge).not.toMatch(/body\?\.(xp|score)/);\n  });\n});\n`;
 fs.writeFileSync('src/groups/groupStage3Integration.test.js', contract);
 
+// Trigger marker: closed-week membership preservation.
 console.log('Stage 3 Group leaderboard UI integration applied.');
