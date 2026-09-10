@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -28,6 +28,8 @@ import {
 } from "./AssessmentDevelopmentProgress.jsx";
 import "./ProgressDashboard.css";
 import "./ProgressDashboardStage7.css";
+
+const AssessmentAnalysisSection = lazy(() => import("./AssessmentAnalysisSection.jsx"));
 
 const DEFAULT_DB_API = Object.freeze({
   loadSessionLibrary,
@@ -706,6 +708,23 @@ export default function ProgressDashboard({
 
         <DevelopmentTrendDetails developmentTrends={developmentTrends} />
       </div>
+
+      <Suspense
+        fallback={
+          <div className="progress-system-message" role="status">
+            Loading Assessment Analysis…
+          </div>
+        }
+      >
+        <AssessmentAnalysisSection
+          completedHistory={remoteData.completedHistory}
+          logs={logs}
+          profileId={profileId}
+          sessionLibrary={remoteData.sessionLibrary}
+          assessmentLibrary={remoteData.assessmentLibrary}
+          onOpenAssessments={onOpenAssessments}
+        />
+      </Suspense>
 
       <div className="progress-legacy-bridge">
         <strong>Legacy workout history retained below</strong>
