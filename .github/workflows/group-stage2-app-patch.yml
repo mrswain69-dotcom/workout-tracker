@@ -1,0 +1,41 @@
+name: Group Stage 2 App Patch
+
+on:
+  push:
+    branches:
+      - feature/group-team-ecosystem
+    paths:
+      - scripts/group-stage2-app-patch.mjs
+      - .github/workflows/group-stage2-app-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/group-team-ecosystem
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Apply guarded App integration
+        run: node scripts/group-stage2-app-patch.mjs
+      - name: Remove temporary patch machinery
+        run: |
+          rm -f scripts/group-stage2-app-patch.mjs
+          rm -f .github/workflows/group-stage2-app-patch.yml
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/App.jsx scripts/group-stage2-app-patch.mjs .github/workflows/group-stage2-app-patch.yml
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Integrate Group Stage 2 hub"
+          git push origin HEAD:feature/group-team-ecosystem
