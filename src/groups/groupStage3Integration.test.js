@@ -20,4 +20,13 @@ describe("Group Stage 3 integration contract", () => {
     expect(weekly).not.toContain("Improvement leaderboard");
     expect(weekly).not.toContain("Consistency leaderboard");
   });
+
+  it("keeps raw scoring private and preserves relevant former members in closed weeks", () => {
+    const edge = fs.readFileSync(new URL("../../supabase/functions/group-xp-leaderboard/index.ts", import.meta.url), "utf8");
+    expect(edge).toContain("Active Group membership required");
+    expect(edge).toContain('member.status === "active"');
+    expect(edge).toContain("joinedDate <= window.endDate");
+    expect(edge).toContain("leftDate >= window.startDate");
+    expect(edge).not.toMatch(/body?.(xp|score)/);
+  });
 });
