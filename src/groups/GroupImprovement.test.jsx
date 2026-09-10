@@ -76,7 +76,8 @@ describe("GroupImprovement", () => {
   it("shows failures deliberately rather than hiding the leaderboard", async () => {
     loadGroupImprovementLeaderboard.mockResolvedValue({ data: null, error: new Error("network down") });
     render(<GroupImprovement group={group} membership={membership} />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("network down");
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("network down");
   });
 
   it("refreshes through the authenticated server loader", async () => {
