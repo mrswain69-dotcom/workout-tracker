@@ -46,7 +46,7 @@ function LeaderAvatar({ row }) {
 }
 
 function TopThree({ rows = [], selfId }) {
-  const top = rows.filter((row) => Number(row?.xp || 0) > 0 && Number(row?.rank || 99) <= 3).slice(0, 3);
+  const top = rows.filter((row) => Number(row?.xp || 0) > 0 && Number(row?.rank || 99) <= 3);
   if (!top.length) return null;
 
   return (
