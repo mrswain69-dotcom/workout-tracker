@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ProgressDashboard from "./ProgressDashboard.jsx";
 
@@ -154,15 +154,17 @@ describe("Phase 4 Stage 5 ProgressDashboard integration", () => {
 
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
 
-    expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy();
-    expect(screen.getByLabelText("Assessment comparison period")).toBeTruthy();
-    expect(screen.getByText("1 Aug 2026")).toBeTruthy();
-    expect(screen.getByText("1 Sept 2026")).toBeTruthy();
-    expect(screen.getByText("Observed Consistency")).toBeTruthy();
-    expect(screen.getByText("POSSIBLE NEXT FOCUS")).toBeTruthy();
-    expect(screen.getByText("Session B · Receiving")).toBeTruthy();
-    expect(screen.getByText("Outside-foot receive")).toBeTruthy();
-    expect(screen.getByText(/does not establish that training caused the result/)).toBeTruthy();
+    const analysis = screen.getByLabelText("Assessment Analysis");
+    const analysisScreen = within(analysis);
+    const comparison = analysisScreen.getByLabelText("Assessment comparison period");
+    expect(comparison).toBeTruthy();
+    expect(within(comparison).getByText("1 Aug 2026")).toBeTruthy();
+    expect(within(comparison).getByText("1 Sept 2026")).toBeTruthy();
+    expect(analysisScreen.getByText("Observed Consistency")).toBeTruthy();
+    expect(analysisScreen.getByText("POSSIBLE NEXT FOCUS")).toBeTruthy();
+    expect(analysisScreen.getByText("Session B · Receiving")).toBeTruthy();
+    expect(analysisScreen.getByText("Outside-foot receive")).toBeTruthy();
+    expect(analysisScreen.getByText(/does not establish that training caused the result/)).toBeTruthy();
 
     expect(api.loadSessionLibrary).toHaveBeenCalledTimes(1);
     expect(api.loadAssessmentLibrary).toHaveBeenCalledTimes(1);
@@ -184,9 +186,10 @@ describe("Phase 4 Stage 5 ProgressDashboard integration", () => {
     );
 
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
-    expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy();
-    expect(screen.getByText("Build your Assessment baseline")).toBeTruthy();
-    expect(screen.queryByText("Observed Consistency")).toBeNull();
-    expect(screen.queryByText("POSSIBLE NEXT FOCUS")).toBeNull();
+    const analysis = screen.getByLabelText("Assessment Analysis");
+    const analysisScreen = within(analysis);
+    expect(analysisScreen.getByText("Build your Assessment baseline")).toBeTruthy();
+    expect(analysisScreen.queryByText("Observed Consistency")).toBeNull();
+    expect(analysisScreen.queryByText("POSSIBLE NEXT FOCUS")).toBeNull();
   });
 });

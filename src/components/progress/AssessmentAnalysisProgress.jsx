@@ -170,7 +170,7 @@ export default function AssessmentAnalysisProgress({ model, onOpenAssessments = 
       <div className="analysis-heading">
         <div>
           <div className="analysis-heading__kicker">ANALYSIS</div>
-          <h3>{model.title}</h3>
+          <h3>Assessment Analysis</h3>
           <p>What changed between benchmarks, alongside the structured training that was recorded between them.</p>
         </div>
         {model.ready && typeof onOpenAssessments === "function" ? (

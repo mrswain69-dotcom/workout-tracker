@@ -115,8 +115,10 @@ describe("ProgressDashboard Stage 4 shell", () => {
       />
     );
 
-    await waitFor(() => expect(screen.getByText("Open Assess")).toBeTruthy());
-    fireEvent.click(screen.getByText("Open Assess"));
+    await waitFor(() =>
+      expect(screen.getAllByRole("button", { name: "Open Assess" }).length).toBeGreaterThan(0)
+    );
+    fireEvent.click(screen.getAllByRole("button", { name: "Open Assess" })[0]);
     expect(openAssess).toHaveBeenCalledTimes(1);
   });
 

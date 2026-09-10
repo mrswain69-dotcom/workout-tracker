@@ -130,7 +130,7 @@ describe("Phase 4 Stage 5 AssessmentAnalysisProgress", () => {
     expect(screen.getByText("75%")).toBeTruthy();
     expect(screen.getByText("Session B · Receiving")).toBeTruthy();
     expect(screen.getByText("Based on recorded Session balance only — not an automatic load prescription.")).toBeTruthy();
-    expect(screen.getByText("High detail")).toBeTruthy();
+    expect(screen.getAllByText("High detail")).toHaveLength(2);
     expect(screen.getByText("Outside-foot receive")).toBeTruthy();
 
     fireEvent.click(screen.getByText("Outside-foot receive"));
@@ -158,6 +158,6 @@ describe("Phase 4 Stage 5 AssessmentAnalysisProgress", () => {
   it("surfaces taxonomy fallback provenance without changing the Test result", () => {
     render(<AssessmentAnalysisProgress model={baseModel({ taxonomyFallbackUsed: true })} />);
     expect(screen.getByText(/current Development Tag taxonomy/)).toBeTruthy();
-    expect(screen.getByText("Improved")).toBeTruthy();
+    expect(screen.getAllByText("Improved")).toHaveLength(2);
   });
 });
