@@ -134,7 +134,7 @@ describe("Phase 4 Stage 5 AssessmentAnalysisProgress", () => {
     expect(screen.getByText("Outside-foot receive")).toBeTruthy();
 
     fireEvent.click(screen.getByText("Outside-foot receive"));
-    expect(screen.getByText(/186 recorded executions/)).toBeTruthy();
+    expect(screen.getAllByText(/186 recorded executions/)).toHaveLength(2);
     expect(screen.getByText(/does not establish that training caused the result/)).toBeTruthy();
   });
 
