@@ -1,4 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import { loadSessionLibrary } from "../../db.js";
 import { loadAssessmentLibrary } from "../../assessmentDb.js";
 import {
@@ -122,7 +131,75 @@ function formatMinutes(minutes) {
   return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
 }
 
-function SessionBalance({ rows }) {
+function formatNumber(value) {
+  return Math.max(0, Number(value) || 0).toLocaleString("en-GB");
+}
+
+function TrainingTrendCharts({ training }) {
+  const rows = Array.isArray(training?.trainingTrend) ? training.trainingTrend : [];
+  if (!training?.hasTrendActivity) {
+    return (
+      <div className="progress-empty-block progress-empty-block--chart">
+        Training charts will appear after structured Session activity is recorded.
+        The chart window is the same rolling 28 days shown in the cards above.
+      </div>
+    );
+  }
+
+  return (
+    <div className="progress-chart-grid">
+      <div
+        className="progress-chart-card"
+        aria-label="Completed Sessions by 7-day period"
+      >
+        <div className="progress-chart-card__title">Completed Sessions</div>
+        <div className="progress-chart-card__note">
+          Four consecutive 7-day periods · rolling 28 days
+        </div>
+        <div className="progress-chart-card__canvas">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rows} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#64748b" }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#64748b" }} />
+              <Tooltip
+                formatter={(value) => [formatNumber(value), "Completed Sessions"]}
+                labelFormatter={(label) => String(label || "")}
+              />
+              <Bar dataKey="completedSessions" fill="#00e5ff" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div
+        className="progress-chart-card"
+        aria-label="Training time by 7-day period"
+      >
+        <div className="progress-chart-card__title">Training time</div>
+        <div className="progress-chart-card__note">
+          Actual time where recorded; completed Sessions may use frozen planned-time fallback
+        </div>
+        <div className="progress-chart-card__canvas">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rows} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#64748b" }} />
+              <YAxis tick={{ fontSize: 10, fill: "#64748b" }} />
+              <Tooltip
+                formatter={(value) => [formatMinutes(value), "Training time"]}
+                labelFormatter={(label) => String(label || "")}
+              />
+              <Bar dataKey="totalMinutes" fill="#00ff88" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionDistribution({ rows, total }) {
   const safeRows = Array.isArray(rows) ? rows : [];
   if (!safeRows.length) {
     return (
@@ -133,23 +210,99 @@ function SessionBalance({ rows }) {
   }
 
   return (
-    <div className="progress-balance-grid">
+    <div className="progress-distribution-list" aria-label="Session distribution">
       {safeRows.map((row) => (
         <div
-          className={`progress-balance-item${row.historicalOnly ? " progress-balance-item--historical" : ""}`}
+          className={`progress-distribution-item${row.historicalOnly ? " progress-distribution-item--historical" : ""}`}
           key={row.templateId || `${row.displayCode}-${row.name}`}
         >
-          <div className="progress-balance-item__code">
+          <div className="progress-distribution-item__code">
             {row.displayCode || "—"}
           </div>
-          <div className="progress-balance-item__body">
-            <div className="progress-balance-item__name">{row.name || "Session"}</div>
-            <div className="progress-balance-item__meta">
-              {row.count || 0} completed · last 4 weeks
+          <div className="progress-distribution-item__body">
+            <div className="progress-distribution-item__topline">
+              <div>
+                <div className="progress-distribution-item__name">{row.name || "Session"}</div>
+                <div className="progress-distribution-item__meta">
+                  {row.count || 0} completed · {total > 0 ? `${row.sharePct}% of completed Sessions` : "no completed Sessions yet"}
+                  {row.lastCompletedLabel ? ` · last ${row.lastCompletedLabel}` : ""}
+                </div>
+              </div>
+              <div className="progress-distribution-item__count">{row.count || 0}</div>
+            </div>
+            <div className="progress-distribution-item__track" aria-hidden="true">
+              <div
+                className="progress-distribution-item__fill"
+                style={{ width: `${Math.max(0, Math.min(100, Number(row.sharePct) || 0))}%` }}
+              />
             </div>
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function MovementMeasure({ children }) {
+  return <span className="progress-movement-measure">{children}</span>;
+}
+
+function MovementTotals({ rows }) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  if (!safeRows.length) {
+    return (
+      <div className="progress-empty-block">
+        No structured Movement totals yet. Movement history starts from genuine
+        Session results and does not backfill legacy workouts.
+      </div>
+    );
+  }
+
+  return (
+    <div className="progress-movement-list" aria-label="Movement totals">
+      {safeRows.map((row) => {
+        const hasNumericMeasure =
+          !!row.measures?.executions ||
+          !!row.measures?.accuracy ||
+          !!row.measures?.bestScore;
+        return (
+          <div
+            className="progress-movement-row"
+            key={row.movementId || `${row.name}-${row.lastPerformedDate}`}
+          >
+            <div className="progress-movement-row__identity">
+              <div className="progress-movement-row__name">{row.name}</div>
+              <div className="progress-movement-row__meta">
+                {row.timesPerformed} time{row.timesPerformed === 1 ? "" : "s"} performed
+                {row.lastPerformedLabel ? ` · last ${row.lastPerformedLabel}` : ""}
+              </div>
+            </div>
+            <div className="progress-movement-row__measures">
+              {row.measures?.executions ? (
+                <MovementMeasure>
+                  {formatNumber(row.measures.executions.value)} recorded executions
+                </MovementMeasure>
+              ) : null}
+              {row.measures?.accuracy ? (
+                <MovementMeasure>
+                  {formatNumber(row.measures.accuracy.successes)}/{formatNumber(row.measures.accuracy.attempts)} successful
+                  {row.measures.accuracy.percentage !== null && row.measures.accuracy.percentage !== undefined
+                    ? ` · ${row.measures.accuracy.percentage}%`
+                    : ""}
+                </MovementMeasure>
+              ) : null}
+              {row.measures?.bestScore ? (
+                <MovementMeasure>
+                  Best score {row.measures.bestScore.value}
+                </MovementMeasure>
+              ) : null}
+              {!hasNumericMeasure ? (
+                <MovementMeasure>Completion recorded · no numeric total</MovementMeasure>
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -376,27 +529,58 @@ export default function ProgressDashboard({
         <div className="progress-metric-grid">
           <MetricCard label="Sessions · this week" value={model.training.sessionsThisWeek} />
           <MetricCard label="Sessions · this month" value={model.training.sessionsThisMonth} />
+          <MetricCard
+            label="Sessions · last 4 weeks"
+            value={model.training.completedSessions28}
+            note={model.training.partialSessions28 ? `${model.training.partialSessions28} partial kept separate` : "Completed structured Sessions"}
+          />
+          <MetricCard
+            label="Active days · last 4 weeks"
+            value={model.training.activeSessionDays28}
+            note="A day counts once even with multiple Sessions"
+          />
           <MetricCard label="Current streak" value={`${model.training.currentStreak}d`} />
           <MetricCard label="XP" value={model.training.currentXp.toLocaleString("en-GB")} />
           <MetricCard
-            label="Training time · 4 weeks"
+            label="Training time · last 4 weeks"
             value={formatMinutes(model.training.trainingMinutes28)}
           />
           <MetricCard
-            label="Recorded executions · 4 weeks"
-            value={model.training.recordedExecutions28}
-            note="Explicit recorded values only"
+            label="Recorded executions · last 4 weeks"
+            value={formatNumber(model.training.recordedExecutions28)}
+            note="Explicit compatible counts only"
+          />
+          <MetricCard
+            label="Success rate · last 4 weeks"
+            value={model.training.accuracyPct28 === null ? "—" : `${model.training.accuracyPct28}%`}
+            note={model.training.attempts28 > 0 ? `${model.training.successes28}/${model.training.attempts28} successful attempts` : "Available for attempts/successes tracking"}
           />
         </div>
+
+        <TrainingTrendCharts training={model.training} />
       </div>
 
       <div className="progress-section">
-        <SectionHeading kicker="BALANCE" title="Session balance" />
+        <SectionHeading kicker="SESSION MIX" title="Session distribution" />
         <p className="progress-section-copy">
-          Completed structured Sessions across the rolling last 4 weeks. Legacy
-          workouts are never reclassified as Session A/B/C.
+          Completed structured Sessions across the rolling last 4 weeks. Partial
+          Sessions remain separate, and legacy workouts are never reclassified as
+          Session A/B/C.
         </p>
-        <SessionBalance rows={model.training.sessionBalance} />
+        <SessionDistribution
+          rows={model.training.sessionBalance}
+          total={model.training.sessionDistributionTotal}
+        />
+      </div>
+
+      <div className="progress-section">
+        <SectionHeading kicker="MOVEMENTS" title="Movement totals" />
+        <p className="progress-section-copy">
+          Lifetime totals from structured Session history. Repetitions/executions,
+          attempts/successes and best scores stay in separate measures rather than
+          being added together as if they shared a unit.
+        </p>
+        <MovementTotals rows={model.training.movementTotals} />
       </div>
 
       <div className="progress-section">
@@ -439,8 +623,8 @@ export default function ProgressDashboard({
             note="Compatible benchmark history"
           />
           <div className="progress-development-summary__note">
-            Detailed Test charts and Development Trend rows build on this shell
-            once benchmark history exists.
+            Detailed Test charts and Development Trend rows arrive in Stage 6 once
+            benchmark history exists.
           </div>
         </div>
       </div>
