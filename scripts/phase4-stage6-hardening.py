@@ -4,13 +4,14 @@ from pathlib import Path
 def replace_once(path_string, old, new, label):
     path = Path(path_string)
     text = path.read_text(encoding="utf-8")
-    if new in text:
+    if old in text:
+        path.write_text(text.replace(old, new, 1), encoding="utf-8")
+        print(f"{label}: applied")
+        return
+    if new and new in text:
         print(f"{label}: already applied")
         return
-    if old not in text:
-        raise SystemExit(f"{label}: expected anchor not found")
-    path.write_text(text.replace(old, new, 1), encoding="utf-8")
-    print(f"{label}: applied")
+    raise SystemExit(f"{label}: expected anchor not found")
 
 
 # Lazy-load the complete Assessment Analysis slice so its engine/view-model/UI
