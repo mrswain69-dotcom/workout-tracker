@@ -1,0 +1,33 @@
+name: Phase 4 Stage 5 Progress Integration
+
+on:
+  push:
+    branches:
+      - feature/phase4-analysis
+    paths:
+      - scripts/phase4-stage5-integrate.py
+      - .github/workflows/phase4-stage5-integrate.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/phase4-analysis
+      - name: Apply guarded Stage 5 Progress integration
+        run: python scripts/phase4-stage5-integrate.py
+      - name: Commit patch output
+        run: |
+          if git diff --quiet; then
+            echo "No patch output required"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/progress/ProgressDashboard.jsx
+          git commit -m "Phase 4 Stage 5: integrate Assessment Analysis into Progress"
+          git push origin HEAD:feature/phase4-analysis
