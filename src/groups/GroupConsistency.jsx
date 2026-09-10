@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupConsistencyLeaderboard } from "./groupDb";
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
+import GroupImprovement from "./GroupImprovement.jsx";
 import "./GroupWeeklyXp.css";
 import "./GroupConsistency.css";
 
@@ -145,65 +146,69 @@ export default function GroupConsistency({ group, membership }) {
   );
 
   return (
-    <section className="groupHubPanel groupXpPanel groupConsistencyPanel">
-      <div className="groupXpHeading">
-        <div>
-          <span className="groupXpEyebrow groupConsistencyEyebrow">🛡️ DISCIPLINE</span>
-          <h4>Consistency</h4>
-          <p>Completed planned performance and recovery days ÷ planned days. It rewards following the plan, not doing the most work.</p>
-        </div>
-        <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Consistency">
-          ↻
-        </button>
-      </div>
-
-      <div className="groupXpPeriodToggle" role="group" aria-label="Consistency period">
-        <button type="button" className={mode === "current" ? "active" : ""} onClick={() => setMode("current")}>This week</button>
-        <button type="button" className={mode === "history" ? "active" : ""} onClick={() => setMode("history")}>Last 4 weeks</button>
-      </div>
-
-      {mode === "history" && weekButtons.length ? (
-        <div className="groupXpWeekPicker" role="group" aria-label="Choose Consistency week">
-          {weekButtons.map((week) => (
-            <button
-              type="button"
-              key={week.index}
-              className={historyIndex === week.index ? "active" : ""}
-              disabled={week.disabled}
-              onClick={() => setHistoryIndex(week.index)}
-            >
-              {week.label || `Week ${week.index + 1}`}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
-      {loading ? <div className="groupHubMuted groupXpLoading">Calculating Consistency…</div> : null}
-
-      {!loading && period ? (
-        <>
-          <div className="groupXpPeriodMeta">
-            <strong>{formatWeek(period.startDate, period.endDate)}</strong>
-            <span>{period.state === "frozen" ? "Final standings" : "Live standings · due days only"}</span>
+    <>
+      <section className="groupHubPanel groupXpPanel groupConsistencyPanel">
+        <div className="groupXpHeading">
+          <div>
+            <span className="groupXpEyebrow groupConsistencyEyebrow">🛡️ DISCIPLINE</span>
+            <h4>Consistency</h4>
+            <p>Completed planned performance and recovery days ÷ planned days. It rewards following the plan, not doing the most work.</p>
           </div>
+          <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Consistency">
+            ↻
+          </button>
+        </div>
 
-          {!period.available ? (
-            <div className="groupHubEmpty compact">This Group had not started yet.</div>
-          ) : rows.length ? (
-            <>
-              <TopThree rows={rows} selfId={membership.id} />
-              <Standings rows={rows} selfId={membership.id} />
-            </>
-          ) : (
-            <div className="groupHubEmpty compact">No Consistency standings are available for this period.</div>
-          )}
-        </>
-      ) : null}
+        <div className="groupXpPeriodToggle" role="group" aria-label="Consistency period">
+          <button type="button" className={mode === "current" ? "active" : ""} onClick={() => setMode("current")}>This week</button>
+          <button type="button" className={mode === "history" ? "active" : ""} onClick={() => setMode("history")}>Last 4 weeks</button>
+        </div>
 
-      <div className="groupConsistencyRuleNote">
-        <strong>What counts:</strong> a planned performance or recovery day is complete only when every planned training/recovery block is recorded on that day. Task-only days and Streak Saver do not count as completed planned days.
-      </div>
-    </section>
+        {mode === "history" && weekButtons.length ? (
+          <div className="groupXpWeekPicker" role="group" aria-label="Choose Consistency week">
+            {weekButtons.map((week) => (
+              <button
+                type="button"
+                key={week.index}
+                className={historyIndex === week.index ? "active" : ""}
+                disabled={week.disabled}
+                onClick={() => setHistoryIndex(week.index)}
+              >
+                {week.label || `Week ${week.index + 1}`}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
+        {loading ? <div className="groupHubMuted groupXpLoading">Calculating Consistency…</div> : null}
+
+        {!loading && period ? (
+          <>
+            <div className="groupXpPeriodMeta">
+              <strong>{formatWeek(period.startDate, period.endDate)}</strong>
+              <span>{period.state === "frozen" ? "Final standings" : "Live standings · due days only"}</span>
+            </div>
+
+            {!period.available ? (
+              <div className="groupHubEmpty compact">This Group had not started yet.</div>
+            ) : rows.length ? (
+              <>
+                <TopThree rows={rows} selfId={membership.id} />
+                <Standings rows={rows} selfId={membership.id} />
+              </>
+            ) : (
+              <div className="groupHubEmpty compact">No Consistency standings are available for this period.</div>
+            )}
+          </>
+        ) : null}
+
+        <div className="groupConsistencyRuleNote">
+          <strong>What counts:</strong> a planned performance or recovery day is complete only when every planned training/recovery block is recorded on that day. Task-only days and Streak Saver do not count as completed planned days.
+        </div>
+      </section>
+
+      <GroupImprovement group={group} membership={membership} />
+    </>
   );
 }
