@@ -60,7 +60,7 @@ Joining the same Group must **never** grant access to another family's raw priva
 
 A Group member may expose only a deliberately small competitive identity/output surface:
 
-- display name;
+- Group-specific nickname / pseudonym;
 - selected avatar;
 - selected cosmetic avatar frame/glow/aura;
 - group role;
@@ -68,8 +68,11 @@ A Group member may expose only a deliberately small competitive identity/output 
 - approved derived competition scores;
 - PB/award/team-summary facts explicitly designed for Group visibility.
 
+The Group nickname/pseudonym is deliberately independent from the private Workout Tracker profile name. The same athlete may choose a different nickname in different Groups without changing their account/profile identity.
+
 A Group member must not gain access to another member's:
 
+- private Workout Tracker profile name;
 - raw workout logs;
 - full `profiles` row;
 - weekly `plan_json`;
@@ -88,12 +91,15 @@ Do not make another family's `profiles` row generally readable merely to render 
 
 Create a small group-safe identity surface separate from private profile data. It should contain only the fields required to render a member consistently, such as:
 
-- `profile_id`;
-- owning `family_id`;
-- display name;
+- Group membership identifier;
+- Group identifier;
+- Group-specific nickname / pseudonym;
 - selected avatar ID;
 - selected avatar frame/glow ID;
-- updated timestamp.
+- role;
+- safe membership timestamps.
+
+The safe cross-family directory should not expose owning family/profile IDs or the private profile name.
 
 Avatar selection remains controlled by the owning family/profile. The group identity surface mirrors only the safe cosmetic fields.
 
@@ -112,10 +118,10 @@ Candidate fields:
 - `created_by_family_id`;
 - `created_by_profile_id`;
 - `status` / archived state;
-- optional group type (`family`, `friends`, `team`, `club`);
+- optional group type (`private`, `squad`, `club`);
 - created/updated timestamps.
 
-### `group_members`
+### `group_memberships`
 
 One membership per athlete profile per group.
 
@@ -125,6 +131,8 @@ Candidate fields:
 - `profile_id`;
 - `family_id`;
 - `role` (`admin`, `member`);
+- Group-specific `nickname` / pseudonym;
+- selected cosmetic identity snapshot;
 - joined timestamp;
 - active/left state.
 
@@ -132,8 +140,10 @@ Rules:
 
 - target maximum 20 active members per group;
 - profile cannot be duplicated in one group;
+- active nickname is case-insensitively unique within the Group;
 - at least one Admin must remain;
 - only the owning family can add/remove one of its profiles;
+- an athlete/family owns its own Group nickname; an Admin must not silently rename another member's pseudonym;
 - Group Admin controls group-level membership/admin actions but does not gain access to members' private training data.
 
 ### `group_invites`
@@ -230,6 +240,7 @@ Every leaderboard must:
 - avoid flashing dominance animations;
 - use cyan for interaction, green for progress and gold for genuine prestige;
 - keep data serious and readable;
+- use the Group nickname/pseudonym rather than leaking the private profile name;
 - support selected avatar + selected cosmetic glow/frame beside each athlete name;
 - keep distant ranks visually quieter;
 - avoid a public social-feed feel.
@@ -303,6 +314,7 @@ Do **not** add these tabs during the early Group build while the legacy Stats re
 - family-auth/profile-membership model;
 - privacy boundary;
 - avatar/glow identity boundary;
+- Group-specific nickname/pseudonym boundary;
 - competition truth rules;
 - navigation decisions recorded.
 
@@ -311,6 +323,7 @@ Do **not** add these tabs during the early Group build while the legacy Stats re
 - groups;
 - profile memberships;
 - Admin / Member roles;
+- Group-specific nickname/pseudonym;
 - group-safe profile identity;
 - invite foundation;
 - RLS/authorization tests;
@@ -321,8 +334,9 @@ Do **not** add these tabs during the early Group build while the legacy Stats re
 
 - create group;
 - invite code/link;
-- choose owned athlete profile when joining;
+- currently selected owned athlete is the explicit Join/Create identity;
 - join/leave/revoke flows;
+- Group-specific nickname creation/editing;
 - Admin member management;
 - avatar + selected frame/glow rendered beside member names;
 - empty/one-member/full-group states.
@@ -414,8 +428,9 @@ Stage 0 is complete when:
 2. the absence of existing Group tables is confirmed;
 3. family-account auth / athlete-profile membership is locked;
 4. cross-family raw-data privacy is non-negotiable;
-5. safe avatar/frame competitive identity is separated from private `profiles`/`plan_json` data;
-6. Weekly XP → Consistency → Improvement → Monthly/Seasonal → Squad → Challenges ordering is agreed;
-7. no fake historical consistency is permitted;
-8. the Group icon and later mobile navigation decisions are recorded at the correct implementation stage;
-9. the Progress `Training | Performance` split is recorded but deliberately deferred until legacy Stats revamp parity.
+5. Group nickname/pseudonym is separated from private profile identity;
+6. safe avatar/frame competitive identity is separated from private `profiles`/`plan_json` data;
+7. Weekly XP → Consistency → Improvement → Monthly/Seasonal → Squad → Challenges ordering is agreed;
+8. no fake historical consistency is permitted;
+9. the Group icon and later mobile navigation decisions are recorded at the correct implementation stage;
+10. the Progress `Training | Performance` split is recorded but deliberately deferred until legacy Stats revamp parity.
