@@ -16,7 +16,6 @@ import {
 } from "./groupDb";
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
 import GroupWeeklyXp from "./GroupWeeklyXp.jsx";
-import GroupWeeklyXp from "./GroupWeeklyXp.jsx";
 import "./GroupHub.css";
 
 function errorText(error, fallback = "Something went wrong.") {

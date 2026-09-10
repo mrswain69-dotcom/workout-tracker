@@ -113,14 +113,14 @@ Deno.serve(async (req: Request) => {
 
     const { data: memberships, error: membershipError } = await adminClient
       .from("group_memberships")
-      .select("id,profile_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled")
+      .select("id,profile_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,status,joined_at,left_at")
       .eq("group_id", groupId)
-      .eq("status", "active")
       .order("joined_at", { ascending: true });
     if (membershipError) throw membershipError;
 
-    const activeMembers = memberships || [];
-    const profileIds = activeMembers.map((member) => member.profile_id).filter(Boolean);
+    const allMemberships = memberships || [];
+    const activeMembers = allMemberships.filter((member: any) => member.status === "active");
+    const profileIds = [...new Set(allMemberships.map((member: any) => member.profile_id).filter(Boolean))];
 
     const [profilesResult, logsResult] = profileIds.length
       ? await Promise.all([
@@ -141,7 +141,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const ledgerByMembership = new Map<string, any[]>();
-    for (const member of activeMembers) {
+    for (const member of allMemberships) {
       ledgerByMembership.set(
         member.id,
         buildXpDebugRows(logsByProfile.get(member.profile_id) || [], planByProfile.get(member.profile_id) || {})
@@ -207,7 +207,13 @@ Deno.serve(async (req: Request) => {
       let frozenRows = frozenExisting || [];
       if (!frozenRows.length) {
         const eligibleFrom = scopeMode === "group_start" ? maxYmd(window.startDate, groupStart) : window.startDate;
-        const inserts = activeMembers.map((member: any) => ({
+        const historyMembers = allMemberships.filter((member: any) => {
+          if (member.status === "active") return true;
+          const joinedDate = String(member.joined_at || "").slice(0, 10);
+          const leftDate = String(member.left_at || "").slice(0, 10);
+          return !!joinedDate && joinedDate <= window.endDate && (!leftDate || leftDate >= window.startDate);
+        });
+        const inserts = historyMembers.map((member: any) => ({
           group_id: groupId,
           membership_id: member.id,
           week_start: window.startDate,
