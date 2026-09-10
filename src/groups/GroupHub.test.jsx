@@ -18,6 +18,7 @@ vi.mock("./groupDb", () => ({
   updateGroupDetails: vi.fn(),
   updateGroupNickname: vi.fn(),
   loadGroupXpLeaderboard: vi.fn(),
+  loadGroupConsistencyLeaderboard: vi.fn(),
   updateGroupXpHistoryScope: vi.fn(),
 }));
 
@@ -63,8 +64,7 @@ beforeEach(() => {
     },
     error: null,
   });
-  groupDb.updateGroupXpHistoryScope.mockResolvedValue({ data: { xp_history_scope: "group_start" }, error: null });
-  groupDb.loadGroupXpLeaderboard.mockResolvedValue({
+  groupDb.loadGroupConsistencyLeaderboard.mockResolvedValue({
     data: {
       scoreVersion: 1,
       scopeMode: "group_start",
