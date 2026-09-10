@@ -18,16 +18,16 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: feature/phase4-analysis
-      - name: Apply guarded Session snapshot patch
+      - name: Apply guarded Stage 1 patch
         run: python scripts/phase4-stage1-session-tags.py
-      - name: Commit patched Session engine
+      - name: Commit guarded patch output
         run: |
-          if git diff --quiet -- src/engine/sessionEngine.js; then
-            echo "No Session engine patch required"
+          if git diff --quiet -- src/engine/sessionEngine.js src/engine/assessmentAnalysisEvidenceEngine.test.js; then
+            echo "No Stage 1 patch output required"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/engine/sessionEngine.js
-          git commit -m "Stage 1: freeze Development Tags in Session snapshots"
+          git add src/engine/sessionEngine.js src/engine/assessmentAnalysisEvidenceEngine.test.js
+          git commit -m "Stage 1: correct Assessment evidence fixture"
           git push origin HEAD:feature/phase4-analysis
