@@ -109,6 +109,8 @@ For each performed Movement it retains separate fields for:
 
 The view-model additionally exposes typed `measures` buckets for executions, attempts/successes and best score. These values are never added together as though repetitions, attempts and scores shared a physical unit.
 
+`recordedExecutions` is intentionally the Session engine's count-like execution total: explicit repetitions/successful executions plus recorded successes from attempts/successes tracking. The raw attempt and success totals remain separately available, so the UI can label this as executions rather than falsely describing every value as repetitions.
+
 The current live 17 Session Movement steps use:
 
 - repetitions: 7;
