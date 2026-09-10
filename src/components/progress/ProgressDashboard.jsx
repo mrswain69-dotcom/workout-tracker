@@ -22,6 +22,9 @@ import { buildTrainingProgress } from "../../engine/progressTrainingEngine.js";
 import { buildTrainingRangeViews } from "../../engine/progressTrainingRangeEngine.js";
 import { buildTrainingRangeViewModel } from "../../engine/progressTrainingRangeViewModel.js";
 import { buildProgressViewModel } from "../../engine/progressViewModel.js";
+import { buildAssessmentAnalysis } from "../../engine/assessmentAnalysisEngine.js";
+import { buildAssessmentAnalysisViewModel } from "../../engine/assessmentAnalysisViewModel.js";
+import AssessmentAnalysisProgress from "./AssessmentAnalysisProgress.jsx";
 import {
   AssessmentProgressDetails,
   DevelopmentTrendDetails,
@@ -512,6 +515,30 @@ export default function ProgressDashboard({
     [assessmentProgress, remoteData.assessmentLibrary]
   );
 
+  const assessmentAnalysis = useMemo(
+    () =>
+      buildAssessmentAnalysis({
+        runs: remoteData.completedHistory?.runs || [],
+        results: remoteData.completedHistory?.results || [],
+        logs,
+        profileId,
+        sessionLibrary: remoteData.sessionLibrary || {},
+        assessmentLibrary: remoteData.assessmentLibrary || {},
+      }),
+    [
+      remoteData.completedHistory,
+      remoteData.sessionLibrary,
+      remoteData.assessmentLibrary,
+      logs,
+      profileId,
+    ]
+  );
+
+  const assessmentAnalysisModel = useMemo(
+    () => buildAssessmentAnalysisViewModel(assessmentAnalysis),
+    [assessmentAnalysis]
+  );
+
   const assessmentScheduleStatuses = useMemo(
     () =>
       buildAssessmentScheduleStatuses({
@@ -706,6 +733,11 @@ export default function ProgressDashboard({
 
         <DevelopmentTrendDetails developmentTrends={developmentTrends} />
       </div>
+
+      <AssessmentAnalysisProgress
+        model={assessmentAnalysisModel}
+        onOpenAssessments={onOpenAssessments}
+      />
 
       <div className="progress-legacy-bridge">
         <strong>Legacy workout history retained below</strong>
