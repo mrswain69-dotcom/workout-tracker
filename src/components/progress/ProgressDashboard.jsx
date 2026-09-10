@@ -22,15 +22,14 @@ import { buildTrainingProgress } from "../../engine/progressTrainingEngine.js";
 import { buildTrainingRangeViews } from "../../engine/progressTrainingRangeEngine.js";
 import { buildTrainingRangeViewModel } from "../../engine/progressTrainingRangeViewModel.js";
 import { buildProgressViewModel } from "../../engine/progressViewModel.js";
-import { buildAssessmentAnalysis } from "../../engine/assessmentAnalysisEngine.js";
-import { buildAssessmentAnalysisViewModel } from "../../engine/assessmentAnalysisViewModel.js";
-import AssessmentAnalysisProgress from "./AssessmentAnalysisProgress.jsx";
 import {
   AssessmentProgressDetails,
   DevelopmentTrendDetails,
 } from "./AssessmentDevelopmentProgress.jsx";
 import "./ProgressDashboard.css";
 import "./ProgressDashboardStage7.css";
+
+const AssessmentAnalysisSection = lazy(() => import("./AssessmentAnalysisSection.jsx"));
 
 const AssessmentAnalysisSection = lazy(() => import("./AssessmentAnalysisSection.jsx"));
 
@@ -515,30 +514,6 @@ export default function ProgressDashboard({
           remoteData.assessmentLibrary?.testDevelopmentTags || [],
       }),
     [assessmentProgress, remoteData.assessmentLibrary]
-  );
-
-  const assessmentAnalysis = useMemo(
-    () =>
-      buildAssessmentAnalysis({
-        runs: remoteData.completedHistory?.runs || [],
-        results: remoteData.completedHistory?.results || [],
-        logs,
-        profileId,
-        sessionLibrary: remoteData.sessionLibrary || {},
-        assessmentLibrary: remoteData.assessmentLibrary || {},
-      }),
-    [
-      remoteData.completedHistory,
-      remoteData.sessionLibrary,
-      remoteData.assessmentLibrary,
-      logs,
-      profileId,
-    ]
-  );
-
-  const assessmentAnalysisModel = useMemo(
-    () => buildAssessmentAnalysisViewModel(assessmentAnalysis),
-    [assessmentAnalysis]
   );
 
   const assessmentScheduleStatuses = useMemo(
