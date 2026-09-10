@@ -9,6 +9,21 @@ function cleanText(value, fallback = "") {
   return text || fallback;
 }
 
+function shortDateParts(ymd) {
+  const text = cleanText(ymd);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+  const date = new Date(`${text}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    day: date.getUTCDate(),
+    month: new Intl.DateTimeFormat("en-GB", {
+      month: "short",
+      timeZone: "UTC",
+    }).format(date),
+    year: date.getUTCFullYear(),
+  };
+}
+
 export function formatProgressDate(ymd) {
   const text = cleanText(ymd);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return "";
@@ -20,6 +35,19 @@ export function formatProgressDate(ymd) {
     year: "numeric",
     timeZone: "UTC",
   }).format(date);
+}
+
+export function formatProgressRangeLabel(startYmd, endYmd) {
+  const start = shortDateParts(startYmd);
+  const end = shortDateParts(endYmd);
+  if (!start || !end) return "";
+  if (start.year === end.year && start.month === end.month) {
+    return `${start.day}–${end.day} ${start.month}`;
+  }
+  if (start.year === end.year) {
+    return `${start.day} ${start.month}–${end.day} ${end.month}`;
+  }
+  return `${start.day} ${start.month} ${start.year}–${end.day} ${end.month} ${end.year}`;
 }
 
 export function progressTrainingState(trainingProgress = null) {
@@ -195,6 +223,71 @@ function developmentMessage(state, developmentTrends) {
   return `${comparisonReady} development area${comparisonReady === 1 ? " has" : "s have"} recent multi-point trend data available.`;
 }
 
+function buildSessionDistribution(rows = []) {
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const total = safeRows.reduce(
+    (sum, row) => sum + Math.max(0, finiteNumber(row?.count)),
+    0
+  );
+  return {
+    total,
+    rows: safeRows.map((row) => {
+      const count = Math.max(0, finiteNumber(row?.count));
+      return {
+        ...row,
+        count,
+        sharePct: total > 0 ? Math.round((count / total) * 1000) / 10 : 0,
+        lastCompletedLabel: formatProgressDate(row?.lastCompletedDate),
+      };
+    }),
+  };
+}
+
+function buildMovementViewRows(rows = []) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => ({
+      movementId: cleanText(row?.movementId),
+      name: cleanText(row?.name, "Movement"),
+      timesPerformed: Math.max(0, finiteNumber(row?.timesPerformed)),
+      recordedExecutions: Math.max(0, finiteNumber(row?.recordedExecutions)),
+      attempts: Math.max(0, finiteNumber(row?.attempts)),
+      successes: Math.max(0, finiteNumber(row?.successes)),
+      accuracyPct:
+        row?.accuracyPct === null || row?.accuracyPct === undefined
+          ? null
+          : finiteNumber(row.accuracyPct),
+      bestScore:
+        row?.bestScore === null || row?.bestScore === undefined
+          ? null
+          : finiteNumber(row.bestScore),
+      lastPerformedDate: cleanText(row?.lastPerformedDate),
+      lastPerformedLabel: formatProgressDate(row?.lastPerformedDate),
+      measures: {
+        executions: row?.measures?.executions || null,
+        accuracy: row?.measures?.accuracy || null,
+        bestScore: row?.measures?.bestScore || null,
+      },
+    }))
+    .sort(
+      (a, b) =>
+        b.timesPerformed - a.timesPerformed ||
+        a.name.localeCompare(b.name)
+    );
+}
+
+function buildTrainingTrend(rows = []) {
+  return (Array.isArray(rows) ? rows : []).map((row) => ({
+    startDate: cleanText(row?.startDate),
+    endDate: cleanText(row?.endDate),
+    label: formatProgressRangeLabel(row?.startDate, row?.endDate),
+    completedSessions: Math.max(0, finiteNumber(row?.completedSessions)),
+    partialSessions: Math.max(0, finiteNumber(row?.partialSessions)),
+    activeSessionDays: Math.max(0, finiteNumber(row?.activeSessionDays)),
+    totalMinutes: Math.max(0, finiteNumber(row?.totalMinutes)),
+    recordedExecutions: Math.max(0, finiteNumber(row?.recordedExecutions)),
+  }));
+}
+
 export function buildProgressViewModel({
   trainingProgress = null,
   assessmentProgress = null,
@@ -217,9 +310,11 @@ export function buildProgressViewModel({
   const month = trainingProgress?.month || {};
   const recent28 = trainingProgress?.recent28 || {};
   const lifetime = trainingProgress?.lifetime || {};
-  const sessionBalance = Array.isArray(trainingProgress?.sessionBalance)
-    ? trainingProgress.sessionBalance
-    : [];
+  const sessionDistribution = buildSessionDistribution(
+    trainingProgress?.sessionBalance || []
+  );
+  const movementTotals = buildMovementViewRows(trainingProgress?.movementTotals || []);
+  const trainingTrend = buildTrainingTrend(trainingProgress?.trainingTrend || []);
 
   return {
     profileName: cleanText(profileName, "Athlete"),
@@ -234,11 +329,20 @@ export function buildProgressViewModel({
       sessionsThisMonth: finiteNumber(month.completedSessions),
       currentStreak: Math.max(0, finiteNumber(currentStreak)),
       currentXp: Math.max(0, finiteNumber(currentXp)),
+      completedSessions28: Math.max(0, finiteNumber(recent28.completedSessions)),
+      partialSessions28: Math.max(0, finiteNumber(recent28.partialSessions)),
+      activeSessionDays28: Math.max(0, finiteNumber(recent28.activeSessionDays)),
       trainingMinutes28: Math.max(0, finiteNumber(recent28.totalMinutes)),
       recordedExecutions28: Math.max(
         0,
         finiteNumber(recent28.recordedExecutions)
       ),
+      attempts28: Math.max(0, finiteNumber(recent28.attempts)),
+      successes28: Math.max(0, finiteNumber(recent28.successes)),
+      accuracyPct28:
+        recent28.accuracyPct === null || recent28.accuracyPct === undefined
+          ? null
+          : finiteNumber(recent28.accuracyPct),
       lifetimeCompletedSessions: Math.max(
         0,
         finiteNumber(lifetime.completedSessions)
@@ -247,7 +351,18 @@ export function buildProgressViewModel({
         0,
         finiteNumber(lifetime.partialSessions)
       ),
-      sessionBalance,
+      trainingTrend,
+      hasTrendActivity: trainingTrend.some(
+        (row) =>
+          row.completedSessions > 0 ||
+          row.partialSessions > 0 ||
+          row.totalMinutes > 0 ||
+          row.recordedExecutions > 0
+      ),
+      sessionDistributionTotal: sessionDistribution.total,
+      sessionBalance: sessionDistribution.rows,
+      movementTotals,
+      movementCount: movementTotals.length,
     },
     assessment: {
       message: assessmentMessage(assessmentState, assessmentProgress, schedule),
