@@ -98,7 +98,7 @@ function trainingContextSentence(training = {}, consistency = {}) {
 function focusSentence(sessionFocus = {}) {
   const focus = sessionFocus?.possibleNextFocus;
   if (focus?.available) {
-    return `Possible next focus: ${cleanText(focus.reason, "A related active Session was underrepresented between benchmarks.")}`;
+    return `Possible next focus: ${cleanText(focus.reason, "A related active Session was underrepresented between benchmarks.")} This reflects recorded Session balance only, not a training prescription.`;
   }
   const rows = Array.isArray(sessionFocus?.sessionBalance) ? sessionFocus.sessionBalance : [];
   if (rows.length > 1 && rows.every((row) => row?.underrepresented === false)) {

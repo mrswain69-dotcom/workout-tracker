@@ -330,6 +330,16 @@
   padding: 12px 14px;
 }
 
+.analysis-test summary {
+  min-height: 44px;
+}
+
+.analysis-test__identity strong,
+.analysis-session-row__name strong,
+.analysis-focus strong {
+  overflow-wrap: anywhere;
+}
+
 .analysis-test summary::-webkit-details-marker { display: none; }
 
 .analysis-test summary::after {

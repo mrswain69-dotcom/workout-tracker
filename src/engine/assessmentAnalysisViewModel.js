@@ -19,7 +19,7 @@ export function formatAssessmentAnalysisDate(ymd) {
   const text = cleanText(ymd);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return "";
   const date = new Date(`${text}T00:00:00.000Z`);
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== text) return "";
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
