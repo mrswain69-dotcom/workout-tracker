@@ -45,6 +45,10 @@ import {
   computeXpFromLogs as computeXpFromLogsEngine,
 } from "./engine/xpEngine.js";
 import {
+  buildXpDebugRows as buildXpDebugRowsEngine,
+  computeXpFromLogs as computeXpFromLogsEngine,
+} from "./engine/xpEngine.js";
+import {
   buildSessionLogBlockSnapshot,
   hydrateSessionSnapshotsInLog,
   reconcileSessionLogBlockSnapshot,
