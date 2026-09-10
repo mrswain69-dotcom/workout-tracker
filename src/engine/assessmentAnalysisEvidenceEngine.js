@@ -397,7 +397,14 @@ export function buildRelevantTrainingEvidence({
 
         hasPerformedRelatedMovement = true;
         performedMovementCount += 1;
-        const executions = getRecordedExecutionTotal(movement);
+        const trackingMethod = cleanText(
+          valueOf(movement, "trackingMethod", "tracking_method", ""),
+          ""
+        );
+        const executions =
+          trackingMethod === "attempts_successes"
+            ? 0
+            : getRecordedExecutionTotal(movement);
         const attemptTotals = getAttemptSuccessTotals(movement);
         const bestScore = getBestScore(movement);
         recordedExecutions += executions;
