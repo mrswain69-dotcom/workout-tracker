@@ -18,11 +18,14 @@ const css = fs.readFileSync(
 describe("Phase 4 Stage 6 integration contract", () => {
   it("lazy-loads the complete Assessment Analysis slice instead of keeping it in the eager Progress bundle", () => {
     expect(dashboard).toContain('lazy(() => import("./AssessmentAnalysisSection.jsx"))');
+    expect((dashboard.match(/const AssessmentAnalysisSection = lazy/g) || [])).toHaveLength(1);
     expect(dashboard).toContain("<Suspense");
     expect(dashboard).toContain("Loading Assessment Analysis…");
     expect(dashboard).not.toContain('from "../../engine/assessmentAnalysisEngine.js"');
     expect(dashboard).not.toContain('from "../../engine/assessmentAnalysisViewModel.js"');
     expect(dashboard).not.toContain('import AssessmentAnalysisProgress from "./AssessmentAnalysisProgress.jsx"');
+    expect(dashboard).not.toContain("const assessmentAnalysis = useMemo(");
+    expect(dashboard).not.toContain("const assessmentAnalysisModel = useMemo(");
 
     expect(section).toContain('from "../../engine/assessmentAnalysisEngine.js"');
     expect(section).toContain('from "../../engine/assessmentAnalysisViewModel.js"');
