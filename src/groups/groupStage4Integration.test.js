@@ -27,7 +27,7 @@ describe("Group Stage 4 Consistency integration contract", () => {
   it("requires active membership proof before privileged scoring and does not trust browser scores", () => {
     const edge = fs.readFileSync(new URL("../../supabase/functions/group-consistency-leaderboard/index.ts", import.meta.url), "utf8");
     expect(edge).toContain("Active Group membership required");
-    expect(edge.indexOf('userClient\n      .from("group_memberships")')).toBeLessThan(edge.indexOf('adminClient\n      .from("groups")'));
+    expect(edge.indexOf("const { data: callerMembership")).toBeLessThan(edge.indexOf("const { data: group"));
     expect(edge).not.toMatch(/body\?\.(score|consistencyPct|consistency_pct|plannedDays|completedDays)/);
     expect(edge).not.toContain("family_id:");
     expect(edge).not.toContain("profile_id:");
