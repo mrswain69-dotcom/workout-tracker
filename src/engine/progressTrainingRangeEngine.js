@@ -102,6 +102,13 @@ export function buildTrainingRangeViews({
 } = {}) {
   const scopedLogs = scopeProgressLogs(logs, profileId);
   const windows = buildTrainingProgressWindows(selectedDate);
+  const monthTrendWindow = {
+    ...windows.month,
+    // "This month" remains a calendar-month summary/filter, but chart buckets
+    // stop at the selected/reference date so future days are not shown as
+    // zero-performance periods.
+    endDate: windows.referenceDate,
+  };
 
   return {
     recent28: buildRangeView({
@@ -116,7 +123,7 @@ export function buildTrainingRangeViews({
       window: windows.month,
       logs: scopedLogs,
       sessionTemplates,
-      trend: buildTrainingTrendSeries(scopedLogs, windows.month),
+      trend: buildTrainingTrendSeries(scopedLogs, monthTrendWindow),
     }),
     lifetime: buildRangeView({
       key: "lifetime",
