@@ -4,7 +4,7 @@ import {
   normaliseSessionTrackingMethod,
 } from "../config/sessionTracking.js";
 
-export const SESSION_SNAPSHOT_SCHEMA_VERSION = 1;
+export const SESSION_SNAPSHOT_SCHEMA_VERSION = 2;
 
 function valueOf(obj, camelKey, snakeKey, fallback = undefined) {
   if (!obj || typeof obj !== "object") return fallback;
@@ -119,6 +119,29 @@ function movementIdOf(definition) {
   return cleanText(valueOf(definition, "movementId", "movement_id"), "");
 }
 
+function movementDevelopmentTagIds(library = {}, movementId = "") {
+  const target = cleanText(movementId, "");
+  if (!target) return [];
+  const relations = Array.isArray(library.movementDevelopmentTags)
+    ? library.movementDevelopmentTags
+    : Array.isArray(library.movement_development_tags)
+    ? library.movement_development_tags
+    : [];
+  return Array.from(
+    new Set(
+      relations
+        .filter(
+          (row) =>
+            cleanText(valueOf(row, "movementId", "movement_id"), "") === target
+        )
+        .map((row) =>
+          cleanText(valueOf(row, "developmentTagId", "development_tag_id"), "")
+        )
+        .filter(Boolean)
+    )
+  ).sort();
+}
+
 /**
  * Build the immutable Session definition copied into a daily workout log.
  * The returned object shares no nested config/result references with the live
@@ -191,6 +214,7 @@ export function buildSessionSnapshot(templateOrId, library = {}) {
     return {
       templateMovementId: cleanText(valueOf(definition, "id", "id"), ""),
       movementId,
+      developmentTagIds: movementDevelopmentTagIds(library, movementId),
       position: Math.max(1, Number(valueOf(definition, "position", "position", index + 1)) || index + 1),
       name: canonicalName || displayLabel,
       displayLabel,
