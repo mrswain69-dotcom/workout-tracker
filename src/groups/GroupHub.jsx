@@ -15,6 +15,7 @@ import {
   updateGroupNickname,
 } from "./groupDb";
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
+import GroupWeeklyXp from "./GroupWeeklyXp.jsx";
 import "./GroupHub.css";
 
 function errorText(error, fallback = "Something went wrong.") {
@@ -332,6 +333,13 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                     <MemberIdentity member={{ ...ownMembership, membership_id: ownMembership.id }} isSelf />
                     <button className="groupHubSecondary" onClick={handleNicknameSave} disabled={busy}>Edit nickname</button>
                   </div>
+
+                  <GroupWeeklyXp
+                    group={selectedGroup}
+                    membership={ownMembership}
+                    isAdmin={isAdmin}
+                    onGroupChanged={refreshGroups}
+                  />
 
                   <section className="groupHubPanel">
                     <div className="groupHubPanelHeading"><div><h4>Members</h4><span>{directory.length} / {selectedGroup.max_members}</span></div>{isAdmin ? <button className="groupHubPrimary small" onClick={handleCreateInvite} disabled={busy || directory.length >= selectedGroup.max_members}>Create invite</button> : null}</div>

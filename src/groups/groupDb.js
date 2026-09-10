@@ -26,7 +26,7 @@ export async function listProfileGroups(profileId) {
   const groupIds = [...new Set(rows.map((row) => row.group_id).filter(Boolean))];
   const { data: groups, error: groupError } = await supabase
     .from("groups")
-    .select("id,name,description,group_type,status,max_members,created_at,updated_at")
+    .select("id,name,description,group_type,status,max_members,competition_start_date,xp_history_scope,created_at,updated_at")
     .in("id", groupIds)
     .eq("status", "active");
 
@@ -161,4 +161,23 @@ export async function revokeGroupInvite(inviteId) {
     p_invite_id: inviteId,
   });
   return { data, error };
+}
+
+
+export async function updateGroupXpHistoryScope(groupId, scope) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_update_xp_history_scope", {
+    p_group_id: groupId,
+    p_scope: scope,
+  });
+  return { data: firstRow(data), error };
+}
+
+export async function loadGroupXpLeaderboard(groupId, membershipId, referenceDate = null) {
+  if (!supabase) return unavailable();
+  if (!groupId || !membershipId) return { data: null, error: new Error("Group membership is required") };
+  const body = { groupId, membershipId };
+  if (referenceDate) body.referenceDate = referenceDate;
+  const { data, error } = await supabase.functions.invoke("group-xp-leaderboard", { body });
+  return { data: data || null, error };
 }

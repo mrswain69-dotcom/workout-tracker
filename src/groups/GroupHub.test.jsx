@@ -17,6 +17,8 @@ vi.mock("./groupDb", () => ({
   setGroupMemberRole: vi.fn(),
   updateGroupDetails: vi.fn(),
   updateGroupNickname: vi.fn(),
+  loadGroupXpLeaderboard: vi.fn(),
+  updateGroupXpHistoryScope: vi.fn(),
 }));
 
 import GroupHub from "./GroupHub.jsx";
@@ -51,6 +53,17 @@ beforeEach(() => {
   groupDb.listProfileGroups.mockResolvedValue({ data: [], error: null });
   groupDb.listGroupDirectory.mockResolvedValue({ data: [], error: null });
   groupDb.listGroupInvites.mockResolvedValue({ data: [], error: null });
+  groupDb.loadGroupXpLeaderboard.mockResolvedValue({
+    data: {
+      scoreVersion: 1,
+      scopeMode: "group_start",
+      competitionStartDate: "2026-09-10",
+      current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] },
+      history: [],
+    },
+    error: null,
+  });
+  groupDb.updateGroupXpHistoryScope.mockResolvedValue({ data: { xp_history_scope: "group_start" }, error: null });
 });
 
 afterEach(() => cleanup());
