@@ -359,7 +359,7 @@ Instead:
 ## Proposed Phase 3 implementation sequence
 
 - Stage 0 — baseline, requirements, aggregation contracts, empty-state rules and Phase 4 boundary (complete)
-- Stage 1 — pure Training Progress engine: time windows, Session counts, training time, recorded executions and Movement totals
+- Stage 1 — pure Training Progress engine: time windows, Session counts, training time, recorded executions and Movement totals (complete)
 - Stage 2 — Assessment Progress summary engine: latest Assessment, latest-run PBs, improvements, unchanged/declining classifications
 - Stage 3 — Development Trend engine over shared Development Tags with incompatible-metric protection
 - Stage 4 — Progress UI shell + deliberate 0/1/2/3+ data states; evolve `Stats` navigation into `Progress`
@@ -372,18 +372,15 @@ Phase 4 Analysis, weekly leaderboards and monthly awards remain explicitly out o
 
 ## Stage 1 acceptance guard
 
-Before Stage 1 is considered complete:
+Stage 1 is complete with its detailed implementation/verification record in `docs/phase3-progress-dashboard-stage1.md`.
 
-- no database schema change is required;
-- no live data may be inserted to populate the dashboard;
-- all aggregation must be profile-scoped;
-- Session completion must remain distinct from Movement detail;
-- legacy workout history must not be rewritten/reclassified;
-- synthetic fixtures belong only in automated tests;
-- the protected production baseline must remain intact:
-  - 499 workout logs;
-  - Paul plan `a715c519932be388cebe88722439de8b`;
-  - Wilf plan `278e036e425e2eeff7b02b417029403f`;
-  - Xander plan `b3b95dc0668da96dfcfeccdea21b6cfe`;
-  - 0 structured Session blocks at this baseline;
-  - 0 Assessment runs/results at this baseline.
+The protected production baseline remains intact:
+
+- 499 workout logs;
+- Paul plan `a715c519932be388cebe88722439de8b`;
+- Wilf plan `278e036e425e2eeff7b02b417029403f`;
+- Xander plan `b3b95dc0668da96dfcfeccdea21b6cfe`;
+- 0 structured Session blocks at this baseline;
+- 0 Assessment runs/results at this baseline.
+
+Stage 2 must preserve the same live-data invariants while adding only pure Assessment Progress aggregation.
