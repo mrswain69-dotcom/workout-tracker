@@ -251,7 +251,7 @@ describe("Phase 4 Stage 1 related training evidence", () => {
           date: "2026-09-10",
           movements: [
             movement({ id: "receive-1", name: "Receive 1", resultData: { overall: { count: 20 } } }),
-            movement({ id: "receive-2", name: "Receive 2", resultData: { overall: { count: 30 } }),
+            movement({ id: "receive-2", name: "Receive 2", resultData: { overall: { count: 30 } } }),
           ],
         }),
       ],
