@@ -11,8 +11,10 @@ describe("Stage 3 XP integration", () => {
     expect(Object.keys(BADGE_XP_BY_KEY).sort()).toEqual(BADGE_DEFS.map((badge) => badge.key).sort());
   });
 
-  it("routes the athlete XP display through the shared engine", () => {
+  it("routes the athlete XP display through exactly one shared-engine import", () => {
     const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
+    const importPath = 'from "./engine/xpEngine.js";';
+    expect(app.split(importPath)).toHaveLength(2);
     expect(app).toContain("computeXpFromLogs as computeXpFromLogsEngine");
     expect(app).toContain("buildXpDebugRows as buildXpDebugRowsEngine");
     expect(app).toContain("setXp(computeXpFromLogsEngine(allLogs, plan))");
