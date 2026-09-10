@@ -117,6 +117,8 @@ The live current week is recalculated from the current underlying data and is no
 
 History-scope modes are snapshotted independently so switching between `Since Group started` and `All eligible history` does not overwrite an already frozen result produced under the other mode.
 
+Historical membership is evaluated against the completed week itself: a former member who actually overlapped that week remains eligible for its frozen standing even if they later leave the Group.
+
 ## Competition-window contract for future Challenges
 
 Stage 3 deliberately separates **date-window mechanics** from **XP scoring mechanics**.
@@ -179,3 +181,9 @@ Before Stage 3 is marked complete:
 - exact-head Vercel status must be green;
 - protected production invariants must remain unchanged apart from the additive Stage 3 schema/function deployment;
 - rollback-only Group fixtures must leave no production Group/member/score rows behind.
+
+## Closure record
+
+Stage 3 implementation is closed only against a **clean branch head** containing no temporary patch/generator workflows or scripts. The permanent CI workflow, shared XP engine parity tests, Group leaderboard component tests, source-controlled Edge Function, database security checks and production invariant snapshot form the closure evidence.
+
+The exact clean-head SHA, CI run, Vercel status and final production invariant values are recorded on draft PR #7 after the release gate passes. Stage 4 must start from that verified Stage 3 head; PR #7 remains draft and unmerged until the complete Group & Team Ecosystem release gate is deliberately executed.
