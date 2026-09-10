@@ -6,7 +6,7 @@ import {
   getCurrentWeekWindow,
   getPreviousCompletedWeekWindows,
   sumXpRowsInRange,
-} from "../../../src/engine/xpEngine.js";
+} from "./xpEngine.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

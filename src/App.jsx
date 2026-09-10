@@ -41,6 +41,10 @@ import {
 import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS } from "./config/badges";
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 import {
+  buildXpDebugRows as buildXpDebugRowsEngine,
+  computeXpFromLogs as computeXpFromLogsEngine,
+} from "./engine/xpEngine.js";
+import {
   buildSessionLogBlockSnapshot,
   hydrateSessionSnapshotsInLog,
   reconcileSessionLogBlockSnapshot,
@@ -4761,12 +4765,12 @@ const computeXpFromLogs = (records, plan) => {
 };
 
 useEffect(() => {
-  setXp(computeXpFromLogs(allLogs, plan));
+  setXp(computeXpFromLogsEngine(allLogs, plan));
 }, [allLogs, plan]);
 
 // XP breakdown per day (for cross-checking / XP log)
 const xpDebugRows = useMemo(
-  () => buildXpDebugRows(allLogs, plan),
+  () => buildXpDebugRowsEngine(allLogs, plan),
   [allLogs, plan]
 );
 
