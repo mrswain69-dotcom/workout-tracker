@@ -52,6 +52,7 @@ function structuredLog() {
                 movementId: "sole-rolls",
                 name: "Sole Rolls",
                 trackingMethod: "repetitions",
+                trackingConfig: { unit: "reps" },
                 completed: true,
                 result: { overall: { count: 24 } },
               },
@@ -73,6 +74,7 @@ function structuredLog() {
                 movementId: "first-touch",
                 name: "First Touch Through Gate",
                 trackingMethod: "attempts_successes",
+                trackingConfig: { sideMode: "separate", unit: "attempts" },
                 completed: true,
                 result: {
                   left: { attempts: 5, successes: 4 },
@@ -97,6 +99,7 @@ function structuredLog() {
                 movementId: "keepy-ups",
                 name: "Weak-Foot Keepy-Uppys",
                 trackingMethod: "best_score",
+                trackingConfig: { unit: "touches" },
                 completed: true,
                 result: { overall: { best: 18 } },
               },
