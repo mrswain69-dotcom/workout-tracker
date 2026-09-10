@@ -75,6 +75,36 @@ function classifySignals(scores) {
   return "unchanged";
 }
 
+function trendRecordScore(record) {
+  const directionScore = finiteOrNull(record?.directionScore);
+  if (directionScore !== null) return directionScore;
+  return finiteOrNull(record?.trendScore);
+}
+
+function classifyTrendRecords(records) {
+  const ready = (Array.isArray(records) ? records : [])
+    .map((record) => ({
+      score: trendRecordScore(record),
+      state: cleanText(record?.status || record?.state, ""),
+    }))
+    .filter((record) => record.score !== null);
+  if (!ready.length) return "baseline_set";
+
+  const total = ready.reduce((sum, record) => sum + record.score, 0);
+  if (total > 0) return "improving";
+  if (total < 0) return "declining";
+
+  const states = new Set(ready.map((record) => record.state));
+  if (
+    states.has("mixed") ||
+    (states.has("improving") && states.has("declining")) ||
+    ready.some((record) => record.score !== 0)
+  ) {
+    return "mixed";
+  }
+  return "unchanged";
+}
+
 function latestCompatibleMetricCohort(history) {
   const entries = Array.isArray(history?.entries) ? history.entries : [];
   const latest = entries.at(-1) || null;
@@ -229,9 +259,7 @@ export function buildDevelopmentTestTrend(history = null) {
   const trendScore = roundTo(
     mean(recentComparisons.map((signal) => signal.directionScore))
   );
-  const state = classifySignals(
-    recentComparisons.map((signal) => signal.directionScore)
-  );
+  const state = classifyTrendRecords(recentComparisons);
   const percentageSafe = recentComparisons.every(
     (signal) => signal.percentageSafe === true
   );
@@ -262,7 +290,7 @@ function tagState(testTrends) {
 
   const comparisonReady = observed.filter((trend) => trend.trendScore !== null);
   if (!comparisonReady.length) return "baseline_set";
-  return classifySignals(comparisonReady.map((trend) => trend.trendScore));
+  return classifyTrendRecords(comparisonReady);
 }
 
 function tagTrendStrength(state, testTrends) {
