@@ -3,11 +3,23 @@ import {
   buildSessionBalance,
   scopeProgressLogs,
 } from "./progressTrainingEngine.js";
+import {
+  getAttemptSuccessTotals,
+  getRecordedExecutionTotal,
+  movementWasPerformed,
+} from "./sessionEngine.js";
 
 function cleanText(value, fallback = "") {
   if (value === null || value === undefined) return fallback;
   const text = String(value).trim();
   return text || fallback;
+}
+
+function valueOf(obj, camelKey, snakeKey, fallback = undefined) {
+  if (!obj || typeof obj !== "object") return fallback;
+  if (obj[camelKey] !== undefined) return obj[camelKey];
+  if (snakeKey && obj[snakeKey] !== undefined) return obj[snakeKey];
+  return fallback;
 }
 
 function isYmd(value) {
@@ -36,6 +48,45 @@ function diffDaysInclusive(startDate, endDate) {
 
 function formatNumber(value) {
   return Math.max(0, Number(value) || 0).toLocaleString("en-GB");
+}
+
+function rowDate(row) {
+  const payload = row?.log_json && typeof row.log_json === "object" ? row.log_json : row;
+  return cleanText(row?.date_ymd || payload?.date_ymd || payload?.date || payload?.ymd, "");
+}
+
+function typedVolumeForInterval(logs, interval) {
+  let recordedExecutions = 0;
+  let attempts = 0;
+  let successes = 0;
+  if (!interval?.valid) return { recordedExecutions, attempts, successes, accuracyPct: null };
+
+  for (const row of Array.isArray(logs) ? logs : []) {
+    const date = rowDate(row);
+    if (!date || date < interval.startDate || date > interval.endDate) continue;
+    const payload = row?.log_json && typeof row.log_json === "object" ? row.log_json : row;
+    const blocks = Array.isArray(payload?.blocks) ? payload.blocks : [];
+    for (const block of blocks) {
+      if (block?.typeId !== "session" || !block?.session) continue;
+      for (const movement of Array.isArray(block.session.movements) ? block.session.movements : []) {
+        if (!movementWasPerformed(movement)) continue;
+        const trackingMethod = cleanText(valueOf(movement, "trackingMethod", "tracking_method", ""), "");
+        if (trackingMethod !== "attempts_successes") {
+          recordedExecutions += getRecordedExecutionTotal(movement);
+        }
+        const totals = getAttemptSuccessTotals(movement);
+        attempts += totals.attempts;
+        successes += totals.successes;
+      }
+    }
+  }
+
+  return {
+    recordedExecutions,
+    attempts,
+    successes,
+    accuracyPct: attempts > 0 ? Math.round((successes / attempts) * 1000) / 10 : null,
+  };
 }
 
 export function buildAnalysisSevenDayPeriods(interval) {
@@ -137,6 +188,7 @@ export function buildBetweenAssessmentTrainingSummary({
     endDate: interval.endDate,
     label: "Between Assessments",
   });
+  const typedVolume = typedVolumeForInterval(scopedLogs, interval);
   const sessionDistribution = buildSessionBalance(scopedLogs, sessionTemplates, {
     startDate: interval.startDate,
     endDate: interval.endDate,
@@ -148,10 +200,10 @@ export function buildBetweenAssessmentTrainingSummary({
     partialSessions: summary.partialSessions,
     activeSessionDays: summary.completedSessionDays,
     totalMinutes: summary.totalMinutes,
-    recordedExecutions: summary.recordedExecutions,
-    attempts: summary.attempts,
-    successes: summary.successes,
-    accuracyPct: summary.accuracyPct,
+    recordedExecutions: typedVolume.recordedExecutions,
+    attempts: typedVolume.attempts,
+    successes: typedVolume.successes,
+    accuracyPct: typedVolume.accuracyPct,
     sessionDistribution,
   };
 }
