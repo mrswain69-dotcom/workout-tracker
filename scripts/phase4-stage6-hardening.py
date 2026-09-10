@@ -28,12 +28,29 @@ replace_once(
     '''import { buildProgressViewModel } from "../../engine/progressViewModel.js";\n''',
     "Remove eager Analysis imports",
 )
-replace_once(
-    "src/components/progress/ProgressDashboard.jsx",
-    '''const DEFAULT_DB_API = Object.freeze({\n''',
-    '''const AssessmentAnalysisSection = lazy(() => import("./AssessmentAnalysisSection.jsx"));\n\nconst DEFAULT_DB_API = Object.freeze({\n''',
-    "Lazy Analysis section declaration",
-)
+
+progress_path = Path("src/components/progress/ProgressDashboard.jsx")
+progress_text = progress_path.read_text(encoding="utf-8")
+lazy_decl = 'const AssessmentAnalysisSection = lazy(() => import("./AssessmentAnalysisSection.jsx"));'
+lazy_count = progress_text.count(lazy_decl)
+if lazy_count == 0:
+    anchor = "const DEFAULT_DB_API = Object.freeze({"
+    if anchor not in progress_text:
+        raise SystemExit("Lazy Analysis declaration anchor not found")
+    progress_text = progress_text.replace(anchor, f"{lazy_decl}\n\n{anchor}", 1)
+    progress_path.write_text(progress_text, encoding="utf-8")
+    print("Lazy Analysis section declaration: applied")
+elif lazy_count == 1:
+    print("Lazy Analysis section declaration: already applied")
+else:
+    duplicate = f"{lazy_decl}\n\n{lazy_decl}"
+    while duplicate in progress_text:
+        progress_text = progress_text.replace(duplicate, lazy_decl, 1)
+    if progress_text.count(lazy_decl) != 1:
+        raise SystemExit("Lazy Analysis declaration could not be normalised to one")
+    progress_path.write_text(progress_text, encoding="utf-8")
+    print("Lazy Analysis section declaration: duplicate normalised")
+
 replace_once(
     "src/components/progress/ProgressDashboard.jsx",
     '''  const assessmentAnalysis = useMemo(\n    () =>\n      buildAssessmentAnalysis({\n        runs: remoteData.completedHistory?.runs || [],\n        results: remoteData.completedHistory?.results || [],\n        logs,\n        profileId,\n        sessionLibrary: remoteData.sessionLibrary || {},\n        assessmentLibrary: remoteData.assessmentLibrary || {},\n      }),\n    [\n      remoteData.completedHistory,\n      remoteData.sessionLibrary,\n      remoteData.assessmentLibrary,\n      logs,\n      profileId,\n    ]\n  );\n\n  const assessmentAnalysisModel = useMemo(\n    () => buildAssessmentAnalysisViewModel(assessmentAnalysis),\n    [assessmentAnalysis]\n  );\n\n''',
