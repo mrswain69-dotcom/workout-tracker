@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete pending the final documented-head CI/Vercel verification recorded at closure.
+Complete.
 
 ## Scope
 
@@ -138,7 +138,7 @@ A final product-quality review also tightened the This-month chart so it cannot 
 
 ## Feature-code verification
 
-Feature-code head before this documentation commit:
+Feature-code head before the Stage 7 documentation commit:
 
 `5d6f89342c7c890314e10f87ec986f795a126858`
 
@@ -150,6 +150,12 @@ Permanent Workout Tracker CI run #335 / ID `34463481846`:
 - 673 modules transformed;
 - npm audit: 0 vulnerabilities;
 - exact-head Vercel status: success.
+
+## Documented-head verification
+
+Stage 7 documentation head `a55ffdd0c3a418cd6bb2c6e1d9039ecd8ee75267` passed permanent Workout Tracker CI run #336 / ID `34463764023`, and the same exact SHA received a successful Vercel deployment status.
+
+This final verification-record edit is documentation-only; Stage 8 will perform the next full exact-head release gate before merge.
 
 ## Production data safety verification
 
