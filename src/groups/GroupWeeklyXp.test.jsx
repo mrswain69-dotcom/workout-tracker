@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./groupDb", () => ({
   loadGroupXpLeaderboard: vi.fn(),
@@ -60,12 +60,14 @@ describe("GroupWeeklyXp", () => {
     updateGroupXpHistoryScope.mockResolvedValue({ data: { xp_history_scope: "all_history" }, error: null });
   });
 
+  afterEach(() => cleanup());
+
   it("uses This week as the standard leaderboard view with safe pseudonyms", async () => {
     render(<GroupWeeklyXp group={group} membership={membership} />);
     expect(await screen.findByText("Weekly XP")).toBeTruthy();
     expect(screen.getByRole("button", { name: "This week" }).className).toContain("active");
     expect(await screen.findAllByText(/WS10/)).not.toHaveLength(0);
-    expect(screen.getByText("170 XP")).toBeTruthy();
+    expect(screen.getAllByText("170 XP")).toHaveLength(2);
     expect(loadGroupXpLeaderboard).toHaveBeenCalledWith("group-1", "m2");
   });
 
