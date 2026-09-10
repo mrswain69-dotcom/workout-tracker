@@ -306,3 +306,5 @@ replaceOnce(
 );
 
 fs.writeFileSync(path, source);
+
+// No-op trigger: the temporary Stage 7 workflow now exists on the branch.
