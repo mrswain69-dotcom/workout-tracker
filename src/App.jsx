@@ -63,6 +63,7 @@ import SessionPlanBlockEditor, {
 import SessionLogger from "./components/sessions/SessionLogger.jsx";
 import AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx";
 import AssessmentHub from "./components/assessments/AssessmentHub.jsx";
+import ProgressDashboard from "./components/progress/ProgressDashboard.jsx";
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -7842,7 +7843,11 @@ const cardioProgress = useMemo(() => {
         <div className="tabs">
           {["log", "stats", "plan", "assessments", "rewards"].map((t) => (
             <SecondaryButton key={t} onClick={() => setTab(t)}>
-              {t === "assessments" ? "Assess" : t[0].toUpperCase() + t.slice(1)}
+              {t === "assessments"
+                ? "Assess"
+                : t === "stats"
+                ? "Progress"
+                : t[0].toUpperCase() + t.slice(1)}
             </SecondaryButton>
           ))}
         </div>
@@ -9613,7 +9618,18 @@ the same time tomorrow.
         )}
 
         {tab === "stats" && (
-          <div className="grid2cols">
+          <>
+            <ProgressDashboard
+              familyId={family?.id}
+              profileId={activeProfileId}
+              profileName={activeProfile?.name || "Athlete"}
+              logs={allLogs}
+              currentStreak={stats.streak}
+              currentXp={xp}
+              referenceDate={getTodayYMD()}
+              onOpenAssessments={() => setTab("assessments")}
+            />
+            <div className="grid2cols progressLegacyStats">
             <Card className="pad">
               <div className="h2">Highlights</div>
               <div className="grid2 mt12">
@@ -9749,6 +9765,7 @@ the same time tomorrow.
               </div>
             </Card>
           </div>
+          </>
         )}
 
 {tab === "plan" && (
