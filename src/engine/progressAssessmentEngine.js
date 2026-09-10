@@ -110,7 +110,11 @@ function classifyDimensions(dimensions) {
 function improvementRankValue(dimensions) {
   const safePercentages = dimensions
     .filter((item) => item.status === "improved")
-    .map((item) => Number(item.percentageImprovement))
+    .map((item) => item.percentageImprovement)
+    .filter(
+      (value) => value !== null && value !== undefined && value !== ""
+    )
+    .map(Number)
     .filter(Number.isFinite);
   if (!safePercentages.length) return null;
   return Math.max(...safePercentages);
