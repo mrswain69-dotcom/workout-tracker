@@ -163,7 +163,6 @@ export async function revokeGroupInvite(inviteId) {
   return { data, error };
 }
 
-
 export async function updateGroupXpHistoryScope(groupId, scope) {
   if (!supabase) return unavailable();
   const { data, error } = await supabase.rpc("group_update_xp_history_scope", {
@@ -179,5 +178,14 @@ export async function loadGroupXpLeaderboard(groupId, membershipId, referenceDat
   const body = { groupId, membershipId };
   if (referenceDate) body.referenceDate = referenceDate;
   const { data, error } = await supabase.functions.invoke("group-xp-leaderboard", { body });
+  return { data: data || null, error };
+}
+
+export async function loadGroupConsistencyLeaderboard(groupId, membershipId, referenceDate = null) {
+  if (!supabase) return unavailable();
+  if (!groupId || !membershipId) return { data: null, error: new Error("Group membership is required") };
+  const body = { groupId, membershipId };
+  if (referenceDate) body.referenceDate = referenceDate;
+  const { data, error } = await supabase.functions.invoke("group-consistency-leaderboard", { body });
   return { data: data || null, error };
 }
