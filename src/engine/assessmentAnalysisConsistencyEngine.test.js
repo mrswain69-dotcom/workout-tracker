@@ -179,9 +179,23 @@ describe("Phase 4 Stage 2 between-Assessment training summary", () => {
     expect(summary.completedSessions).toBe(2);
     expect(summary.partialSessions).toBe(1);
     expect(summary.totalMinutes).toBe(20);
+    expect(summary.recordedExecutions).toBe(25);
     expect(summary.attempts).toBe(10);
     expect(summary.successes).toBe(7);
     expect(summary.accuracyPct).toBe(70);
+  });
+
+  it("isolates the selected athlete before summarising the interval", () => {
+    const summary = buildBetweenAssessmentTrainingSummary({
+      logs: [
+        sessionLog("2026-09-03", { profileId: "wilf", movementRow: movement({ method: "repetitions", result: { overall: { count: 20 } } }) }),
+        sessionLog("2026-09-04", { profileId: "xander", movementRow: movement({ method: "repetitions", result: { overall: { count: 99 } } }) }),
+      ],
+      profileId: "wilf",
+      interval: interval28,
+    });
+    expect(summary.completedSessions).toBe(1);
+    expect(summary.recordedExecutions).toBe(20);
   });
 });
 
