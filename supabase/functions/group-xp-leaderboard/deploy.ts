@@ -1,2 +1,2 @@
 // Stage 3 deploy entrypoint. Pin the complete scorer bundle to the audited immutable Git commit.
-import "https://raw.githubusercontent.com/mrswain69-dotcom/workout-tracker/95eb9492a132b73f6a926dbe44d8da1175d3e164/supabase/functions/group-xp-leaderboard/index.ts";
+import "https://raw.githubusercontent.com/mrswain69-dotcom/workout-tracker/f09e2e51a0552eb299e8d2b4f58c28f8c0eeef8e/supabase/functions/group-xp-leaderboard/index.ts";
