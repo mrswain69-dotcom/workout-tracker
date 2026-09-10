@@ -28,6 +28,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/progress/ProgressDashboard.jsx
-          git commit -m "Phase 4 Stage 5: integrate Assessment Analysis into Progress"
+          git add src/components/progress/ProgressDashboard.jsx src/components/progress/AssessmentAnalysisProgress.jsx src/components/progress/AssessmentAnalysisProgress.test.jsx src/components/progress/ProgressDashboard.test.jsx src/components/progress/ProgressDashboardPhase4Stage5.test.jsx
+          git commit -m "Phase 4 Stage 5: refine Analysis presentation tests"
           git push origin HEAD:feature/phase4-analysis
