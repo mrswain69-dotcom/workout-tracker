@@ -104,6 +104,6 @@ describe("ProgressDashboard Stage 6 integration", () => {
     expect(screen.getByText("Strength")).toBeTruthy();
 
     expect(screen.getByText(/Training charts will appear after structured Session activity is recorded/)).toBeTruthy();
-    expect(screen.getByText("More training history below")).toBeTruthy();
+    expect(screen.getByText("Legacy workout history retained below")).toBeTruthy();
   });
 });
