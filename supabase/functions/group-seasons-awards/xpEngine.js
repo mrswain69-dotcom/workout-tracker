@@ -297,6 +297,31 @@ function computeClaimedRewardsXpByDate(plan) {
   return map;
 }
 
+function normaliseGroupChallengeRewards(meta) {
+  const raw = Array.isArray(meta?.groupChallengeRewards) ? meta.groupChallengeRewards : [];
+  const out = [];
+  const seen = new Set();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const challengeId = typeof item.challengeId === "string" ? item.challengeId.trim() : "";
+    const awardedOn = typeof item.awardedOn === "string" ? item.awardedOn : "";
+    const xpAwarded = Math.min(30, Math.floor(safeNumber(item.xpAwarded)));
+    const key = `${challengeId}:${awardedOn}`;
+    if (!challengeId || !/^\d{4}-\d{2}-\d{2}$/.test(awardedOn) || xpAwarded <= 0 || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ challengeId, awardedOn, xpAwarded });
+  }
+  return out;
+}
+
+function computeGroupChallengeRewardsXpByDate(plan) {
+  const map = {};
+  for (const reward of normaliseGroupChallengeRewards(plan?.meta)) {
+    map[reward.awardedOn] = (map[reward.awardedOn] || 0) + reward.xpAwarded;
+  }
+  return map;
+}
+
 function computeStreakBonusMap(records) {
   const completeDates = records
     .filter((row) => isDayGreenForXp(row.log) || !!row.log?.meta?.streakSaved)
@@ -323,10 +348,11 @@ function computeStreakBonusMap(records) {
 
 export function buildXpDebugRows(inputRecords, plan) {
   const records = normaliseXpRecords(inputRecords);
-  if (!records.length) return [];
+  const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(plan);
+  const groupChallengeXpByDate = computeGroupChallengeRewardsXpByDate(plan);
+  if (!records.length && !Object.keys(claimedBadgeXpByDate).length && !Object.keys(groupChallengeXpByDate).length) return [];
 
   const streakXpByDate = computeStreakBonusMap(records);
-  const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(plan);
   const rows = [];
 
   for (const row of records) {
@@ -467,6 +493,7 @@ export function buildXpDebugRows(inputRecords, plan) {
       progXp,
       streakXp,
       badgeClaimXp,
+      challengeRewardXp: 0,
       baseXp: nonBonusXp,
       progressXp: strengthProgressXp,
       extraXp: cardioXp,
@@ -507,6 +534,47 @@ export function buildXpDebugRows(inputRecords, plan) {
       progXp: 0,
       streakXp: 0,
       badgeClaimXp: xp,
+      challengeRewardXp: 0,
+      baseXp: 0,
+      progressXp: 0,
+      extraXp: xp,
+      bonus: 0,
+      oneOffDone: false,
+      oneOffXp: 0,
+      setsXp: 0,
+      movementsXp: 0,
+      tasksDone: 0,
+      tasksXp_legacy: 0,
+      setsLogged: 0,
+      cardioKm: 0,
+      customMin: 0,
+      cardioMode: null,
+    });
+  }
+
+  for (const [date, xp] of Object.entries(groupChallengeXpByDate)) {
+    if (!xp) continue;
+    rows.push({
+      date,
+      weekday: new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" }),
+      kind: "group_challenge_reward",
+      complete: false,
+      totalXp: xp,
+      nonBonusXp: 0,
+      strengthXp: 0,
+      cardioXp: 0,
+      durationXp: 0,
+      sessionXp: 0,
+      recoveryXp: 0,
+      tasksXp: 0,
+      dayCompleteXp: 0,
+      dailyBonusXp: 0,
+      strengthProgressXp: 0,
+      cardioProgressXp: 0,
+      progXp: 0,
+      streakXp: 0,
+      badgeClaimXp: 0,
+      challengeRewardXp: xp,
       baseXp: 0,
       progressXp: 0,
       extraXp: xp,
