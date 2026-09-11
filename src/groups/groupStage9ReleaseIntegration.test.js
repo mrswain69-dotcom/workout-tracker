@@ -46,7 +46,7 @@ describe("Group Stage 9 navigation and release integration contract", () => {
   });
 
   it("retains the Stage 0 decision to defer Training/Performance Progress tabs until truthful Training parity exists", () => {
-    expect(stage0).toMatch(/do \*\*not\*\* introduce Progress `Training \| Performance` tabs[\s\S]*truthful Training content/i);
+    expect(stage0).toMatch(/Progress should gain two internal sub-tabs:[\s\S]*\*\*Training\*\*[\s\S]*\*\*Performance\*\*[\s\S]*Do \*\*not\*\* add these tabs[\s\S]*legacy Stats replacement[\s\S]*Training[\s\S]*not an empty or misleading destination/i);
     expect(app).not.toContain('["training", "performance"]');
     expect(app).not.toContain('["Training", "Performance"]');
   });
