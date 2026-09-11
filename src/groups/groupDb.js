@@ -1,4 +1,7 @@
 import { supabase } from "../supabaseClient";
+import { loadUntilGroupVisible } from "./groupReadAfterWrite.js";
+
+const pendingJoinedGroupByProfile = new Map();
 
 function unavailable() {
   return { data: null, error: new Error("Supabase not configured") };
@@ -8,7 +11,7 @@ function firstRow(data) {
   return Array.isArray(data) ? data[0] || null : data || null;
 }
 
-export async function listProfileGroups(profileId) {
+async function listProfileGroupsOnce(profileId) {
   if (!supabase) return { data: [], error: new Error("Supabase not configured") };
   if (!profileId) return { data: [], error: null };
 
@@ -42,6 +45,24 @@ export async function listProfileGroups(profileId) {
       .filter(Boolean),
     error: null,
   };
+}
+
+export async function listProfileGroups(profileId) {
+  const pendingGroupId = pendingJoinedGroupByProfile.get(profileId) || "";
+  const result = await loadUntilGroupVisible(
+    () => listProfileGroupsOnce(profileId),
+    pendingGroupId
+  );
+
+  if (
+    pendingGroupId &&
+    !result?.error &&
+    (result?.data || []).some((group) => group?.id === pendingGroupId)
+  ) {
+    pendingJoinedGroupByProfile.delete(profileId);
+  }
+
+  return result;
 }
 
 export async function listGroupDirectory(groupId) {
@@ -103,7 +124,11 @@ export async function joinGroup({ profileId, inviteCode, nickname }) {
     p_invite_code: inviteCode,
     p_nickname: nickname || null,
   });
-  return { data: firstRow(data), error };
+  const joined = firstRow(data);
+  if (!error && joined?.group_id && profileId) {
+    pendingJoinedGroupByProfile.set(profileId, joined.group_id);
+  }
+  return { data: joined, error };
 }
 
 export async function updateGroupNickname(groupId, profileId, nickname) {
