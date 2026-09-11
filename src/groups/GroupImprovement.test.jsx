@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./groupDb", () => ({
@@ -48,20 +48,22 @@ afterEach(() => cleanup());
 describe("GroupImprovement", () => {
   it("renders self-vs-self standings with safe Group identity and evidence counts", async () => {
     render(<GroupImprovement group={group} membership={membership} />);
-    expect(await screen.findByText("+4.2%")).toBeTruthy();
+    const standings = await screen.findByRole("table", { name: "Improvement standings" });
+    expect(within(standings).getByText("+4.2%")).toBeTruthy();
     expect(screen.getByText("Improvement")).toBeTruthy();
-    expect(screen.getByText("WS10 · You")).toBeTruthy();
-    expect(screen.getByText(/3 comparable metrics · 2 up · 1 down/)).toBeTruthy();
-    expect(screen.getByText(/No matching 4-week baseline yet/)).toBeTruthy();
+    expect(within(standings).getByText("WS10 · You")).toBeTruthy();
+    expect(within(standings).getByText(/3 comparable metrics · 2 up · 1 down/)).toBeTruthy();
+    expect(within(standings).getByText(/No matching 4-week baseline yet/)).toBeTruthy();
     expect(loadGroupImprovementLeaderboard).toHaveBeenCalledWith("group-1", "member-self");
   });
 
   it("shows completed history as final standings", async () => {
     render(<GroupImprovement group={group} membership={membership} />);
-    await screen.findByText("+4.2%");
+    await screen.findByRole("table", { name: "Improvement standings" });
     fireEvent.click(screen.getByRole("button", { name: "Last 4 weeks" }));
-    expect(await screen.findByText("+6.1%")).toBeTruthy();
-    expect(screen.getByText("Final standings")).toBeTruthy();
+    expect(await screen.findByText("Final standings")).toBeTruthy();
+    const standings = screen.getByRole("table", { name: "Improvement standings" });
+    expect(within(standings).getByText("+6.1%")).toBeTruthy();
   });
 
   it("does not create a podium for athletes without a comparable score", async () => {
@@ -82,7 +84,7 @@ describe("GroupImprovement", () => {
 
   it("refreshes through the authenticated server loader", async () => {
     render(<GroupImprovement group={group} membership={membership} />);
-    await screen.findByText("+4.2%");
+    await screen.findByRole("table", { name: "Improvement standings" });
     fireEvent.click(screen.getByRole("button", { name: "Refresh Improvement" }));
     await waitFor(() => expect(loadGroupImprovementLeaderboard).toHaveBeenCalledTimes(2));
   });
