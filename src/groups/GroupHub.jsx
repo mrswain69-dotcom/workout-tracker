@@ -17,6 +17,7 @@ import {
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
 import GroupWeeklyXp from "./GroupWeeklyXp.jsx";
 import GroupConsistency from "./GroupConsistency.jsx";
+import GroupChallenges from "./GroupChallenges.jsx";
 import "./GroupHub.css";
 
 function errorText(error, fallback = "Something went wrong.") {
@@ -345,6 +346,12 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                   <GroupConsistency
                     group={selectedGroup}
                     membership={ownMembership}
+                  />
+
+                  <GroupChallenges
+                    group={selectedGroup}
+                    membership={ownMembership}
+                    isAdmin={isAdmin}
                   />
 
                   <section className="groupHubPanel">
