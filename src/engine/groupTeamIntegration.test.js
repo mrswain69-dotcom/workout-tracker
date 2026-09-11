@@ -35,9 +35,11 @@ describe("Stage 7 Squad and Club integration contract", () => {
     expect(source).not.toMatch(/body\?\.(prCount|score|xp|consistencyPct|improvementPct|profileId|weight|log|assessment)/);
   });
 
-  it("is read-only, team-only and paginates lifetime logs for truthful PR history", () => {
+  it("is read-only, team-only and paginates lifetime logs deterministically for truthful PR history", () => {
     const source = read("supabase/functions/group-team-pr-board/index.ts");
     expect(source).toContain('new Set(["squad", "club"])');
+    expect(source).toContain('.order("date_ymd", { ascending: true })');
+    expect(source).toContain('.order("profile_id", { ascending: true })');
     expect(source).toContain('.range(from, from + pageSize - 1)');
     expect(source).not.toContain(".insert(");
     expect(source).not.toContain(".upsert(");
