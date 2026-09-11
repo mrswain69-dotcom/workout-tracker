@@ -8,13 +8,15 @@ const css = fs.readFileSync("src/groups/GroupHub.css", "utf8");
 const migration = fs.readFileSync("supabase/migrations/20260910150000_group_team_stage2_actions.sql", "utf8");
 
 describe("Group & Team Stage 2 integration contract", () => {
-  it("mounts Groups beside athlete identity without adding a sixth main navigation tab", () => {
+  it("mounts Groups beside athlete identity without adding Groups to the main navigation", () => {
     expect(app.match(/React\.lazy\(\(\) => import\("\.\/groups\/GroupHub\.jsx"\)\)/g)?.length).toBe(1);
     expect(app.match(/className="groupHeaderButton"/g)?.length).toBe(1);
     expect(app).toContain('aria-label="Open Groups"');
     expect(app).toContain("showGroups &&");
     expect(app).toContain("<GroupHub");
-    expect(app).toContain('["log", "stats", "plan", "assessments", "rewards"]');
+    expect(app).toContain('["log", "stats", "rewards"]');
+    expect(app).toContain('["plan", "assessments"]');
+    expect(app).not.toContain('["log", "stats", "rewards", "groups"]');
     expect(app).not.toContain('["log", "stats", "plan", "assessments", "rewards", "groups"]');
   });
 
