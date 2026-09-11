@@ -31,6 +31,10 @@ vi.mock("./GroupTeamView.jsx", () => ({
   default: () => null,
 }));
 
+vi.mock("./GroupChallenges.jsx", () => ({
+  default: () => null,
+}));
+
 import GroupHub from "./GroupHub.jsx";
 import * as groupDb from "./groupDb";
 
