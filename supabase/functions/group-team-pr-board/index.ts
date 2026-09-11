@@ -68,6 +68,7 @@ async function fetchAllLogs(adminClient: any, profileIds: string[], referenceDat
       .in("profile_id", profileIds)
       .lte("date_ymd", referenceDate)
       .order("date_ymd", { ascending: true })
+      .order("profile_id", { ascending: true })
       .range(from, from + pageSize - 1);
     if (error) throw error;
     const page = data || [];
