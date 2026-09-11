@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupImprovementLeaderboard } from "./groupDb";
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
+import GroupSeasons from "./GroupSeasons.jsx";
 import "./GroupWeeklyXp.css";
 import "./GroupImprovement.css";
 
@@ -168,63 +169,66 @@ export default function GroupImprovement({ group, membership }) {
   );
 
   return (
-    <section className="groupHubPanel groupXpPanel groupImprovementPanel">
-      <div className="groupXpHeading">
-        <div>
-          <span className="groupXpEyebrow groupImprovementEyebrow">↗ SELF VS SELF</span>
-          <h4>Improvement</h4>
-          <p>Current recorded performance versus your own locked rolling 4-week baseline. It compares change, not body size or absolute strength.</p>
-        </div>
-        <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Improvement">↻</button>
-      </div>
-
-      <div className="groupXpPeriodToggle" role="group" aria-label="Improvement period">
-        <button type="button" className={mode === "current" ? "active" : ""} onClick={() => setMode("current")}>This week</button>
-        <button type="button" className={mode === "history" ? "active" : ""} onClick={() => setMode("history")}>Last 4 weeks</button>
-      </div>
-
-      {mode === "history" && weekButtons.length ? (
-        <div className="groupXpWeekPicker" role="group" aria-label="Choose Improvement week">
-          {weekButtons.map((week) => (
-            <button
-              type="button"
-              key={week.index}
-              className={historyIndex === week.index ? "active" : ""}
-              disabled={week.disabled}
-              onClick={() => setHistoryIndex(week.index)}
-            >
-              {week.label || `Week ${week.index + 1}`}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
-      {loading ? <div className="groupHubMuted groupXpLoading">Calculating Improvement…</div> : null}
-
-      {!loading && period ? (
-        <>
-          <div className="groupXpPeriodMeta">
-            <strong>{formatWeek(period.startDate, period.endDate)}</strong>
-            <span>{period.state === "frozen" ? "Final standings" : "Live self-vs-self change"}</span>
+    <>
+      <section className="groupHubPanel groupXpPanel groupImprovementPanel">
+        <div className="groupXpHeading">
+          <div>
+            <span className="groupXpEyebrow groupImprovementEyebrow">↗ SELF VS SELF</span>
+            <h4>Improvement</h4>
+            <p>Current recorded performance versus your own locked rolling 4-week baseline. It compares change, not body size or absolute strength.</p>
           </div>
+          <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Improvement">↻</button>
+        </div>
 
-          {!period.available ? (
-            <div className="groupHubEmpty compact">This Group had not started yet.</div>
-          ) : rows.length ? (
-            <>
-              <TopThree rows={rows} selfId={membership.id} />
-              <Standings rows={rows} selfId={membership.id} />
-            </>
-          ) : (
-            <div className="groupHubEmpty compact">No Improvement standings are available for this period.</div>
-          )}
-        </>
-      ) : null}
+        <div className="groupXpPeriodToggle" role="group" aria-label="Improvement period">
+          <button type="button" className={mode === "current" ? "active" : ""} onClick={() => setMode("current")}>This week</button>
+          <button type="button" className={mode === "history" ? "active" : ""} onClick={() => setMode("history")}>Last 4 weeks</button>
+        </div>
 
-      <div className="groupImprovementRuleNote">
-        <strong>How it stays fair:</strong> comparable metrics are measured against each athlete’s own preceding 28-day average, then weighted equally. Declines count as well as gains, unsafe percentage metrics are excluded, practice volume does not become performance, and each metric has a ±50% outlier cap.
-      </div>
-    </section>
+        {mode === "history" && weekButtons.length ? (
+          <div className="groupXpWeekPicker" role="group" aria-label="Choose Improvement week">
+            {weekButtons.map((week) => (
+              <button
+                type="button"
+                key={week.index}
+                className={historyIndex === week.index ? "active" : ""}
+                disabled={week.disabled}
+                onClick={() => setHistoryIndex(week.index)}
+              >
+                {week.label || `Week ${week.index + 1}`}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
+        {loading ? <div className="groupHubMuted groupXpLoading">Calculating Improvement…</div> : null}
+
+        {!loading && period ? (
+          <>
+            <div className="groupXpPeriodMeta">
+              <strong>{formatWeek(period.startDate, period.endDate)}</strong>
+              <span>{period.state === "frozen" ? "Final standings" : "Live self-vs-self change"}</span>
+            </div>
+
+            {!period.available ? (
+              <div className="groupHubEmpty compact">This Group had not started yet.</div>
+            ) : rows.length ? (
+              <>
+                <TopThree rows={rows} selfId={membership.id} />
+                <Standings rows={rows} selfId={membership.id} />
+              </>
+            ) : (
+              <div className="groupHubEmpty compact">No Improvement standings are available for this period.</div>
+            )}
+          </>
+        ) : null}
+
+        <div className="groupImprovementRuleNote">
+          <strong>How it stays fair:</strong> comparable metrics are measured against each athlete’s own preceding 28-day average, then weighted equally. Declines count as well as gains, unsafe percentage metrics are excluded, practice volume does not become performance, and each metric has a ±50% outlier cap.
+        </div>
+      </section>
+      <GroupSeasons group={group} membership={membership} />
+    </>
   );
 }
