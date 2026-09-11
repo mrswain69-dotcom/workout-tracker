@@ -19,13 +19,13 @@ describe("Stage 7 Squad and Club integration contract", () => {
     const source = read("supabase/functions/group-team-pr-board/index.ts");
     const membershipProof = source.indexOf('userClient\n      .from("group_memberships")');
     const firstAdminRead = source.indexOf('adminClient\n      .from("groups")');
-    const logRead = source.indexOf('.from("logs")');
+    const logReadCall = source.indexOf("fetchAllLogs(adminClient, profileIds, referenceDate)");
     expect(membershipProof).toBeGreaterThan(-1);
     expect(source).toContain('.eq("id", membershipId)');
     expect(source).toContain('.eq("group_id", groupId)');
     expect(source).toContain('.eq("status", "active")');
     expect(firstAdminRead).toBeGreaterThan(membershipProof);
-    expect(logRead).toBeGreaterThan(membershipProof);
+    expect(logReadCall).toBeGreaterThan(membershipProof);
   });
 
   it("accepts no browser-authored PR score or private athlete performance fields", () => {
