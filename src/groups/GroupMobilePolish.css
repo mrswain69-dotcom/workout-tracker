@@ -1,0 +1,32 @@
+/* Mobile safety for Group standings that have wider metric columns. */
+.groupXpStandings {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.groupSeasonStandings .groupXpStandingHeader,
+.groupSeasonStandings .groupXpStandingRow {
+  min-width: 330px;
+}
+
+.groupTeamPrTable .groupXpStandingHeader,
+.groupTeamPrTable .groupXpStandingRow {
+  min-width: 310px;
+}
+
+@media (max-width: 430px) {
+  .groupSeasonStandings .groupXpStandingHeader,
+  .groupSeasonStandings .groupXpStandingRow {
+    min-width: 320px;
+  }
+
+  .groupTeamPrTable .groupXpStandingHeader,
+  .groupTeamPrTable .groupXpStandingRow {
+    min-width: 300px;
+  }
+}
