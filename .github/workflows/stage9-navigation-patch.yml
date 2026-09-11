@@ -1,0 +1,134 @@
+name: Stage 9 Navigation Patch
+
+on:
+  push:
+    branches:
+      - feature/group-team-ecosystem
+    paths:
+      - .github/workflows/stage9-navigation-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v7
+        with:
+          ref: feature/group-team-ecosystem
+          fetch-depth: 0
+
+      - name: Apply Stage 9 navigation integration
+        shell: python
+        run: |
+          from pathlib import Path
+
+          app_path = Path("src/App.jsx")
+          app = app_path.read_text()
+
+          settings_old = '''<button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Settings">'''
+          settings_new = '''<button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Manage Workout Tracker" title="Manage">'''
+          assert app.count(settings_old) == 1, "Settings button contract changed"
+          app = app.replace(settings_old, settings_new, 1)
+
+          nav_old = '''      <div className="tabsRow">
+        <div className="tabs">
+          {["log", "stats", "plan", "assessments", "rewards"].map((t) => (
+            <SecondaryButton key={t} onClick={() => setTab(t)}>
+              {t === "assessments"
+                ? "Assess"
+                : t === "stats"
+                ? "Progress"
+                : t[0].toUpperCase() + t.slice(1)}
+            </SecondaryButton>
+          ))}
+        </div>
+      </div>'''
+          nav_new = '''      <div className="tabsRow">
+        <div className="tabs primaryNavTabs" aria-label="Primary navigation">
+          {["log", "stats", "rewards"].map((t) => (
+            <SecondaryButton key={t} onClick={() => setTab(t)}>
+              {t === "stats" ? "Progress" : t[0].toUpperCase() + t.slice(1)}
+            </SecondaryButton>
+          ))}
+          <div className="setupTabsDesktop" role="group" aria-label="Management shortcuts">
+            {["plan", "assessments"].map((t) => (
+              <SecondaryButton key={t} onClick={() => setTab(t)}>
+                {t === "assessments" ? "Assess" : "Plan"}
+              </SecondaryButton>
+            ))}
+          </div>
+        </div>
+      </div>'''
+          assert app.count(nav_old) == 1, "Primary navigation contract changed"
+          app = app.replace(nav_old, nav_new, 1)
+
+          modal_old = '''{showGroups && (
+  <React.Suspense fallback={<div className="groupHubBackdrop"><div className="groupHubShell"><div className="groupHubEmpty">Loading Groups…</div></div></div>}>
+    <GroupHub
+      profiles={profiles}
+      activeProfileId={activeProfileId}
+      onClose={() => setShowGroups(false)}
+    />
+  </React.Suspense>
+)}
+
+        <Card className="pad motivator">'''
+          modal_new = '''{showGroups && (
+  <React.Suspense fallback={<div className="groupHubBackdrop"><div className="groupHubShell"><div className="groupHubEmpty">Loading Groups…</div></div></div>}>
+    <GroupHub
+      profiles={profiles}
+      activeProfileId={activeProfileId}
+      onClose={() => setShowGroups(false)}
+    />
+  </React.Suspense>
+)}
+
+{["settings", "plan", "assessments"].includes(tab) && (
+  <div className="manageTabsRow">
+    <nav className="manageTabs" aria-label="Manage Workout Tracker">
+      {[
+        ["settings", "General"],
+        ["plan", "Plan"],
+        ["assessments", "Assessments"],
+      ].map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          className={`manageTab ${tab === key ? "active" : ""}`}
+          aria-current={tab === key ? "page" : undefined}
+          onClick={() => setTab(key)}
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
+  </div>
+)}
+
+        <Card className="pad motivator">'''
+          assert app.count(modal_old) == 1, "Group shell insertion point changed"
+          app = app.replace(modal_old, modal_new, 1)
+          app_path.write_text(app)
+
+          styles_path = Path("src/styles.css")
+          styles = styles_path.read_text()
+          marker = "/* === Stage 9 navigation integration === */"
+          assert marker not in styles, "Stage 9 styles already present"
+          styles += '''\n\n/* === Stage 9 navigation integration === */\n.setupTabsDesktop{display:contents}\n.manageTabsRow{display:flex;justify-content:center;margin:10px 0 14px;width:100%}\n.manageTabs{display:flex;gap:8px;width:min(560px,100%);padding:6px;border:1px solid rgba(15,23,42,.10);border-radius:16px;background:rgba(255,255,255,.78);box-shadow:0 8px 24px rgba(15,23,42,.05)}\n.manageTab{flex:1 1 0;min-height:44px;border:1px solid transparent;border-radius:11px;background:transparent;color:#475569;font-weight:800;cursor:pointer;padding:8px 10px}\n.manageTab:hover{border-color:rgba(255,122,24,.24);background:rgba(255,122,24,.06);color:#0f172a}\n.manageTab.active{border-color:rgba(255,122,24,.38);background:rgba(255,122,24,.11);color:#0f172a}\n@media(max-width:760px){\n  .setupTabsDesktop{display:none}\n  .primaryNavTabs .btn{min-height:44px}\n  .manageTabsRow{margin:8px 0 12px}\n  .manageTabs{width:100%;gap:5px;padding:5px;border-radius:14px}\n  .manageTab{min-height:44px;padding:7px 6px;font-size:13px}\n}\n'''
+          styles_path.write_text(styles)
+
+          # This workflow is a one-shot patch mechanism. Remove it from the final feature surface.
+          Path(".github/workflows/stage9-navigation-patch.yml").unlink()
+
+      - name: Commit clean Stage 9 navigation change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Complete Stage 9 navigation integration"
+          git push origin HEAD:feature/group-team-ecosystem
