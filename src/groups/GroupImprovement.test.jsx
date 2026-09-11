@@ -48,8 +48,8 @@ afterEach(() => cleanup());
 describe("GroupImprovement", () => {
   it("renders self-vs-self standings with safe Group identity and evidence counts", async () => {
     render(<GroupImprovement group={group} membership={membership} />);
-    expect(await screen.findByText("Improvement")).toBeTruthy();
-    expect(screen.getByText("+4.2%")).toBeTruthy();
+    expect(await screen.findByText("+4.2%")).toBeTruthy();
+    expect(screen.getByText("Improvement")).toBeTruthy();
     expect(screen.getByText("WS10 · You")).toBeTruthy();
     expect(screen.getByText(/3 comparable metrics · 2 up · 1 down/)).toBeTruthy();
     expect(screen.getByText(/No matching 4-week baseline yet/)).toBeTruthy();
