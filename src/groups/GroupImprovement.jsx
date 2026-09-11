@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupImprovementLeaderboard } from "./groupDb";
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
 import GroupSeasons from "./GroupSeasons.jsx";
+import GroupTeamView from "./GroupTeamView.jsx";
 import "./GroupWeeklyXp.css";
 import "./GroupImprovement.css";
 
@@ -229,6 +230,7 @@ export default function GroupImprovement({ group, membership }) {
         </div>
       </section>
       <GroupSeasons group={group} membership={membership} />
+      <GroupTeamView group={group} membership={membership} />
     </>
   );
 }
