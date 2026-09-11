@@ -17,6 +17,13 @@ function formatWeek(startDate, endDate) {
   return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}`;
 }
 
+function numericScore(row) {
+  const raw = row?.improvementPct;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
 function LeaderAvatar({ row }) {
   const avatar = resolveGroupAvatar(row?.avatar_id);
   const frameClass = groupAvatarFrameClass({
@@ -31,8 +38,8 @@ function LeaderAvatar({ row }) {
 }
 
 function scoreLabel(row) {
-  const value = Number(row?.improvementPct);
-  if (!Number.isFinite(value)) return "—";
+  const value = numericScore(row);
+  if (value === null) return "—";
   const rounded = value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   return `${value > 0 ? "+" : ""}${rounded}%`;
 }
@@ -52,8 +59,8 @@ function evidenceLabel(row) {
 }
 
 function scoreTone(row) {
-  const value = Number(row?.improvementPct);
-  if (!Number.isFinite(value)) return "neutral";
+  const value = numericScore(row);
+  if (value === null) return "neutral";
   if (value > 0.05) return "positive";
   if (value < -0.05) return "negative";
   return "neutral";
@@ -61,7 +68,7 @@ function scoreTone(row) {
 
 function TopThree({ rows = [], selfId }) {
   const top = rows.filter(
-    (row) => Number.isFinite(Number(row?.improvementPct)) && Number(row?.rank || 99) <= 3
+    (row) => numericScore(row) !== null && Number(row?.rank || 99) <= 3
   );
   if (!top.length) return null;
 
