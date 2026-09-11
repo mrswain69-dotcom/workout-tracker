@@ -51,7 +51,7 @@ export function getSessionLoggerProgress(session) {
  * Every movement that has not been explicitly skipped is marked performed, while
  * existing result payloads and movement notes are preserved unchanged.
  */
-export function completeSessionForLogging(session) {
+export function completeSessionForLogging(session, completedAt = "") {
   const safe = session && typeof session === "object" ? session : {};
   const movements = (Array.isArray(safe.movements) ? safe.movements : []).map(
     (movement) => {
@@ -66,6 +66,10 @@ export function completeSessionForLogging(session) {
   return {
     ...safe,
     completed: true,
+    completedAt:
+      cleanText(completedAt, "") ||
+      cleanText(safe.completedAt, "") ||
+      new Date().toISOString(),
     movements,
   };
 }
@@ -75,6 +79,7 @@ export function reopenSessionForLogging(session) {
   return {
     ...safe,
     completed: false,
+    completedAt: "",
     movements: Array.isArray(safe.movements)
       ? safe.movements.map((movement) => ({ ...movement }))
       : [],
@@ -163,7 +168,7 @@ export default function SessionLogger({
     if (disabled) return;
     const current = liveSessionRef.current;
     if (current.completed) return;
-    emit(completeSessionForLogging(current), { source: "session-complete" });
+    emit(completeSessionForLogging(current, new Date().toISOString()), { source: "session-complete" });
   };
 
   const handleReopen = () => {

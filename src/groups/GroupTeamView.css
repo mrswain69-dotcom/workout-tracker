@@ -1,0 +1,214 @@
+.groupTeamPanel {
+  margin-top: 16px;
+  border-color: rgba(0, 229, 255, 0.2);
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.025), #131720 28%);
+}
+
+.groupTeamEyebrow { color: #00e5ff; }
+
+.groupTeamSeasonHeader {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr);
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.groupTeamSeasonHeader > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.groupTeamSeasonHeader span { color: rgba(255, 255, 255, 0.6); font-size: 0.78rem; }
+
+.groupTeamSeasonProgress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.groupTeamSeasonProgress > span {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #00e5ff, #00ff88);
+}
+
+.groupTeamSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.groupTeamSummaryCard {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  display: grid;
+  gap: 5px;
+}
+
+.groupTeamSummaryCard > span {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.groupTeamSummaryCard > strong {
+  color: #00e5ff;
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.groupTeamSummaryCard.consistency > strong { color: #00ff88; }
+.groupTeamSummaryCard.improvement > strong { color: #00ff88; }
+.groupTeamSummaryCard small { color: rgba(255, 255, 255, 0.5); line-height: 1.35; }
+
+.groupTeamSectionHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.groupTeamSectionHeading > div { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.groupTeamSectionHeading span { color: rgba(255, 255, 255, 0.48); font-size: 0.75rem; }
+
+.groupTeamGraphWrap {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(4, 7, 12, 0.34);
+  padding: 10px;
+}
+
+.groupTeamGraph { display: block; width: 100%; height: 150px; overflow: visible; }
+.groupTeamGraphZero { stroke: rgba(255, 255, 255, 0.15); stroke-width: 1; stroke-dasharray: 4 4; }
+.groupTeamGraphLine { fill: none; stroke: #00ff88; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.groupTeamGraphPoint { fill: #0f1117; stroke: #00e5ff; stroke-width: 3; }
+
+.groupTeamGraphLegend {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.groupTeamGraphLegend > div { display: grid; gap: 2px; text-align: center; min-width: 0; }
+.groupTeamGraphLegend span, .groupTeamGraphLegend small { color: rgba(255, 255, 255, 0.48); font-size: 0.66rem; }
+.groupTeamGraphLegend strong { font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+
+.groupTeamMetricTabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.groupTeamMetricTabs button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.68);
+  padding: 0 13px;
+  font: inherit;
+  font-size: 0.77rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.groupTeamMetricTabs button.active {
+  background: rgba(0, 229, 255, 0.13);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.34);
+}
+
+.groupTeamSpotlight {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.groupTeamSpotlightCard {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto 46px minmax(0, 1fr);
+  grid-template-areas:
+    "rank avatar name"
+    "rank avatar score";
+  align-items: center;
+  gap: 2px 9px;
+  padding: 11px;
+  border: 1px solid rgba(255, 215, 0, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 215, 0, 0.035);
+}
+
+.groupTeamSpotlightCard.rank1 { border-color: rgba(255, 215, 0, 0.45); }
+.groupTeamSpotlightCard.self { outline: 1px solid rgba(0, 229, 255, 0.55); outline-offset: 2px; }
+.groupTeamSpotlightRank { grid-area: rank; color: #ffd700; font-weight: 900; }
+.groupTeamSpotlightCard .groupXpAvatar { grid-area: avatar; width: 44px; height: 44px; }
+.groupTeamSpotlightCard > strong { grid-area: name; min-width: 0; overflow-wrap: anywhere; }
+.groupTeamSpotlightCard > span:last-child { grid-area: score; color: #00ff88; font-size: 0.8rem; font-weight: 800; }
+
+.groupTeamPrTable { margin-top: 10px; }
+.groupTeamPrTable .groupXpStandingHeader,
+.groupTeamPrTable .groupXpStandingRow {
+  grid-template-columns: 56px minmax(150px, 1fr) minmax(120px, 0.75fr);
+}
+
+.groupTeamPrScore {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+}
+.groupTeamPrScore strong { color: #ffd700; }
+.groupTeamPrScore small { color: rgba(255, 255, 255, 0.5); font-size: 0.7rem; }
+
+.groupTeamPrivacyNote {
+  margin-top: 14px;
+  padding: 11px 12px;
+  border-left: 3px solid #00e5ff;
+  border-radius: 0 11px 11px 0;
+  background: rgba(0, 229, 255, 0.04);
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+.groupTeamPrivacyNote strong { color: rgba(255, 255, 255, 0.88); }
+.groupTeamEmptyLine { padding: 13px 2px 2px; }
+
+@media (max-width: 760px) {
+  .groupTeamSummaryGrid { grid-template-columns: 1fr; }
+  .groupTeamSpotlight { grid-template-columns: 1fr; }
+  .groupTeamGraphLegend { grid-template-columns: repeat(5, minmax(66px, 1fr)); overflow-x: auto; padding-bottom: 3px; }
+}
+
+@media (max-width: 520px) {
+  .groupTeamSeasonHeader { grid-template-columns: 1fr; gap: 10px; }
+  .groupTeamMetricTabs { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; border-radius: 13px; box-sizing: border-box; }
+  .groupTeamMetricTabs button { padding: 0 7px; border-radius: 9px; }
+  .groupTeamPrTable .groupXpStandingHeader,
+  .groupTeamPrTable .groupXpStandingRow { grid-template-columns: 42px minmax(105px, 1fr) minmax(90px, 0.8fr); }
+  .groupTeamPrScore small { font-size: 0.64rem; }
+}

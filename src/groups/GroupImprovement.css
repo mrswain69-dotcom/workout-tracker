@@ -1,0 +1,90 @@
+.groupImprovementPanel {
+  border-color: rgba(0, 255, 136, 0.18);
+}
+
+.groupImprovementEyebrow {
+  color: #00ff88;
+}
+
+.groupImprovementTopThree .groupXpPodium {
+  min-width: 0;
+}
+
+.groupImprovementPodiumScore,
+.groupImprovementScoreCell > strong {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.groupImprovementPodiumScore {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.groupImprovementScoreCell {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+}
+
+.groupImprovementScoreCell > strong {
+  font-size: 1rem;
+}
+
+.groupImprovementScoreCell small,
+.groupImprovementTopThree small {
+  color: rgba(236, 241, 247, 0.62);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.groupImprovementScoreCell.positive > strong,
+.groupImprovementPodiumScore.positive {
+  color: #00ff88;
+}
+
+.groupImprovementScoreCell.negative > strong,
+.groupImprovementPodiumScore.negative {
+  color: #ff4d4d;
+}
+
+.groupImprovementScoreCell.neutral > strong,
+.groupImprovementPodiumScore.neutral {
+  color: rgba(236, 241, 247, 0.88);
+}
+
+.groupImprovementRuleNote {
+  margin-top: 14px;
+  padding: 11px 12px;
+  border: 1px solid rgba(0, 255, 136, 0.12);
+  border-radius: 12px;
+  background: rgba(0, 255, 136, 0.035);
+  color: rgba(236, 241, 247, 0.66);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.groupImprovementRuleNote strong {
+  color: rgba(236, 241, 247, 0.88);
+}
+
+@media (max-width: 780px) {
+  .groupImprovementScoreCell small {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .groupImprovementScoreCell small {
+    max-width: 118px;
+    font-size: 0.68rem;
+  }
+
+  .groupImprovementRuleNote {
+    padding: 10px;
+    font-size: 0.74rem;
+  }
+}

@@ -4,9 +4,10 @@ import { describe, expect, it } from "vitest";
 const appSource = fs.readFileSync(new URL("../../App.jsx", import.meta.url), "utf8");
 
 describe("Phase 3 Stage 4 App integration contract", () => {
-  it("evolves the existing stats destination into visible Progress without adding a sixth route", () => {
-    expect(appSource).toContain('["log", "stats", "plan", "assessments", "rewards"]');
-    expect(appSource).toContain('t === "stats"\n                ? "Progress"');
+  it("keeps the existing stats destination as visible Progress within the Stage 9 navigation contract", () => {
+    expect(appSource).toContain('["log", "stats", "rewards"]');
+    expect(appSource).toContain('["plan", "assessments"]');
+    expect(appSource).toContain('t === "stats" ? "Progress"');
     expect(appSource).not.toContain('["log", "stats", "progress"');
   });
 

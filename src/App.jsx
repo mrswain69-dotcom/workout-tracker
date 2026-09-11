@@ -41,6 +41,10 @@ import {
 import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS } from "./config/badges";
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 import {
+  buildXpDebugRows as buildXpDebugRowsEngine,
+  computeXpFromLogs as computeXpFromLogsEngine,
+} from "./engine/xpEngine.js";
+import {
   buildSessionLogBlockSnapshot,
   hydrateSessionSnapshotsInLog,
   reconcileSessionLogBlockSnapshot,
@@ -64,6 +68,7 @@ import SessionLogger from "./components/sessions/SessionLogger.jsx";
 import AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx";
 import AssessmentHub from "./components/assessments/AssessmentHub.jsx";
 import ProgressDashboard from "./components/progress/ProgressDashboard.jsx";
+const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -3008,6 +3013,7 @@ useEffect(() => {
   }; // log | stats | plan | rewards | settings
   const [sessionReady, setSessionReady] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
 
   const [family, setFamily] = useState(null);
   const [profiles, setProfiles] = useState([]);
@@ -4759,12 +4765,12 @@ const computeXpFromLogs = (records, plan) => {
 };
 
 useEffect(() => {
-  setXp(computeXpFromLogs(allLogs, plan));
+  setXp(computeXpFromLogsEngine(allLogs, plan));
 }, [allLogs, plan]);
 
 // XP breakdown per day (for cross-checking / XP log)
 const xpDebugRows = useMemo(
-  () => buildXpDebugRows(allLogs, plan),
+  () => buildXpDebugRowsEngine(allLogs, plan),
   [allLogs, plan]
 );
 
@@ -7785,7 +7791,7 @@ const cardioProgress = useMemo(() => {
     </div>
 
     <div className="brandActions">
-      <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Settings">
+      <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Manage Workout Tracker" title="Manage">
         <span className="iconEmoji">⚙️</span>
       </button>
 
@@ -7827,6 +7833,21 @@ const cardioProgress = useMemo(() => {
   )}
 </span>
     <span>{activeProfile?.name || "Profile"}</span>
+    <button
+      type="button"
+      className="groupHeaderButton"
+      onClick={() => setShowGroups(true)}
+      disabled={!activeProfileId}
+      aria-label="Open Groups"
+      title="Groups & Teams"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="16.5" cy="9" r="2.4" stroke="currentColor" strokeWidth="1.6" opacity="0.75" />
+        <path d="M3.5 18c.6-3.3 2.6-5 5.5-5s4.9 1.7 5.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M14 14c2.8-.5 5.2.8 6.1 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity="0.75" />
+      </svg>
+    </button>
   </span>
 </h1>
 
@@ -7840,23 +7861,56 @@ const cardioProgress = useMemo(() => {
       </div>
 
       <div className="tabsRow">
-        <div className="tabs">
-          {["log", "stats", "plan", "assessments", "rewards"].map((t) => (
+        <div className="tabs primaryNavTabs" aria-label="Primary navigation">
+          {["log", "stats", "rewards"].map((t) => (
             <SecondaryButton key={t} onClick={() => setTab(t)}>
-              {t === "assessments"
-                ? "Assess"
-                : t === "stats"
-                ? "Progress"
-                : t[0].toUpperCase() + t.slice(1)}
+              {t === "stats" ? "Progress" : t[0].toUpperCase() + t.slice(1)}
             </SecondaryButton>
           ))}
+          <div className="setupTabsDesktop" role="group" aria-label="Management shortcuts">
+            {["plan", "assessments"].map((t) => (
+              <SecondaryButton key={t} onClick={() => setTab(t)}>
+                {t === "assessments" ? "Assess" : "Plan"}
+              </SecondaryButton>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   </div>
 </header>
 
+{showGroups && (
+  <React.Suspense fallback={<div className="groupHubBackdrop"><div className="groupHubShell"><div className="groupHubEmpty">Loading Groups…</div></div></div>}>
+    <GroupHub
+      profiles={profiles}
+      activeProfileId={activeProfileId}
+      onClose={() => setShowGroups(false)}
+    />
+  </React.Suspense>
+)}
 
+{["settings", "plan", "assessments"].includes(tab) && (
+  <div className="manageTabsRow">
+    <nav className="manageTabs" aria-label="Manage Workout Tracker">
+      {[
+        ["settings", "General"],
+        ["plan", "Plan"],
+        ["assessments", "Assessments"],
+      ].map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          className={`manageTab ${tab === key ? "active" : ""}`}
+          aria-current={tab === key ? "page" : undefined}
+          onClick={() => setTab(key)}
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
+  </div>
+)}
 
         <Card className="pad motivator">
           <div className="motGrid">
