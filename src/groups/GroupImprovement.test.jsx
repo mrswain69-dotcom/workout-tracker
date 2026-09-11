@@ -50,10 +50,11 @@ describe("GroupImprovement", () => {
     render(<GroupImprovement group={group} membership={membership} />);
     const standings = await screen.findByRole("table", { name: "Improvement standings" });
     expect(within(standings).getByText("+4.2%")).toBeTruthy();
-    expect(screen.getByText("Improvement")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Improvement" })).toBeTruthy();
     expect(within(standings).getByText("WS10 · You")).toBeTruthy();
     expect(within(standings).getByText(/3 comparable metrics · 2 up · 1 down/)).toBeTruthy();
     expect(within(standings).getByText(/No matching 4-week baseline yet/)).toBeTruthy();
+    expect(within(standings).getAllByText("—").length).toBeGreaterThan(0);
     expect(loadGroupImprovementLeaderboard).toHaveBeenCalledWith("group-1", "member-self");
   });
 
