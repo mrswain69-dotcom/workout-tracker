@@ -15,6 +15,7 @@ function finitePositive(value) {
 }
 
 function finiteNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
@@ -412,11 +413,13 @@ export function scoreImprovementWindow({
 
 export function rankImprovementRows(rows = []) {
   const ordered = [...(Array.isArray(rows) ? rows : [])].sort((a, b) => {
-    const aScored = Number.isFinite(Number(a?.improvementPct));
-    const bScored = Number.isFinite(Number(b?.improvementPct));
+    const aScore = finiteNumber(a?.improvementPct);
+    const bScore = finiteNumber(b?.improvementPct);
+    const aScored = aScore !== null;
+    const bScored = bScore !== null;
     if (aScored !== bScored) return aScored ? -1 : 1;
     if (aScored && bScored) {
-      const difference = Number(b.improvementPct) - Number(a.improvementPct);
+      const difference = bScore - aScore;
       if (difference) return difference;
     }
     return cleanText(a?.nickname).localeCompare(cleanText(b?.nickname), "en", { sensitivity: "base" });
@@ -425,9 +428,8 @@ export function rankImprovementRows(rows = []) {
   let lastScore = null;
   let lastRank = 0;
   return ordered.map((row, index) => {
-    const scored = Number.isFinite(Number(row?.improvementPct));
-    if (!scored) return { ...row, rank: null };
-    const score = Number(row.improvementPct);
+    const score = finiteNumber(row?.improvementPct);
+    if (score === null) return { ...row, rank: null };
     if (lastScore === null || score !== lastScore) lastRank = index + 1;
     lastScore = score;
     return { ...row, rank: lastRank };
