@@ -7791,7 +7791,7 @@ const cardioProgress = useMemo(() => {
     </div>
 
     <div className="brandActions">
-      <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Settings">
+      <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Manage Workout Tracker" title="Manage">
         <span className="iconEmoji">⚙️</span>
       </button>
 
@@ -7861,16 +7861,19 @@ const cardioProgress = useMemo(() => {
       </div>
 
       <div className="tabsRow">
-        <div className="tabs">
-          {["log", "stats", "plan", "assessments", "rewards"].map((t) => (
+        <div className="tabs primaryNavTabs" aria-label="Primary navigation">
+          {["log", "stats", "rewards"].map((t) => (
             <SecondaryButton key={t} onClick={() => setTab(t)}>
-              {t === "assessments"
-                ? "Assess"
-                : t === "stats"
-                ? "Progress"
-                : t[0].toUpperCase() + t.slice(1)}
+              {t === "stats" ? "Progress" : t[0].toUpperCase() + t.slice(1)}
             </SecondaryButton>
           ))}
+          <div className="setupTabsDesktop" role="group" aria-label="Management shortcuts">
+            {["plan", "assessments"].map((t) => (
+              <SecondaryButton key={t} onClick={() => setTab(t)}>
+                {t === "assessments" ? "Assess" : "Plan"}
+              </SecondaryButton>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -7885,6 +7888,28 @@ const cardioProgress = useMemo(() => {
       onClose={() => setShowGroups(false)}
     />
   </React.Suspense>
+)}
+
+{["settings", "plan", "assessments"].includes(tab) && (
+  <div className="manageTabsRow">
+    <nav className="manageTabs" aria-label="Manage Workout Tracker">
+      {[
+        ["settings", "General"],
+        ["plan", "Plan"],
+        ["assessments", "Assessments"],
+      ].map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          className={`manageTab ${tab === key ? "active" : ""}`}
+          aria-current={tab === key ? "page" : undefined}
+          onClick={() => setTab(key)}
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
+  </div>
 )}
 
         <Card className="pad motivator">
