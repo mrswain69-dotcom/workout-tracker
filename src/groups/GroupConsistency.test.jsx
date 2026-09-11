@@ -7,6 +7,10 @@ vi.mock("./groupDb", () => ({
   loadGroupConsistencyLeaderboard: vi.fn(),
 }));
 
+vi.mock("./GroupImprovement.jsx", () => ({
+  default: () => null,
+}));
+
 import { loadGroupConsistencyLeaderboard } from "./groupDb";
 import GroupConsistency from "./GroupConsistency";
 
