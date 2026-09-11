@@ -96,29 +96,24 @@ describe("shared XP truth engine", () => {
     expect(byDate["2026-09-14"].dayCompleteXp).toBe(10);
   });
 
-  it("credits claimed Sport Mastery avatar XP on its claim date even without a log", () => {
-    const rows = buildXpDebugRows([], {
+  it("credits claimed Sport Mastery avatar XP on its claim date even without a workout log", () => {
+    const plan = {
       meta: {
         claimedRewards: [
           { key: "sport_avatar_football_bronze", claimedAtYmd: "2026-09-05" },
         ],
       },
-    });
-    expect(rows).toEqual([]);
+    };
+    const rows = buildXpDebugRows([], plan);
 
-    const withAnyRecord = buildXpDebugRows(
-      [{ date_ymd: "2026-09-01", log: { blocks: [] } }],
-      {
-        meta: {
-          claimedRewards: [
-            { key: "sport_avatar_football_bronze", claimedAtYmd: "2026-09-05" },
-          ],
-        },
-      }
-    );
-    const claim = withAnyRecord.find((row) => row.date === "2026-09-05");
-    expect(claim?.kind).toBe("badge_claim");
-    expect(claim?.totalXp).toBe(25);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      date: "2026-09-05",
+      kind: "badge_claim",
+      totalXp: 25,
+      badgeClaimXp: 25,
+    });
+    expect(computeXpFromLogs([], plan)).toBe(25);
   });
 
   it("uses Monday-Sunday current week and four prior completed weeks", () => {
