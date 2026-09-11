@@ -11,6 +11,10 @@ vi.mock("./GroupSeasons.jsx", () => ({
   default: () => null,
 }));
 
+vi.mock("./GroupTeamView.jsx", () => ({
+  default: () => null,
+}));
+
 import GroupImprovement from "./GroupImprovement.jsx";
 import { loadGroupImprovementLeaderboard } from "./groupDb";
 
