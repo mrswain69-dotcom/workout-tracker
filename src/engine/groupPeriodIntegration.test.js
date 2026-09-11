@@ -43,7 +43,7 @@ describe("Stage 6 Group seasons integration contract", () => {
   });
 
   it("keeps frozen results and awards behind Group-member RLS while private baselines have no browser grant", () => {
-    const migration = read("supabase/migrations/20260911124500_group_team_stage6_seasons_awards.sql");
+    const migration = read("supabase/migrations/20260911124348_group_team_stage6_seasons_awards.sql");
     expect(migration).toContain("alter table public.profile_period_improvement_baselines enable row level security");
     expect(migration).toContain("revoke all on table public.profile_period_improvement_baselines from public, anon, authenticated");
     expect(migration).toContain("alter table public.group_period_results enable row level security");
