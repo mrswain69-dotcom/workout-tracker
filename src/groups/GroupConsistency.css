@@ -19,9 +19,19 @@
   line-height: 1.25;
 }
 
+/*
+ * The shared mobile standings grid owns the width of this third column.
+ * Do not give the Consistency cell its own minimum width: on narrow screens
+ * that used to make the 92px cell overflow the 78px grid track and visually
+ * shift the Discipline table to the right.
+ */
 .groupConsistencyScoreCell {
   display: flex;
-  min-width: 112px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
@@ -31,6 +41,16 @@
 .groupConsistencyScoreCell strong {
   color: #00ff88;
   font-size: 0.96rem;
+}
+
+.groupConsistencyScoreCell small {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.groupConsistencyPanel .groupXpStandingHeader > span:last-child {
+  min-width: 0;
+  text-align: right;
 }
 
 .groupConsistencyRuleNote {
@@ -46,14 +66,4 @@
 
 .groupConsistencyRuleNote strong {
   color: rgba(255, 255, 255, 0.88);
-}
-
-@media (max-width: 620px) {
-  .groupConsistencyScoreCell {
-    min-width: 92px;
-  }
-
-  .groupConsistencyScoreCell small {
-    max-width: 92px;
-  }
 }
