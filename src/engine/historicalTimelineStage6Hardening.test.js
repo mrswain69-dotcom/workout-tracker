@@ -117,7 +117,8 @@ describe("Historical Timeline Stage 6 hardening", () => {
     expect(fn).toContain('.eq("id", profileId)');
     expect(fn).toContain('.eq("family_id", ownedProfile.family_id)');
     expect(fn).not.toContain("service_role");
-    expect(css).toContain("@media (max-width: 380px)");
-    expect(css).toContain("grid-template-columns: 1fr;");
+    expect(css).toContain("@media (max-width: 520px)");
+    expect(css).toContain("grid-template-columns: 1fr 1fr;");
+    expect(css).toContain("overflow-x: auto;");
   });
 });
