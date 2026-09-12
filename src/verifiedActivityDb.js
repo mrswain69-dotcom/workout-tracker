@@ -31,13 +31,15 @@ export async function loadVerifiedActivityData(profileId) {
       supabase
         .from("external_activity_observations")
         .select(
-          "id,connection_id,family_id,profile_id,provider,provider_activity_id,started_at,activity_type,activity_name,distance_m,elapsed_duration_sec,moving_duration_sec,average_heart_rate_bpm,max_heart_rate_bpm,elevation_gain_m,calories_kcal,source_created_at,source_updated_at,source_deleted_at,imported_at,created_at,updated_at"
+          "id,connection_id,family_id,profile_id,provider,provider_activity_id,started_at,local_date_ymd,source_timezone,activity_type,activity_name,distance_m,elapsed_duration_sec,moving_duration_sec,average_heart_rate_bpm,max_heart_rate_bpm,elevation_gain_m,calories_kcal,source_created_at,source_updated_at,source_deleted_at,imported_at,created_at,updated_at"
         )
         .eq("profile_id", profileId)
         .order("started_at", { ascending: false }),
       supabase
         .from("verified_activities")
-        .select("id,family_id,profile_id,activity_type,started_at,status,created_at,updated_at")
+        .select(
+          "id,family_id,profile_id,activity_type,started_at,status,identity_method,identity_confidence,match_version,created_at,updated_at"
+        )
         .eq("profile_id", profileId)
         .order("started_at", { ascending: false }),
       supabase
