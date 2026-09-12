@@ -82,7 +82,8 @@ describe("PerformanceAutobiography Stage 5 UI", () => {
     const ageButton = screen.getByRole("button", { name: /Age 13/i });
     expect(ageButton.getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByText("Perfect consistency week")).toBeTruthy();
-    expect(screen.getByText(/2 training days/i)).toBeTruthy();
+    const trainingLabel = screen.getByText("training days");
+    expect(trainingLabel.parentElement?.textContent).toContain("2");
     expect(screen.getByText(/Three years of real history unlocks the full career view/i)).toBeTruthy();
   });
 
@@ -114,6 +115,7 @@ describe("PerformanceAutobiography Stage 5 UI", () => {
 
     await waitFor(() => expect(dateApi).toHaveBeenCalledWith("p1", "2012-06-15"));
     expect(await screen.findByRole("button", { name: /Age 13/i })).toBeTruthy();
-    expect(screen.getByText("Age timeline unlocked.")).toBeTruthy();
+    expect(screen.queryByLabelText("Date of birth")).toBeNull();
+    expect(screen.getByText("training days").parentElement?.textContent).toContain("1");
   });
 });
