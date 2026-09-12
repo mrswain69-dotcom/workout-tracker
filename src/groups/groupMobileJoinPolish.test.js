@@ -32,13 +32,16 @@ describe("Group mobile/join polish", () => {
     expect(db).toContain("pendingJoinedGroupByProfile.delete(profileId)");
   });
 
-  it("keeps wide Group standings inside the mobile viewport with horizontal scrolling", () => {
+  it("fits the three-column Group standings inside the mobile card without sideways scrolling", () => {
     const css = fs.readFileSync(new URL("./GroupMobilePolish.css", import.meta.url), "utf8").replace(/\s+/g, "");
     const main = fs.readFileSync(new URL("../main.jsx", import.meta.url), "utf8");
 
     expect(main).toContain("./groups/GroupMobilePolish.css");
-    expect(css).toContain(".groupXpStandings{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden");
-    expect(css).toContain(".groupSeasonStandings.groupXpStandingHeader");
-    expect(css).toContain(".groupTeamPrTable.groupXpStandingHeader");
+    expect(css).toContain(".groupXpStandings{width:100%;max-width:100%;overflow:hidden");
+    expect(css).toContain("grid-template-columns:42pxminmax(0,1fr)minmax(72px,96px)!important");
+    expect(css).toContain("min-width:0!important");
+    expect(css).not.toContain("overflow-x:auto");
+    expect(css).not.toContain("min-width:320px");
+    expect(css).not.toContain("min-width:330px");
   });
 });
