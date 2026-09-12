@@ -91,7 +91,7 @@ Deno.serve(async (req: Request) => {
     // profile RLS policy before making any privileged historical reads.
     const { data: ownedProfile, error: profileError } = await userClient
       .from("profiles")
-      .select("id,family_id,birth_date")
+      .select("id,family_id,name,birth_date")
       .eq("id", profileId)
       .maybeSingle();
     if (profileError || !ownedProfile) {
@@ -146,6 +146,7 @@ Deno.serve(async (req: Request) => {
     return json({
       profile: {
         id: ownedProfile.id,
+        name: ownedProfile.name || "Athlete",
         birthDate: ownedProfile.birth_date || null,
       },
       consistencySnapshots: snapshotsResult.data || [],
