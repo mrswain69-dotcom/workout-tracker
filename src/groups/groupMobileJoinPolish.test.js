@@ -44,4 +44,14 @@ describe("Group mobile/join polish", () => {
     expect(css).not.toContain("min-width:320px");
     expect(css).not.toContain("min-width:330px");
   });
+
+  it("keeps the Discipline consistency metric inside the shared third grid column", () => {
+    const css = fs.readFileSync(new URL("./GroupConsistency.css", import.meta.url), "utf8").replace(/\s+/g, "");
+
+    expect(css).toContain(".groupConsistencyScoreCell{display:flex;width:100%;min-width:0;max-width:100%;box-sizing:border-box;overflow:hidden");
+    expect(css).toContain(".groupConsistencyScoreCellsmall{max-width:100%;overflow-wrap:anywhere");
+    expect(css).toContain(".groupConsistencyPanel.groupXpStandingHeader>span:last-child{min-width:0;text-align:right");
+    expect(css).not.toContain("min-width:112px");
+    expect(css).not.toContain("min-width:92px");
+  });
 });
