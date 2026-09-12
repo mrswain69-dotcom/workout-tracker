@@ -123,6 +123,11 @@ function finiteOrNull(value: unknown) {
   return Number.isFinite(number) ? number : null;
 }
 
+function localDateFromStrava(activity: any) {
+  const value = typeof activity?.start_date_local === "string" ? activity.start_date_local.slice(0, 10) : "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
 export function normalizeStravaActivity(connection: any, activity: any) {
   const providerActivityId = activity?.id === null || activity?.id === undefined
     ? ""
@@ -139,6 +144,8 @@ export function normalizeStravaActivity(connection: any, activity: any) {
     provider: "strava",
     provider_activity_id: providerActivityId,
     started_at: startedAt,
+    local_date_ymd: localDateFromStrava(activity),
+    source_timezone: typeof activity?.timezone === "string" && activity.timezone.trim() ? activity.timezone.trim() : null,
     activity_type: String(activity?.sport_type || activity?.type || "unknown").trim().toLowerCase(),
     activity_name: typeof activity?.name === "string" && activity.name.trim() ? activity.name.trim() : null,
     distance_m: finiteOrNull(activity?.distance),
