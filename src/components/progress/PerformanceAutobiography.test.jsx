@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import PerformanceAutobiography from "./PerformanceAutobiography.jsx";
 
 function durationLog(date, profileId = "p1") {
@@ -34,6 +34,8 @@ const schedule = {
   Sun: [],
 };
 
+afterEach(() => cleanup());
+
 describe("PerformanceAutobiography Stage 5 UI", () => {
   it("keeps genuine date history visible while asking for a private DOB instead of guessing an age", () => {
     render(
@@ -51,11 +53,11 @@ describe("PerformanceAutobiography Stage 5 UI", () => {
       />
     );
 
-    expect(screen.getByRole("heading", { name: "Performance Autobiography" })).toBeInTheDocument();
-    expect(screen.getByText("Unlock the true age timeline")).toBeInTheDocument();
-    expect(screen.getByText(/Date-based history is already active/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Age 13/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/Knowledge milestones: not available yet/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Performance Autobiography" })).toBeTruthy();
+    expect(screen.getByText("Unlock the true age timeline")).toBeTruthy();
+    expect(screen.getByText(/Date-based history is already active/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Age 13/i })).toBeNull();
+    expect(screen.getByText(/Knowledge milestones: not available yet/i)).toBeTruthy();
   });
 
   it("renders true age chapters and supported Consistency milestones from supplied historical authority", () => {
@@ -78,10 +80,10 @@ describe("PerformanceAutobiography Stage 5 UI", () => {
     );
 
     const ageButton = screen.getByRole("button", { name: /Age 13/i });
-    expect(ageButton).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("Perfect consistency week")).toBeInTheDocument();
-    expect(screen.getByText(/2 training days/i)).toBeInTheDocument();
-    expect(screen.getByText(/Three years of real history unlocks the full career view/i)).toBeInTheDocument();
+    expect(ageButton.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Perfect consistency week")).toBeTruthy();
+    expect(screen.getByText(/2 training days/i)).toBeTruthy();
+    expect(screen.getByText(/Three years of real history unlocks the full career view/i)).toBeTruthy();
   });
 
   it("saves a private DOB and immediately unlocks the correct age chapter without mutating history", async () => {
@@ -111,7 +113,7 @@ describe("PerformanceAutobiography Stage 5 UI", () => {
     fireEvent.click(screen.getByRole("button", { name: "Unlock ages" }));
 
     await waitFor(() => expect(dateApi).toHaveBeenCalledWith("p1", "2012-06-15"));
-    expect(await screen.findByRole("button", { name: /Age 13/i })).toBeInTheDocument();
-    expect(screen.getByText("Age timeline unlocked.")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Age 13/i })).toBeTruthy();
+    expect(screen.getByText("Age timeline unlocked.")).toBeTruthy();
   });
 });
