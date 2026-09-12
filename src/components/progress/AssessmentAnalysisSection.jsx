@@ -71,6 +71,7 @@ export default function AssessmentAnalysisSection({
 
       <PerformanceAutobiography
         profileId={profileId}
+        profileName={timelineData?.profile?.name || "Athlete"}
         logs={logs}
         assessmentRuns={completedHistory?.runs || []}
         assessmentResults={completedHistory?.results || []}
