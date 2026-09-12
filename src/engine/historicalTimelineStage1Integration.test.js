@@ -21,10 +21,13 @@ function filesBelow(directory, extension) {
 describe("Historical Timeline Stage 1 integration", () => {
   it("adds only a nullable private birth_date column without backfilling profiles", () => {
     const migration = read("supabase/migrations/20260912163033_historical_timeline_stage1_birth_date.sql");
+    const doctrine = read("docs/historical-timeline-stage1.md");
     expect(migration).toContain("add column if not exists birth_date date");
-    expect(migration).toMatch(/private family-only/i);
+    expect(migration).toMatch(/private age foundation/i);
     expect(migration).not.toMatch(/update\s+public\.profiles/i);
     expect(migration).not.toMatch(/insert\s+into/i);
+    expect(doctrine).toMatch(/private family data/i);
+    expect(doctrine).toContain("absent from Groups");
   });
 
   it("updates only the selected profile birth_date through the family-protected profiles table", () => {
