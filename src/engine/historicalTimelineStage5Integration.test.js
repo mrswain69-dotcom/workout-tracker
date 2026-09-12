@@ -12,7 +12,7 @@ describe("Historical Timeline Stage 5 integration contract", () => {
 
     expect(source).toContain("userClient.auth.getUser(jwt)");
     expect(source).toContain('.from("profiles")');
-    expect(source).toContain('.select("id,family_id,birth_date")');
+    expect(source).toContain('.select("id,family_id,name,birth_date")');
     expect(source).toContain('.eq("id", profileId)');
     expect(source).toContain('adminClient\n        .from("profile_consistency_schedule_snapshots")'.replace("\\n", "\n"));
     expect(source).toContain('.eq("profile_id", profileId)');
@@ -38,6 +38,7 @@ describe("Historical Timeline Stage 5 integration contract", () => {
 
     expect(section).toContain('import PerformanceAutobiography from "./PerformanceAutobiography.jsx"');
     expect(section).toContain("<PerformanceAutobiography");
+    expect(section).toContain('profileName={timelineData?.profile?.name || "Athlete"}');
     expect(app).toContain('<ProgressDashboard');
     expect(app).toContain('{tab === "stats" && (');
     expect(app).not.toMatch(/\{\s*id:\s*["']timeline["']/i);
