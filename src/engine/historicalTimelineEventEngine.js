@@ -24,7 +24,9 @@ function positive(value) {
 }
 
 function rowPayload(row) {
-  return row?.log_json && typeof row.log_json === "object" ? row.log_json : row || {};
+  if (row?.log_json && typeof row.log_json === "object") return row.log_json;
+  if (row?.log && typeof row.log === "object") return row.log;
+  return row || {};
 }
 
 function rowDate(row) {
