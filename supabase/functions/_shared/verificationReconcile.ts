@@ -318,6 +318,7 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
 
   const groups = buildGroups(observationsResult.data || []);
   const candidates = manualCandidates(logsResult.data || [], profileId);
+  const claimedManualTargets = new Set<string>();
   const activeKeys: string[] = [];
   let linkedManual = 0;
 
@@ -339,9 +340,19 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
       if (linked.error) throw linked.error;
     }
 
-    const match = findManualMatch(group, candidates);
+    const availableCandidates = candidates.filter((candidate) => !claimedManualTargets.has(candidate.id));
+    const match = findManualMatch(group, availableCandidates);
+
+    // Manual verification links are derived state. Replace the previous row from
+    // current source truth rather than mutating any Workout Tracker log.
+    const clearedManual = await adminClient
+      .from("external_activity_links")
+      .delete()
+      .eq("verified_activity_id", verifiedId);
+    if (clearedManual.error) throw clearedManual.error;
+
     if (match.state === "matched" && match.candidate) {
-      const persisted = await adminClient.from("external_activity_links").upsert({
+      const persisted = await adminClient.from("external_activity_links").insert({
         family_id: profile.family_id,
         profile_id: profile.id,
         verified_activity_id: verifiedId,
@@ -349,17 +360,18 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
         manual_block_id: match.candidate.manualBlockId,
         match_method: "automatic",
         match_confidence: match.confidence,
-      }, { onConflict: "verified_activity_id" });
+      });
       if (persisted.error) throw persisted.error;
+      claimedManualTargets.add(match.candidate.id);
       linkedManual += 1;
-    } else {
-      const cleared = await adminClient.from("external_activity_links").delete().eq("verified_activity_id", verifiedId);
-      if (cleared.error) throw cleared.error;
     }
   }
 
-  let staleQuery = adminClient.from("verified_activities").select("id,identity_key").eq("profile_id", profileId).eq("match_version", MATCH_VERSION);
-  const staleResult = await staleQuery;
+  const staleResult = await adminClient
+    .from("verified_activities")
+    .select("id,identity_key")
+    .eq("profile_id", profileId)
+    .eq("match_version", MATCH_VERSION);
   if (staleResult.error) throw staleResult.error;
   const staleIds = (staleResult.data || [])
     .filter((row: any) => !row.identity_key || !activeKeys.includes(row.identity_key))
