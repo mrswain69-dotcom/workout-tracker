@@ -7,6 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 
 const migrationPath = "supabase/migrations/20260912225045_verification_stage3_matching_metadata.sql";
+const uniquenessMigrationPath = "supabase/migrations/20260913082500_verification_stage3_manual_link_uniqueness.sql";
 
 describe("Verification Integration Stage 3 persistence contract", () => {
   it("preserves provider-local date/timezone and versioned identity metadata", () => {
@@ -26,7 +27,8 @@ describe("Verification Integration Stage 3 persistence contract", () => {
 
     expect(source).toContain("started_at,local_date_ymd,source_timezone,activity_type");
     expect(source).toContain("status,identity_method,identity_confidence,match_version");
-    expect(source).not.toMatch(/\.(?:insert|update|upsert|delete)\s*\(/);
+    expect(source).toContain('supabase.functions.invoke("verification-reconcile"');
+    expect(source).not.toMatch(/\.from\([^)]*\)\s*\.(?:insert|update|upsert|delete)\s*\(/);
   });
 
   it("keeps Strava local date/timezone as provider evidence rather than manual log fields", () => {
@@ -47,5 +49,49 @@ describe("Verification Integration Stage 3 persistence contract", () => {
     expect(authority).toContain('policy: "verification_bonus_not_activated"');
     expect(authority).toContain("multiplier: 1");
     expect(authority).toContain("xpDelta: 0");
+  });
+
+  it("prevents two verified identities from claiming the same manual target", () => {
+    const migration = read(uniquenessMigrationPath);
+    const reconcile = read("supabase/functions/_shared/verificationReconcile.ts");
+
+    expect(migration).toContain("external_activity_links_unique_manual_block");
+    expect(migration).toContain("external_activity_links_unique_manual_log");
+    expect(migration).toContain("where manual_block_id is not null");
+    expect(migration).toContain("where manual_block_id is null");
+    expect(migration).not.toMatch(/update\s+public\.logs/i);
+    expect(reconcile).toContain("claimedManualTargets");
+    expect(reconcile).toContain("availableCandidates");
+  });
+
+  it("recomputes derived manual links instead of mutating workout history", () => {
+    const reconcile = read("supabase/functions/_shared/verificationReconcile.ts");
+
+    expect(reconcile).toContain('.from("external_activity_links")');
+    expect(reconcile).toContain('.delete()');
+    expect(reconcile).toContain('.insert({');
+    expect(reconcile).toContain('adminClient.from("logs").select("id,profile_id,date_ymd,log_json")');
+    expect(reconcile).not.toMatch(/\.from\("logs"\)\.(?:insert|update|upsert|delete)/);
+  });
+
+  it("automatically reconciles after initial import and Strava activity webhooks", () => {
+    const callback = read("supabase/functions/strava-oauth-callback/index.ts");
+    const webhook = read("supabase/functions/strava-webhook/index.ts");
+
+    expect(callback).toContain('import { reconcileVerifiedActivitiesForProfile } from "../_shared/verificationReconcile.ts"');
+    expect(callback).toContain("await importRecentStravaActivities");
+    expect(callback).toContain("await reconcileVerifiedActivitiesForProfile(adminClient, connection.profile_id)");
+    expect(webhook).toContain('import { reconcileVerifiedActivitiesForProfile } from "../_shared/verificationReconcile.ts"');
+    expect(webhook.match(/reconcileVerifiedActivitiesForProfile\(adminClient, connection\.profile_id\)/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(webhook).not.toMatch(/\.from\("logs"\)\.(?:insert|update|upsert|delete)/);
+  });
+
+  it("keeps the direct reconcile endpoint authenticated and exact-profile scoped", () => {
+    const endpoint = read("supabase/functions/verification-reconcile/index.ts");
+
+    expect(endpoint).toContain("Authentication required");
+    expect(endpoint).toContain('.from("profiles")');
+    expect(endpoint).toContain('.eq("id", profileId)');
+    expect(endpoint).toContain("reconcileVerifiedActivitiesForProfile(adminClient, ownedProfile.id)");
   });
 });
