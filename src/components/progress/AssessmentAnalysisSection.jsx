@@ -18,6 +18,7 @@ export default function AssessmentAnalysisSection({
 }) {
   const [timelineData, setTimelineData] = useState(null);
   const [timelineError, setTimelineError] = useState(null);
+  const [verificationData, setVerificationData] = useState(null);
 
   const analysis = useMemo(
     () =>
@@ -58,6 +59,10 @@ export default function AssessmentAnalysisSection({
     };
   }, [profileId, timelineApi]);
 
+  useEffect(() => {
+    setVerificationData(null);
+  }, [profileId]);
+
   return (
     <>
       <AssessmentAnalysisProgress
@@ -74,6 +79,7 @@ export default function AssessmentAnalysisSection({
       <VerifiedActivitySection
         profileId={profileId}
         profileName={timelineData?.profile?.name || "Athlete"}
+        onDataChange={setVerificationData}
         {...(verificationApi ? { api: verificationApi } : {})}
       />
 
@@ -84,6 +90,7 @@ export default function AssessmentAnalysisSection({
         assessmentRuns={completedHistory?.runs || []}
         assessmentResults={completedHistory?.results || []}
         timelineData={timelineData}
+        verificationData={verificationData}
         referenceDate={timelineData?.referenceDate || ""}
       />
     </>
