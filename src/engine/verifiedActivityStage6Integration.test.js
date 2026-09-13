@@ -102,16 +102,30 @@ describe("Verification Integrations Stage 6", () => {
     expect(improvement).not.toContain("verifiedCardioEvidence");
   });
 
-  it("keeps Group Consistency server scorers manual-only until a privacy-safe server adapter is explicitly added", () => {
+  it("keeps Group Consistency callers manual-only until a privacy-safe server adapter is explicitly added", () => {
     for (const file of [
-      "supabase/functions/group-consistency-leaderboard/consistencyEngine.js",
-      "supabase/functions/group-seasons-awards/consistencyEngine.js",
-      "supabase/functions/group-challenges/consistencyEngine.js",
+      "supabase/functions/group-consistency-leaderboard/index.ts",
+      "supabase/functions/group-seasons-awards/index.ts",
+      "supabase/functions/group-challenges/index.ts",
     ]) {
       const source = read(file);
       expect(source).not.toContain("verifiedCardioEvidence");
       expect(source).not.toContain("external_activity_observations");
       expect(source).not.toContain("external_connections");
+      expect(source).not.toContain("verified_activities");
+    }
+  });
+
+  it("keeps the reusable Consistency engine and Stage 6 matching policy byte-identical in each Group Edge bundle", () => {
+    const sourceEngine = read("src/engine/consistencyEngine.js");
+    const sourcePolicy = read("src/engine/verifiedPlanCompletionEngine.js");
+    for (const directory of [
+      "supabase/functions/group-consistency-leaderboard",
+      "supabase/functions/group-seasons-awards",
+      "supabase/functions/group-challenges",
+    ]) {
+      expect(read(`${directory}/consistencyEngine.js`)).toBe(sourceEngine);
+      expect(read(`${directory}/verifiedPlanCompletionEngine.js`)).toBe(sourcePolicy);
     }
   });
 });
