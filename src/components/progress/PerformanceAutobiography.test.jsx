@@ -190,7 +190,9 @@ describe("PerformanceAutobiography Stage 5 UI", () => {
     expect(screen.getByText("Matched to manual log")).toBeTruthy();
     expect(screen.getByText(/cannot create\s+or replace a manual PB milestone/i)).toBeTruthy();
 
-    const improvementLabel = screen.getByText("PB / improvement moments");
+    const improvementLabel = screen.getByText("PB / improvement moments", {
+      selector: ".autobiography-chapter-metrics span",
+    });
     expect(improvementLabel.parentElement?.textContent).toContain("0");
     expect(screen.queryByText("Evening Run", { selector: ".autobiography-milestone h4" })).toBeNull();
   });
