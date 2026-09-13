@@ -5,6 +5,10 @@ import {
   reconcileVerifiedActivityData,
   startStravaConnection,
 } from "../../verifiedActivityDb.js";
+import {
+  buildVerifiedCardioEvidence,
+  summariseVerifiedCardioEvidence,
+} from "../../engine/verifiedCardioEvidenceEngine.js";
 import "./VerifiedActivitySection.css";
 
 const DEFAULT_API = Object.freeze({
@@ -78,6 +82,21 @@ function formatDuration(value) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
+function formatEvidenceDistance(value) {
+  const km = Number(value);
+  if (!Number.isFinite(km) || km <= 0) return "—";
+  return `${km.toLocaleString("en-GB", { maximumFractionDigits: 2 })} km`;
+}
+
+function formatEvidenceMinutes(value) {
+  const minutes = Number(value);
+  if (!Number.isFinite(minutes) || minutes <= 0) return "—";
+  if (minutes < 60) return `${Math.round(minutes)} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = Math.round(minutes % 60);
+  return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
 }
 
 function formatDate(value) {
@@ -159,6 +178,7 @@ function buildActivityRows(data) {
         manualLink: manualLinkByActivity.get(activity.id) || null,
       };
     })
+    .filter((activity) => activity.observations.length > 0)
     .sort((a, b) => text(b.started_at).localeCompare(text(a.started_at)));
 }
 
@@ -212,6 +232,7 @@ export default function VerifiedActivitySection({
   profileName = "Athlete",
   api = DEFAULT_API,
   navigateToProvider = (url) => window.location.assign(url),
+  onDataChange = null,
 }) {
   const [data, setData] = useState(() => emptyData(profileId));
   const [loading, setLoading] = useState(true);
@@ -219,9 +240,18 @@ export default function VerifiedActivitySection({
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState("");
 
+  const commitData = useCallback(
+    (nextData) => {
+      const resolved = nextData || emptyData(profileId);
+      setData(resolved);
+      if (typeof onDataChange === "function") onDataChange(resolved);
+    },
+    [onDataChange, profileId]
+  );
+
   const reload = useCallback(async () => {
     if (!profileId) {
-      setData(emptyData(""));
+      commitData(emptyData(""));
       setLoading(false);
       return;
     }
@@ -229,22 +259,22 @@ export default function VerifiedActivitySection({
     try {
       const result = await api.loadVerifiedActivityData(profileId);
       if (result?.error) throw result.error;
-      setData(result?.data || emptyData(profileId));
+      commitData(result?.data || emptyData(profileId));
       setError(null);
     } catch (loadError) {
-      setData(emptyData(profileId));
+      commitData(emptyData(profileId));
       setError(loadError);
     } finally {
       setLoading(false);
     }
-  }, [api, profileId]);
+  }, [api, commitData, profileId]);
 
   useEffect(() => {
     let active = true;
     async function load() {
       if (!profileId) {
         if (active) {
-          setData(emptyData(""));
+          commitData(emptyData(""));
           setLoading(false);
         }
         return;
@@ -254,11 +284,11 @@ export default function VerifiedActivitySection({
         const result = await api.loadVerifiedActivityData(profileId);
         if (!active) return;
         if (result?.error) throw result.error;
-        setData(result?.data || emptyData(profileId));
+        commitData(result?.data || emptyData(profileId));
         setError(null);
       } catch (loadError) {
         if (active) {
-          setData(emptyData(profileId));
+          commitData(emptyData(profileId));
           setError(loadError);
         }
       } finally {
@@ -269,13 +299,18 @@ export default function VerifiedActivitySection({
     return () => {
       active = false;
     };
-  }, [api, profileId]);
+  }, [api, commitData, profileId]);
 
   const connectionsByProvider = useMemo(
     () => new Map((data.connections || []).map((row) => [row.provider, row])),
     [data.connections]
   );
   const activityRows = useMemo(() => buildActivityRows(data), [data]);
+  const verifiedCardioRows = useMemo(() => buildVerifiedCardioEvidence(data), [data]);
+  const verifiedCardio = useMemo(
+    () => summariseVerifiedCardioEvidence(verifiedCardioRows),
+    [verifiedCardioRows]
+  );
   const connectedCount = (data.connections || []).filter((row) => row.status === "active").length;
   const linkedCount = (data.manualLinks || []).length;
 
@@ -375,6 +410,33 @@ export default function VerifiedActivitySection({
         <div><span>Connected sources</span><strong>{connectedCount}</strong></div>
         <div><span>Verified activities</span><strong>{activityRows.length}</strong></div>
         <div><span>Matched to manual logs</span><strong>{linkedCount}</strong></div>
+      </div>
+
+      <div className="verified-cardio-progress" aria-label="Verified cardio Progress evidence">
+        <div className="verified-cardio-progress__heading">
+          <div>
+            <div className="progress-section-heading__kicker">VERIFIED CARDIO</div>
+            <h4>Cardio evidence in Progress</h4>
+          </div>
+          <span>Evidence only · PB authority unchanged</span>
+        </div>
+        <p>
+          Canonical verified activities are counted once even when more than one provider saw the same workout.
+          Distance, duration and heart-rate evidence can enrich Progress without rewriting the manual log or creating a PB.
+        </p>
+        <div className="verified-cardio-progress__metrics">
+          <div><span>Verified cardio</span><strong>{verifiedCardio.activityCount}</strong></div>
+          <div><span>Verified distance</span><strong>{formatEvidenceDistance(verifiedCardio.totalDistanceKm)}</strong></div>
+          <div><span>Verified time</span><strong>{formatEvidenceMinutes(verifiedCardio.totalDurationMin)}</strong></div>
+          <div><span>HR evidence</span><strong>{verifiedCardio.heartRateActivityCount}</strong></div>
+        </div>
+        {verifiedCardio.activityCount ? (
+          <div className="verified-cardio-progress__note">
+            {verifiedCardio.matchedManualCount} matched to Workout Tracker · {verifiedCardio.multiSourceCount} multi-source · 0 bonus XP
+          </div>
+        ) : (
+          <div className="verified-cardio-progress__note">No verified cardio evidence yet.</div>
+        )}
       </div>
 
       <div className="verified-evidence-header">
