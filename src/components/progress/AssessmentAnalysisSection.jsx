@@ -5,6 +5,7 @@ import { loadHistoricalTimelineData } from "../../historicalTimelineDb.js";
 import AssessmentAnalysisProgress from "./AssessmentAnalysisProgress.jsx";
 import PerformanceAutobiography from "./PerformanceAutobiography.jsx";
 import VerifiedActivitySection from "./VerifiedActivitySection.jsx";
+import VerifiedConsistencyPanel from "./VerifiedConsistencyPanel.jsx";
 
 export default function AssessmentAnalysisSection({
   completedHistory = null,
@@ -79,10 +80,14 @@ export default function AssessmentAnalysisSection({
       <VerifiedActivitySection
         profileId={profileId}
         profileName={timelineData?.profile?.name || "Athlete"}
-        logs={logs}
-        consistencySnapshots={timelineData?.consistencySnapshots || []}
         onDataChange={setVerificationData}
         {...(verificationApi ? { api: verificationApi } : {})}
+      />
+
+      <VerifiedConsistencyPanel
+        verificationData={verificationData}
+        logs={logs}
+        consistencySnapshots={timelineData?.consistencySnapshots || []}
       />
 
       <PerformanceAutobiography
