@@ -7,14 +7,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 
 describe("Verification Integration Stage 4 UI contract", () => {
-  it("keeps Connected Sources inside the existing Progress surface rather than adding primary navigation", () => {
+  it("keeps Connected Sources inside the existing lazy Progress surface rather than adding primary navigation", () => {
     const section = read("src/components/progress/AssessmentAnalysisSection.jsx");
+    const dashboard = read("src/components/progress/ProgressDashboard.jsx");
     const app = read("src/App.jsx");
 
     expect(section).toContain('import VerifiedActivitySection from "./VerifiedActivitySection.jsx"');
     expect(section).toContain("<VerifiedActivitySection");
-    expect(app).toContain('const tabsCore = ["log", "stats", "rewards"]');
-    expect(app).not.toMatch(/tabsCore\s*=\s*\[[^\]]*(?:verification|connections|strava|garmin)/i);
+    expect(dashboard).toContain('lazy(() => import("./AssessmentAnalysisSection.jsx"))');
+    expect(app).not.toContain('import VerifiedActivitySection from "./components/progress/VerifiedActivitySection.jsx"');
+    expect(app).not.toMatch(/(?:verification|connections|strava|garmin)["']\s*,\s*(?:"|')?(?:Progress|Rewards|Log)/i);
   });
 
   it("keeps browser persistence read-only while connection actions go through authenticated Edge Functions", () => {
