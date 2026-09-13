@@ -24,6 +24,50 @@ function durationLog(date, profileId = "p1") {
   };
 }
 
+function verifiedRunData() {
+  return {
+    profileId: "p1",
+    connections: [],
+    verifiedActivities: [
+      {
+        id: "verified-run-1",
+        profile_id: "p1",
+        activity_type: "run",
+        started_at: "2026-01-05T17:00:00.000Z",
+        status: "active",
+        identity_method: "provider_observation",
+        identity_confidence: 1,
+      },
+    ],
+    observations: [
+      {
+        id: "strava-run-1",
+        profile_id: "p1",
+        provider: "strava",
+        local_date_ymd: "2026-01-05",
+        activity_type: "run",
+        activity_name: "Evening Run",
+        distance_m: 5000,
+        moving_duration_sec: 1500,
+        average_heart_rate_bpm: 148,
+      },
+    ],
+    observationLinks: [
+      {
+        verified_activity_id: "verified-run-1",
+        observation_id: "strava-run-1",
+      },
+    ],
+    manualLinks: [
+      {
+        verified_activity_id: "verified-run-1",
+        manual_log_id: "log-2026-01-05",
+        manual_block_id: "planned",
+      },
+    ],
+  };
+}
+
 const schedule = {
   Mon: [{ id: "planned", typeId: "duration" }],
   Tue: [],
@@ -117,5 +161,37 @@ describe("PerformanceAutobiography Stage 5 UI", () => {
     expect(await screen.findByRole("button", { name: /Age 13/i })).toBeTruthy();
     expect(screen.queryByLabelText("Date of birth")).toBeNull();
     expect(screen.getByText("training days").parentElement?.textContent).toContain("1");
+  });
+
+  it("shows verified cardio inside the selected age chapter without turning provider evidence into a PB or improvement event", () => {
+    render(
+      <PerformanceAutobiography
+        profileId="p1"
+        profileName="Wilf"
+        logs={[durationLog("2026-01-05")]}
+        verificationData={verifiedRunData()}
+        timelineData={{
+          profile: { id: "p1", birthDate: "2012-06-15" },
+          consistencySnapshots: [],
+          groupAwards: [],
+          knowledge: { sourceAvailable: false, milestones: [] },
+          referenceDate: "2026-01-11",
+        }}
+        referenceDate="2026-01-11"
+      />
+    );
+
+    expect(screen.getByRole("heading", { name: "Age 13 verified cardio evidence" })).toBeTruthy();
+    expect(screen.getByText("5 km")).toBeTruthy();
+    expect(screen.getByText("25 min")).toBeTruthy();
+    expect(screen.getByText(/5:00 \/km/)).toBeTruthy();
+    expect(screen.getByText(/148 bpm avg/)).toBeTruthy();
+    expect(screen.getByText("Strava")).toBeTruthy();
+    expect(screen.getByText("Matched to manual log")).toBeTruthy();
+    expect(screen.getByText(/cannot create\s+or replace a manual PB milestone/i)).toBeTruthy();
+
+    const improvementLabel = screen.getByText("PB / improvement moments");
+    expect(improvementLabel.parentElement?.textContent).toContain("0");
+    expect(screen.queryByText("Evening Run", { selector: ".autobiography-milestone h4" })).toBeNull();
   });
 });
