@@ -12,6 +12,7 @@ import {
   storeStravaTokens,
   stravaAppConfig,
 } from "../_shared/stravaProvider.ts";
+import { reconcileVerifiedActivitiesForProfile } from "../_shared/verificationReconcile.ts";
 
 function redirect(status: string, detail = "") {
   const location = fixedAppRedirect(status, detail);
@@ -120,13 +121,18 @@ Deno.serve(async (req: Request) => {
     }
 
     EdgeRuntime.waitUntil(
-      importRecentStravaActivities(adminClient, connection, accessToken).catch(async (error) => {
-        console.error("Strava initial import failed", error);
-        await adminClient
-          .from("external_connections")
-          .update({ last_error_code: "initial_import_failed" })
-          .eq("id", connection.id);
-      })
+      (async () => {
+        try {
+          await importRecentStravaActivities(adminClient, connection, accessToken);
+          await reconcileVerifiedActivitiesForProfile(adminClient, connection.profile_id);
+        } catch (error) {
+          console.error("Strava initial import/reconciliation failed", error);
+          await adminClient
+            .from("external_connections")
+            .update({ last_error_code: "initial_import_or_reconcile_failed" })
+            .eq("id", connection.id);
+        }
+      })()
     );
 
     return redirect("connected");
