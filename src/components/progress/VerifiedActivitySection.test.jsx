@@ -36,7 +36,7 @@ function apiFor(data = emptyData()) {
 
 afterEach(() => cleanup());
 
-describe("VerifiedActivitySection Stage 4 UI", () => {
+describe("VerifiedActivitySection Stage 4/5 UI", () => {
   it("shows provider availability without inventing connected or verified activity", async () => {
     const api = apiFor();
     render(<VerifiedActivitySection profileId="p1" profileName="Wilf" api={api} />);
@@ -48,6 +48,7 @@ describe("VerifiedActivitySection Stage 4 UI", () => {
     expect(screen.getByText("Health Connect")).toBeTruthy();
     expect(screen.getByText("0 bonus XP · evidence only")).toBeTruthy();
     expect(screen.getByText("No synced activity yet.")).toBeTruthy();
+    expect(screen.getByText("No verified cardio evidence yet.")).toBeTruthy();
     expect(api.loadVerifiedActivityData).toHaveBeenCalledWith("p1");
   });
 
@@ -72,7 +73,7 @@ describe("VerifiedActivitySection Stage 4 UI", () => {
     );
   });
 
-  it("shows deduplicated provider provenance and a clear manual match as evidence, not extra XP", async () => {
+  it("shows one deduplicated cardio evidence activity with provider provenance and no extra XP", async () => {
     const data = {
       profileId: "p1",
       connections: [
@@ -91,6 +92,7 @@ describe("VerifiedActivitySection Stage 4 UI", () => {
           profile_id: "p1",
           provider: "strava",
           local_date_ymd: "2026-09-12",
+          activity_type: "run",
           distance_m: 5010,
           moving_duration_sec: 1500,
           average_heart_rate_bpm: 148,
@@ -100,6 +102,7 @@ describe("VerifiedActivitySection Stage 4 UI", () => {
           profile_id: "p1",
           provider: "garmin",
           local_date_ymd: "2026-09-12",
+          activity_type: "run",
           distance_m: 5000,
           moving_duration_sec: 1502,
         },
@@ -132,8 +135,16 @@ describe("VerifiedActivitySection Stage 4 UI", () => {
       ],
     };
     const api = apiFor(data);
+    const onDataChange = vi.fn();
 
-    render(<VerifiedActivitySection profileId="p1" profileName="Wilf" api={api} />);
+    render(
+      <VerifiedActivitySection
+        profileId="p1"
+        profileName="Wilf"
+        api={api}
+        onDataChange={onDataChange}
+      />
+    );
 
     expect(await screen.findByText("Matched to Workout Tracker")).toBeTruthy();
     expect(screen.getAllByText("Strava").length).toBeGreaterThanOrEqual(1);
@@ -143,6 +154,10 @@ describe("VerifiedActivitySection Stage 4 UI", () => {
     expect(screen.getByText(/25 min/)).toBeTruthy();
     expect(screen.getByText(/148 bpm avg/)).toBeTruthy();
     expect(screen.getByText("0 bonus XP · evidence only")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Cardio evidence in Progress" })).toBeTruthy();
+    expect(screen.getByText("Evidence only · PB authority unchanged")).toBeTruthy();
+    expect(screen.getByText(/1 matched to Workout Tracker · 1 multi-source · 0 bonus XP/)).toBeTruthy();
+    await waitFor(() => expect(onDataChange).toHaveBeenCalledWith(data));
   });
 
   it("refreshes derived verification through the authenticated reconciler and then reloads read-only data", async () => {
