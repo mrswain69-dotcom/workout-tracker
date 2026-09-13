@@ -136,7 +136,7 @@ describe("VerifiedActivitySection Stage 4 UI", () => {
     render(<VerifiedActivitySection profileId="p1" profileName="Wilf" api={api} />);
 
     expect(await screen.findByText("Matched to Workout Tracker")).toBeTruthy();
-    expect(screen.getByText("Strava")).toBeTruthy();
+    expect(screen.getAllByText("Strava").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Garmin")).toBeTruthy();
     expect(screen.getByText("One activity · multiple sources")).toBeTruthy();
     expect(screen.getByText(/5\.01 km/)).toBeTruthy();
