@@ -157,6 +157,76 @@
   font-size: 1.15rem;
 }
 
+.verified-cardio-progress {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 229, 255, 0.07), transparent 38%),
+    rgba(6, 10, 18, 0.34);
+}
+
+.verified-cardio-progress__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.verified-cardio-progress__heading h4 {
+  margin: 4px 0 0;
+}
+
+.verified-cardio-progress__heading > span {
+  padding: 6px 9px;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 999px;
+  color: var(--muted, #9aa4b5);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.verified-cardio-progress > p {
+  margin: 10px 0 0;
+  color: var(--muted, #9aa4b5);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.verified-cardio-progress__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.verified-cardio-progress__metrics > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.verified-cardio-progress__metrics span {
+  color: var(--muted, #9aa4b5);
+  font-size: 0.7rem;
+}
+
+.verified-cardio-progress__metrics strong {
+  color: inherit;
+  font-size: 1rem;
+}
+
+.verified-cardio-progress__note {
+  margin-top: 10px;
+  color: var(--muted, #9aa4b5);
+  font-size: 0.74rem;
+}
+
 .verified-evidence-header {
   margin-top: 24px;
 }
@@ -247,12 +317,17 @@
   .verified-source-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .verified-cardio-progress__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 620px) {
   .verified-activity-heading,
   .verified-evidence-header,
-  .verified-activity-card__top {
+  .verified-activity-card__top,
+  .verified-cardio-progress__heading {
     align-items: stretch;
     flex-direction: column;
   }
@@ -262,7 +337,8 @@
   }
 
   .verified-source-grid,
-  .verified-summary-grid {
+  .verified-summary-grid,
+  .verified-cardio-progress__metrics {
     grid-template-columns: 1fr;
   }
 
@@ -271,7 +347,8 @@
   }
 
   .verified-reward-neutral,
-  .verified-match-chip {
+  .verified-match-chip,
+  .verified-cardio-progress__heading > span {
     align-self: flex-start;
     white-space: normal;
   }
