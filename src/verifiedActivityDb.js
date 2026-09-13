@@ -15,6 +15,16 @@ function emptyData(profileId = "") {
   };
 }
 
+export async function reconcileVerifiedActivityData(profileId) {
+  if (!supabase) return unavailable();
+  if (!profileId) return { data: null, error: new Error("Athlete profile is required") };
+
+  const { data, error } = await supabase.functions.invoke("verification-reconcile", {
+    body: { profileId },
+  });
+  return { data: data || null, error: error || null };
+}
+
 export async function loadVerifiedActivityData(profileId) {
   if (!supabase) return unavailable();
   if (!profileId) return { data: emptyData(""), error: null };
