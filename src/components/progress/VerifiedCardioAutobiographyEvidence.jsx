@@ -3,6 +3,7 @@ import {
   buildVerifiedCardioEvidence,
   summariseVerifiedCardioEvidence,
 } from "../../engine/verifiedCardioEvidenceEngine.js";
+import "./VerifiedCardioAutobiographyEvidence.css";
 
 function formatDistance(value) {
   const number = Number(value);
