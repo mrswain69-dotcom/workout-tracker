@@ -1,3 +1,5 @@
+import { matchVerifiedPlanCompletionEvidence } from "./verifiedPlanCompletionEngine.js";
+
 export const CONSISTENCY_SCORE_VERSION = 1;
 export const CONSISTENCY_TIME_ZONE = "Europe/London";
 
@@ -213,28 +215,65 @@ export function normaliseConsistencyRecords(records = []) {
     .sort((a, b) => a.date_ymd.localeCompare(b.date_ymd));
 }
 
-export function consistencyPlannedDayCompleted({ dateYmd, schedule, log }) {
+export function consistencyPlannedDayCompleted({
+  dateYmd,
+  schedule,
+  log,
+  verifiedCardioEvidence = [],
+}) {
   const weekday = consistencyWeekdayForYmd(dateYmd);
   const expected = Array.isArray(schedule?.[weekday]) ? schedule[weekday] : [];
   if (!expected.length) {
-    return { planned: false, completed: false, expectedBlocks: 0, completedBlocks: 0 };
+    return {
+      planned: false,
+      completed: false,
+      expectedBlocks: 0,
+      completedBlocks: 0,
+      manualCompletedBlocks: 0,
+      verifiedCompletedBlocks: 0,
+      completionSource: "none",
+      verifiedAssignments: [],
+    };
   }
 
   const logBlocks = Array.isArray(log?.blocks) ? log.blocks : [];
-  let completedBlocks = 0;
+  const manualCompletedBlockIds = [];
 
   for (const expectedBlock of expected) {
     const match = logBlocks.find(
       (block) => block && cleanText(block.id) === cleanText(expectedBlock?.id)
     );
-    if (match && consistencyLogBlockCompletedOnDay(match, dateYmd)) completedBlocks += 1;
+    if (match && consistencyLogBlockCompletedOnDay(match, dateYmd)) {
+      manualCompletedBlockIds.push(cleanText(expectedBlock?.id));
+    }
   }
+
+  const verified = matchVerifiedPlanCompletionEvidence({
+    dateYmd,
+    expectedBlocks: expected,
+    manualCompletedBlockIds,
+    verifiedCardioEvidence,
+  });
+  const manualCompletedBlocks = manualCompletedBlockIds.length;
+  const verifiedCompletedBlocks = verified.completedBlockIds.length;
+  const completedBlocks = manualCompletedBlocks + verifiedCompletedBlocks;
+  const completionSource = manualCompletedBlocks && verifiedCompletedBlocks
+    ? "mixed"
+    : verifiedCompletedBlocks
+      ? "verified"
+      : manualCompletedBlocks
+        ? "manual"
+        : "none";
 
   return {
     planned: true,
     completed: completedBlocks === expected.length,
     expectedBlocks: expected.length,
     completedBlocks,
+    manualCompletedBlocks,
+    verifiedCompletedBlocks,
+    completionSource,
+    verifiedAssignments: verified.assignments,
   };
 }
 
@@ -253,6 +292,7 @@ export function scoreConsistencyWindow({
   eligibleThrough = "",
   scheduleSnapshots = [],
   logs = [],
+  verifiedCardioEvidence = [],
 } = {}) {
   if (!window || !parseYmd(window.startDate) || !parseYmd(window.endDate)) {
     throw new Error("Invalid consistency window");
@@ -303,6 +343,7 @@ export function scoreConsistencyWindow({
       dateYmd: cursor,
       schedule: snapshot.schedule,
       log: logByDate.get(cursor) || null,
+      verifiedCardioEvidence,
     });
     dayResults.push({
       dateYmd: cursor,
