@@ -150,9 +150,11 @@ describe("VerifiedActivitySection Stage 4/5 UI", () => {
     expect(screen.getAllByText("Strava").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Garmin")).toBeTruthy();
     expect(screen.getByText("One activity · multiple sources")).toBeTruthy();
-    expect(screen.getByText(/5\.01 km/)).toBeTruthy();
-    expect(screen.getByText(/25 min/)).toBeTruthy();
-    expect(screen.getByText(/148 bpm avg/)).toBeTruthy();
+    expect(
+      screen.getByText(/5\.01 km · 25 min · 148 bpm avg/, {
+        selector: ".verified-activity-card__metrics",
+      })
+    ).toBeTruthy();
     expect(screen.getByText("0 bonus XP · evidence only")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Cardio evidence in Progress" })).toBeTruthy();
     expect(screen.getByText("Evidence only · PB authority unchanged")).toBeTruthy();
