@@ -79,6 +79,8 @@ export default function AssessmentAnalysisSection({
       <VerifiedActivitySection
         profileId={profileId}
         profileName={timelineData?.profile?.name || "Athlete"}
+        logs={logs}
+        consistencySnapshots={timelineData?.consistencySnapshots || []}
         onDataChange={setVerificationData}
         {...(verificationApi ? { api: verificationApi } : {})}
       />
