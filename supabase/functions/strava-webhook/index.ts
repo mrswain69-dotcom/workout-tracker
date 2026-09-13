@@ -10,6 +10,7 @@ import {
   stravaAppConfig,
   upsertStravaObservation,
 } from "../_shared/stravaProvider.ts";
+import { reconcileVerifiedActivitiesForProfile } from "../_shared/verificationReconcile.ts";
 
 function parseSignatureHeader(header: string) {
   const parts = Object.fromEntries(
@@ -108,6 +109,7 @@ async function processEvent(adminClient: any, eventRow: any, event: any) {
 
     if (event.aspect_type === "delete") {
       await markStravaObservationDeleted(adminClient, connection.id, String(event.object_id));
+      await reconcileVerifiedActivitiesForProfile(adminClient, connection.profile_id);
       await markEvent(adminClient, eventRow.id, {
         processed_at: new Date().toISOString(),
         processing_error: null,
@@ -123,6 +125,7 @@ async function processEvent(adminClient: any, eventRow: any, event: any) {
       await upsertStravaObservation(adminClient, connection, activity);
     }
 
+    await reconcileVerifiedActivitiesForProfile(adminClient, connection.profile_id);
     await adminClient
       .from("external_connections")
       .update({ last_sync_at: new Date().toISOString(), last_error_code: null })
