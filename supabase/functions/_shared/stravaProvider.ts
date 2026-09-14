@@ -123,6 +123,12 @@ function finiteOrNull(value: unknown) {
   return Number.isFinite(number) ? number : null;
 }
 
+function textOrNull(value: unknown) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  return text || null;
+}
+
 function localDateFromStrava(activity: any) {
   const value = typeof activity?.start_date_local === "string" ? activity.start_date_local.slice(0, 10) : "";
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
@@ -155,6 +161,10 @@ export function normalizeStravaActivity(connection: any, activity: any) {
     max_heart_rate_bpm: finiteOrNull(activity?.max_heartrate),
     elevation_gain_m: finiteOrNull(activity?.total_elevation_gain),
     calories_kcal: finiteOrNull(activity?.calories),
+    source_manual_entry: activity?.manual === true,
+    source_device_name: textOrNull(activity?.device_name),
+    source_external_id: textOrNull(activity?.external_id),
+    source_upload_id: textOrNull(activity?.upload_id_str ?? activity?.upload_id),
     source_created_at: startedAt,
     source_updated_at: new Date().toISOString(),
     source_deleted_at: null,
