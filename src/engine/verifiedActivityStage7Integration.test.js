@@ -47,8 +47,8 @@ describe("Verification Integrations Stage 7 provenance hardening", () => {
     const plan = read("src/engine/verifiedPlanCompletionEngine.js");
 
     expect(cardio).toContain("row.source_manual_entry !== true");
-    expect(cardio).toContain('verificationLevel: "device_or_file"');
-    expect(cardio).toContain('"provider_recorded"');
+    expect(cardio).toContain("verificationLevel: verificationLevelFor(verificationObservations)");
+    expect(cardio).toContain('return hasDeviceOrUpload ? "device_or_file" : "provider_recorded"');
     expect(cardio).toContain('authority: "verified_evidence_only"');
     expect(cardio).toContain("rewardXp: 0");
     expect(plan).toContain("row?.source_manual_entry === true");
