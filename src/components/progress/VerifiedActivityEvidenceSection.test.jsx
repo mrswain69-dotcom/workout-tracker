@@ -20,6 +20,8 @@ describe("VerifiedActivityEvidenceSection", () => {
     render(<VerifiedActivityEvidenceSection profileId="paul" profileName="Paul" api={api} />);
     await screen.findByText(/Settings → Connections/);
     expect(screen.queryByRole("button", { name: /Connect Strava/i })).toBeNull();
-    expect(screen.getByText("1")).toBeTruthy();
+
+    const connectedSources = screen.getByText("Connected sources").closest("div");
+    expect(connectedSources?.textContent).toContain("1");
   });
 });
