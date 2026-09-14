@@ -20,7 +20,7 @@ describe("VerifiedActivityEvidenceSection", () => {
       })),
     };
     render(<VerifiedActivityEvidenceSection profileId="paul" profileName="Paul" api={api} />);
-    await screen.findByText(/Settings → Connections/);
+    await screen.findByText("Connect a source in Settings → Connections.");
     expect(screen.queryByRole("button", { name: /Connect Strava/i })).toBeNull();
 
     const connectedSources = screen.getByText("Connected sources").closest("div");
