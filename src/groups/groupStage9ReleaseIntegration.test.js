@@ -22,11 +22,12 @@ describe("Group Stage 9 navigation and release integration contract", () => {
     expect(app).not.toContain('["log", "stats", "plan", "assessments", "rewards"].map');
   });
 
-  it("keeps Plan and Assessments in one management surface while preserving direct Assessment CTAs", () => {
-    expect(app).toContain('["settings", "plan", "assessments"].includes(tab)');
+  it("keeps Plan, Assessments and Connections in one management surface while preserving direct Assessment CTAs", () => {
+    expect(app).toContain('["settings", "plan", "assessments", "connections"].includes(tab)');
     expect(app).toContain('["settings", "General"]');
     expect(app).toContain('["plan", "Plan"]');
     expect(app).toContain('["assessments", "Assessments"]');
+    expect(app).toContain('["connections", "Connections"]');
     expect(app).toContain('aria-label="Manage Workout Tracker"');
     expect(app).toContain('onOpenAssessments={() => setTab("assessments")}');
   });
