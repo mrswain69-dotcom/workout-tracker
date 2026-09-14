@@ -1,6 +1,8 @@
+// @vitest-environment jsdom
+
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import ConnectionsSettings from "./ConnectionsSettings.jsx";
 
 function api(overrides = {}) {
@@ -21,6 +23,8 @@ const profiles = [
   { id: "wilf", name: "Wilf", archived: false },
   { id: "xander", name: "Xander", archived: false },
 ];
+
+afterEach(() => cleanup());
 
 describe("ConnectionsSettings", () => {
   it("assigns OAuth to the explicitly selected athlete rather than an implicit active profile", async () => {
