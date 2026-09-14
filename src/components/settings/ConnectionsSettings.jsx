@@ -10,6 +10,13 @@ import {
 } from "../../connectionSettingsDb.js";
 import "./ConnectionsSettings.css";
 
+const DEFAULT_API = Object.freeze({
+  disconnectStravaConnection,
+  loadConnectionSettingsData,
+  startStravaConnection,
+  updateConnectionPreferences,
+});
+
 const PROVIDERS = Object.freeze([
   {
     id: "strava",
@@ -89,12 +96,7 @@ export default function ConnectionsSettings({
   profiles = [],
   initialProfileId = "",
   authorizeMutation = async () => true,
-  api = {
-    disconnectStravaConnection,
-    loadConnectionSettingsData,
-    startStravaConnection,
-    updateConnectionPreferences,
-  },
+  api = DEFAULT_API,
   confirmAction = (message) => window.confirm(message),
   navigateToProvider = (url) => window.location.assign(url),
 }) {
