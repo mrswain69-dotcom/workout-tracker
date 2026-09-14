@@ -281,9 +281,17 @@
   line-height: 1;
 }
 
-.verified-match-chip.is-linked {
+.verified-match-chip.is-linked,
+.verified-match-chip.is-eligible,
+.verified-provider-row .verified-manual-link-chip {
   border-color: rgba(0, 255, 136, 0.28);
   background: rgba(0, 255, 136, 0.07);
+  color: inherit;
+}
+
+.verified-match-chip.is-ineligible {
+  border-color: rgba(255, 183, 77, 0.32);
+  background: rgba(255, 183, 77, 0.07);
   color: inherit;
 }
 
@@ -294,7 +302,8 @@
   margin-top: 10px;
 }
 
-.verified-provider-row .verified-dedupe-chip {
+.verified-provider-row .verified-dedupe-chip,
+.verified-provider-row .verified-device-chip {
   border-color: rgba(0, 229, 255, 0.25);
   color: inherit;
 }
