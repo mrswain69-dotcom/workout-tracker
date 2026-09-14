@@ -52,6 +52,46 @@ describe("verifiedPlanCompletionEngine Stage 6", () => {
     expect(isVerifiedPlanCompletionEvidence({ ...evidence(), rewardXp: 10 }, "2026-09-14")).toBe(false);
   });
 
+  it("rejects provider-manual and explicitly ineligible evidence even when its metrics otherwise look valid", () => {
+    expect(
+      isVerifiedPlanCompletionEvidence(
+        { ...evidence(), source_manual_entry: true },
+        "2026-09-14"
+      )
+    ).toBe(false);
+    expect(
+      isVerifiedPlanCompletionEvidence(
+        { ...evidence(), verificationLevel: "provider_manual" },
+        "2026-09-14"
+      )
+    ).toBe(false);
+    expect(
+      isVerifiedPlanCompletionEvidence(
+        { ...evidence(), verificationEligible: false },
+        "2026-09-14"
+      )
+    ).toBe(false);
+    expect(
+      isVerifiedPlanCompletionEvidence(
+        { ...evidence(), verificationEligible: true, verificationLevel: "device_or_file" },
+        "2026-09-14"
+      )
+    ).toBe(true);
+  });
+
+  it("never assigns provider-manual evidence to a planned block", () => {
+    const result = matchVerifiedPlanCompletionEvidence({
+      dateYmd: "2026-09-14",
+      expectedBlocks: [{ id: "run-a", typeId: "run" }],
+      verifiedCardioEvidence: [
+        { ...evidence(), verificationEligible: false, verificationLevel: "provider_manual" },
+      ],
+    });
+
+    expect(result.completedBlockIds).toEqual([]);
+    expect(result.assignments).toEqual([]);
+  });
+
   it("lets one verified run satisfy one compatible planned block and never double-consumes the same activity", () => {
     const result = matchVerifiedPlanCompletionEvidence({
       dateYmd: "2026-09-14",
