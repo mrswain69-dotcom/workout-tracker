@@ -2863,11 +2863,45 @@ function computeClaimedRewardsXpByDate(plan) {
   return map;
 }
 
+function readProviderReturn() {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const provider = params.get("integration") || "";
+  const status = params.get("status") || "";
+  if (provider !== "strava" || !["connected", "failed", "denied"].includes(status)) return null;
+  return {
+    provider,
+    status,
+    detail: params.get("detail") || "",
+    profileId: params.get("profile") || "",
+  };
+}
+
+function clearProviderReturnFromUrl() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  let changed = false;
+  for (const key of ["integration", "status", "detail", "profile"]) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+}
+
 // -------- Main app ----------
 export default function App() {
   const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
 
-  const [tab, setTab] = useState("log");
+  const [providerReturn] = useState(() => readProviderReturn());
+  const [tab, setTab] = useState(() => providerReturn ? "connections" : "log");
+
+  useEffect(() => {
+    if (providerReturn) clearProviderReturnFromUrl();
+  }, [providerReturn]);
   const [copyDialog, setCopyDialog] = useState(null); // { blockId, days: string[] }
   const [rewardsSubTab, setRewardsSubTab] = useState("badges"); // "badges" | "avatars" | "shop" | "info"
   const [badgeCategoryView, setBadgeCategoryView] = useState("performance"); // "performance" | "sport_mastery"
@@ -11723,7 +11757,8 @@ if (!didClaim) {
 {tab === "connections" && (
   <ConnectionsSettings
     profiles={profiles}
-    initialProfileId={activeProfileId}
+    initialProfileId={providerReturn?.profileId || activeProfileId}
+    connectionReturn={providerReturn}
     authorizeMutation={ensureUnlocked}
   />
 )}
