@@ -4,7 +4,6 @@ import { buildAssessmentAnalysisViewModel } from "../../engine/assessmentAnalysi
 import { loadHistoricalTimelineData } from "../../historicalTimelineDb.js";
 import AssessmentAnalysisProgress from "./AssessmentAnalysisProgress.jsx";
 import PerformanceAutobiography from "./PerformanceAutobiography.jsx";
-import VerifiedActivitySection from "./VerifiedActivitySection.jsx";
 import VerifiedConsistencyPanel from "./VerifiedConsistencyPanel.jsx";
 
 export default function AssessmentAnalysisSection({
@@ -15,11 +14,10 @@ export default function AssessmentAnalysisSection({
   assessmentLibrary = {},
   onOpenAssessments = null,
   timelineApi = loadHistoricalTimelineData,
-  verificationApi = null,
+  verificationData = null,
 }) {
   const [timelineData, setTimelineData] = useState(null);
   const [timelineError, setTimelineError] = useState(null);
-  const [verificationData, setVerificationData] = useState(null);
 
   const analysis = useMemo(
     () =>
@@ -60,10 +58,6 @@ export default function AssessmentAnalysisSection({
     };
   }, [profileId, timelineApi]);
 
-  useEffect(() => {
-    setVerificationData(null);
-  }, [profileId]);
-
   return (
     <>
       <AssessmentAnalysisProgress
@@ -76,13 +70,6 @@ export default function AssessmentAnalysisSection({
           Long-range milestones could not be loaded. Recorded training history is still available below.
         </div>
       ) : null}
-
-      <VerifiedActivitySection
-        profileId={profileId}
-        profileName={timelineData?.profile?.name || "Athlete"}
-        onDataChange={setVerificationData}
-        {...(verificationApi ? { api: verificationApi } : {})}
-      />
 
       <VerifiedConsistencyPanel
         verificationData={verificationData}
