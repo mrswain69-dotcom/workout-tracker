@@ -25,12 +25,18 @@ describe("Verification Integration Stage 5 authority contract", () => {
     expect(historicalCall).not.toContain("verifiedCardio");
   });
 
-  it("shares one read-side verification payload between Connected Sources and Autobiography", () => {
+  it("shares one read-side verification payload from Progress evidence into Analysis consumers", () => {
+    const progress = read("src/components/progress/ProgressDashboard.jsx");
     const section = read("src/components/progress/AssessmentAnalysisSection.jsx");
 
-    expect(section).toContain("const [verificationData, setVerificationData] = useState(null)");
-    expect(section).toContain("onDataChange={setVerificationData}");
+    expect(progress).toContain("const [verificationData, setVerificationData] = useState(null)");
+    expect(progress).toContain("onDataChange={setVerificationData}");
+    expect(progress).toContain("verificationData={verificationData}");
+    expect(section).toContain("verificationData = null");
+    expect(section).toContain("<VerifiedConsistencyPanel");
+    expect(section).toContain("<PerformanceAutobiography");
     expect(section).toContain("verificationData={verificationData}");
+    expect(section).not.toContain("VerifiedActivitySection");
   });
 
   it("keeps canonical improvement observations independent of external verification", () => {
@@ -61,7 +67,7 @@ describe("Verification Integration Stage 5 authority contract", () => {
 
   it("keeps the browser verification layer read-only with respect to Workout Tracker logs", () => {
     const db = read("src/verifiedActivityDb.js");
-    const progress = read("src/components/progress/VerifiedActivitySection.jsx");
+    const progress = read("src/components/progress/VerifiedActivityEvidenceSection.jsx");
 
     expect(db).not.toContain('.from("logs")');
     expect(db).not.toMatch(/\.from\([^)]*\)\s*\.(?:insert|update|upsert|delete)\s*\(/);
