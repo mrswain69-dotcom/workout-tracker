@@ -61,7 +61,7 @@ export async function loadVerifiedActivityData(profileId) {
       supabase
         .from("external_activity_observations")
         .select(
-          "id,connection_id,family_id,profile_id,provider,provider_activity_id,started_at,local_date_ymd,source_timezone,activity_type,activity_name,distance_m,elapsed_duration_sec,moving_duration_sec,average_heart_rate_bpm,max_heart_rate_bpm,elevation_gain_m,calories_kcal,source_created_at,source_updated_at,source_deleted_at,imported_at,created_at,updated_at"
+          "id,connection_id,family_id,profile_id,provider,provider_activity_id,started_at,local_date_ymd,source_timezone,activity_type,activity_name,distance_m,elapsed_duration_sec,moving_duration_sec,average_heart_rate_bpm,max_heart_rate_bpm,elevation_gain_m,calories_kcal,source_manual_entry,source_device_name,source_external_id,source_upload_id,source_created_at,source_updated_at,source_deleted_at,imported_at,created_at,updated_at"
         )
         .eq("profile_id", profileId)
         .order("started_at", { ascending: false }),
