@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { setProfileBirthDate } from "../../profileBirthDateDb.js";
 import { buildHistoricalTimelineEvents } from "../../engine/historicalTimelineEventEngine.js";
 import { buildHistoricalAutobiographyFoundation } from "../../engine/historicalAutobiographyEngine.js";
+import VerifiedCardioAutobiographyEvidence from "./VerifiedCardioAutobiographyEvidence.jsx";
 import "./PerformanceAutobiography.css";
 
 function cleanText(value, fallback = "") {
@@ -375,6 +376,7 @@ export default function PerformanceAutobiography({
   assessmentRuns = [],
   assessmentResults = [],
   timelineData = null,
+  verificationData = null,
   referenceDate = "",
   dateApi = setProfileBirthDate,
 }) {
@@ -428,6 +430,9 @@ export default function PerformanceAutobiography({
     chapters.find((chapter) => chapter.age === selectedAge) || chapters.at(-1) || null;
   const feed = buildFeed({ chapter: selectedChapter, foundation });
   const evidenceCount = foundation.events?.filter((event) => event.sourceType === "workout").length || 0;
+  const verifiedEvidenceRange = selectedChapter
+    ? { startDate: selectedChapter.startDate, endDate: selectedChapter.endDate }
+    : null;
 
   return (
     <section className="performance-autobiography" aria-label="Performance Autobiography">
@@ -492,6 +497,16 @@ export default function PerformanceAutobiography({
           Date of birth is set, but there is not yet genuine recorded evidence to form an age chapter.
         </div>
       ) : null}
+
+      <VerifiedCardioAutobiographyEvidence
+        verificationData={verificationData}
+        range={verifiedEvidenceRange}
+        title={
+          selectedChapter
+            ? `Age ${selectedChapter.age} verified cardio evidence`
+            : "Date-based verified cardio evidence"
+        }
+      />
 
       <div className="autobiography-section-title">
         <div>

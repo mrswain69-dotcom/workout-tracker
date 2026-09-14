@@ -4,6 +4,7 @@ import { buildAssessmentAnalysisViewModel } from "../../engine/assessmentAnalysi
 import { loadHistoricalTimelineData } from "../../historicalTimelineDb.js";
 import AssessmentAnalysisProgress from "./AssessmentAnalysisProgress.jsx";
 import PerformanceAutobiography from "./PerformanceAutobiography.jsx";
+import VerifiedConsistencyPanel from "./VerifiedConsistencyPanel.jsx";
 
 export default function AssessmentAnalysisSection({
   completedHistory = null,
@@ -13,6 +14,7 @@ export default function AssessmentAnalysisSection({
   assessmentLibrary = {},
   onOpenAssessments = null,
   timelineApi = loadHistoricalTimelineData,
+  verificationData = null,
 }) {
   const [timelineData, setTimelineData] = useState(null);
   const [timelineError, setTimelineError] = useState(null);
@@ -69,6 +71,12 @@ export default function AssessmentAnalysisSection({
         </div>
       ) : null}
 
+      <VerifiedConsistencyPanel
+        verificationData={verificationData}
+        logs={logs}
+        consistencySnapshots={timelineData?.consistencySnapshots || []}
+      />
+
       <PerformanceAutobiography
         profileId={profileId}
         profileName={timelineData?.profile?.name || "Athlete"}
@@ -76,6 +84,7 @@ export default function AssessmentAnalysisSection({
         assessmentRuns={completedHistory?.runs || []}
         assessmentResults={completedHistory?.results || []}
         timelineData={timelineData}
+        verificationData={verificationData}
         referenceDate={timelineData?.referenceDate || ""}
       />
     </>

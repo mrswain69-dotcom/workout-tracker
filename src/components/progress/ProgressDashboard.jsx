@@ -26,6 +26,7 @@ import {
   AssessmentProgressDetails,
   DevelopmentTrendDetails,
 } from "./AssessmentDevelopmentProgress.jsx";
+import VerifiedActivityEvidenceSection from "./VerifiedActivityEvidenceSection.jsx";
 import "./ProgressDashboard.css";
 import "./ProgressDashboardStage7.css";
 
@@ -387,7 +388,12 @@ export default function ProgressDashboard({
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [trainingRangeKey, setTrainingRangeKey] = useState("recent28");
+  const [verificationData, setVerificationData] = useState(null);
   const resolvedReferenceDate = referenceDate || todayYmd();
+
+  useEffect(() => {
+    setVerificationData(null);
+  }, [profileId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -659,6 +665,12 @@ export default function ProgressDashboard({
         <MovementTotals rows={trainingDetail.movementTotals} />
       </div>
 
+      <VerifiedActivityEvidenceSection
+        profileId={profileId}
+        profileName={profileName}
+        onDataChange={setVerificationData}
+      />
+
       <div className="progress-section">
         <SectionHeading kicker="ASSESSMENTS" title="Benchmark progress">
           {typeof onOpenAssessments === "function" ? (
@@ -723,6 +735,7 @@ export default function ProgressDashboard({
           sessionLibrary={remoteData.sessionLibrary}
           assessmentLibrary={remoteData.assessmentLibrary}
           onOpenAssessments={onOpenAssessments}
+          verificationData={verificationData}
         />
       </Suspense>
 

@@ -1,0 +1,177 @@
+.autobiography-verified-cardio {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 229, 255, 0.07), transparent 38%),
+    #0f1219;
+}
+
+.autobiography-verified-cardio__heading,
+.autobiography-verified-cardio__rowtop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.autobiography-verified-cardio__heading > div > span {
+  color: #00e5ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.autobiography-verified-cardio__heading h4 {
+  margin: 5px 0 0;
+  color: #f7fbff;
+}
+
+.autobiography-verified-cardio__heading small {
+  padding: 6px 9px;
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 999px;
+  color: #8d99aa;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.autobiography-verified-cardio > p {
+  margin: 9px 0 0;
+  color: #98a4b5;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.autobiography-verified-cardio__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.autobiography-verified-cardio__metrics > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #292f3a;
+  border-radius: 11px;
+  background: #0b0e14;
+}
+
+.autobiography-verified-cardio__metrics strong {
+  color: #f3f8ff;
+  font-size: 1rem;
+}
+
+.autobiography-verified-cardio__metrics span {
+  color: #7f8b9d;
+  font-size: 0.69rem;
+}
+
+.autobiography-verified-cardio__list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.autobiography-verified-cardio__list article {
+  padding: 12px 13px;
+  border: 1px solid #292f3a;
+  border-radius: 12px;
+  background: rgba(6, 10, 18, 0.45);
+}
+
+.autobiography-verified-cardio__rowtop > div {
+  display: grid;
+  gap: 2px;
+}
+
+.autobiography-verified-cardio__rowtop strong {
+  color: #eaf2fc;
+  font-size: 0.86rem;
+}
+
+.autobiography-verified-cardio__rowtop > div > span {
+  color: #7f8b9d;
+  font-size: 0.7rem;
+}
+
+.autobiography-verified-cardio__rowtop > span,
+.autobiography-verified-cardio__providers span {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border: 1px solid #303744;
+  border-radius: 999px;
+  color: #8c98a9;
+  font-size: 0.66rem;
+  line-height: 1;
+}
+
+.autobiography-verified-cardio__rowtop > span.is-matched {
+  border-color: rgba(66, 215, 125, 0.3);
+  background: rgba(66, 215, 125, 0.06);
+  color: #a8e9c0;
+}
+
+.autobiography-verified-cardio__rowmetrics {
+  margin-top: 8px;
+  color: #d8e1ee;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.autobiography-verified-cardio__providers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.autobiography-verified-cardio__empty {
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px dashed #343a46;
+  border-radius: 11px;
+  color: #8793a4;
+  font-size: 0.78rem;
+}
+
+.autobiography-verified-cardio__integrity {
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid #252b35;
+  color: #718093;
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 820px) {
+  .autobiography-verified-cardio__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .autobiography-verified-cardio {
+    padding: 13px;
+  }
+
+  .autobiography-verified-cardio__heading,
+  .autobiography-verified-cardio__rowtop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .autobiography-verified-cardio__heading small,
+  .autobiography-verified-cardio__rowtop > span {
+    white-space: normal;
+  }
+
+  .autobiography-verified-cardio__metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+}
