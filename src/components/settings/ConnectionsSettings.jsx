@@ -75,6 +75,29 @@ function preferenceFor(rows, profileId, provider) {
   };
 }
 
+function connectionReturnMessage(connectionReturn, selectedName) {
+  if (connectionReturn?.provider !== "strava") return null;
+  if (connectionReturn.status === "connected") {
+    return {
+      tone: "success",
+      text: `Strava connected successfully for ${selectedName}. Activity evidence is syncing now.`,
+    };
+  }
+  if (connectionReturn.status === "denied") {
+    return {
+      tone: "error",
+      text: "Strava connection was not authorised. Nothing was connected or changed.",
+    };
+  }
+  if (connectionReturn.status === "failed") {
+    return {
+      tone: "error",
+      text: "Strava connection failed. Workout Tracker history was not changed. Please try again.",
+    };
+  }
+  return null;
+}
+
 function StreamToggle({ label, detail, checked, disabled = false, onChange }) {
   return (
     <label className={`connection-stream${disabled ? " is-disabled" : ""}`}>
@@ -95,6 +118,7 @@ function StreamToggle({ label, detail, checked, disabled = false, onChange }) {
 export default function ConnectionsSettings({
   profiles = [],
   initialProfileId = "",
+  connectionReturn = null,
   authorizeMutation = async () => true,
   api = DEFAULT_API,
   confirmAction = (message) => window.confirm(message),
@@ -114,6 +138,7 @@ export default function ConnectionsSettings({
 
   const selectedProfile = activeProfiles.find((profile) => profile.id === selectedProfileId) || activeProfiles[0] || null;
   const selectedName = profileName(selectedProfile);
+  const returnMessage = connectionReturnMessage(connectionReturn, selectedName);
 
   useEffect(() => {
     if (!activeProfiles.some((profile) => profile.id === selectedProfileId)) {
@@ -275,6 +300,14 @@ export default function ConnectionsSettings({
         })}
       </div>
 
+      {returnMessage ? (
+        <div
+          className={`connections-message connections-message--${returnMessage.tone}`}
+          role={returnMessage.tone === "error" ? "alert" : "status"}
+        >
+          {returnMessage.text}
+        </div>
+      ) : null}
       {loading ? <div className="connections-message">Loading connection settings…</div> : null}
       {error ? <div className="connections-message connections-message--error" role="alert">{error.message || String(error)}</div> : null}
       {notice ? <div className="connections-message" role="status">{notice}</div> : null}

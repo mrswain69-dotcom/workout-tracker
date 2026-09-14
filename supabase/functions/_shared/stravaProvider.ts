@@ -81,13 +81,14 @@ export async function sha256Hex(value: string) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export function fixedAppRedirect(status: string, detail = "") {
+export function fixedAppRedirect(status: string, detail = "", profileId = "") {
   const { appUrl } = stravaAppConfig();
   if (!appUrl) return "";
   const url = new URL(appUrl);
   url.searchParams.set("integration", "strava");
   url.searchParams.set("status", status);
   if (detail) url.searchParams.set("detail", detail);
+  if (profileId) url.searchParams.set("profile", profileId);
   return url.toString();
 }
 

@@ -53,7 +53,7 @@ describe("Verification Integration Stage 2 Strava contract", () => {
     expect(source).toContain('.gt("expires_at", now)');
     expect(source).toContain("hasActivityReadScope(grantedScopes)");
     expect(source).toContain("storeStravaTokens(adminClient, connection.id, tokenData)");
-    expect(source).toContain('return redirect("connected")');
+    expect(source).toContain('return redirect("connected", "", oauthState.profile_id)');
     expect(source).not.toMatch(/return\s+json\([^)]*(?:access_token|refresh_token)/i);
     expect(source).not.toContain("activity:write");
   });

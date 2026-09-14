@@ -49,6 +49,44 @@ describe("ConnectionsSettings", () => {
     expect(navigate).toHaveBeenCalledWith("https://strava.example/oauth");
   });
 
+  it("shows a clear OAuth return confirmation", async () => {
+    const mockApi = api({
+      loadConnectionSettingsData: vi.fn(async () => ({
+        data: {
+          connections: [{ profile_id: "paul", provider: "strava", status: "active", provider_account_label: "Paul Swain" }],
+          preferences: [],
+        },
+        error: null,
+      })),
+    });
+    render(
+      <ConnectionsSettings
+        profiles={profiles.slice(0, 1)}
+        initialProfileId="paul"
+        connectionReturn={{ provider: "strava", status: "connected", detail: "", profileId: "paul" }}
+        api={mockApi}
+      />
+    );
+    expect((await screen.findByRole("status")).textContent).toContain(
+      "Strava connected successfully for Paul. Activity evidence is syncing now."
+    );
+    await screen.findByText("Paul Swain");
+  });
+
+  it("shows an OAuth failure without implying history changed", async () => {
+    render(
+      <ConnectionsSettings
+        profiles={profiles.slice(0, 1)}
+        initialProfileId="paul"
+        connectionReturn={{ provider: "strava", status: "failed", detail: "token_exchange_failed", profileId: "paul" }}
+        api={api()}
+      />
+    );
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Strava connection failed. Workout Tracker history was not changed. Please try again."
+    );
+  });
+
   it("persists stream preferences through server authority", async () => {
     const mockApi = api();
     render(

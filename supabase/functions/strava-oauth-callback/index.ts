@@ -14,8 +14,8 @@ import {
 } from "../_shared/stravaProvider.ts";
 import { reconcileVerifiedActivitiesForProfile } from "../_shared/verificationReconcile.ts";
 
-function redirect(status: string, detail = "") {
-  const location = fixedAppRedirect(status, detail);
+function redirect(status: string, detail = "", profileId = "") {
+  const location = fixedAppRedirect(status, detail, profileId);
   if (!location) return json({ provider: "strava", status, detail }, status === "connected" ? 200 : 400);
   return new Response(null, { status: 302, headers: { Location: location, "Cache-Control": "no-store" } });
 }
@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (stateError || !oauthState) return redirect("failed", "invalid_or_expired_state");
 
-    if (oauthError || !code) return redirect("denied", oauthError || "authorization_not_granted");
+    if (oauthError || !code) return redirect("denied", oauthError || "authorization_not_granted", oauthState.profile_id);
 
     const tokenResponse = await fetch(STRAVA_TOKEN_URL, {
       method: "POST",
@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
     const tokenData = await tokenResponse.json().catch(() => ({}));
     if (!tokenResponse.ok) {
       console.error("Strava OAuth token exchange failed", tokenResponse.status);
-      return redirect("failed", "token_exchange_failed");
+      return redirect("failed", "token_exchange_failed", oauthState.profile_id);
     }
 
     const accessToken = typeof tokenData?.access_token === "string" ? tokenData.access_token : "";
@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
       .join(" ") || (typeof tokenData?.athlete?.username === "string" ? tokenData.athlete.username.trim() : "") || null;
     if (!accessToken || !athleteId) {
       await revokeStravaToken(accessToken);
-      return redirect("failed", "incomplete_token_response");
+      return redirect("failed", "incomplete_token_response", oauthState.profile_id);
     }
 
     const scopeOkay = hasActivityReadScope(grantedScopes);
@@ -105,12 +105,12 @@ Deno.serve(async (req: Request) => {
     if (connectionError || !connection) {
       console.error("Strava connection persistence failed", connectionError);
       await revokeStravaToken(accessToken);
-      return redirect("failed", "connection_persistence_failed");
+      return redirect("failed", "connection_persistence_failed", oauthState.profile_id);
     }
 
     if (!scopeOkay) {
       await revokeStravaToken(accessToken);
-      return redirect("failed", "activity_read_scope_required");
+      return redirect("failed", "activity_read_scope_required", oauthState.profile_id);
     }
 
     try {
@@ -122,7 +122,7 @@ Deno.serve(async (req: Request) => {
         .from("external_connections")
         .update({ status: "error", last_error_code: "token_persistence_failed" })
         .eq("id", connection.id);
-      return redirect("failed", "token_persistence_failed");
+      return redirect("failed", "token_persistence_failed", oauthState.profile_id);
     }
 
     EdgeRuntime.waitUntil(
@@ -140,7 +140,7 @@ Deno.serve(async (req: Request) => {
       })()
     );
 
-    return redirect("connected");
+    return redirect("connected", "", oauthState.profile_id);
   } catch (error) {
     console.error("Strava OAuth callback failed", error);
     return redirect("failed", "callback_failed");
