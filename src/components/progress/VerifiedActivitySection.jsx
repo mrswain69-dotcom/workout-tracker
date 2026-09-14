@@ -22,13 +22,13 @@ const PROVIDERS = Object.freeze([
   {
     id: "strava",
     name: "Strava",
-    detail: "Automatic activity sync through OAuth and signed webhooks.",
+    detail: "OAuth activity sync. Automatic webhook updates follow after live signing setup.",
     state: "available",
   },
   {
     id: "garmin",
     name: "Garmin Connect",
-    detail: "Provider adapter planned on the same verified-activity foundation.",
+    detail: "Direct Activity API access requested; provider approval pending.",
     state: "planned",
   },
   {
@@ -140,6 +140,30 @@ function providerLabel(provider) {
   return titleCase(provider);
 }
 
+function provenanceForObservations(observations = []) {
+  const eligible = observations.filter((row) => row?.source_manual_entry !== true);
+  if (!eligible.length) {
+    return {
+      verificationEligible: false,
+      verificationLabel: "Manual provider entry · not verification eligible",
+      sourceDeviceNames: [],
+    };
+  }
+
+  const sourceDeviceNames = [...new Set(
+    eligible.map((row) => text(row?.source_device_name)).filter(Boolean)
+  )].sort();
+  const hasDeviceOrFile = eligible.some((row) =>
+    text(row?.source_device_name) || text(row?.source_external_id) || text(row?.source_upload_id)
+  );
+
+  return {
+    verificationEligible: true,
+    verificationLabel: hasDeviceOrFile ? "Device/file evidence" : "Provider-recorded evidence",
+    sourceDeviceNames,
+  };
+}
+
 function buildActivityRows(data) {
   const observationsById = new Map(
     (data?.observations || []).map((row) => [row.id, row])
@@ -165,8 +189,10 @@ function buildActivityRows(data) {
       const providers = [...new Set(observations.map((row) => row.provider).filter(Boolean))]
         .sort();
       const firstObservation = observations[0] || null;
+      const provenance = provenanceForObservations(observations);
       return {
         ...activity,
+        ...provenance,
         observations,
         providers,
         localDateYmd: firstObservation?.local_date_ymd || "",
@@ -408,7 +434,7 @@ export default function VerifiedActivitySection({
 
       <div className="verified-summary-grid" aria-label="Verification summary">
         <div><span>Connected sources</span><strong>{connectedCount}</strong></div>
-        <div><span>Verified activities</span><strong>{activityRows.length}</strong></div>
+        <div><span>Synced activities</span><strong>{activityRows.length}</strong></div>
         <div><span>Matched to manual logs</span><strong>{linkedCount}</strong></div>
       </div>
 
@@ -422,7 +448,7 @@ export default function VerifiedActivitySection({
         </div>
         <p>
           Canonical verified activities are counted once even when more than one provider saw the same workout.
-          Distance, duration and heart-rate evidence can enrich Progress without rewriting the manual log or creating a PB.
+          Provider-manual entries remain visible as synced activity but cannot verify a plan, PB or Progress evidence.
         </p>
         <div className="verified-cardio-progress__metrics">
           <div><span>Verified cardio</span><strong>{verifiedCardio.activityCount}</strong></div>
@@ -463,14 +489,20 @@ export default function VerifiedActivitySection({
                     <div className="verified-activity-card__type">{titleCase(activity.activity_type)}</div>
                     <div className="verified-activity-card__date">{dateLabel}</div>
                   </div>
-                  <span className={`verified-match-chip ${activity.manualLink ? "is-linked" : ""}`}>
-                    {activity.manualLink ? "Matched to Workout Tracker" : "Provider evidence"}
+                  <span
+                    className={`verified-match-chip ${activity.verificationEligible ? "is-eligible" : "is-ineligible"}`}
+                  >
+                    {activity.verificationLabel}
                   </span>
                 </div>
                 {metrics.length ? <div className="verified-activity-card__metrics">{metrics.join(" · ")}</div> : null}
                 <div className="verified-provider-row">
                   {(activity.providers.length ? activity.providers : ["external"]).map((provider) => (
                     <span key={provider}>{providerLabel(provider)}</span>
+                  ))}
+                  {activity.manualLink ? <span className="verified-manual-link-chip">Matched to Workout Tracker</span> : null}
+                  {activity.sourceDeviceNames.map((device) => (
+                    <span key={`device:${device}`} className="verified-device-chip">Recorded by {device}</span>
                   ))}
                   {activity.identity_method === "automatic_dedup" ? (
                     <span className="verified-dedupe-chip">One activity · multiple sources</span>
