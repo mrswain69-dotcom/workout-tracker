@@ -32,6 +32,11 @@ Authenticated browser clients may read preferences but may not mutate them direc
 
 The shared Strava normalizer loads the profile/provider preferences before observations are persisted. Core verification fields (activity type, date/time, distance, duration and provenance) remain available while optional HR and performance fields obey the preference flags. `include_private_activities` determines the OAuth scope requested on the next connection/reconnection.
 
+## Live provider status — 14 September 2026
+
+- Strava developer application created, upgraded to the 10-athlete development tier, and production OAuth secrets configured in Supabase. Live OAuth activation follows Stage 7.1 gating/merge.
+- Garmin Connect Developer Program support confirmed that review and approval of new API access requests is temporarily paused while Garmin modernises the programme, with no restart timeline. Garmin remains architecturally supported but externally blocked for live API activation.
+
 ## Authority remains unchanged
 
 - Provider data never creates Workout Tracker `logs`.
