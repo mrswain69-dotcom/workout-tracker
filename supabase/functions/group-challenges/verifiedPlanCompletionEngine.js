@@ -69,11 +69,15 @@ export function isVerifiedPlanCompletionEvidence(row, dateYmd = "") {
   const cardioKind = cardioKindOf(row);
   const objectiveEvidence = positive(row?.distanceKm ?? row?.distance_km) !== null ||
     positive(row?.durationMin ?? row?.duration_min) !== null;
+  const verificationLevel = text(row?.verificationLevel || row?.verification_level).toLowerCase();
 
   if (!evidenceIdOf(row) || !validYmd(evidenceDate)) return false;
   if (dateYmd && evidenceDate !== dateYmd) return false;
   if (!COMPATIBLE_PLAN_TYPES[cardioKind]) return false;
   if (!providers.length || !objectiveEvidence) return false;
+  if (row?.verificationEligible === false || row?.verification_eligible === false) return false;
+  if (row?.sourceManualEntry === true || row?.source_manual_entry === true) return false;
+  if (verificationLevel === "provider_manual") return false;
   if (text(row?.authority) !== "verified_evidence_only") return false;
   if (Number(row?.rewardXp ?? row?.reward_xp ?? 0) !== 0) return false;
   return true;
