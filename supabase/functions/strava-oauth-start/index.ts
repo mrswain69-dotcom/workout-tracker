@@ -35,7 +35,6 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const profileId = typeof body?.profileId === "string" ? body.profileId.trim() : "";
-    const includePrivate = body?.includePrivate === true;
     if (!profileId) return json({ error: "Athlete profile is required" }, 400, corsHeaders);
 
     // Exact-athlete ownership is proven through normal profile RLS before the
@@ -46,6 +45,15 @@ Deno.serve(async (req: Request) => {
       .eq("id", profileId)
       .maybeSingle();
     if (profileError || !ownedProfile) return json({ error: "Athlete profile not available" }, 403, corsHeaders);
+
+    const { data: connectionPreferences, error: preferenceError } = await adminClient
+      .from("external_connection_preferences")
+      .select("include_private_activities")
+      .eq("profile_id", profileId)
+      .eq("provider", "strava")
+      .maybeSingle();
+    if (preferenceError) throw preferenceError;
+    const includePrivate = connectionPreferences?.include_private_activities === true;
 
     const state = randomUrlSafe(32);
     const stateHash = await sha256Hex(state);

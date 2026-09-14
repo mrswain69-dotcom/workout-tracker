@@ -73,6 +73,10 @@ Deno.serve(async (req: Request) => {
       ? ""
       : String(tokenData.athlete.id);
     const grantedScopes = cleanScopes(tokenData?.scope);
+    const providerAccountLabel = [tokenData?.athlete?.firstname, tokenData?.athlete?.lastname]
+      .map((value) => typeof value === "string" ? value.trim() : "")
+      .filter(Boolean)
+      .join(" ") || (typeof tokenData?.athlete?.username === "string" ? tokenData.athlete.username.trim() : "") || null;
     if (!accessToken || !athleteId) {
       await revokeStravaToken(accessToken);
       return redirect("failed", "incomplete_token_response");
@@ -84,6 +88,7 @@ Deno.serve(async (req: Request) => {
       profile_id: oauthState.profile_id,
       provider: "strava",
       provider_account_id: athleteId,
+      provider_account_label: providerAccountLabel ? providerAccountLabel.slice(0, 240) : null,
       status: scopeOkay ? "active" : "error",
       auto_sync_enabled: true,
       scopes: grantedScopes,
@@ -95,7 +100,7 @@ Deno.serve(async (req: Request) => {
     const { data: connection, error: connectionError } = await adminClient
       .from("external_connections")
       .upsert(connectionPayload, { onConflict: "profile_id,provider" })
-      .select("id,family_id,profile_id,provider,provider_account_id,status,scopes")
+      .select("id,family_id,profile_id,provider,provider_account_id,provider_account_label,status,scopes")
       .single();
     if (connectionError || !connection) {
       console.error("Strava connection persistence failed", connectionError);

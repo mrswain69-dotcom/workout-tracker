@@ -129,12 +129,35 @@ function textOrNull(value: unknown) {
   return text || null;
 }
 
+export const DEFAULT_EXTERNAL_CONNECTION_PREFERENCES = Object.freeze({
+  activity_data_enabled: true,
+  performance_metrics_enabled: true,
+  heart_rate_enabled: false,
+  route_location_enabled: false,
+  health_recovery_enabled: false,
+  include_private_activities: false,
+});
+
+export async function loadExternalConnectionPreferences(adminClient: any, connection: any) {
+  if (!adminClient || !connection?.profile_id || !connection?.provider) {
+    return { ...DEFAULT_EXTERNAL_CONNECTION_PREFERENCES };
+  }
+  const { data, error } = await adminClient
+    .from("external_connection_preferences")
+    .select("activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities")
+    .eq("profile_id", connection.profile_id)
+    .eq("provider", connection.provider)
+    .maybeSingle();
+  if (error) throw error;
+  return { ...DEFAULT_EXTERNAL_CONNECTION_PREFERENCES, ...(data || {}) };
+}
+
 function localDateFromStrava(activity: any) {
   const value = typeof activity?.start_date_local === "string" ? activity.start_date_local.slice(0, 10) : "";
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
 }
 
-export function normalizeStravaActivity(connection: any, activity: any) {
+export function normalizeStravaActivity(connection: any, activity: any, preferences: any = DEFAULT_EXTERNAL_CONNECTION_PREFERENCES) {
   const providerActivityId = activity?.id === null || activity?.id === undefined
     ? ""
     : String(activity.id);
@@ -157,10 +180,10 @@ export function normalizeStravaActivity(connection: any, activity: any) {
     distance_m: finiteOrNull(activity?.distance),
     elapsed_duration_sec: finiteOrNull(activity?.elapsed_time),
     moving_duration_sec: finiteOrNull(activity?.moving_time),
-    average_heart_rate_bpm: finiteOrNull(activity?.average_heartrate),
-    max_heart_rate_bpm: finiteOrNull(activity?.max_heartrate),
-    elevation_gain_m: finiteOrNull(activity?.total_elevation_gain),
-    calories_kcal: finiteOrNull(activity?.calories),
+    average_heart_rate_bpm: preferences.heart_rate_enabled ? finiteOrNull(activity?.average_heartrate) : null,
+    max_heart_rate_bpm: preferences.heart_rate_enabled ? finiteOrNull(activity?.max_heartrate) : null,
+    elevation_gain_m: preferences.performance_metrics_enabled ? finiteOrNull(activity?.total_elevation_gain) : null,
+    calories_kcal: preferences.performance_metrics_enabled ? finiteOrNull(activity?.calories) : null,
     source_manual_entry: activity?.manual === true,
     source_device_name: textOrNull(activity?.device_name),
     source_external_id: textOrNull(activity?.external_id),
@@ -247,8 +270,10 @@ export async function fetchStravaActivity(accessToken: string, activityId: strin
   return await response.json();
 }
 
-export async function upsertStravaObservation(adminClient: any, connection: any, activity: any) {
-  const row = normalizeStravaActivity(connection, activity);
+export async function upsertStravaObservation(adminClient: any, connection: any, activity: any, preferences: any = null) {
+  const resolvedPreferences = preferences || await loadExternalConnectionPreferences(adminClient, connection);
+  if (!resolvedPreferences.activity_data_enabled) return null;
+  const row = normalizeStravaActivity(connection, activity, resolvedPreferences);
   if (!row) throw new Error("Strava activity cannot be normalized");
   const { data, error } = await adminClient
     .from("external_activity_observations")
@@ -273,6 +298,8 @@ export async function importRecentStravaActivities(adminClient: any, connection:
   const days = Number.isFinite(configuredDays) ? Math.max(1, Math.min(365, Math.trunc(configuredDays))) : 90;
   const after = Math.floor((Date.now() - days * 86400000) / 1000);
   let imported = 0;
+  const preferences = await loadExternalConnectionPreferences(adminClient, connection);
+  if (!preferences.activity_data_enabled) return 0;
 
   for (let page = 1; page <= 10; page += 1) {
     const url = new URL(`${STRAVA_API_BASE}/athlete/activities`);
@@ -284,8 +311,8 @@ export async function importRecentStravaActivities(adminClient: any, connection:
     const activities = await response.json();
     if (!Array.isArray(activities) || activities.length === 0) break;
     for (const activity of activities) {
-      await upsertStravaObservation(adminClient, connection, activity);
-      imported += 1;
+      const stored = await upsertStravaObservation(adminClient, connection, activity, preferences);
+      if (stored) imported += 1;
     }
     if (activities.length < 100) break;
   }

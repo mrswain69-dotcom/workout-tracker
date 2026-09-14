@@ -68,6 +68,7 @@ import SessionLogger from "./components/sessions/SessionLogger.jsx";
 import AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx";
 import AssessmentHub from "./components/assessments/AssessmentHub.jsx";
 import ProgressDashboard from "./components/progress/ProgressDashboard.jsx";
+import ConnectionsSettings from "./components/settings/ConnectionsSettings.jsx";
 const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
 
 // -------- Utilities ----------
@@ -7890,13 +7891,14 @@ const cardioProgress = useMemo(() => {
   </React.Suspense>
 )}
 
-{["settings", "plan", "assessments"].includes(tab) && (
+{["settings", "plan", "assessments", "connections"].includes(tab) && (
   <div className="manageTabsRow">
     <nav className="manageTabs" aria-label="Manage Workout Tracker">
       {[
         ["settings", "General"],
         ["plan", "Plan"],
         ["assessments", "Assessments"],
+        ["connections", "Connections"],
       ].map(([key, label]) => (
         <button
           key={key}
@@ -11716,6 +11718,14 @@ if (!didClaim) {
       )}
     </Card>
   </div>
+)}
+
+{tab === "connections" && (
+  <ConnectionsSettings
+    profiles={profiles}
+    initialProfileId={activeProfileId}
+    authorizeMutation={ensureUnlocked}
+  />
 )}
 
 {tab === "settings" && (
