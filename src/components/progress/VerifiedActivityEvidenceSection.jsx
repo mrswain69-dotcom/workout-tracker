@@ -6,6 +6,8 @@ import {
 } from "../../engine/verifiedCardioEvidenceEngine.js";
 import "./VerifiedActivitySection.css";
 
+const DEFAULT_API = Object.freeze({ loadVerifiedActivityData });
+
 function text(value, fallback = "") {
   if (value === null || value === undefined) return fallback;
   const result = String(value).trim();
@@ -93,7 +95,7 @@ function buildRows(data) {
 export default function VerifiedActivityEvidenceSection({
   profileId,
   profileName = "Athlete",
-  api = { loadVerifiedActivityData },
+  api = DEFAULT_API,
   onDataChange = null,
 }) {
   const [data, setData] = useState(null);
