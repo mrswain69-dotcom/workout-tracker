@@ -7,16 +7,22 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 
 describe("Verification Integration Stage 4 UI contract", () => {
-  it("keeps Connected Sources inside the existing lazy Progress surface rather than adding primary navigation", () => {
-    const section = read("src/components/progress/AssessmentAnalysisSection.jsx");
+  it("keeps provider management in Settings while Progress remains the read-only evidence surface", () => {
+    const settings = read("src/components/settings/ConnectionsSettings.jsx");
+    const evidence = read("src/components/progress/VerifiedActivityEvidenceSection.jsx");
     const dashboard = read("src/components/progress/ProgressDashboard.jsx");
+    const analysis = read("src/components/progress/AssessmentAnalysisSection.jsx");
     const app = read("src/App.jsx");
 
-    expect(section).toContain('import VerifiedActivitySection from "./VerifiedActivitySection.jsx"');
-    expect(section).toContain("<VerifiedActivitySection");
-    expect(dashboard).toContain('lazy(() => import("./AssessmentAnalysisSection.jsx"))');
-    expect(app).not.toContain('import VerifiedActivitySection from "./components/progress/VerifiedActivitySection.jsx"');
-    expect(app).not.toMatch(/(?:verification|connections|strava|garmin)["']\s*,\s*(?:"|')?(?:Progress|Rewards|Log)/i);
+    expect(app).toContain('["connections", "Connections"]');
+    expect(app).toContain("<ConnectionsSettings");
+    expect(settings).toContain('aria-label="Athlete for connected apps"');
+    expect(settings).toContain("startStravaConnection(selectedProfile.id");
+    expect(dashboard).toContain('import VerifiedActivityEvidenceSection from "./VerifiedActivityEvidenceSection.jsx"');
+    expect(dashboard).toContain("<VerifiedActivityEvidenceSection");
+    expect(analysis).not.toContain("VerifiedActivitySection");
+    expect(evidence).not.toContain("startStravaConnection");
+    expect(evidence).not.toContain("disconnectStravaConnection");
   });
 
   it("keeps browser persistence read-only while connection actions go through authenticated Edge Functions", () => {
@@ -32,22 +38,23 @@ describe("Verification Integration Stage 4 UI contract", () => {
     expect(db).not.toContain('.from("logs")');
   });
 
-  it("states the reward-neutral contract in the visible verification UI", () => {
-    const component = read("src/components/progress/VerifiedActivitySection.jsx");
+  it("states the reward-neutral contract in the visible Progress evidence UI", () => {
+    const evidence = read("src/components/progress/VerifiedActivityEvidenceSection.jsx");
 
-    expect(component).toContain("does not duplicate workouts or XP");
-    expect(component).toContain("0 bonus XP · evidence only");
-    expect(component).not.toMatch(/grantXp|awardXp|xpDelta\s*[:=]\s*[1-9]/i);
+    expect(evidence).toContain("Provider evidence stays separate from manual workout history and rewards.");
+    expect(evidence).toContain("0 bonus XP · evidence only");
+    expect(evidence).toContain("Evidence only · PB authority unchanged");
+    expect(evidence).not.toMatch(/grantXp|awardXp|xpDelta\s*[:=]\s*[1-9]/i);
   });
 
   it("keeps future provider availability truthful rather than presenting fake live connections", () => {
-    const component = read("src/components/progress/VerifiedActivitySection.jsx");
+    const settings = read("src/components/settings/ConnectionsSettings.jsx");
 
-    expect(component).toContain('id: "garmin"');
-    expect(component).toContain('state: "planned"');
-    expect(component).toContain('id: "apple_health"');
-    expect(component).toContain('state: "native"');
-    expect(component).toContain('id: "health_connect"');
-    expect(component).toContain("Native app bridge");
+    expect(settings).toContain('id: "garmin"');
+    expect(settings).toContain('status: "Provider access paused"');
+    expect(settings).toContain('id: "apple_health"');
+    expect(settings).toContain('status: "Native bridge planned"');
+    expect(settings).toContain('id: "health_connect"');
+    expect(settings).toContain("Future Android connection");
   });
 });
