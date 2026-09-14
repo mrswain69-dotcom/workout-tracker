@@ -59,11 +59,17 @@ function observationCompleteness(row) {
   ].filter((value) => value !== null).length;
 }
 
+export function isObservationVerificationEligible(row) {
+  return !!row && !row.source_deleted_at && row.source_manual_entry !== true;
+}
+
 function stableObservations(rows = []) {
   return (Array.isArray(rows) ? rows : [])
     .filter((row) => row && !row.source_deleted_at)
     .slice()
     .sort((a, b) => {
+      const eligibilityDiff = Number(isObservationVerificationEligible(b)) - Number(isObservationVerificationEligible(a));
+      if (eligibilityDiff) return eligibilityDiff;
       const scoreDiff = observationCompleteness(b) - observationCompleteness(a);
       if (scoreDiff) return scoreDiff;
       return (
@@ -104,6 +110,17 @@ function activityNameFor(observations) {
   return cleanText(observations.find((row) => cleanText(row?.activity_name))?.activity_name, "");
 }
 
+function verificationLevelFor(observations) {
+  const hasDeviceOrUpload = observations.some((row) =>
+    cleanText(row?.source_device_name) || cleanText(row?.source_external_id) || cleanText(row?.source_upload_id)
+  );
+  return hasDeviceOrUpload ? "device_or_file" : "provider_recorded";
+}
+
+function sourceDeviceNames(observations) {
+  return [...new Set(observations.map((row) => cleanText(row?.source_device_name)).filter(Boolean))].sort();
+}
+
 export function buildVerifiedCardioEvidence(data = {}) {
   const observationsById = new Map(
     (Array.isArray(data?.observations) ? data.observations : []).map((row) => [row.id, row])
@@ -134,17 +151,20 @@ export function buildVerifiedCardioEvidence(data = {}) {
     );
     if (!observations.length) continue;
 
-    const activityType = activityTypeFor(activity, observations);
+    const verificationObservations = observations.filter(isObservationVerificationEligible);
+    if (!verificationObservations.length) continue;
+
+    const activityType = activityTypeFor(activity, verificationObservations);
     let cardioKind = classifyVerifiedCardioType(activityType);
-    const distance = firstMetric(observations, "distance_m");
-    const duration = firstMetric(observations, "moving_duration_sec", "elapsed_duration_sec");
+    const distance = firstMetric(verificationObservations, "distance_m");
+    const duration = firstMetric(verificationObservations, "moving_duration_sec", "elapsed_duration_sec");
     if (cardioKind === "unknown" && distance.value !== null) cardioKind = "other_cardio";
     if (cardioKind === "unknown") continue;
 
-    const averageHr = firstMetric(observations, "average_heart_rate_bpm");
-    const maxHr = firstMetric(observations, "max_heart_rate_bpm");
-    const elevation = firstMetric(observations, "elevation_gain_m");
-    const calories = firstMetric(observations, "calories_kcal");
+    const averageHr = firstMetric(verificationObservations, "average_heart_rate_bpm");
+    const maxHr = firstMetric(verificationObservations, "max_heart_rate_bpm");
+    const elevation = firstMetric(verificationObservations, "elevation_gain_m");
+    const calories = firstMetric(verificationObservations, "calories_kcal");
     const distanceKm = distance.value === null ? null : roundTo(distance.value / 1000, 3);
     const durationMin = duration.value === null ? null : roundTo(duration.value / 60, 1);
     const averageSpeedKmh =
@@ -155,18 +175,18 @@ export function buildVerifiedCardioEvidence(data = {}) {
       distanceKm !== null && distanceKm > 0 && durationMin !== null && ["run", "walk"].includes(cardioKind)
         ? roundTo(durationMin / distanceKm, 3)
         : null;
-    const providers = providerList(observations);
-    const date = localDateFor(activity, observations);
+    const providers = providerList(verificationObservations);
+    const date = localDateFor(activity, verificationObservations);
 
     rows.push({
       id: activity.id,
       date,
-      startedAt: cleanText(activity?.started_at || observations[0]?.started_at),
+      startedAt: cleanText(activity?.started_at || verificationObservations[0]?.started_at),
       activityType,
-      activityName: activityNameFor(observations),
+      activityName: activityNameFor(verificationObservations),
       cardioKind,
       providers,
-      primaryProvider: cleanText(observations[0]?.provider, providers[0] || "external"),
+      primaryProvider: cleanText(verificationObservations[0]?.provider, providers[0] || "external"),
       multiSource: providers.length > 1,
       matchedManual: manualLinkByActivity.has(activity.id),
       manualLink: manualLinkByActivity.get(activity.id) || null,
@@ -186,6 +206,10 @@ export function buildVerifiedCardioEvidence(data = {}) {
         elevation: elevation.provider,
         calories: calories.provider,
       },
+      sourceDeviceNames: sourceDeviceNames(verificationObservations),
+      verificationEligible: true,
+      verificationLevel: verificationLevelFor(verificationObservations),
+      excludedManualObservationCount: observations.length - verificationObservations.length,
       identityConfidence: Number.isFinite(Number(activity?.identity_confidence))
         ? Number(activity.identity_confidence)
         : null,
@@ -207,6 +231,7 @@ export function summariseVerifiedCardioEvidence(rows = [], range = null) {
   const startDate = validYmd(range?.startDate) ? range.startDate : "";
   const endDate = validYmd(range?.endDate) ? range.endDate : "";
   const scoped = (Array.isArray(rows) ? rows : []).filter((row) => {
+    if (row?.verificationEligible === false) return false;
     if (!validYmd(row?.date)) return !startDate && !endDate;
     if (startDate && row.date < startDate) return false;
     if (endDate && row.date > endDate) return false;
