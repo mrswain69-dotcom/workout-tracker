@@ -14,8 +14,13 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Checkout
+      - name: Checkout exact commit
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact checkout
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
 
       - name: Use Node.js
         uses: actions/setup-node@v7
@@ -27,15 +32,7 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Run tests
-        run: npm test -- --reporter=json --outputFile=vitest-results.json
-
-      - name: Upload Vitest diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vitest-results
-          path: vitest-results.json
-          if-no-files-found: warn
+        run: npm test
 
       - name: Build app
         run: npm run build
