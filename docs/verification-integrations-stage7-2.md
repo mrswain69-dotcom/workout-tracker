@@ -26,6 +26,8 @@ Primary block-level states:
 
 Detail can expose component/session scope, providers, objective metrics, performed date and match method.
 
+The Log page uses a compact selected-day verification strip. Normal operation shows only the roll-up state; tapping it reveals block-level support and provenance. Deeper correction and matching controls remain in Progress so routine logging stays uncluttered.
+
 ## Matching dates
 
 Three times are distinct:
@@ -62,8 +64,12 @@ The interaction layer supports:
 
 If other providers still support the same physical activity, removing one provider does not invalidate the remaining evidence.
 
+## One-day Session completeness
+
+`+ Extra block for today` exposes structured Sessions alongside Strength, Cardio, Duration, Recovery and Activity/Task. The user selects an existing Session Library template and the existing Session snapshot/logging authority is reused. A one-day Session does not change the weekly plan and can be removed before it is needed.
+
+Provider evidence does not silently create a structured Session.
+
 ## Stage 7.3 hand-off
 
 Stage 7.3 may populate compatible empty planned blocks and create additional verified blocks. Every imported field/block must carry provenance so it can be undone independently of manual data.
-
-`+ Extra block for today` must also expose structured Sessions; provider evidence must not silently create a structured Session.
