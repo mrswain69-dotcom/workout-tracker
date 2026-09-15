@@ -1,0 +1,54 @@
+name: Strength session scope patch
+
+on:
+  push:
+    branches:
+      - fix/strength-session-scope
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+        with:
+          ref: fix/strength-session-scope
+          fetch-depth: 0
+
+      - name: Apply deterministic patch
+        run: python scripts/strength-session-scope-patch.py
+
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Security audit
+        run: npm audit --audit-level=low
+
+      - name: Remove temporary patch machinery
+        run: rm scripts/strength-session-scope-patch.py .github/workflows/strength-session-scope-patch.yml
+
+      - name: Commit verified patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Treat overlapping strength blocks as one verified session"
+          git push origin HEAD:fix/strength-session-scope
