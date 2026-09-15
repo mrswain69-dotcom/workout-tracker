@@ -137,6 +137,8 @@ export const DEFAULT_EXTERNAL_CONNECTION_PREFERENCES = Object.freeze({
   route_location_enabled: false,
   health_recovery_enabled: false,
   include_private_activities: false,
+  initial_import_days: 90,
+  auto_log_window_days: 2,
 });
 
 export async function loadExternalConnectionPreferences(adminClient: any, connection: any) {
@@ -145,7 +147,7 @@ export async function loadExternalConnectionPreferences(adminClient: any, connec
   }
   const { data, error } = await adminClient
     .from("external_connection_preferences")
-    .select("activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities")
+    .select("activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities,initial_import_days,auto_log_window_days")
     .eq("profile_id", connection.profile_id)
     .eq("provider", connection.provider)
     .maybeSingle();
@@ -294,13 +296,30 @@ export async function markStravaObservationDeleted(adminClient: any, connectionI
   if (error) throw error;
 }
 
-export async function importRecentStravaActivities(adminClient: any, connection: any, accessToken: string) {
-  const configuredDays = Number(Deno.env.get("STRAVA_INITIAL_IMPORT_DAYS") || "90");
-  const days = Number.isFinite(configuredDays) ? Math.max(1, Math.min(365, Math.trunc(configuredDays))) : 90;
-  const after = Math.floor((Date.now() - days * 86400000) / 1000);
-  let imported = 0;
+export async function importRecentStravaActivities(
+  adminClient: any,
+  connection: any,
+  accessToken: string,
+  options: { days?: number } = {}
+) {
   const preferences = await loadExternalConnectionPreferences(adminClient, connection);
   if (!preferences.activity_data_enabled) return 0;
+
+  const configuredDays = Number(
+    options.days ?? preferences.initial_import_days ?? Deno.env.get("STRAVA_INITIAL_IMPORT_DAYS") ?? 90
+  );
+  const days = Number.isFinite(configuredDays) ? Math.max(0, Math.min(365, Math.trunc(configuredDays))) : 90;
+
+  if (days === 0) {
+    await adminClient
+      .from("external_connections")
+      .update({ last_sync_at: new Date().toISOString(), last_error_code: null })
+      .eq("id", connection.id);
+    return 0;
+  }
+
+  const after = Math.floor((Date.now() - days * 86400000) / 1000);
+  let imported = 0;
 
   for (let page = 1; page <= 10; page += 1) {
     const url = new URL(`${STRAVA_API_BASE}/athlete/activities`);
@@ -308,7 +327,7 @@ export async function importRecentStravaActivities(adminClient: any, connection:
     url.searchParams.set("page", String(page));
     url.searchParams.set("per_page", "100");
     const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!response.ok) throw new Error(`Strava initial activity import failed (${response.status})`);
+    if (!response.ok) throw new Error(`Strava activity import failed (${response.status})`);
     const activities = await response.json();
     if (!Array.isArray(activities) || activities.length === 0) break;
     for (const activity of activities) {

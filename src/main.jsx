@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './styles.css'
 import './groups/GroupHub.css'
 import './groups/GroupMobilePolish.css'
+import './components/progress/VerifiedActivityInteractions.css'
 import { registerServiceWorkerUpdates } from './swUpdate.js'
 
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -10,8 +10,21 @@ function api(overrides = {}) {
     loadConnectionSettingsData: vi.fn(async () => ({ data: { connections: [], preferences: [] }, error: null })),
     startStravaConnection: vi.fn(async () => ({ data: { authorizeUrl: "https://strava.example/oauth" }, error: null })),
     disconnectStravaConnection: vi.fn(async () => ({ data: { status: "disconnected" }, error: null })),
+    checkConnectedSources: vi.fn(async () => ({ data: { imported: 2 }, error: null })),
+    purgeProviderData: vi.fn(async () => ({ data: { removedObservations: 4 }, error: null })),
     updateConnectionPreferences: vi.fn(async (profileId, provider, patch) => ({
-      data: { preferences: { profile_id: profileId, provider, performance_metrics_enabled: true, heart_rate_enabled: false, include_private_activities: false, ...patch } },
+      data: {
+        preferences: {
+          profile_id: profileId,
+          provider,
+          performance_metrics_enabled: true,
+          heart_rate_enabled: false,
+          include_private_activities: false,
+          initial_import_days: 90,
+          auto_log_window_days: 2,
+          ...patch,
+        },
+      },
       error: null,
     })),
     ...overrides,
@@ -87,7 +100,7 @@ describe("ConnectionsSettings", () => {
     );
   });
 
-  it("persists stream preferences through server authority", async () => {
+  it("persists stream and history preferences through server authority", async () => {
     const mockApi = api();
     render(
       <ConnectionsSettings
@@ -101,5 +114,36 @@ describe("ConnectionsSettings", () => {
     await screen.findByText("Connect Strava to Paul");
     fireEvent.click(screen.getByRole("checkbox", { name: /Heart-rate data/i }));
     await waitFor(() => expect(mockApi.updateConnectionPreferences).toHaveBeenCalledWith("paul", "strava", { heart_rate_enabled: true }));
+
+    fireEvent.change(screen.getByLabelText(/History to import when connecting/i), { target: { value: "30" } });
+    await waitFor(() => expect(mockApi.updateConnectionPreferences).toHaveBeenCalledWith("paul", "strava", { initial_import_days: 30 }));
+  });
+
+  it("keeps manual source check and destructive removal behind explicit connection controls", async () => {
+    const mockApi = api({
+      loadConnectionSettingsData: vi.fn(async () => ({
+        data: {
+          connections: [{ profile_id: "paul", provider: "strava", status: "active", provider_account_label: "Paul Swain", last_manual_sync_at: null }],
+          preferences: [],
+        },
+        error: null,
+      })),
+    });
+    render(
+      <ConnectionsSettings
+        profiles={profiles.slice(0, 1)}
+        initialProfileId="paul"
+        api={mockApi}
+        authorizeMutation={async () => true}
+        confirmAction={() => true}
+      />
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Check connected sources" }));
+    await waitFor(() => expect(mockApi.checkConnectedSources).toHaveBeenCalledWith("paul", "strava"));
+
+    fireEvent.click(screen.getByText("Connection options"));
+    fireEvent.click(screen.getByRole("button", { name: "Disconnect & remove Strava data" }));
+    await waitFor(() => expect(mockApi.purgeProviderData).toHaveBeenCalledWith("paul", "strava"));
   });
 });

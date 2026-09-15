@@ -69,6 +69,7 @@ import AssessmentTemplateLibrary from "./components/assessments/AssessmentTempla
 import AssessmentHub from "./components/assessments/AssessmentHub.jsx";
 import ProgressDashboard from "./components/progress/ProgressDashboard.jsx";
 import ConnectionsSettings from "./components/settings/ConnectionsSettings.jsx";
+import LogVerificationSummary from "./components/verification/LogVerificationSummary.jsx";
 const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
 
 // -------- Utilities ----------
@@ -3257,7 +3258,8 @@ useEffect(() => {
   const [extraMovCoachNoteDraft, setExtraMovCoachNoteDraft] = useState("");
   // Extra block type selection for today-only blocks
   const [showExtraBlockForm, setShowExtraBlockForm] = useState(false);
-   const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration" | "recovery" | "activity"
+   const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration" | "session" | "recovery" | "activity"
+  const [extraSessionDraft, setExtraSessionDraft] = useState(() => createSessionPlanBlock(""));
 
   // Cardio extra-block drafts
   const [extraCardioNameDraft, setExtraCardioNameDraft] = useState("");
@@ -3533,6 +3535,7 @@ const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
 
     const mapped = rows
   .map((r) => ({
+    id: r.id || null,
     date_ymd: r.date_ymd,
     log: getLogRowPayload(r),
     created_at: r.created_at || null,
@@ -3613,6 +3616,11 @@ useEffect(() => {
 }, [family?.id, activeProfileId, selectedDate, plan]);
 
 const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
+
+const selectedLogRowId = useMemo(() => {
+  const row = (allLogs || []).find((item) => (item?.date_ymd || item?.date) === selectedDate);
+  return row?.id || "";
+}, [allLogs, selectedDate]);
 
 const todayYmd = useMemo(() => getTodayYMD(), [readinessNowTick]);
 
@@ -5758,7 +5766,7 @@ function stampLogTiming(prevLog, nextLog) {
     );
 
     if (logToStore) {
-      const updatedRow = { date_ymd: dateKey, log: logToStore };
+      const updatedRow = { ...(idx >= 0 ? existing[idx] : {}), date_ymd: dateKey, log: logToStore };
       if (idx >= 0) {
         const copy = existing.slice();
         copy[idx] = updatedRow;
@@ -5825,6 +5833,7 @@ function stampLogTiming(prevLog, nextLog) {
     const { data } = await listLogs(familyId, profileId, 2000);
     const mapped = (data || [])
   .map((r) => ({
+    id: r.id || null,
     date_ymd: r.date_ymd,
     log: getLogRowPayload(r),
     created_at: r.created_at || null,
@@ -7103,6 +7112,34 @@ async function addExtraRecoveryBlockForToday(draft) {
   await saveLog(nextLog);
 }
 
+async function addExtraSessionBlockForToday(draft) {
+  const normalised = normaliseSessionPlanBlock({
+    ...(draft || {}),
+    id: uid(),
+  });
+  if (!normalised.sessionTemplateId) return false;
+
+  const baseLog = ensureBlocksSnapshot(
+    logForDay ? { ...logForDay } : blankLogForDay()
+  );
+  const existingBlocks = Array.isArray(baseLog.blocks)
+    ? baseLog.blocks.slice()
+    : [];
+
+  const newBlock = {
+    ...buildSessionLogBlockSnapshot(normalised),
+    isExtra: true,
+    cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
+    duration: { minutes: "" },
+  };
+
+  await saveLog({
+    ...baseLog,
+    blocks: [...existingBlocks, newBlock],
+  });
+  return true;
+}
+
 async function addExtraActivityBlockForToday(draft) {
   const name = (draft?.name || "").trim();
   if (!name) return;
@@ -7176,7 +7213,7 @@ async function addExtraMovement() {
     logForDay.blocks.some((b) => b && b.typeId === "recovery");
 
   const addingHeavyBlock =
-    extraBlockKind === "strength" || extraBlockKind === "cardio";
+    extraBlockKind === "strength" || extraBlockKind === "cardio" || extraBlockKind === "session";
 
   if (selectedDayHasRecovery && addingHeavyBlock) {
     const proceed = window.confirm(
@@ -7264,6 +7301,16 @@ setExtraCardioCoachNoteDraft("");
     setExtraRecoveryCoachNoteDraft(
       "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session."
     );
+    return;
+  }
+
+  if (extraBlockKind === "session") {
+    if (!extraSessionDraft?.sessionTemplateId) {
+      window.alert("Choose a Session template first.");
+      return;
+    }
+    await addExtraSessionBlockForToday(extraSessionDraft);
+    setExtraSessionDraft(createSessionPlanBlock(""));
     return;
   }
 
@@ -8005,6 +8052,14 @@ const cardioProgress = useMemo(() => {
   </div>
                 </div>
 
+                <LogVerificationSummary
+                  profileId={activeProfileId}
+                  dateYmd={selectedDate}
+                  manualLogId={selectedLogRowId}
+                  blocks={Array.isArray(logForDay?.blocks) && logForDay.blocks.length ? logForDay.blocks : plannedBlocksForSelectedDay}
+                  onOpenProgress={() => setTab("stats")}
+                />
+
                                {/* --- V3 block-based logging panels --- */}
 
                 {/* Strength / HIIT / Box blocks log */}
@@ -8427,6 +8482,15 @@ const targetInfo = buildTargetInfoForMovement({
           </div>
 
           {note ? <div className="muted mt4">{note}</div> : null}
+
+          {block.isExtra ? (
+            <div className="row space mt4">
+              <div className="muted mini">One-day extra Session</div>
+              <SecondaryButton className="btnSmall" onClick={() => removeExtraMovement(block.id)}>
+                Remove
+              </SecondaryButton>
+            </div>
+          ) : null}
 
           {isCancelled ? (
             <div className="session-log-block__cancelled mt8">
@@ -8960,10 +9024,10 @@ const targetInfo = buildTargetInfoForMovement({
 <div className="panel">
   <div className="h2">Extra block for today</div>
     <div className="muted mt4">
-    Add a one-day-only Strength, Cardio, Duration or Recovery block that shows in today&apos;s log
+    Add a one-day-only Strength, Cardio, Duration, Session, Recovery or Activity/Task block that shows in today&apos;s log
     but doesn&apos;t change the weekly plan. Use Cardio for anything with distance + time
     (runs, cycles, walks, swims, rows). Use Duration for movement where you only want
-    to record minutes (no distance). Use Recovery for an unplanned rest or light recovery day.
+    to record minutes (no distance). Use Session to choose a structured Session Library template.
   </div>
 
   <button
@@ -8987,6 +9051,7 @@ const targetInfo = buildTargetInfoForMovement({
           { value: "strength", label: "Strength / HIIT / Box" },
           { value: "cardio", label: "Cardio (run / cycle / walk / swim / row)" },
           { value: "duration", label: "Duration (minutes only)" },
+          { value: "session", label: "Session (structured template)" },
           { value: "recovery", label: "Recovery" },
           { value: "activity", label: "Activity / task" },
         ]}
@@ -9165,6 +9230,24 @@ const targetInfo = buildTargetInfoForMovement({
     </>
   )}
 
+  {/* Session extra form */}
+  {extraBlockKind === "session" && (
+    <div className="mt8">
+      <SessionPlanBlockEditor
+        familyId={family?.id}
+        block={extraSessionDraft}
+        onChange={(patch) =>
+          setExtraSessionDraft((current) =>
+            normaliseSessionPlanBlock({ ...current, ...(patch || {}) })
+          )
+        }
+      />
+      <div className="muted mt8">
+        This adds the chosen structured Session to this date only. The Session definition is frozen into the log when training starts.
+      </div>
+    </div>
+  )}
+
     {/* Recovery extra form */}
   {extraBlockKind === "recovery" && (
     <>
@@ -9257,7 +9340,11 @@ const targetInfo = buildTargetInfoForMovement({
   </>
 )}
 
-  <PrimaryButton className="mt8" onClick={addExtraMovement}>
+  <PrimaryButton
+    className="mt8"
+    onClick={addExtraMovement}
+    disabled={extraBlockKind === "session" && !extraSessionDraft?.sessionTemplateId}
+  >
     + Add extra block
   </PrimaryButton>
 </>
