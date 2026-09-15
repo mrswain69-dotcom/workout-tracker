@@ -60,9 +60,40 @@ describe("LogVerificationSummary", () => {
       ],
     });
 
-    expect(model.overallStatus).toBe("partial");
+    expect(model.overallStatus).toBe("verified");
     expect(model.rows.find((row) => row.blockId === "run-1")?.status).toBe("verified");
-    expect(model.rows.find((row) => row.blockId === "strength-1")?.status).toBe("partial");
+    expect(model.rows.find((row) => row.blockId === "strength-1")?.status).toBe("verified");
+  });
+
+  it("lets one continuous strength evidence session cover overlapping recorded strength blocks", () => {
+    const model = buildLogVerificationModel({
+      data: data(),
+      dateYmd: "2026-09-15",
+      manualLogId: "log-1",
+      blocks: [
+        {
+          id: "strength-1",
+          typeId: "strength",
+          label: "Legs and Chest",
+          startedAt: "2026-09-15T18:01:00Z",
+          completedAt: "2026-09-15T18:25:00Z",
+          sets: { squat: [{ reps: "20", weight: "25" }] },
+        },
+        {
+          id: "strength-extra",
+          typeId: "strength",
+          label: "Situps",
+          startedAt: "2026-09-15T18:20:00Z",
+          completedAt: "2026-09-15T18:29:00Z",
+          sets: { situps: [{ reps: "30" }] },
+        },
+      ],
+    });
+
+    expect(model.overallStatus).toBe("verified");
+    expect(model.verifiedCount).toBe(2);
+    expect(model.rows.map((row) => row.status)).toEqual(["verified", "verified"]);
+    expect(model.rows[1].matchMethod).toMatch(/session evidence/i);
   });
 
   it("hides provenance until the athlete taps the compact status", async () => {
@@ -77,7 +108,7 @@ describe("LogVerificationSummary", () => {
       />
     );
 
-    const button = await screen.findByRole("button", { name: /Partially verified/i });
+    const button = await screen.findByRole("button", { name: /^Verified/i });
     expect(screen.queryByText(/Athlete confirmed/i)).toBeNull();
     fireEvent.click(button);
     expect(await screen.findByText(/Athlete confirmed/i)).toBeTruthy();

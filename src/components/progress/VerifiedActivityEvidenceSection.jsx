@@ -98,6 +98,84 @@ function candidateMetrics(candidate) {
   return parts.join(" · ");
 }
 
+function candidateIsStrength(candidate) {
+  const token = text(candidate?.activityType, "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return /(strength|weight_?training|weights|weightlifting|resistance)/.test(token);
+}
+
+function candidateInterval(candidate) {
+  const start = Date.parse(text(candidate?.startedAt));
+  if (!Number.isFinite(start)) return null;
+  const explicitEnd = Date.parse(text(candidate?.completedAt));
+  const durationSec = Number(candidate?.durationSec);
+  const end = Number.isFinite(explicitEnd) && explicitEnd >= start
+    ? explicitEnd
+    : Number.isFinite(durationSec) && durationSec > 0
+      ? start + durationSec * 1000
+      : start;
+  return { start, end };
+}
+
+export function groupManualMatchCandidates(candidates = []) {
+  const source = Array.isArray(candidates) ? candidates : [];
+  const consumed = new Set();
+  const grouped = [];
+  const toleranceMs = 2 * 60 * 1000;
+
+  source.forEach((candidate, index) => {
+    if (consumed.has(index)) return;
+    const interval = candidateInterval(candidate);
+    if (!candidateIsStrength(candidate) || !interval || !candidate?.manualLogId) {
+      grouped.push(candidate);
+      consumed.add(index);
+      return;
+    }
+
+    const cluster = [{ candidate, index, interval }];
+    consumed.add(index);
+    let clusterStart = interval.start;
+    let clusterEnd = interval.end;
+    let changed = true;
+    while (changed) {
+      changed = false;
+      source.forEach((peer, peerIndex) => {
+        if (consumed.has(peerIndex) || peer?.manualLogId !== candidate.manualLogId || !candidateIsStrength(peer)) return;
+        const peerInterval = candidateInterval(peer);
+        if (!peerInterval) return;
+        if (peerInterval.start <= clusterEnd + toleranceMs && peerInterval.end >= clusterStart - toleranceMs) {
+          cluster.push({ candidate: peer, index: peerIndex, interval: peerInterval });
+          consumed.add(peerIndex);
+          clusterStart = Math.min(clusterStart, peerInterval.start);
+          clusterEnd = Math.max(clusterEnd, peerInterval.end);
+          changed = true;
+        }
+      });
+    }
+
+    if (cluster.length === 1) {
+      grouped.push(candidate);
+      return;
+    }
+
+    const primary = cluster.slice().sort((left, right) => {
+      const leftDuration = left.interval.end - left.interval.start;
+      const rightDuration = right.interval.end - right.interval.start;
+      return rightDuration - leftDuration || left.interval.start - right.interval.start || Number(right.candidate?.score || 0) - Number(left.candidate?.score || 0);
+    })[0].candidate;
+    grouped.push({
+      ...primary,
+      displayLabel: `Strength session · ${cluster.length} Workout Tracker blocks`,
+      groupedCount: cluster.length,
+      durationSec: Math.max(1, Math.round((clusterEnd - clusterStart) / 1000)),
+      startedAt: new Date(clusterStart).toISOString(),
+      completedAt: new Date(clusterEnd).toISOString(),
+      score: Math.max(...cluster.map((entry) => Number(entry.candidate?.score || 0))),
+    });
+  });
+
+  return grouped.sort((left, right) => Number(right?.score || 0) - Number(left?.score || 0));
+}
+
 function buildRows(data) {
   const observationsById = new Map((data?.observations || []).map((row) => [row.id, row]));
   const observationIdsByActivity = new Map();
@@ -254,6 +332,7 @@ export default function VerifiedActivityEvidenceSection({
     ].filter(Boolean);
     const expanded = expandedId === activity.id;
     const candidates = candidatesByActivity[activity.id];
+    const displayCandidates = Array.isArray(candidates) ? groupManualMatchCandidates(candidates) : candidates;
     const linked = !!activity.manualLink;
     const matchMethod = activity.manualLink?.match_method === "manual" ? "Match confirmed by athlete" : "Automatically matched";
 
@@ -315,10 +394,10 @@ export default function VerifiedActivityEvidenceSection({
                 <button type="button" disabled={!!busy} onClick={() => findCandidates(activity)}>
                   {busy === `candidates:${activity.id}` ? "Finding…" : "Find matching Workout Tracker activity"}
                 </button>
-                {Array.isArray(candidates) ? (
-                  candidates.length ? (
+                {Array.isArray(displayCandidates) ? (
+                  displayCandidates.length ? (
                     <div className="verified-candidate-list">
-                      {candidates.map((candidate) => (
+                      {displayCandidates.map((candidate) => (
                         <button
                           type="button"
                           key={`${candidate.manualLogId}:${candidate.manualBlockId || "legacy"}`}
@@ -331,7 +410,7 @@ export default function VerifiedActivityEvidenceSection({
                             if (result?.error) throw result.error;
                           })}
                         >
-                          <span><strong>{candidate.label}</strong><small>{candidate.logDate} · {offsetLabel(candidate.dateOffsetDays)}</small></span>
+                          <span><strong>{candidate.displayLabel || candidate.label}</strong><small>{candidate.logDate} · {offsetLabel(candidate.dateOffsetDays)}</small></span>
                           <span>{candidateMetrics(candidate) || "Compatible activity"}</span>
                         </button>
                       ))}
