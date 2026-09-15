@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  checkConnectedSources,
   confirmManualVerifiedMatch,
   detachVerifiedMatch,
   loadManualMatchCandidates,
@@ -11,9 +12,11 @@ import {
   buildVerifiedCardioEvidence,
   summariseVerifiedCardioEvidence,
 } from "../../engine/verifiedCardioEvidenceEngine.js";
+import { manualSyncCooldown } from "../../engine/verificationInteractionEngine.js";
 import "./VerifiedActivitySection.css";
 
 const DEFAULT_API = Object.freeze({
+  checkConnectedSources,
   confirmManualVerifiedMatch,
   detachVerifiedMatch,
   loadManualMatchCandidates,
@@ -67,6 +70,13 @@ function formatMinutes(value) {
   const hours = Math.floor(minutes / 60);
   const remainder = Math.round(minutes % 60);
   return `${hours}h${remainder ? ` ${remainder}m` : ""}`;
+}
+
+function formatCooldown(value) {
+  const seconds = Math.max(0, Math.ceil(Number(value || 0) / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return minutes ? `${minutes}:${String(remainder).padStart(2, "0")}` : `${remainder}s`;
 }
 
 function providerLabel(provider) {
@@ -132,6 +142,8 @@ export default function VerifiedActivityEvidenceSection({
   const [expandedId, setExpandedId] = useState("");
   const [busy, setBusy] = useState("");
   const [actionError, setActionError] = useState("");
+  const [syncNotice, setSyncNotice] = useState("");
+  const [nowTick, setNowTick] = useState(Date.now());
   const [candidatesByActivity, setCandidatesByActivity] = useState({});
 
   async function load() {
@@ -176,6 +188,35 @@ export default function VerifiedActivityEvidenceSection({
   const summary = useMemo(() => summariseVerifiedCardioEvidence(verifiedRows), [verifiedRows]);
   const connectedCount = (data?.connections || []).filter((row) => row.status === "active").length;
   const matchedCount = (data?.manualLinks || []).length;
+  const stravaConnection = (data?.connections || []).find((row) => row.provider === "strava" && row.status === "active") || null;
+  const syncCooldown = useMemo(() => manualSyncCooldown(stravaConnection, nowTick), [stravaConnection, nowTick]);
+
+  useEffect(() => {
+    if (!syncCooldown.blocked) return undefined;
+    const timer = window.setInterval(() => setNowTick(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [syncCooldown.blocked]);
+
+  async function runSync() {
+    if (!profileId || !stravaConnection || syncCooldown.blocked || busy) return;
+    setBusy("sync");
+    setActionError("");
+    setSyncNotice("");
+    try {
+      const result = await api.checkConnectedSources(profileId, "strava");
+      if (result?.error) throw result.error;
+      const imported = Number(result?.data?.imported || 0);
+      setSyncNotice(`Sync complete. ${imported} connected activit${imported === 1 ? "y was" : "ies were"} refreshed and verification was reconciled.`);
+      await load();
+      setNowTick(Date.now());
+    } catch (syncFailure) {
+      setActionError(syncFailure?.message || String(syncFailure));
+      await load();
+      setNowTick(Date.now());
+    } finally {
+      setBusy("");
+    }
+  }
 
   async function runAction(activityId, action) {
     setBusy(`${action}:${activityId}`);
@@ -331,10 +372,25 @@ export default function VerifiedActivityEvidenceSection({
             Provider evidence stays separate from manual workout history and rewards.
           </p>
         </div>
+        {stravaConnection ? (
+          <div className="verified-sync-control">
+            <button
+              type="button"
+              className={`verified-refresh-button verified-sync-button${busy === "sync" ? " is-syncing" : ""}`}
+              disabled={!!busy || syncCooldown.blocked}
+              onClick={runSync}
+            >
+              <span className="verified-sync-icon" aria-hidden="true">↻</span>
+              <span>{busy === "sync" ? "Syncing…" : syncCooldown.blocked ? `Sync in ${formatCooldown(syncCooldown.remainingMs)}` : "Run sync"}</span>
+            </button>
+            <small>Refresh connected activity evidence</small>
+          </div>
+        ) : null}
       </div>
       {loading ? <div className="verified-system-message">Loading verified activity…</div> : null}
       {error ? <div className="verified-system-message verified-system-message--error" role="alert">Verified activity could not be loaded.</div> : null}
       {actionError ? <div className="verified-system-message verified-system-message--error" role="alert">{actionError}</div> : null}
+      {syncNotice ? <div className="verified-system-message verified-system-message--success" role="status">{syncNotice}</div> : null}
 
       <div className="verified-summary-grid" aria-label="Verification summary">
         <div><span>Connected sources</span><strong>{connectedCount}</strong></div>
