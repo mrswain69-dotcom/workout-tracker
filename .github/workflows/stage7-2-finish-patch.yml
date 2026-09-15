@@ -1,0 +1,230 @@
+name: Stage 7.2 finish patch
+
+on:
+  push:
+    branches:
+      - feature/verification-ui-sync-controls
+    paths:
+      - .github/workflows/stage7-2-finish-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/verification-ui-sync-controls
+          fetch-depth: 0
+      - name: Apply deterministic source patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected 1 match, found {count}")
+              return text.replace(old, new, 1)
+
+          evidence_path = Path("src/components/progress/VerifiedActivityEvidenceSection.jsx")
+          evidence = evidence_path.read_text()
+          evidence = replace_once(
+              evidence,
+              '            Verification works quietly in the background. Tap a verification status only when you want provenance, matching or correction controls.\n',
+              '            Verification works quietly in the background. Tap a verification status only when you want provenance, matching or correction controls.\n            Provider evidence stays separate from manual workout history and rewards.\n',
+              "restore reward-neutral authority copy",
+          )
+          evidence_path.write_text(evidence)
+
+          path = Path("src/App.jsx")
+          app = path.read_text()
+
+          app = replace_once(
+              app,
+              'import ConnectionsSettings from "./components/settings/ConnectionsSettings.jsx";\nconst GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));',
+              'import ConnectionsSettings from "./components/settings/ConnectionsSettings.jsx";\nimport LogVerificationSummary from "./components/verification/LogVerificationSummary.jsx";\nconst GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));',
+              "Log verification import",
+          )
+
+          app = replace_once(
+              app,
+              '   const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration" | "recovery" | "activity"\n',
+              '   const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration" | "session" | "recovery" | "activity"\n  const [extraSessionDraft, setExtraSessionDraft] = useState(() => createSessionPlanBlock(""));\n',
+              "Session extra state",
+          )
+
+          # Preserve authoritative log row IDs so block-level verification links can resolve exactly.
+          app = app.replace(
+              '  .map((r) => ({\n    date_ymd: r.date_ymd,\n    log: getLogRowPayload(r),',
+              '  .map((r) => ({\n    id: r.id || null,\n    date_ymd: r.date_ymd,\n    log: getLogRowPayload(r),',
+          )
+          if app.count('id: r.id || null,') < 2:
+              raise SystemExit("Expected both listLogs mappings to preserve row IDs")
+
+          app = replace_once(
+              app,
+              '      const updatedRow = { date_ymd: dateKey, log: logToStore };',
+              '      const updatedRow = { ...(idx >= 0 ? existing[idx] : {}), date_ymd: dateKey, log: logToStore };',
+              "optimistic row ID preservation",
+          )
+
+          app = replace_once(
+              app,
+              'const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;\n\nconst todayYmd',
+              'const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;\n\nconst selectedLogRowId = useMemo(() => {\n  const row = (allLogs || []).find((item) => (item?.date_ymd || item?.date) === selectedDate);\n  return row?.id || "";\n}, [allLogs, selectedDate]);\n\nconst todayYmd',
+              "selected log identity",
+          )
+
+          session_fn = '''async function addExtraSessionBlockForToday(draft) {
+  const normalised = normaliseSessionPlanBlock({
+    ...(draft || {}),
+    id: uid(),
+  });
+  if (!normalised.sessionTemplateId) return false;
+
+  const baseLog = ensureBlocksSnapshot(
+    logForDay ? { ...logForDay } : blankLogForDay()
+  );
+  const existingBlocks = Array.isArray(baseLog.blocks)
+    ? baseLog.blocks.slice()
+    : [];
+
+  const newBlock = {
+    ...buildSessionLogBlockSnapshot(normalised),
+    isExtra: true,
+    cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
+    duration: { minutes: "" },
+  };
+
+  await saveLog({
+    ...baseLog,
+    blocks: [...existingBlocks, newBlock],
+  });
+  return true;
+}
+
+'''
+          app = replace_once(
+              app,
+              'async function addExtraActivityBlockForToday(draft) {',
+              session_fn + 'async function addExtraActivityBlockForToday(draft) {',
+              "Session extra save helper",
+          )
+
+          app = replace_once(
+              app,
+              '  const addingHeavyBlock =\n    extraBlockKind === "strength" || extraBlockKind === "cardio";',
+              '  const addingHeavyBlock =\n    extraBlockKind === "strength" || extraBlockKind === "cardio" || extraBlockKind === "session";',
+              "Session recovery warning",
+          )
+
+          session_handler = '''  if (extraBlockKind === "session") {
+    if (!extraSessionDraft?.sessionTemplateId) {
+      window.alert("Choose a Session template first.");
+      return;
+    }
+    await addExtraSessionBlockForToday(extraSessionDraft);
+    setExtraSessionDraft(createSessionPlanBlock(""));
+    return;
+  }
+
+'''
+          app = replace_once(
+              app,
+              '  if (extraBlockKind === "activity") {',
+              session_handler + '  if (extraBlockKind === "activity") {',
+              "Session extra submit",
+          )
+
+          app = replace_once(
+              app,
+              '    Add a one-day-only Strength, Cardio, Duration or Recovery block that shows in today&apos;s log\n    but doesn&apos;t change the weekly plan. Use Cardio for anything with distance + time\n    (runs, cycles, walks, swims, rows). Use Duration for movement where you only want\n    to record minutes (no distance). Use Recovery for an unplanned rest or light recovery day.',
+              '    Add a one-day-only Strength, Cardio, Duration, Session, Recovery or Activity/Task block that shows in today&apos;s log\n    but doesn&apos;t change the weekly plan. Use Cardio for anything with distance + time\n    (runs, cycles, walks, swims, rows). Use Duration for movement where you only want\n    to record minutes (no distance). Use Session to choose a structured Session Library template.',
+              "Extra block help copy",
+          )
+
+          app = replace_once(
+              app,
+              '          { value: "duration", label: "Duration (minutes only)" },\n          { value: "recovery", label: "Recovery" },',
+              '          { value: "duration", label: "Duration (minutes only)" },\n          { value: "session", label: "Session (structured template)" },\n          { value: "recovery", label: "Recovery" },',
+              "Session extra option",
+          )
+
+          session_form = '''  {/* Session extra form */}
+  {extraBlockKind === "session" && (
+    <div className="mt8">
+      <SessionPlanBlockEditor
+        familyId={family?.id}
+        block={extraSessionDraft}
+        onChange={(patch) =>
+          setExtraSessionDraft((current) =>
+            normaliseSessionPlanBlock({ ...current, ...(patch || {}) })
+          )
+        }
+      />
+      <div className="muted mt8">
+        This adds the chosen structured Session to this date only. The Session definition is frozen into the log when training starts.
+      </div>
+    </div>
+  )}
+
+'''
+          app = replace_once(
+              app,
+              '    {/* Recovery extra form */}',
+              session_form + '    {/* Recovery extra form */}',
+              "Session extra form",
+          )
+
+          app = replace_once(
+              app,
+              '  <PrimaryButton className="mt8" onClick={addExtraMovement}>\n    + Add extra block\n  </PrimaryButton>',
+              '  <PrimaryButton\n    className="mt8"\n    onClick={addExtraMovement}\n    disabled={extraBlockKind === "session" && !extraSessionDraft?.sessionTemplateId}\n  >\n    + Add extra block\n  </PrimaryButton>',
+              "Session add guard",
+          )
+
+          app = replace_once(
+              app,
+              '          {note ? <div className="muted mt4">{note}</div> : null}\n\n          {isCancelled ? (',
+              '          {note ? <div className="muted mt4">{note}</div> : null}\n\n          {block.isExtra ? (\n            <div className="row space mt4">\n              <div className="muted mini">One-day extra Session</div>\n              <SecondaryButton className="btnSmall" onClick={() => removeExtraMovement(block.id)}>\n                Remove\n              </SecondaryButton>\n            </div>\n          ) : null}\n\n          {isCancelled ? (',
+              "Session extra remove control",
+          )
+
+          app = replace_once(
+              app,
+              '                               {/* --- V3 block-based logging panels --- */}',
+              '''                <LogVerificationSummary
+                  profileId={activeProfileId}
+                  dateYmd={selectedDate}
+                  manualLogId={selectedLogRowId}
+                  blocks={Array.isArray(logForDay?.blocks) && logForDay.blocks.length ? logForDay.blocks : plannedBlocksForSelectedDay}
+                  onOpenProgress={() => setTab("stats")}
+                />
+
+                               {/* --- V3 block-based logging panels --- */}''',
+              "Log verification summary",
+          )
+
+          path.write_text(app)
+          PY
+
+      - name: Verify intended patch markers
+        run: |
+          grep -q 'Session (structured template)' src/App.jsx
+          grep -q 'One-day extra Session' src/App.jsx
+          grep -q '<LogVerificationSummary' src/App.jsx
+          grep -q 'Provider evidence stays separate from manual workout history and rewards.' src/components/progress/VerifiedActivityEvidenceSection.jsx
+
+      - name: Commit only intended files and remove temporary workflow
+        run: |
+          git config user.name "Workout Tracker automation"
+          git config user.email "actions@users.noreply.github.com"
+          rm .github/workflows/stage7-2-finish-patch.yml
+          git add src/App.jsx src/components/progress/VerifiedActivityEvidenceSection.jsx .github/workflows/stage7-2-finish-patch.yml
+          git diff --cached --check
+          git commit -m "Finish Stage 7.2 Log verification and Session extras"
+          git push origin HEAD:feature/verification-ui-sync-controls
