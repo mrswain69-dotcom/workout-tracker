@@ -286,14 +286,23 @@ export function applyVerifiedActivityPopulation({
     .map((block, index) => {
       let emptyCount = 0;
       for (const path of Object.keys(metricValues)) if (empty(getPath(block, path))) emptyCount += 1;
-      return { block, index, emptyCount, exact: blockFamily(block) === family };
+      const manualMetricCount = ["cardio.distanceKm", "cardio.durationMin"]
+        .filter((path) => !empty(getPath(block, path))).length;
+      return { block, index, emptyCount, manualMetricCount, exact: blockFamily(block) === family };
     })
     .filter((candidate) => candidate.emptyCount > 0)
-    .sort((a, b) => Number(b.exact) - Number(a.exact) || b.emptyCount - a.emptyCount || a.index - b.index);
+    .sort((a, b) => b.manualMetricCount - a.manualMetricCount || Number(b.exact) - Number(a.exact) || b.emptyCount - a.emptyCount || a.index - b.index);
 
   const base = provenanceBase(activity, nowIso);
-  if (candidates.length) {
-    const target = candidates[0].block;
+  const firstCandidate = candidates[0] || null;
+  const secondCandidate = candidates[1] || null;
+  const hasUniqueSafeTarget = !!firstCandidate && (
+    !secondCandidate ||
+    firstCandidate.manualMetricCount > secondCandidate.manualMetricCount ||
+    (firstCandidate.exact && !secondCandidate.exact)
+  );
+  if (hasUniqueSafeTarget) {
+    const target = firstCandidate.block;
     let fieldsFilled = 0;
     for (const [path, importedValue] of Object.entries(metricValues)) {
       if (!empty(getPath(target, path))) continue;

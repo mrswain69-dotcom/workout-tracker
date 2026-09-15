@@ -217,7 +217,21 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
     }
 
     const population = applyVerifiedActivityPopulation({ logJson: transient, planBlocks, evidence, nowIso });
-    if (!population.changed || !population.targetBlockId) continue;
+    if (!population.changed) continue;
+
+    if (!population.targetBlockId) {
+      const savedState = await adminClient.from("logs").upsert({
+        family_id: profile.family_id,
+        profile_id: profile.id,
+        date_ymd: dateYmd,
+        log_json: population.logJson,
+      }, { onConflict: "family_id,profile_id,date_ymd" }).select("id,date_ymd,log_json").single();
+      if (savedState.error) throw savedState.error;
+      logByDate.set(dateYmd, savedState.data);
+      summary.manualOverridesPreserved += population.manualOverridesPreserved || 0;
+      changedDates.add(dateYmd);
+      continue;
+    }
 
     for (const block of Array.isArray(population.logJson?.blocks) ? population.logJson.blocks : []) {
       const blockId = text(block?.id);
