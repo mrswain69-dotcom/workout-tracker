@@ -2,6 +2,7 @@ export const MATCH_VERSION = "verification_match_v1";
 const PROVIDER_THRESHOLD = 0.7;
 const MANUAL_THRESHOLD = 0.75;
 const MANUAL_MARGIN = 0.1;
+const USER_MATCH_WINDOW_DAYS = 2;
 
 function text(value: unknown, fallback = "") {
   if (value === null || value === undefined) return fallback;
@@ -59,8 +60,24 @@ function similarityScore(a: unknown, b: unknown, rules: Array<{ relative: number
   return 0;
 }
 
+function metricWithin(a: unknown, b: unknown, relativeLimit: number, absoluteLimit: number) {
+  const left = positive(a);
+  const right = positive(b);
+  if (left === null || right === null) return true;
+  const absolute = Math.abs(left - right);
+  const relative = absolute / Math.max(left, right);
+  return relative <= relativeLimit || absolute <= absoluteLimit;
+}
+
 function isoMs(value: unknown) {
   const ms = Date.parse(text(value));
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function ymdMs(value: unknown) {
+  const ymd = text(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  const ms = Date.parse(`${ymd}T00:00:00Z`);
   return Number.isFinite(ms) ? ms : null;
 }
 
@@ -177,10 +194,10 @@ function cardioEntries(payload: any) {
     if (distanceKm === null && durationMin === null) return;
     result.push({ ...meta, distanceM: distanceKm === null ? null : distanceKm * 1000, durationSec: durationMin === null ? null : durationMin * 60 });
   };
-  add(payload?.cardio, { blockId: "", activityType: "unknown" });
+  add(payload?.cardio, { blockId: "", activityType: "unknown", manualOnly: false });
   for (const block of Array.isArray(payload?.blocks) ? payload.blocks : []) {
     if (!block || block.cancelled || text(block.typeId).toLowerCase() !== "cardio") continue;
-    add(block.cardio, { blockId: text(block.id), activityType: text(block.cardioType || block.label, "unknown") });
+    add(block.cardio, { blockId: text(block.id), activityType: text(block.cardioType || block.label, "unknown"), manualOnly: false });
   }
   if (result.length > 1 && !result[0].blockId) {
     const legacy = result[0];
@@ -193,11 +210,25 @@ function cardioEntries(payload: any) {
 function durationEntries(payload: any) {
   const result: any[] = [];
   const legacy = positive(payload?.custom?.durationMin);
-  if (legacy !== null) result.push({ blockId: "", activityType: "unknown", distanceM: null, durationSec: legacy * 60 });
+  if (legacy !== null) result.push({ blockId: "", activityType: "unknown", distanceM: null, durationSec: legacy * 60, manualOnly: false });
   for (const block of Array.isArray(payload?.blocks) ? payload.blocks : []) {
     if (!block || block.cancelled || text(block.typeId).toLowerCase() !== "duration") continue;
     const minutes = positive(block?.duration?.minutes);
-    if (minutes !== null) result.push({ blockId: text(block.id), activityType: text(block.label, "unknown"), distanceM: null, durationSec: minutes * 60 });
+    if (minutes !== null) result.push({ blockId: text(block.id), activityType: text(block.label, "unknown"), distanceM: null, durationSec: minutes * 60, manualOnly: false });
+  }
+  return result;
+}
+
+function strengthEntries(payload: any) {
+  const result: any[] = [];
+  for (const block of Array.isArray(payload?.blocks) ? payload.blocks : []) {
+    if (!block || block.cancelled || text(block.typeId).toLowerCase() !== "strength") continue;
+    const performed = Object.values(block?.sets || {}).some((sets: any) =>
+      (Array.isArray(sets) ? sets : []).some((set: any) =>
+        positive(set?.reps) !== null || positive(set?.weight) !== null || positive(set?.seconds) !== null
+      )
+    );
+    if (performed) result.push({ blockId: text(block.id), activityType: "strength", distanceM: null, durationSec: null, manualOnly: true });
   }
   return result;
 }
@@ -208,9 +239,10 @@ function manualCandidates(logs: any[], profileId: string) {
     if (text(log?.profile_id) !== profileId || !/^\d{4}-\d{2}-\d{2}$/.test(text(log?.date_ymd))) continue;
     const payload = log?.log_json && typeof log.log_json === "object" ? log.log_json : {};
     const cardio = cardioEntries(payload);
-    const rows = cardio.length ? cardio : durationEntries(payload);
+    const durationRows = cardio.length ? [] : durationEntries(payload);
+    const rows = [...cardio, ...durationRows, ...strengthEntries(payload)];
     rows.forEach((entry, index) => result.push({
-      id: `${log.id}:${entry.blockId || "legacy"}:${cardio.length ? "cardio" : "duration"}:${index}`,
+      id: `${log.id}:${entry.blockId || "legacy"}:${entry.manualOnly ? "manual_only" : cardio.length ? "cardio" : "duration"}:${index}`,
       manualLogId: log.id,
       manualBlockId: entry.blockId || null,
       profileId,
@@ -218,12 +250,14 @@ function manualCandidates(logs: any[], profileId: string) {
       activityType: entry.activityType,
       distanceM: entry.distanceM,
       durationSec: entry.durationSec,
+      manualOnly: entry.manualOnly === true,
     }));
   }
   return result;
 }
 
 function manualScore(group: any, candidate: any) {
+  if (candidate.manualOnly) return 0;
   let dateScore = 0;
   if (group.localDateYmd) {
     if (group.localDateYmd !== candidate.dateYmd) return 0;
@@ -259,6 +293,23 @@ function findManualMatch(group: any, candidates: any[]) {
   return { state: "matched", confidence: best.score, candidate: best.candidate };
 }
 
+function targetKey(value: any) {
+  return `${text(value?.manualLogId || value?.manual_log_id)}:${text(value?.manualBlockId || value?.manual_block_id)}`;
+}
+
+function userLinkStillCompatible(group: any, candidate: any) {
+  const groupDate = text(group.localDateYmd) || text(group.startedAt).slice(0, 10);
+  const groupMs = ymdMs(groupDate);
+  const candidateMs = ymdMs(candidate.dateYmd);
+  if (groupMs === null || candidateMs === null || Math.abs(candidateMs - groupMs) / 86400000 > USER_MATCH_WINDOW_DAYS) return false;
+  const type = typeCompatibility(group.activityType, candidate.activityType);
+  if (!type.compatible) return false;
+  if (!metricWithin(group.distanceM, candidate.distanceM, 0.2, 500)) return false;
+  if (!metricWithin(group.durationSec, candidate.durationSec, 0.3, 600)) return false;
+  if (candidate.manualOnly) return canonicalActivityFamily(group.activityType) === "strength" && canonicalActivityFamily(candidate.activityType) === "strength";
+  return positive(group.distanceM) !== null || positive(group.durationSec) !== null;
+}
+
 async function sha256Hex(value: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -270,19 +321,20 @@ async function identityKey(group: any) {
 }
 
 async function findOrCreateVerifiedActivity(adminClient: any, profile: any, group: any, key: string) {
-  const existing = await adminClient.from("verified_activities").select("id").eq("identity_key", key).maybeSingle();
+  const existing = await adminClient.from("verified_activities").select("id,status,auto_match_suppressed").eq("identity_key", key).maybeSingle();
   if (existing.error) throw existing.error;
   if (existing.data?.id) {
+    const preservedStatus = existing.data.status === "ignored" ? "ignored" : "active";
     const updated = await adminClient.from("verified_activities").update({
       activity_type: group.activityType,
       started_at: group.startedAt,
-      status: "active",
+      status: preservedStatus,
       identity_method: group.identityMethod,
       identity_confidence: group.identityConfidence,
       match_version: MATCH_VERSION,
     }).eq("id", existing.data.id);
     if (updated.error) throw updated.error;
-    return existing.data.id;
+    return { id: existing.data.id, status: preservedStatus, autoMatchSuppressed: existing.data.auto_match_suppressed === true };
   }
 
   const inserted = await adminClient.from("verified_activities").insert({
@@ -295,12 +347,12 @@ async function findOrCreateVerifiedActivity(adminClient: any, profile: any, grou
     identity_confidence: group.identityConfidence,
     match_version: MATCH_VERSION,
     identity_key: key,
-  }).select("id").single();
-  if (!inserted.error) return inserted.data.id;
+  }).select("id,status,auto_match_suppressed").single();
+  if (!inserted.error) return { id: inserted.data.id, status: inserted.data.status, autoMatchSuppressed: inserted.data.auto_match_suppressed === true };
   if (inserted.error.code !== "23505") throw inserted.error;
-  const raced = await adminClient.from("verified_activities").select("id").eq("identity_key", key).single();
+  const raced = await adminClient.from("verified_activities").select("id,status,auto_match_suppressed").eq("identity_key", key).single();
   if (raced.error) throw raced.error;
-  return raced.data.id;
+  return { id: raced.data.id, status: raced.data.status, autoMatchSuppressed: raced.data.auto_match_suppressed === true };
 }
 
 export async function reconcileVerifiedActivitiesForProfile(adminClient: any, profileId: string) {
@@ -308,24 +360,36 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
   if (profileResult.error || !profileResult.data) throw profileResult.error || new Error("Profile not found");
   const profile = profileResult.data;
 
-  const [observationsResult, logsResult] = await Promise.all([
+  const [observationsResult, logsResult, existingLinksResult] = await Promise.all([
     adminClient.from("external_activity_observations").select(
       "id,profile_id,provider,provider_activity_id,started_at,local_date_ymd,source_timezone,activity_type,distance_m,elapsed_duration_sec,moving_duration_sec,source_deleted_at"
     ).eq("profile_id", profileId).order("started_at", { ascending: true }),
     adminClient.from("logs").select("id,profile_id,date_ymd,log_json").eq("profile_id", profileId).order("date_ymd", { ascending: true }),
+    adminClient.from("external_activity_links").select(
+      "id,verified_activity_id,manual_log_id,manual_block_id,match_method,match_confidence,date_offset_days,confirmed_at"
+    ).eq("profile_id", profileId),
   ]);
-  if (observationsResult.error || logsResult.error) throw observationsResult.error || logsResult.error;
+  if (observationsResult.error || logsResult.error || existingLinksResult.error) {
+    throw observationsResult.error || logsResult.error || existingLinksResult.error;
+  }
 
   const groups = buildGroups(observationsResult.data || []);
   const candidates = manualCandidates(logsResult.data || [], profileId);
-  const claimedManualTargets = new Set<string>();
+  const existingManualByActivity = new Map(
+    (existingLinksResult.data || []).filter((row: any) => row.match_method === "manual").map((row: any) => [row.verified_activity_id, row])
+  );
+  const claimedManualTargets = new Set<string>(
+    (existingLinksResult.data || []).filter((row: any) => row.match_method === "manual").map(targetKey)
+  );
   const activeKeys: string[] = [];
   let linkedManual = 0;
+  let preservedUserLinks = 0;
 
   for (const group of groups) {
     const key = await identityKey(group);
     activeKeys.push(key);
-    const verifiedId = await findOrCreateVerifiedActivity(adminClient, profile, group, key);
+    const verified = await findOrCreateVerifiedActivity(adminClient, profile, group, key);
+    const verifiedId = verified.id;
 
     const clearLinks = await adminClient.from("verified_activity_observations").delete().eq("verified_activity_id", verifiedId);
     if (clearLinks.error) throw clearLinks.error;
@@ -340,15 +404,32 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
       if (linked.error) throw linked.error;
     }
 
-    const availableCandidates = candidates.filter((candidate) => !claimedManualTargets.has(candidate.id));
-    const match = findManualMatch(group, availableCandidates);
+    const existingManual = existingManualByActivity.get(verifiedId);
+    const existingCandidate = existingManual
+      ? candidates.find((candidate) => candidate.manualLogId === existingManual.manual_log_id && (candidate.manualBlockId || null) === (existingManual.manual_block_id || null))
+      : null;
+    const preserveManual = !!existingManual && !!existingCandidate && userLinkStillCompatible(group, existingCandidate);
 
-    // Manual verification links are derived state. Replace the previous row from
-    // current source truth rather than mutating any Workout Tracker log.
-    const clearedManual = await adminClient
-      .from("external_activity_links")
-      .delete()
-      .eq("verified_activity_id", verifiedId);
+    if (verified.status === "ignored") {
+      const cleared = await adminClient.from("external_activity_links").delete().eq("verified_activity_id", verifiedId);
+      if (cleared.error) throw cleared.error;
+      continue;
+    }
+
+    if (verified.autoMatchSuppressed) {
+      if (preserveManual) {
+        preservedUserLinks += 1;
+        claimedManualTargets.add(targetKey(existingManual));
+      } else if (existingManual) {
+        const cleared = await adminClient.from("external_activity_links").delete().eq("verified_activity_id", verifiedId);
+        if (cleared.error) throw cleared.error;
+      }
+      continue;
+    }
+
+    const availableCandidates = candidates.filter((candidate) => !claimedManualTargets.has(targetKey(candidate)));
+    const match = findManualMatch(group, availableCandidates);
+    const clearedManual = await adminClient.from("external_activity_links").delete().eq("verified_activity_id", verifiedId);
     if (clearedManual.error) throw clearedManual.error;
 
     if (match.state === "matched" && match.candidate) {
@@ -360,18 +441,17 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
         manual_block_id: match.candidate.manualBlockId,
         match_method: "automatic",
         match_confidence: match.confidence,
+        date_offset_days: 0,
+        confirmed_at: null,
       });
       if (persisted.error) throw persisted.error;
-      claimedManualTargets.add(match.candidate.id);
+      claimedManualTargets.add(targetKey(match.candidate));
       linkedManual += 1;
     }
   }
 
-  const staleResult = await adminClient
-    .from("verified_activities")
-    .select("id,identity_key")
-    .eq("profile_id", profileId)
-    .eq("match_version", MATCH_VERSION);
+  const staleResult = await adminClient.from("verified_activities")
+    .select("id,identity_key").eq("profile_id", profileId).eq("match_version", MATCH_VERSION);
   if (staleResult.error) throw staleResult.error;
   const staleIds = (staleResult.data || [])
     .filter((row: any) => !row.identity_key || !activeKeys.includes(row.identity_key))
@@ -386,6 +466,7 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
     observationCount: (observationsResult.data || []).filter((row: any) => !row.source_deleted_at).length,
     verifiedActivityCount: groups.length,
     automaticManualLinks: linkedManual,
+    preservedUserLinks,
     removedStaleIdentities: staleIds.length,
     matchVersion: MATCH_VERSION,
   };
