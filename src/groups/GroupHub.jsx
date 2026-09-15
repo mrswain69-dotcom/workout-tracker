@@ -1,15 +1,20 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   createGroup,
   createGroupInvite,
-  joinGroup,
+  getGroupJoinSettings,
+  joinGroupWithCode,
   leaveGroup,
   listGroupDirectory,
   listGroupInvites,
+  listGroupJoinRequests,
   listProfileGroups,
-  previewGroupInvite,
+  previewGroupJoinCode,
   removeGroupMember,
+  reviewGroupJoinRequest,
   revokeGroupInvite,
+  rotateGroupJoinCode,
+  setGroupJoinMode,
   setGroupMemberRole,
   updateGroupDetails,
   updateGroupNickname,
@@ -19,6 +24,9 @@ import GroupWeeklyXp from "./GroupWeeklyXp.jsx";
 import GroupConsistency from "./GroupConsistency.jsx";
 import GroupChallenges from "./GroupChallenges.jsx";
 import "./GroupHub.css";
+import "./GroupStage10.css";
+
+const GROUP_JOIN_STORAGE_KEY = "wt_group_join_code";
 
 function errorText(error, fallback = "Something went wrong.") {
   return error?.message || String(error || fallback);
@@ -29,6 +37,48 @@ function formatShortDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
+
+function formatJoinMode(mode) {
+  if (mode === "instant") return "Instant join";
+  if (mode === "closed") return "Joining closed";
+  return "Approval required";
+}
+
+function readPendingJoinCode() {
+  if (typeof window === "undefined") return "";
+  try {
+    const fromUrl = new URL(window.location.href).searchParams.get("groupJoin") || "";
+    const fromStorage = window.sessionStorage.getItem(GROUP_JOIN_STORAGE_KEY) || "";
+    return String(fromUrl || fromStorage).trim();
+  } catch {
+    return "";
+  }
+}
+
+function clearPendingJoinCode() {
+  if (typeof window === "undefined") return;
+  try { window.sessionStorage.removeItem(GROUP_JOIN_STORAGE_KEY); } catch {}
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("groupJoin")) {
+      url.searchParams.delete("groupJoin");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  } catch {}
+}
+
+export function buildGroupJoinLink(joinCode) {
+  if (typeof window === "undefined" || !joinCode) return "";
+  try {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    url.searchParams.set("groupJoin", joinCode);
+    return url.toString();
+  } catch {
+    return "";
+  }
 }
 
 function MemberIdentity({ member, isSelf = false }) {
@@ -51,6 +101,8 @@ function MemberIdentity({ member, isSelf = false }) {
 }
 
 export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
+  const pendingJoinCodeRef = useRef(readPendingJoinCode());
+  const deepLinkPreviewedRef = useRef(false);
   const activeProfile = useMemo(
     () => profiles.find((profile) => profile.id === activeProfileId) || profiles[0] || null,
     [profiles, activeProfileId]
@@ -61,7 +113,9 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [directory, setDirectory] = useState([]);
   const [invites, setInvites] = useState([]);
-  const [view, setView] = useState("groups");
+  const [joinSettings, setJoinSettings] = useState(null);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [view, setView] = useState(() => pendingJoinCodeRef.current ? "join" : "groups");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -73,7 +127,7 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
   const [createType, setCreateType] = useState("private");
   const [createNickname, setCreateNickname] = useState(activeProfile?.name || "");
 
-  const [joinCode, setJoinCode] = useState("");
+  const [joinCode, setJoinCode] = useState(() => pendingJoinCodeRef.current);
   const [joinPreview, setJoinPreview] = useState(null);
   const [joinNickname, setJoinNickname] = useState(activeProfile?.name || "");
 
@@ -98,43 +152,35 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
     const next = data || [];
     setGroups(next);
     const wanted = preferredGroupId || selectedGroupId;
-    setSelectedGroupId(
-      next.some((group) => group.id === wanted) ? wanted : next[0]?.id || ""
-    );
+    setSelectedGroupId(next.some((group) => group.id === wanted) ? wanted : next[0]?.id || "");
   }
 
   async function refreshSelected(group = selectedGroup) {
     if (!group?.id) {
       setDirectory([]);
       setInvites([]);
+      setJoinSettings(null);
+      setPendingRequests([]);
       return;
     }
-    const [{ data: members, error: memberError }, inviteResult] = await Promise.all([
+
+    const admin = group.membership?.role === "admin";
+    const [directoryResult, inviteResult, settingsResult, requestsResult] = await Promise.all([
       listGroupDirectory(group.id),
-      group.membership?.role === "admin" ? listGroupInvites(group.id) : Promise.resolve({ data: [], error: null }),
+      admin ? listGroupInvites(group.id) : Promise.resolve({ data: [], error: null }),
+      admin ? getGroupJoinSettings(group.id) : Promise.resolve({ data: null, error: null }),
+      admin ? listGroupJoinRequests(group.id) : Promise.resolve({ data: [], error: null }),
     ]);
-    if (memberError) setError(errorText(memberError, "Could not load Group members."));
-    else setDirectory(members || []);
-    if (inviteResult.error) setError(errorText(inviteResult.error, "Could not load invites."));
+
+    if (directoryResult.error) setError(errorText(directoryResult.error, "Could not load Group members."));
+    else setDirectory(directoryResult.data || []);
+    if (inviteResult.error) setError(errorText(inviteResult.error, "Could not load private invites."));
     else setInvites(inviteResult.data || []);
+    if (settingsResult.error) setError(errorText(settingsResult.error, "Could not load join settings."));
+    else setJoinSettings(settingsResult.data || null);
+    if (requestsResult.error) setError(errorText(requestsResult.error, "Could not load pending requests."));
+    else setPendingRequests(requestsResult.data || []);
   }
-
-  useEffect(() => {
-    setCreateNickname(activeProfile?.name || "");
-    setJoinNickname(activeProfile?.name || "");
-    setJoinPreview(null);
-    setJoinCode("");
-    setError("");
-    setNotice("");
-    setView("groups");
-    refreshGroups();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileId]);
-
-  useEffect(() => {
-    refreshSelected();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedGroupId, ownMembership?.role]);
 
   async function run(action, successText = "") {
     setBusy(true);
@@ -152,6 +198,52 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
       setBusy(false);
     }
   }
+
+  async function previewJoinCode(code = joinCode) {
+    const normalized = String(code || "").trim();
+    if (!normalized) return null;
+    setJoinPreview(null);
+    const preview = await run(() => previewGroupJoinCode(normalized));
+    if (!preview) {
+      setError((current) => current || "That Group code or invite is invalid, expired, revoked or fully used.");
+      return null;
+    }
+    setJoinPreview(preview);
+    return preview;
+  }
+
+  useEffect(() => {
+    setCreateNickname(activeProfile?.name || "");
+    setJoinNickname(activeProfile?.name || "");
+    setError("");
+    setNotice("");
+    if (!pendingJoinCodeRef.current) {
+      setJoinPreview(null);
+      setJoinCode("");
+      setView("groups");
+    } else {
+      setView("join");
+      setJoinCode(pendingJoinCodeRef.current);
+    }
+    refreshGroups();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileId]);
+
+  useEffect(() => {
+    refreshSelected();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedGroupId, ownMembership?.role]);
+
+  useEffect(() => {
+    if (!profileId || !pendingJoinCodeRef.current || deepLinkPreviewedRef.current) return;
+    deepLinkPreviewedRef.current = true;
+    const code = pendingJoinCodeRef.current;
+    previewJoinCode(code).finally(() => {
+      pendingJoinCodeRef.current = "";
+      clearPendingJoinCode();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileId]);
 
   async function handleCreate(event) {
     event.preventDefault();
@@ -171,26 +263,29 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
 
   async function handlePreview(event) {
     event.preventDefault();
-    setJoinPreview(null);
-    const preview = await run(() => previewGroupInvite(joinCode));
-    if (!preview) {
-      if (!error) setError("That invite is invalid, expired, revoked or fully used.");
-      return;
-    }
-    setJoinPreview(preview);
+    await previewJoinCode();
   }
 
   async function handleJoin() {
-    const joined = await run(() => joinGroup({
+    const result = await run(() => joinGroupWithCode({
       profileId,
-      inviteCode: joinCode,
+      joinCode,
       nickname: joinNickname,
-    }), "Group joined.");
-    if (!joined?.group_id) return;
+    }));
+    if (!result?.group_id) return;
+
+    if (result.join_status === "pending") {
+      setNotice("Request sent. A Group Admin needs to approve this athlete before they join.");
+      setJoinPreview(null);
+      setJoinCode("");
+      return;
+    }
+
+    setNotice("Group joined.");
     setJoinCode("");
     setJoinPreview(null);
     setView("groups");
-    await refreshGroups(joined.group_id);
+    await refreshGroups(result.group_id);
   }
 
   async function handleNicknameSave() {
@@ -210,20 +305,23 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
     await refreshGroups();
   }
 
-  async function handleCreateInvite() {
-    const created = await run(() => createGroupInvite(selectedGroup.id, { expiresInDays: 7, maxUses: 1 }), "Invite created.");
+  async function handleCreatePrivateInvite() {
+    const created = await run(
+      () => createGroupInvite(selectedGroup.id, { expiresInDays: 7, maxUses: 1 }),
+      "Private one-use invite created."
+    );
     if (!created?.invite_code) return;
     setNewInviteCode(created.invite_code);
     await refreshSelected(selectedGroup);
   }
 
-  async function copyInvite() {
-    if (!newInviteCode) return;
+  async function copyText(value, successText) {
+    if (!value) return;
     try {
-      await navigator.clipboard.writeText(newInviteCode);
-      setNotice("Invite code copied.");
+      await navigator.clipboard.writeText(value);
+      setNotice(successText);
     } catch {
-      setNotice("Select and copy the invite code below.");
+      setNotice("Select and copy the value shown.");
     }
   }
 
@@ -241,8 +339,33 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
     await refreshSelected(selectedGroup);
   }
 
+  async function handleReviewRequest(request, decision) {
+    const verb = decision === "approve" ? "Approve" : "Decline";
+    if (!window.confirm(`${verb} ${request.nickname}'s request to join ${selectedGroup.name}?`)) return;
+    await run(
+      () => reviewGroupJoinRequest(selectedGroup.id, request.request_id, decision),
+      decision === "approve" ? `${request.nickname} added to the Group.` : `${request.nickname}'s request declined.`
+    );
+    await refreshGroups(selectedGroup.id);
+    await refreshSelected(selectedGroup);
+  }
+
+  async function handleJoinModeChange(nextMode) {
+    const updated = await run(() => setGroupJoinMode(selectedGroup.id, nextMode), "Join settings updated.");
+    if (!updated) return;
+    setJoinSettings((current) => current ? { ...current, join_mode: updated.join_mode } : current);
+    await refreshGroups(selectedGroup.id);
+  }
+
+  async function handleRotateJoinCode() {
+    if (!window.confirm("Generate a new Group code? The current shared code/link will stop working immediately.")) return;
+    const rotated = await run(() => rotateGroupJoinCode(selectedGroup.id), "New Group code generated.");
+    if (!rotated?.join_code) return;
+    setJoinSettings((current) => current ? { ...current, join_code: rotated.join_code, rotated_at: rotated.rotated_at } : current);
+  }
+
   async function handleRevokeInvite(invite) {
-    await run(() => revokeGroupInvite(invite.id), "Invite revoked.");
+    await run(() => revokeGroupInvite(invite.id), "Private invite revoked.");
     await refreshSelected(selectedGroup);
   }
 
@@ -256,6 +379,7 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
   }
 
   const activeInvites = invites.filter((invite) => !invite.revoked_at && new Date(invite.expires_at).getTime() > Date.now() && invite.use_count < invite.max_uses);
+  const shareLink = joinSettings?.join_code ? buildGroupJoinLink(joinSettings.join_code) : "";
 
   return (
     <div className="groupHubBackdrop" role="dialog" aria-modal="true" aria-label="Groups">
@@ -276,7 +400,7 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
         </nav>
 
         {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
-        {notice ? <div className="groupHubMessage success">{notice}</div> : null}
+        {notice ? <div className="groupHubMessage success" role="status">{notice}</div> : null}
 
         {!profileId ? (
           <div className="groupHubEmpty">Choose an athlete profile before using Groups.</div>
@@ -292,18 +416,31 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
           </form>
         ) : view === "join" ? (
           <div className="groupHubForm">
-            <h3>Join with an invite</h3>
+            <h3>Join a Group</h3>
+            <p className="groupHubMuted">Enter the reusable Group code from your coach/Admin, or a private invite code.</p>
             <form onSubmit={handlePreview}>
-              <label>Invite code<input value={joinCode} onChange={(e) => setJoinCode(e.target.value.trim())} placeholder="Paste invite code" autoCapitalize="none" autoCorrect="off" required /></label>
-              <button className="groupHubSecondary" disabled={busy || !joinCode} type="submit">Check invite</button>
+              <label>Group code or invite code<input value={joinCode} onChange={(e) => setJoinCode(e.target.value.trim())} placeholder="Enter Group code" autoCapitalize="characters" autoCorrect="off" required /></label>
+              <button className="groupHubSecondary" disabled={busy || !joinCode} type="submit">Check Group</button>
             </form>
             {joinPreview ? (
-              <div className="groupInvitePreview">
+              <div className="groupInvitePreview groupJoinPreview">
                 <strong>{joinPreview.group_name}</strong>
                 <span>{joinPreview.group_type === "squad" ? "Squad / team" : joinPreview.group_type === "club" ? "Club" : "Private group"}</span>
-                <span>Invite valid until {formatShortDate(joinPreview.expires_at)}</span>
+                <span>{joinPreview.active_members} / {joinPreview.max_members} members</span>
+                {joinPreview.code_kind === "private_invite" ? (
+                  <span>Private invite · valid until {formatShortDate(joinPreview.expires_at)}</span>
+                ) : (
+                  <span>{formatJoinMode(joinPreview.join_mode)}</span>
+                )}
                 <label>Your nickname in this Group<input value={joinNickname} maxLength={32} onChange={(e) => setJoinNickname(e.target.value)} /></label>
-                <button className="groupHubPrimary" disabled={busy || !joinNickname.trim()} type="button" onClick={handleJoin}>Join Group</button>
+                <button
+                  className="groupHubPrimary"
+                  disabled={busy || !joinNickname.trim() || joinPreview.join_mode === "closed" || joinPreview.active_members >= joinPreview.max_members}
+                  type="button"
+                  onClick={handleJoin}
+                >
+                  {joinPreview.join_mode === "approval" && joinPreview.code_kind === "shared" ? "Request to join" : joinPreview.join_mode === "closed" ? "Joining closed" : "Join Group"}
+                </button>
               </div>
             ) : null}
           </div>
@@ -317,7 +454,7 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                   <span>{group.membership.nickname} · {group.membership.role === "admin" ? "Admin" : "Member"}</span>
                 </button>
               )) : (
-                <div className="groupHubEmpty compact">No Groups yet. Create one or join with an invite.</div>
+                <div className="groupHubEmpty compact">No Groups yet. Create one or join with a Group code.</div>
               )}
             </aside>
 
@@ -336,41 +473,109 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                     <button className="groupHubSecondary" onClick={handleNicknameSave} disabled={busy}>Edit nickname</button>
                   </div>
 
-                  <GroupWeeklyXp
-                    group={selectedGroup}
-                    membership={ownMembership}
-                    isAdmin={isAdmin}
-                    onGroupChanged={refreshGroups}
-                  />
+                  <GroupWeeklyXp group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} />
+                  <GroupConsistency group={selectedGroup} membership={ownMembership} />
+                  <GroupChallenges group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} />
 
-                  <GroupConsistency
-                    group={selectedGroup}
-                    membership={ownMembership}
-                  />
+                  {isAdmin ? (
+                    <section className="groupHubPanel groupJoinAdminPanel">
+                      <div className="groupHubPanelHeading">
+                        <div><h4>Invite people</h4><span>{pendingRequests.length ? `${pendingRequests.length} pending` : formatJoinMode(joinSettings?.join_mode)}</span></div>
+                      </div>
 
-                  <GroupChallenges
-                    group={selectedGroup}
-                    membership={ownMembership}
-                    isAdmin={isAdmin}
-                  />
+                      {joinSettings ? (
+                        <>
+                          <div className="groupJoinCodeCard">
+                            <div>
+                              <span className="groupHubMuted">Reusable Group code</span>
+                              <code>{joinSettings.join_code}</code>
+                              <small>{joinSettings.join_mode === "approval" ? "Anyone with this code/link can request access. You approve who joins." : joinSettings.join_mode === "instant" ? "Anyone with this code/link joins immediately." : "The code is retained, but new joining is currently closed."}</small>
+                            </div>
+                            <div className="groupJoinCodeActions">
+                              <button className="groupHubSecondary" type="button" onClick={() => copyText(joinSettings.join_code, "Group code copied.")}>Copy code</button>
+                              <button className="groupHubPrimary small" type="button" onClick={() => copyText(shareLink, "Invite link copied.")}>Copy invite link</button>
+                            </div>
+                          </div>
+
+                          {pendingRequests.length ? (
+                            <div className="groupPendingRequests">
+                              <div className="groupHubSectionTitle">Pending approval</div>
+                              {pendingRequests.map((request) => (
+                                <div className="groupPendingRequestRow" key={request.request_id}>
+                                  <MemberIdentity member={{ ...request, role: "member" }} />
+                                  <span className="groupPendingWhen">Requested {formatShortDate(request.requested_at)}</span>
+                                  <div className="groupPendingActions">
+                                    <button className="groupHubPrimary small" disabled={busy || directory.length >= selectedGroup.max_members} onClick={() => handleReviewRequest(request, "approve")}>Approve</button>
+                                    <button className="groupHubSecondary" disabled={busy} onClick={() => handleReviewRequest(request, "decline")}>Decline</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          <details className="groupJoinSettingsDetails">
+                            <summary>Invite settings</summary>
+                            <div className="groupJoinSettingsBody">
+                              <label>Who can join?
+                                <select value={joinSettings.join_mode || "approval"} disabled={busy} onChange={(event) => handleJoinModeChange(event.target.value)}>
+                                  <option value="approval">Approval required</option>
+                                  <option value="instant">Instant join</option>
+                                  <option value="closed">Joining closed</option>
+                                </select>
+                              </label>
+                              <button className="groupHubSecondary" type="button" onClick={handleRotateJoinCode} disabled={busy}>Generate new Group code</button>
+
+                              <div className="groupPrivateInviteBlock">
+                                <strong>Individual private invite</strong>
+                                <span>Optional one-use code for a specific person. It expires after 7 days.</span>
+                                <button className="groupHubSecondary" type="button" onClick={handleCreatePrivateInvite} disabled={busy || directory.length >= selectedGroup.max_members}>Create one-use invite</button>
+                                {newInviteCode ? (
+                                  <div className="groupInviteSecret">
+                                    <div><strong>New private invite</strong><span>Shown in full only now. The database stores only its hash.</span></div>
+                                    <code>{newInviteCode}</code>
+                                    <button className="groupHubSecondary" onClick={() => copyText(newInviteCode, "Private invite copied.")}>Copy</button>
+                                  </div>
+                                ) : null}
+                                {activeInvites.length ? (
+                                  <div className="groupInviteList">
+                                    {activeInvites.map((invite) => (
+                                      <div key={invite.id}>
+                                        <span><strong>{invite.code_hint}</strong> · {invite.use_count}/{invite.max_uses} used · expires {formatShortDate(invite.expires_at)}</span>
+                                        <button onClick={() => handleRevokeInvite(invite)} disabled={busy}>Revoke</button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : <div className="groupHubMuted">No active private invites.</div>}
+                              </div>
+                            </div>
+                          </details>
+                        </>
+                      ) : <div className="groupHubMuted">Loading invite settings…</div>}
+                    </section>
+                  ) : null}
 
                   <section className="groupHubPanel">
-                    <div className="groupHubPanelHeading"><div><h4>Members</h4><span>{directory.length} / {selectedGroup.max_members}</span></div>{isAdmin ? <button className="groupHubPrimary small" onClick={handleCreateInvite} disabled={busy || directory.length >= selectedGroup.max_members}>Create invite</button> : null}</div>
+                    <div className="groupHubPanelHeading"><div><h4>Members</h4><span>{directory.length} / {selectedGroup.max_members}</span></div></div>
                     <div className="groupMemberList">
                       {directory.map((member) => {
                         const self = member.membership_id === ownMembership.id;
-                        return <div key={member.membership_id} className={`groupMemberRow ${self ? "self" : ""}`}><MemberIdentity member={member} isSelf={self} />{isAdmin && !self ? <div className="groupMemberActions"><button onClick={() => handleMemberRole(member)} disabled={busy}>{member.role === "admin" ? "Make member" : "Make admin"}</button><button onClick={() => handleRemoveMember(member)} disabled={busy}>Remove</button></div> : null}</div>;
+                        return (
+                          <div key={member.membership_id} className={`groupMemberRow ${self ? "self" : ""}`}>
+                            <MemberIdentity member={member} isSelf={self} />
+                            {isAdmin && !self ? (
+                              <details className="groupMemberManage">
+                                <summary>Manage</summary>
+                                <div className="groupMemberActions">
+                                  <button onClick={() => handleMemberRole(member)} disabled={busy}>{member.role === "admin" ? "Make member" : "Make admin"}</button>
+                                  <button onClick={() => handleRemoveMember(member)} disabled={busy}>Remove</button>
+                                </div>
+                              </details>
+                            ) : null}
+                          </div>
+                        );
                       })}
                     </div>
                   </section>
-
-                  {isAdmin ? (
-                    <section className="groupHubPanel">
-                      <div className="groupHubPanelHeading"><div><h4>Invites</h4><span>Share privately</span></div></div>
-                      {newInviteCode ? <div className="groupInviteSecret"><div><strong>New invite code</strong><span>Shown in full only now. The database stores only its hash.</span></div><code>{newInviteCode}</code><button className="groupHubSecondary" onClick={copyInvite}>Copy</button></div> : null}
-                      {activeInvites.length ? <div className="groupInviteList">{activeInvites.map((invite) => <div key={invite.id}><span><strong>{invite.code_hint}</strong> · {invite.use_count}/{invite.max_uses} used · expires {formatShortDate(invite.expires_at)}</span><button onClick={() => handleRevokeInvite(invite)} disabled={busy}>Revoke</button></div>)}</div> : <div className="groupHubMuted">No active invites.</div>}
-                    </section>
-                  ) : null}
 
                   <div className="groupHubFooterActions"><button className="groupHubDanger" onClick={handleLeave} disabled={busy}>Leave Group</button>{isAdmin ? <span>Last Admins must promote another Admin before leaving.</span> : null}</div>
                 </>
