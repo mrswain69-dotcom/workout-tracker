@@ -152,15 +152,36 @@ describe("Group Hub scalable onboarding", () => {
     expect(screen.getByText("Manage")).toBeTruthy();
   });
 
-  it("keeps one-use invites as an optional advanced setting", async () => {
+  it("keeps every one-use invite generated in this Groups window copyable and revokable", async () => {
     groupDb.listProfileGroups.mockResolvedValue({ data: [group()], error: null });
     groupDb.listGroupDirectory.mockResolvedValue({ data: [{ membership_id: "membership-self", nickname: "WS10", role: "admin", avatar_id: "emoji_bolt", avatar_frame: "", avatar_frames_enabled: true }], error: null });
-    groupDb.createGroupInvite.mockResolvedValue({ data: { invite_id: "invite-1", invite_code: "one-use-invite-test", code_hint: "one…test", expires_at: "2026-09-17T12:00:00Z", max_uses: 1 }, error: null });
+    const active = [];
+    const generated = [
+      { invite_id: "invite-1", invite_code: "one-use-first", code_hint: "one…irst", expires_at: "2026-09-17T12:00:00Z", max_uses: 1 },
+      { invite_id: "invite-2", invite_code: "one-use-second", code_hint: "one…cond", expires_at: "2026-09-17T12:00:00Z", max_uses: 1 },
+    ];
+    groupDb.listGroupInvites.mockImplementation(async () => ({
+      data: active.map((invite) => ({ id: invite.invite_id, code_hint: invite.code_hint, expires_at: invite.expires_at, max_uses: 1, use_count: 0, revoked_at: null })),
+      error: null,
+    }));
+    groupDb.createGroupInvite.mockImplementation(async () => {
+      const next = generated[active.length];
+      active.push(next);
+      return { data: next, error: null };
+    });
+
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
     fireEvent.click(await screen.findByText("Invite settings"));
-    fireEvent.click(screen.getByRole("button", { name: "Create one-use invite" }));
-    expect(await screen.findByText("one-use-invite-test")).toBeTruthy();
+    const createButton = screen.getByRole("button", { name: "Create one-use invite" });
+    fireEvent.click(createButton);
+    expect(await screen.findByText("one-use-first")).toBeTruthy();
     expect(screen.getByText(/Shown in full only now/)).toBeTruthy();
+
+    fireEvent.click(createButton);
+    expect(await screen.findByText("one-use-second")).toBeTruthy();
+    expect(screen.getByText("one-use-first")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Copy" }).length).toBe(2);
+    expect(screen.getAllByRole("button", { name: "Revoke" }).length).toBe(2);
   });
 
   it("does not expose Admin join controls to an ordinary member", async () => {
