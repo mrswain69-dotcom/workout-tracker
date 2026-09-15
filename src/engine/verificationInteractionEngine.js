@@ -22,7 +22,7 @@ export function canonicalVerificationActivityFamily(value) {
   if (/swim/.test(token)) return "swim";
   if (/(walk|hike|hiking)/.test(token)) return "walk_hike";
   if (/(soccer|football|rugby|basketball|hockey|lacrosse)/.test(token)) return "team_sport";
-  if (/(strength|weight_training|weights|weightlifting|resistance)/.test(token)) return "strength";
+  if (/(strength|weight_?training|weights|weightlifting|resistance)/.test(token)) return "strength";
   if (/(row|rowing|kayak|canoe|paddle)/.test(token)) return "row";
   if (/(yoga|pilates|mobility|stretch)/.test(token)) return "mobility";
   if (token === "cardio") return "cardio";

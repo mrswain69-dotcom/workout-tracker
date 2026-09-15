@@ -35,7 +35,7 @@ function canonicalActivityFamily(value: unknown) {
   if (/swim/.test(token)) return "swim";
   if (/(walk|hike|hiking)/.test(token)) return "walk_hike";
   if (/(soccer|football)/.test(token)) return "football";
-  if (/(strength|weight_training|weights|weightlifting|resistance)/.test(token)) return "strength";
+  if (/(strength|weight_?training|weights|weightlifting|resistance)/.test(token)) return "strength";
   if (/(row|rowing)/.test(token)) return "row";
   if (/(ski|snowboard)/.test(token)) return "snow";
   if (/(yoga|pilates|mobility|stretch)/.test(token)) return "mobility";
@@ -81,6 +81,13 @@ function ymdMs(value: unknown) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
   const ms = Date.parse(`${ymd}T00:00:00Z`);
   return Number.isFinite(ms) ? ms : null;
+}
+
+function verificationDateOffsetDays(externalYmd: unknown, workoutYmd: unknown) {
+  const externalMs = ymdMs(externalYmd);
+  const workoutMs = ymdMs(workoutYmd);
+  if (externalMs === null || workoutMs === null) return null;
+  return Math.round((workoutMs - externalMs) / 86400000);
 }
 
 function obscuredTime(value: unknown) {
@@ -227,10 +234,26 @@ function strengthEntries(payload: any) {
     if (!block || block.cancelled || text(block.typeId).toLowerCase() !== "strength") continue;
     const performed = Object.values(block?.sets || {}).some((sets: any) =>
       (Array.isArray(sets) ? sets : []).some((set: any) =>
-        positive(set?.reps) !== null || positive(set?.weight) !== null || positive(set?.seconds) !== null
+        positive(set?.reps) !== null || positive(set?.weight) !== null || positive(set?.timeSeconds) !== null || positive(set?.seconds) !== null
       )
     );
-    if (performed) result.push({ blockId: text(block.id), activityType: "strength", distanceM: null, durationSec: null, manualOnly: true });
+    if (!performed) continue;
+    const startedAt = text(block?.startedAt || block?.loggedAt);
+    const completedAt = text(block?.completedAt || block?.updatedAt);
+    const startedMs = isoMs(startedAt);
+    const completedMs = isoMs(completedAt);
+    const durationSec = startedMs !== null && completedMs !== null && completedMs > startedMs
+      ? Math.round((completedMs - startedMs) / 1000)
+      : null;
+    result.push({
+      blockId: text(block.id),
+      activityType: "strength",
+      distanceM: null,
+      durationSec,
+      startedAt: startedAt || null,
+      completedAt: completedAt || null,
+      manualOnly: true,
+    });
   }
   return result;
 }
@@ -252,14 +275,39 @@ function manualCandidates(logs: any[], profileId: string) {
       activityType: entry.activityType,
       distanceM: entry.distanceM,
       durationSec: entry.durationSec,
+      startedAt: entry.startedAt || null,
+      completedAt: entry.completedAt || null,
       manualOnly: entry.manualOnly === true,
     }));
   }
   return result;
 }
 
+function strengthSessionAutoScore(group: any, candidate: any) {
+  if (canonicalActivityFamily(group.activityType) !== "strength" || canonicalActivityFamily(candidate.activityType) !== "strength") return 0;
+  const groupDate = text(group.localDateYmd) || text(group.startedAt).slice(0, 10);
+  const offset = verificationDateOffsetDays(groupDate, candidate.dateYmd);
+  if (offset === null || Math.abs(offset) > USER_MATCH_WINDOW_DAYS) return 0;
+  const externalStart = isoMs(group.startedAt);
+  const workoutStart = isoMs(candidate.startedAt);
+  if (externalStart === null || workoutStart === null) return 0;
+  const deltaMin = Math.abs(externalStart - workoutStart) / 60000;
+  let startScore = 0;
+  if (deltaMin <= 5) startScore = 0.4;
+  else if (deltaMin <= 15) startScore = 0.3;
+  else if (deltaMin <= 30) startScore = 0.2;
+  else return 0;
+  const dateScore = Math.max(0.08, 0.2 - Math.abs(offset) * 0.06);
+  const durationScore = similarityScore(group.durationSec, candidate.durationSec, [
+    { relative: 0.08, absolute: 120, score: 0.2 },
+    { relative: 0.2, absolute: 300, score: 0.12 },
+    { relative: 0.35, absolute: 600, score: 0.06 },
+  ]);
+  return Math.round((dateScore + 0.15 + startScore + durationScore) * 1000) / 1000;
+}
+
 function manualScore(group: any, candidate: any) {
-  if (candidate.manualOnly) return 0;
+  if (candidate.manualOnly) return strengthSessionAutoScore(group, candidate);
   let dateScore = 0;
   if (group.localDateYmd) {
     if (group.localDateYmd !== candidate.dateYmd) return 0;
@@ -306,9 +354,9 @@ function userLinkStillCompatible(group: any, candidate: any) {
   if (groupMs === null || candidateMs === null || Math.abs(candidateMs - groupMs) / 86400000 > USER_MATCH_WINDOW_DAYS) return false;
   const type = typeCompatibility(group.activityType, candidate.activityType);
   if (!type.compatible) return false;
+  if (candidate.manualOnly) return canonicalActivityFamily(group.activityType) === "strength" && canonicalActivityFamily(candidate.activityType) === "strength";
   if (!metricWithin(group.distanceM, candidate.distanceM, 0.2, 500)) return false;
   if (!metricWithin(group.durationSec, candidate.durationSec, 0.3, 600)) return false;
-  if (candidate.manualOnly) return canonicalActivityFamily(group.activityType) === "strength" && canonicalActivityFamily(candidate.activityType) === "strength";
   return positive(group.distanceM) !== null || positive(group.durationSec) !== null;
 }
 
@@ -383,9 +431,9 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
   const claimedManualTargets = new Set<string>(
     (existingLinksResult.data || []).filter((row: any) => row.match_method === "manual").map(targetKey)
   );
-  const activeKeys: string[] = [];
   let linkedManual = 0;
   let preservedUserLinks = 0;
+  const activeKeys: string[] = [];
 
   for (const group of groups) {
     const key = await identityKey(group);
@@ -435,6 +483,8 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
     if (clearedManual.error) throw clearedManual.error;
 
     if (match.state === "matched" && match.candidate) {
+      const groupDate = text(group.localDateYmd) || text(group.startedAt).slice(0, 10);
+      const offset = verificationDateOffsetDays(groupDate, match.candidate.dateYmd) ?? 0;
       const persisted = await adminClient.from("external_activity_links").insert({
         family_id: profile.family_id,
         profile_id: profile.id,
@@ -443,7 +493,7 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
         manual_block_id: match.candidate.manualBlockId,
         match_method: "automatic",
         match_confidence: match.confidence,
-        date_offset_days: 0,
+        date_offset_days: offset,
         confirmed_at: null,
       });
       if (persisted.error) throw persisted.error;

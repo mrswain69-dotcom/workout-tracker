@@ -25,9 +25,12 @@ describe("verification interaction policy", () => {
     expect(isVerificationDateCompatible("2026-09-15", "2026-09-12")).toBe(false);
   });
 
-  it("rejects incompatible activity families while allowing explicit cardio compatibility", () => {
+  it("normalises both spaced and Strava one-word WeightTraining as strength", () => {
     expect(canonicalVerificationActivityFamily("Trail Run")).toBe("run");
     expect(canonicalVerificationActivityFamily("Weight Training")).toBe("strength");
+    expect(canonicalVerificationActivityFamily("WeightTraining")).toBe("strength");
+    expect(canonicalVerificationActivityFamily("weighttraining")).toBe("strength");
+    expect(verificationFamiliesCompatible("WeightTraining", "strength")).toBe(true);
     expect(verificationFamiliesCompatible("run", "cardio")).toBe(true);
     expect(verificationFamiliesCompatible("run", "strength")).toBe(false);
   });
