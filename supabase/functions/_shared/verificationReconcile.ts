@@ -354,9 +354,9 @@ function userLinkStillCompatible(group: any, candidate: any) {
   if (groupMs === null || candidateMs === null || Math.abs(candidateMs - groupMs) / 86400000 > USER_MATCH_WINDOW_DAYS) return false;
   const type = typeCompatibility(group.activityType, candidate.activityType);
   if (!type.compatible) return false;
+  if (candidate.manualOnly) return canonicalActivityFamily(group.activityType) === "strength" && canonicalActivityFamily(candidate.activityType) === "strength";
   if (!metricWithin(group.distanceM, candidate.distanceM, 0.2, 500)) return false;
   if (!metricWithin(group.durationSec, candidate.durationSec, 0.3, 600)) return false;
-  if (candidate.manualOnly) return canonicalActivityFamily(group.activityType) === "strength" && canonicalActivityFamily(candidate.activityType) === "strength";
   return positive(group.distanceM) !== null || positive(group.durationSec) !== null;
 }
 
