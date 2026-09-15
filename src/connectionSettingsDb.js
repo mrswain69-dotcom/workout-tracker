@@ -7,6 +7,8 @@ export const DEFAULT_CONNECTION_PREFERENCES = Object.freeze({
   route_location_enabled: false,
   health_recovery_enabled: false,
   include_private_activities: false,
+  initial_import_days: 90,
+  auto_log_window_days: 2,
 });
 
 function unavailable() {
@@ -21,12 +23,12 @@ export async function loadConnectionSettingsData(profileIds = []) {
   const [connections, preferences] = await Promise.all([
     supabase
       .from("external_connections")
-      .select("id,family_id,profile_id,provider,provider_account_id,provider_account_label,status,auto_sync_enabled,scopes,connected_at,disconnected_at,last_sync_at,last_error_code")
+      .select("id,family_id,profile_id,provider,provider_account_id,provider_account_label,status,auto_sync_enabled,scopes,connected_at,disconnected_at,last_sync_at,last_manual_sync_at,last_error_code")
       .in("profile_id", ids)
       .order("provider", { ascending: true }),
     supabase
       .from("external_connection_preferences")
-      .select("id,family_id,profile_id,provider,activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities,updated_at")
+      .select("id,family_id,profile_id,provider,activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities,initial_import_days,auto_log_window_days,updated_at")
       .in("profile_id", ids)
       .order("provider", { ascending: true }),
   ]);

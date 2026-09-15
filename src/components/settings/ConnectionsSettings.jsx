@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  checkConnectedSources,
   disconnectStravaConnection,
+  purgeProviderData,
   startStravaConnection,
 } from "../../verifiedActivityDb.js";
 import {
@@ -8,11 +10,18 @@ import {
   loadConnectionSettingsData,
   updateConnectionPreferences,
 } from "../../connectionSettingsDb.js";
+import {
+  manualSyncCooldown,
+  VERIFICATION_AUTO_LOG_WINDOW_OPTIONS,
+  VERIFICATION_HISTORY_OPTIONS,
+} from "../../engine/verificationInteractionEngine.js";
 import "./ConnectionsSettings.css";
 
 const DEFAULT_API = Object.freeze({
+  checkConnectedSources,
   disconnectStravaConnection,
   loadConnectionSettingsData,
+  purgeProviderData,
   startStravaConnection,
   updateConnectionPreferences,
 });
@@ -62,6 +71,13 @@ function formatSync(value) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date)}`;
+}
+
+function formatCooldown(ms) {
+  const seconds = Math.max(0, Math.ceil(Number(ms || 0) / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return minutes ? `${minutes}:${String(remainder).padStart(2, "0")}` : `${remainder}s`;
 }
 
 function keyFor(profileId, provider) {
@@ -115,6 +131,20 @@ function StreamToggle({ label, detail, checked, disabled = false, onChange }) {
   );
 }
 
+function PreferenceSelect({ label, detail, value, options, disabled = false, onChange }) {
+  return (
+    <label className={`connection-select-setting${disabled ? " is-disabled" : ""}`}>
+      <span>
+        <strong>{label}</strong>
+        <small>{detail}</small>
+      </span>
+      <select value={String(value)} disabled={disabled} onChange={(event) => onChange?.(Number(event.target.value))}>
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+    </label>
+  );
+}
+
 export default function ConnectionsSettings({
   profiles = [],
   initialProfileId = "",
@@ -135,10 +165,16 @@ export default function ConnectionsSettings({
   const [busy, setBusy] = useState("");
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState("");
+  const [clock, setClock] = useState(() => Date.now());
 
   const selectedProfile = activeProfiles.find((profile) => profile.id === selectedProfileId) || activeProfiles[0] || null;
   const selectedName = profileName(selectedProfile);
   const returnMessage = connectionReturnMessage(connectionReturn, selectedName);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!activeProfiles.some((profile) => profile.id === selectedProfileId)) {
@@ -174,18 +210,21 @@ export default function ConnectionsSettings({
     [data.connections]
   );
 
+  const stravaConnection = connectionsByKey.get(keyFor(selectedProfile?.id, "strava"));
+  const stravaPreferences = preferenceFor(data.preferences || [], selectedProfile?.id, "strava");
+  const stravaCooldown = manualSyncCooldown(stravaConnection, clock);
+
   async function connectStrava() {
     if (!selectedProfile) return;
     if (!(await authorizeMutation(`connect Strava to ${selectedName}`))) return;
-    if (!confirmAction(`Connect the Strava account you authorise to ${selectedName}?\n\nThis connection will provide activity evidence for ${selectedName} only.`)) return;
+    if (!confirmAction(`Connect the Strava account you authorise to ${selectedName}?\n\nWorkout Tracker will import the history window selected below for verification evidence.`)) return;
 
     setBusy("connect:strava");
     setError(null);
     setNotice("");
     try {
-      const preferences = preferenceFor(data.preferences || [], selectedProfile.id, "strava");
       const result = await api.startStravaConnection(selectedProfile.id, {
-        includePrivate: preferences.include_private_activities === true,
+        includePrivate: stravaPreferences.include_private_activities === true,
       });
       if (result?.error) throw result.error;
       if (!result?.data?.authorizeUrl) throw new Error("Strava connection setup is not available yet.");
@@ -199,7 +238,7 @@ export default function ConnectionsSettings({
   async function disconnectStrava() {
     if (!selectedProfile) return;
     if (!(await authorizeMutation(`disconnect Strava from ${selectedName}`))) return;
-    if (!confirmAction(`Disconnect Strava from ${selectedName}?\n\nWorkout Tracker history will stay unchanged.`)) return;
+    if (!confirmAction(`Disconnect Strava from ${selectedName}?\n\nExisting verification evidence and Workout Tracker history will stay in place.`)) return;
 
     setBusy("disconnect:strava");
     setError(null);
@@ -207,7 +246,7 @@ export default function ConnectionsSettings({
     try {
       const result = await api.disconnectStravaConnection(selectedProfile.id);
       if (result?.error) throw result.error;
-      setNotice(`Strava disconnected from ${selectedName}. Workout Tracker history was not changed.`);
+      setNotice(`Strava disconnected from ${selectedName}. Existing evidence and Workout Tracker history were retained.`);
       await reload();
     } catch (actionError) {
       setError(actionError);
@@ -216,7 +255,45 @@ export default function ConnectionsSettings({
     }
   }
 
-  async function changePreference(provider, key, checked) {
+  async function purgeStrava() {
+    if (!selectedProfile) return;
+    if (!(await authorizeMutation(`remove Strava and its imported data from ${selectedName}`))) return;
+    if (!confirmAction(`Remove Strava completely from Workout Tracker for ${selectedName}?\n\nThis disconnects Strava and removes stored Strava evidence. Manual Workout Tracker history is not deleted. Evidence still supported by another provider can remain verified.`)) return;
+
+    setBusy("purge:strava");
+    setError(null);
+    setNotice("");
+    try {
+      const result = await api.purgeProviderData(selectedProfile.id, "strava");
+      if (result?.error) throw result.error;
+      setNotice(`Strava disconnected and ${result?.data?.removedObservations ?? 0} stored Strava activit${result?.data?.removedObservations === 1 ? "y was" : "ies were"} removed. Manual Workout Tracker history was not deleted.`);
+      await reload();
+    } catch (actionError) {
+      setError(actionError);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function checkSources() {
+    if (!selectedProfile || !stravaConnection || stravaCooldown.blocked) return;
+    setBusy("sync:strava");
+    setError(null);
+    setNotice("");
+    try {
+      const result = await api.checkConnectedSources(selectedProfile.id, "strava");
+      if (result?.error) throw result.error;
+      setNotice(`Connected sources checked. ${result?.data?.imported ?? 0} Strava activit${result?.data?.imported === 1 ? "y was" : "ies were"} refreshed and verification was reconciled.`);
+      await reload();
+    } catch (actionError) {
+      setError(actionError);
+      await reload();
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function changePreference(provider, key, value) {
     if (!selectedProfile) return;
     if (!(await authorizeMutation(`change ${provider} data settings for ${selectedName}`))) return;
 
@@ -224,7 +301,7 @@ export default function ConnectionsSettings({
     setError(null);
     setNotice("");
     try {
-      const result = await api.updateConnectionPreferences(selectedProfile.id, provider, { [key]: checked });
+      const result = await api.updateConnectionPreferences(selectedProfile.id, provider, { [key]: value });
       if (result?.error) throw result.error;
       const returned = result?.data?.preferences;
       setData((current) => {
@@ -239,10 +316,16 @@ export default function ConnectionsSettings({
             ? "Private-activity access changes require reconnecting this provider so its OAuth permission can change."
             : "Private-activity preference saved. It will be requested when this provider is connected."
         );
-      } else if (checked) {
+      } else if (key === "initial_import_days") {
+        setNotice("History import window saved. It applies the next time this provider is connected or reconnected.");
+      } else if (key === "auto_log_window_days") {
+        setNotice("Recent automatic log-update window saved. Older imported evidence will remain evidence-only.");
+      } else if (value === true) {
         setNotice("Data stream enabled. Newly synced provider activity can include this stream.");
-      } else {
+      } else if (value === false) {
         setNotice("Data stream disabled. Stored optional values from this provider were scrubbed where applicable.");
+      } else {
+        setNotice("Connection setting saved.");
       }
     } catch (actionError) {
       setError(actionError);
@@ -255,9 +338,6 @@ export default function ConnectionsSettings({
     return <div className="connections-empty">Add an athlete profile before connecting an activity source.</div>;
   }
 
-  const stravaConnection = connectionsByKey.get(keyFor(selectedProfile?.id, "strava"));
-  const stravaPreferences = preferenceFor(data.preferences || [], selectedProfile?.id, "strava");
-
   return (
     <div className="connections-settings" aria-label="Connected apps and devices settings">
       <section className="connections-hero">
@@ -265,8 +345,8 @@ export default function ConnectionsSettings({
           <div className="connections-kicker">CONNECTED APPS &amp; DEVICES</div>
           <h2>Connections</h2>
           <p>
-            Connect activity sources to a specific Workout Tracker athlete. Provider evidence can then support Progress,
-            plan verification and other features without becoming a second workout or XP authority.
+            Connect activity sources to a specific Workout Tracker athlete. Verification works quietly in the background;
+            source details and controls stay here when you need them.
           </p>
         </div>
         <label className="connections-athlete-picker">
@@ -301,10 +381,7 @@ export default function ConnectionsSettings({
       </div>
 
       {returnMessage ? (
-        <div
-          className={`connections-message connections-message--${returnMessage.tone}`}
-          role={returnMessage.tone === "error" ? "alert" : "status"}
-        >
+        <div className={`connections-message connections-message--${returnMessage.tone}`} role={returnMessage.tone === "error" ? "alert" : "status"}>
           {returnMessage.text}
         </div>
       ) : null}
@@ -341,9 +418,22 @@ export default function ConnectionsSettings({
               {provider.id === "strava" ? (
                 <div className="connections-provider-actions">
                   {connected ? (
-                    <button type="button" onClick={disconnectStrava} disabled={!!busy}>
-                      {busy === "disconnect:strava" ? "Disconnecting…" : `Disconnect Strava from ${selectedName}`}
-                    </button>
+                    <>
+                      <button className="connections-primary-action" type="button" onClick={checkSources} disabled={!!busy || stravaCooldown.blocked}>
+                        {busy === "sync:strava" ? "Checking…" : stravaCooldown.blocked ? `Check again in ${formatCooldown(stravaCooldown.remainingMs)}` : "Check connected sources"}
+                      </button>
+                      <details className="connections-more-options">
+                        <summary>Connection options</summary>
+                        <div>
+                          <button type="button" onClick={disconnectStrava} disabled={!!busy}>
+                            {busy === "disconnect:strava" ? "Disconnecting…" : "Disconnect · keep existing evidence"}
+                          </button>
+                          <button className="is-danger" type="button" onClick={purgeStrava} disabled={!!busy}>
+                            {busy === "purge:strava" ? "Removing…" : "Disconnect & remove Strava data"}
+                          </button>
+                        </div>
+                      </details>
+                    </>
                   ) : (
                     <button type="button" onClick={connectStrava} disabled={!!busy}>
                       {busy === "connect:strava" ? "Opening Strava…" : `Connect Strava to ${selectedName}`}
@@ -359,16 +449,31 @@ export default function ConnectionsSettings({
       <section className="connections-streams" aria-label={`Strava data streams for ${selectedName}`}>
         <div className="connections-streams__heading">
           <div>
-            <div className="connections-kicker">DATA STREAMS</div>
+            <div className="connections-kicker">DATA &amp; HISTORY</div>
             <h3>Strava · {selectedName}</h3>
           </div>
-          <span>Privacy-first controls</span>
+          <span>Details stay out of the daily Log</span>
         </div>
         <p>
-          Activity verification is the core connection. Optional streams can be limited independently. Turning a supported
-          stream off scrubs retained optional values; turning it on applies to newly synced activity.
+          Choose what Workout Tracker may retain. Provider history can be broad for verification while automatic Log updates stay deliberately recent.
         </p>
         <div className="connections-stream-list">
+          <PreferenceSelect
+            label="History to import when connecting"
+            detail="Controls how far back Workout Tracker asks Strava for evidence when you connect or reconnect."
+            value={stravaPreferences.initial_import_days}
+            options={VERIFICATION_HISTORY_OPTIONS}
+            disabled={busy.startsWith("preference:")}
+            onChange={(value) => changePreference("strava", "initial_import_days", value)}
+          />
+          <PreferenceSelect
+            label="Automatic Log update window"
+            detail="Limits future verified auto-population to recent days. Older imported activity remains evidence-only."
+            value={stravaPreferences.auto_log_window_days}
+            options={VERIFICATION_AUTO_LOG_WINDOW_OPTIONS}
+            disabled={busy.startsWith("preference:")}
+            onChange={(value) => changePreference("strava", "auto_log_window_days", value)}
+          />
           <StreamToggle
             label="Activity verification"
             detail="Activity type, date/time, duration, distance and recording provenance. Required while Strava is connected."
