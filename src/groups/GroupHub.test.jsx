@@ -6,14 +6,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./groupDb", () => ({
   createGroup: vi.fn(),
   createGroupInvite: vi.fn(),
-  joinGroup: vi.fn(),
+  getGroupJoinSettings: vi.fn(),
+  joinGroupWithCode: vi.fn(),
   leaveGroup: vi.fn(),
   listGroupDirectory: vi.fn(),
   listGroupInvites: vi.fn(),
+  listGroupJoinRequests: vi.fn(),
   listProfileGroups: vi.fn(),
-  previewGroupInvite: vi.fn(),
+  previewGroupJoinCode: vi.fn(),
   removeGroupMember: vi.fn(),
+  reviewGroupJoinRequest: vi.fn(),
   revokeGroupInvite: vi.fn(),
+  rotateGroupJoinCode: vi.fn(),
+  setGroupJoinMode: vi.fn(),
   setGroupMemberRole: vi.fn(),
   updateGroupDetails: vi.fn(),
   updateGroupNickname: vi.fn(),
@@ -23,17 +28,9 @@ vi.mock("./groupDb", () => ({
   updateGroupXpHistoryScope: vi.fn(),
 }));
 
-vi.mock("./GroupSeasons.jsx", () => ({
-  default: () => null,
-}));
-
-vi.mock("./GroupTeamView.jsx", () => ({
-  default: () => null,
-}));
-
-vi.mock("./GroupChallenges.jsx", () => ({
-  default: () => null,
-}));
+vi.mock("./GroupSeasons.jsx", () => ({ default: () => null }));
+vi.mock("./GroupTeamView.jsx", () => ({ default: () => null }));
+vi.mock("./GroupChallenges.jsx", () => ({ default: () => null }));
 
 import GroupHub from "./GroupHub.jsx";
 import * as groupDb from "./groupDb";
@@ -47,7 +44,8 @@ function group(overrides = {}) {
     description: "Private squad",
     group_type: "squad",
     status: "active",
-    max_members: 20,
+    max_members: 50,
+    join_mode: "approval",
     membership: {
       id: "membership-self",
       group_id: "group-1",
@@ -64,127 +62,114 @@ function group(overrides = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStorage.clear();
+  window.history.replaceState({}, "", "/");
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: vi.fn(async () => undefined) },
+  });
   groupDb.listProfileGroups.mockResolvedValue({ data: [], error: null });
   groupDb.listGroupDirectory.mockResolvedValue({ data: [], error: null });
   groupDb.listGroupInvites.mockResolvedValue({ data: [], error: null });
-  groupDb.loadGroupXpLeaderboard.mockResolvedValue({
-    data: {
-      scoreVersion: 1,
-      scopeMode: "group_start",
-      competitionStartDate: "2026-09-10",
-      current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] },
-      history: [],
-    },
+  groupDb.listGroupJoinRequests.mockResolvedValue({ data: [], error: null });
+  groupDb.getGroupJoinSettings.mockResolvedValue({
+    data: { group_id: "group-1", join_mode: "approval", join_code: "ABCD-EF12-3456-7890", max_members: 50, active_members: 1, pending_requests: 0 },
     error: null,
   });
-  groupDb.loadGroupConsistencyLeaderboard.mockResolvedValue({
-    data: {
-      scoreVersion: 1,
-      competitionStartDate: "2026-09-10",
-      current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] },
-      history: [],
-    },
-    error: null,
-  });
-  groupDb.loadGroupImprovementLeaderboard.mockResolvedValue({
-    data: {
-      scoreVersion: 1,
-      baselineDays: 28,
-      competitionStartDate: "2026-09-10",
-      current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] },
-      history: [],
-    },
-    error: null,
-  });
+  groupDb.loadGroupXpLeaderboard.mockResolvedValue({ data: { scoreVersion: 1, scopeMode: "group_start", competitionStartDate: "2026-09-10", current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] }, history: [] }, error: null });
+  groupDb.loadGroupConsistencyLeaderboard.mockResolvedValue({ data: { scoreVersion: 1, competitionStartDate: "2026-09-10", current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] }, history: [] }, error: null });
+  groupDb.loadGroupImprovementLeaderboard.mockResolvedValue({ data: { scoreVersion: 1, baselineDays: 28, competitionStartDate: "2026-09-10", current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] }, history: [] }, error: null });
   groupDb.updateGroupXpHistoryScope.mockResolvedValue({ data: { xp_history_scope: "group_start" }, error: null });
 });
 
 afterEach(() => cleanup());
 
-describe("Group & Team Stage 2 GroupHub", () => {
-  it("renders a deliberate empty state with Create and Join paths", async () => {
+describe("Group Hub scalable onboarding", () => {
+  it("renders empty Create and Join paths", async () => {
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
     expect(await screen.findByText(/No Groups yet/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Join" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Create" })).toBeTruthy();
   });
 
-  it("creates a Group with the active athlete and independent Group nickname", async () => {
+  it("creates a Group with an independent Group nickname", async () => {
     groupDb.createGroup.mockResolvedValue({ data: { group_id: "new-group", membership_id: "new-membership" }, error: null });
-    groupDb.listProfileGroups
-      .mockResolvedValueOnce({ data: [], error: null })
-      .mockResolvedValueOnce({ data: [group({ id: "new-group", name: "New Squad" })], error: null });
-
+    groupDb.listProfileGroups.mockResolvedValueOnce({ data: [], error: null }).mockResolvedValueOnce({ data: [group({ id: "new-group", name: "New Squad" })], error: null });
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
     fireEvent.change(screen.getByPlaceholderText("e.g. Falcons Performance Squad"), { target: { value: "New Squad" } });
     fireEvent.change(screen.getByPlaceholderText("Shown to this Group"), { target: { value: "Rocket 10" } });
     fireEvent.click(screen.getByRole("button", { name: "Create Group" }));
-
-    await waitFor(() => expect(groupDb.createGroup).toHaveBeenCalledWith(expect.objectContaining({
-      profileId: "profile-1",
-      name: "New Squad",
-      nickname: "Rocket 10",
-    })));
+    await waitFor(() => expect(groupDb.createGroup).toHaveBeenCalledWith(expect.objectContaining({ profileId: "profile-1", name: "New Squad", nickname: "Rocket 10" })));
   });
 
-  it("previews an invite without needing Group membership and joins using a pseudonym", async () => {
-    groupDb.previewGroupInvite.mockResolvedValue({ data: { group_id: "g2", group_name: "Sprint Crew", group_type: "private", expires_at: "2026-09-17T12:00:00Z", remaining_uses: 1 }, error: null });
-    groupDb.joinGroup.mockResolvedValue({ data: { group_id: "g2", membership_id: "m2" }, error: null });
-    groupDb.listProfileGroups
-      .mockResolvedValueOnce({ data: [], error: null })
-      .mockResolvedValueOnce({ data: [group({ id: "g2", name: "Sprint Crew", membership: { ...group().membership, id: "m2", nickname: "The Rocket", role: "member" } })], error: null });
-
+  it("previews a reusable Group code and submits an approval request", async () => {
+    groupDb.previewGroupJoinCode.mockResolvedValue({ data: { code_kind: "shared", group_id: "g2", group_name: "Sprint Crew", group_type: "private", join_mode: "approval", active_members: 12, max_members: 50 }, error: null });
+    groupDb.joinGroupWithCode.mockResolvedValue({ data: { group_id: "g2", request_id: "r2", join_status: "pending", code_kind: "shared" }, error: null });
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
-    fireEvent.change(screen.getByPlaceholderText("Paste invite code"), { target: { value: "abc123" } });
-    fireEvent.click(screen.getByRole("button", { name: "Check invite" }));
+    fireEvent.change(screen.getByPlaceholderText("Enter Group code"), { target: { value: "ABCD-EF12-3456-7890" } });
+    fireEvent.click(screen.getByRole("button", { name: "Check Group" }));
     expect(await screen.findByText("Sprint Crew")).toBeTruthy();
-    const nicknameInput = screen.getByLabelText("Your nickname in this Group");
-    fireEvent.change(nicknameInput, { target: { value: "The Rocket" } });
-    fireEvent.click(screen.getByRole("button", { name: "Join Group" }));
-
-    await waitFor(() => expect(groupDb.joinGroup).toHaveBeenCalledWith({
-      profileId: "profile-1",
-      inviteCode: "abc123",
-      nickname: "The Rocket",
-    }));
+    expect(screen.getByText("Approval required")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Your nickname in this Group"), { target: { value: "The Rocket" } });
+    fireEvent.click(screen.getByRole("button", { name: "Request to join" }));
+    await waitFor(() => expect(groupDb.joinGroupWithCode).toHaveBeenCalledWith({ profileId: "profile-1", joinCode: "ABCD-EF12-3456-7890", nickname: "The Rocket" }));
+    expect(await screen.findByText(/Admin needs to approve/)).toBeTruthy();
   });
 
-  it("renders only safe member identity fields and Admin controls", async () => {
+  it("opens a shared join link directly into the Join flow", async () => {
+    window.history.replaceState({}, "", "/?groupJoin=ABCD-EF12-3456-7890");
+    groupDb.previewGroupJoinCode.mockResolvedValue({ data: { code_kind: "shared", group_id: "g2", group_name: "Falcons", group_type: "squad", join_mode: "approval", active_members: 14, max_members: 50 }, error: null });
+    render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    expect(await screen.findByText("Falcons")).toBeTruthy();
+    expect(groupDb.previewGroupJoinCode).toHaveBeenCalledWith("ABCD-EF12-3456-7890");
+    expect(window.location.search).not.toContain("groupJoin");
+  });
+
+  it("shows one reusable code and safe pending approvals to an Admin", async () => {
     groupDb.listProfileGroups.mockResolvedValue({ data: [group()], error: null });
     groupDb.listGroupDirectory.mockResolvedValue({ data: [
       { membership_id: "membership-self", group_id: "group-1", nickname: "WS10", role: "admin", avatar_id: "emoji_bolt", avatar_frame: "prestige_cyan_gold", avatar_frames_enabled: true, joined_at: "2026-09-10T12:00:00Z" },
       { membership_id: "membership-other", group_id: "group-1", nickname: "Shadow", role: "member", avatar_id: "emoji_tiger", avatar_frame: "", avatar_frames_enabled: true, joined_at: "2026-09-10T12:05:00Z" },
     ], error: null });
-
+    groupDb.listGroupJoinRequests.mockResolvedValue({ data: [{ request_id: "request-1", nickname: "New Player", avatar_id: "emoji_bolt", avatar_frame: "", avatar_frames_enabled: true, requested_at: "2026-09-15T18:00:00Z" }], error: null });
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
-    expect(await screen.findByText("Shadow")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Create invite" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Make admin" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Remove" })).toBeTruthy();
-    expect(screen.queryByText("body_weight_kg")).toBeNull();
+    expect(await screen.findByText("ABCD-EF12-3456-7890")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy invite link" })).toBeTruthy();
+    expect(await screen.findByText("New Player")).toBeTruthy();
+    expect(screen.queryByText("profile_id")).toBeNull();
   });
 
-  it("shows a newly generated invite secret once and keeps stored invites as hints", async () => {
+  it("keeps member operations behind a Manage disclosure", async () => {
+    groupDb.listProfileGroups.mockResolvedValue({ data: [group()], error: null });
+    groupDb.listGroupDirectory.mockResolvedValue({ data: [
+      { membership_id: "membership-self", nickname: "WS10", role: "admin", avatar_id: "emoji_bolt", avatar_frame: "", avatar_frames_enabled: true },
+      { membership_id: "membership-other", nickname: "Shadow", role: "member", avatar_id: "emoji_tiger", avatar_frame: "", avatar_frames_enabled: true },
+    ], error: null });
+    render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    expect(await screen.findByText("Shadow")).toBeTruthy();
+    expect(screen.getByText("Manage")).toBeTruthy();
+  });
+
+  it("keeps one-use invites as an optional advanced setting", async () => {
     groupDb.listProfileGroups.mockResolvedValue({ data: [group()], error: null });
     groupDb.listGroupDirectory.mockResolvedValue({ data: [{ membership_id: "membership-self", nickname: "WS10", role: "admin", avatar_id: "emoji_bolt", avatar_frame: "", avatar_frames_enabled: true }], error: null });
-    groupDb.createGroupInvite.mockResolvedValue({ data: { invite_id: "invite-1", invite_code: "0123456789abcdef0123456789abcdef0123", code_hint: "0123…0123", expires_at: "2026-09-17T12:00:00Z", max_uses: 1 }, error: null });
-
+    groupDb.createGroupInvite.mockResolvedValue({ data: { invite_id: "invite-1", invite_code: "one-use-invite-test", code_hint: "one…test", expires_at: "2026-09-17T12:00:00Z", max_uses: 1 }, error: null });
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
-    const inviteButton = await screen.findByRole("button", { name: "Create invite" });
-    fireEvent.click(inviteButton);
-    expect(await screen.findByText("0123456789abcdef0123456789abcdef0123")).toBeTruthy();
+    fireEvent.click(await screen.findByText("Invite settings"));
+    fireEvent.click(screen.getByRole("button", { name: "Create one-use invite" }));
+    expect(await screen.findByText("one-use-invite-test")).toBeTruthy();
     expect(screen.getByText(/Shown in full only now/)).toBeTruthy();
   });
 
-  it("does not expose Admin invite controls to an ordinary member", async () => {
+  it("does not expose Admin join controls to an ordinary member", async () => {
     groupDb.listProfileGroups.mockResolvedValue({ data: [group({ membership: { ...group().membership, role: "member" } })], error: null });
     groupDb.listGroupDirectory.mockResolvedValue({ data: [{ membership_id: "membership-self", nickname: "WS10", role: "member", avatar_id: "emoji_bolt", avatar_frame: "", avatar_frames_enabled: true }], error: null });
-
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
     expect(await screen.findByText("WS10 · You")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Create invite" })).toBeNull();
-    expect(groupDb.listGroupInvites).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Copy invite link" })).toBeNull();
+    expect(groupDb.getGroupJoinSettings).not.toHaveBeenCalled();
+    expect(groupDb.listGroupJoinRequests).not.toHaveBeenCalled();
   });
 });
