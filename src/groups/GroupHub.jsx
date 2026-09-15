@@ -120,7 +120,8 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [newInviteCode, setNewInviteCode] = useState("");
+  const [privateInviteSecrets, setPrivateInviteSecrets] = useState({});
+  const [latestPrivateInviteId, setLatestPrivateInviteId] = useState("");
 
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
@@ -217,6 +218,8 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
     setJoinNickname(activeProfile?.name || "");
     setError("");
     setNotice("");
+    setPrivateInviteSecrets({});
+    setLatestPrivateInviteId("");
     if (!pendingJoinCodeRef.current) {
       setJoinPreview(null);
       setJoinCode("");
@@ -310,8 +313,9 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
       () => createGroupInvite(selectedGroup.id, { expiresInDays: 7, maxUses: 1 }),
       "Private one-use invite created."
     );
-    if (!created?.invite_code) return;
-    setNewInviteCode(created.invite_code);
+    if (!created?.invite_code || !created?.invite_id) return;
+    setPrivateInviteSecrets((current) => ({ ...current, [created.invite_id]: created.invite_code }));
+    setLatestPrivateInviteId(created.invite_id);
     await refreshSelected(selectedGroup);
   }
 
@@ -365,7 +369,14 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
   }
 
   async function handleRevokeInvite(invite) {
+    if (!window.confirm("Revoke this one-use private invite? It will stop working immediately.")) return;
     await run(() => revokeGroupInvite(invite.id), "Private invite revoked.");
+    setPrivateInviteSecrets((current) => {
+      const next = { ...current };
+      delete next[invite.id];
+      return next;
+    });
+    setLatestPrivateInviteId((current) => current === invite.id ? "" : current);
     await refreshSelected(selectedGroup);
   }
 
@@ -379,6 +390,9 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
   }
 
   const activeInvites = invites.filter((invite) => !invite.revoked_at && new Date(invite.expires_at).getTime() > Date.now() && invite.use_count < invite.max_uses);
+  const latestPrivateInvite = activeInvites.find((invite) => invite.id === latestPrivateInviteId) || null;
+  const latestPrivateInviteCode = latestPrivateInvite ? privateInviteSecrets[latestPrivateInvite.id] || "" : "";
+  const listedPrivateInvites = activeInvites.filter((invite) => invite.id !== latestPrivateInvite?.id);
   const shareLink = joinSettings?.join_code ? buildGroupJoinLink(joinSettings.join_code) : "";
 
   return (
@@ -529,23 +543,36 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                                 <strong>Individual private invite</strong>
                                 <span>Optional one-use code for a specific person. It expires after 7 days.</span>
                                 <button className="groupHubSecondary" type="button" onClick={handleCreatePrivateInvite} disabled={busy || directory.length >= selectedGroup.max_members}>Create one-use invite</button>
-                                {newInviteCode ? (
+                                {latestPrivateInvite && latestPrivateInviteCode ? (
                                   <div className="groupInviteSecret">
                                     <div><strong>New private invite</strong><span>Shown in full only now. The database stores only its hash.</span></div>
-                                    <code>{newInviteCode}</code>
-                                    <button className="groupHubSecondary" onClick={() => copyText(newInviteCode, "Private invite copied.")}>Copy</button>
+                                    <code>{latestPrivateInviteCode}</code>
+                                    <div className="groupPrivateInviteActions">
+                                      <button className="groupHubSecondary" type="button" onClick={() => copyText(latestPrivateInviteCode, "Private invite copied.")}>Copy</button>
+                                      <button className="groupHubDanger" type="button" onClick={() => handleRevokeInvite(latestPrivateInvite)} disabled={busy}>Revoke</button>
+                                    </div>
                                   </div>
                                 ) : null}
-                                {activeInvites.length ? (
+                                <small className="groupPrivateInviteHelp">Codes generated while this Groups window is open remain copyable below. After it closes, only the non-secret hint is retained; any invite can still be revoked.</small>
+                                {listedPrivateInvites.length ? (
                                   <div className="groupInviteList">
-                                    {activeInvites.map((invite) => (
-                                      <div key={invite.id}>
-                                        <span><strong>{invite.code_hint}</strong> · {invite.use_count}/{invite.max_uses} used · expires {formatShortDate(invite.expires_at)}</span>
-                                        <button onClick={() => handleRevokeInvite(invite)} disabled={busy}>Revoke</button>
-                                      </div>
-                                    ))}
+                                    {listedPrivateInvites.map((invite) => {
+                                      const generatedCode = privateInviteSecrets[invite.id] || "";
+                                      return (
+                                        <div key={invite.id} className="groupPrivateInviteRow">
+                                          <span>
+                                            <strong>{generatedCode || invite.code_hint}</strong>
+                                            <small>{invite.use_count}/{invite.max_uses} used · expires {formatShortDate(invite.expires_at)}</small>
+                                          </span>
+                                          <div className="groupPrivateInviteActions">
+                                            {generatedCode ? <button type="button" onClick={() => copyText(generatedCode, "Private invite copied.")}>Copy</button> : null}
+                                            <button type="button" onClick={() => handleRevokeInvite(invite)} disabled={busy}>Revoke</button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                ) : <div className="groupHubMuted">No active private invites.</div>}
+                                ) : activeInvites.length ? null : <div className="groupHubMuted">No active private invites.</div>}
                               </div>
                             </div>
                           </details>
