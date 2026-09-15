@@ -42,13 +42,19 @@ jobs:
       - name: Security audit
         run: npm audit --audit-level=low
 
-      - name: Remove temporary patch machinery
-        run: rm scripts/strength-session-scope-patch.py .github/workflows/strength-session-scope-patch.yml
+      - name: Remove generated and temporary files
+        run: |
+          rm -rf node_modules dist
+          rm scripts/strength-session-scope-patch.py .github/workflows/strength-session-scope-patch.yml
 
       - name: Commit verified patch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add src/components/verification/LogVerificationSummary.jsx
+          git add src/components/verification/LogVerificationSummary.test.jsx
+          git add src/components/progress/VerifiedActivityEvidenceSection.jsx
+          git add src/components/progress/VerifiedActivityEvidenceSection.test.jsx
+          git add -u scripts/strength-session-scope-patch.py .github/workflows/strength-session-scope-patch.yml
           git commit -m "Treat overlapping strength blocks as one verified session"
           git push origin HEAD:fix/strength-session-scope
