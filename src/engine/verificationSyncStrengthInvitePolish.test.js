@@ -24,6 +24,13 @@ describe("verification sync, strength matching and invite polish", () => {
     expect(reconcile).toContain("date_offset_days: offset");
   });
 
+  it("preserves user-confirmed strength links as session evidence rather than movement-duration proof", () => {
+    const manualOnlyGuard = reconcile.indexOf('if (candidate.manualOnly) return canonicalActivityFamily(group.activityType) === "strength"');
+    const distanceGuard = reconcile.indexOf("if (!metricWithin(group.distanceM", manualOnlyGuard);
+    expect(manualOnlyGuard).toBeGreaterThan(-1);
+    expect(distanceGuard).toBeGreaterThan(manualOnlyGuard);
+  });
+
   it("updates successful provider sync time and exposes sync from Progress", () => {
     expect(actions).toContain("last_sync_at: syncedAt");
     expect(progress).toContain("checkConnectedSources");
