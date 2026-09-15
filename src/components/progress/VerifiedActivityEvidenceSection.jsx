@@ -328,6 +328,7 @@ export default function VerifiedActivityEvidenceSection({
           <h3>External activity evidence</h3>
           <p className="progress-section-copy">
             Verification works quietly in the background. Tap a verification status only when you want provenance, matching or correction controls.
+            Provider evidence stays separate from manual workout history and rewards.
           </p>
         </div>
       </div>
