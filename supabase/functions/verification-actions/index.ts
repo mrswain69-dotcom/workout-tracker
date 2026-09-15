@@ -27,6 +27,10 @@ function positive(value: unknown) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : null;
 }
+function isoMs(value: unknown) {
+  const ms = Date.parse(text(value));
+  return Number.isFinite(ms) ? ms : null;
+}
 function family(value: unknown) {
   const token = text(value, "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   if (!token || ["unknown", "other", "workout", "activity"].includes(token)) return "unknown";
@@ -35,7 +39,7 @@ function family(value: unknown) {
   if (/swim/.test(token)) return "swim";
   if (/(walk|hike|hiking)/.test(token)) return "walk_hike";
   if (/(soccer|football|rugby|basketball|hockey|lacrosse)/.test(token)) return "team_sport";
-  if (/(strength|weight_training|weights|weightlifting|resistance)/.test(token)) return "strength";
+  if (/(strength|weight_?training|weights|weightlifting|resistance)/.test(token)) return "strength";
   if (/(row|rowing|kayak|canoe|paddle)/.test(token)) return "row";
   if (/(yoga|pilates|mobility|stretch)/.test(token)) return "mobility";
   if (token === "cardio") return "cardio";
@@ -70,6 +74,18 @@ function metricCompatible(left: unknown, right: unknown, relativeLimit: number, 
     compatible: relative <= relativeLimit || delta <= absoluteLimit,
     score: Math.max(0, 1 - relative),
   };
+}
+function strengthTimingScore(evidenceStartedAt: unknown, candidateStartedAt: unknown) {
+  const externalMs = isoMs(evidenceStartedAt);
+  const workoutMs = isoMs(candidateStartedAt);
+  if (externalMs === null || workoutMs === null) return 0;
+  const deltaMin = Math.abs(externalMs - workoutMs) / 60000;
+  if (deltaMin <= 5) return 0.2;
+  if (deltaMin <= 15) return 0.16;
+  if (deltaMin <= 30) return 0.11;
+  if (deltaMin <= 60) return 0.07;
+  if (deltaMin <= 120) return 0.03;
+  return 0;
 }
 
 function blockCandidates(log: any) {
@@ -116,19 +132,30 @@ function blockCandidates(log: any) {
     if (typeId === "strength") {
       const recorded = Object.values(block?.sets || {}).some((sets: any) =>
         (Array.isArray(sets) ? sets : []).some((set: any) =>
-          positive(set?.reps) !== null || positive(set?.weight) !== null || positive(set?.seconds) !== null
+          positive(set?.reps) !== null || positive(set?.weight) !== null || positive(set?.timeSeconds) !== null || positive(set?.seconds) !== null
         )
       );
-      if (recorded) result.push({
-        manualLogId: log.id,
-        manualBlockId: text(block.id) || null,
-        logDate: log.date_ymd,
-        label: text(block.label, "Strength"),
-        activityType: "strength",
-        distanceM: null,
-        durationSec: null,
-        scope: "session",
-      });
+      if (recorded) {
+        const startedAt = text(block?.startedAt || block?.loggedAt);
+        const completedAt = text(block?.completedAt || block?.updatedAt);
+        const startedMs = isoMs(startedAt);
+        const completedMs = isoMs(completedAt);
+        const entryDurationSec = startedMs !== null && completedMs !== null && completedMs > startedMs
+          ? Math.round((completedMs - startedMs) / 1000)
+          : null;
+        result.push({
+          manualLogId: log.id,
+          manualBlockId: text(block.id) || null,
+          logDate: log.date_ymd,
+          label: text(block.label, "Strength"),
+          activityType: "strength",
+          distanceM: null,
+          durationSec: entryDurationSec,
+          startedAt: startedAt || null,
+          completedAt: completedAt || null,
+          scope: "session",
+        });
+      }
     }
   }
   return result;
@@ -166,12 +193,16 @@ function scoreCandidate(evidence: any, candidate: any) {
   if (offset === null || Math.abs(offset) > MATCH_WINDOW_DAYS) return null;
   const distance = metricCompatible(evidence.distanceM, candidate.distanceM, 0.2, 500);
   const duration = metricCompatible(evidence.durationSec, candidate.durationSec, 0.3, 600);
-  if (!distance.compatible || !duration.compatible) return null;
-  if (candidate.scope !== "session" && !distance.comparable && !duration.comparable) return null;
+  const strengthSession = candidate.scope === "session" && family(evidence.activity.activity_type) === "strength";
+  if (!strengthSession && (!distance.compatible || !duration.compatible)) return null;
+  if (!strengthSession && !distance.comparable && !duration.comparable) return null;
   let score = 0.45 + Math.max(0, 0.2 - Math.abs(offset) * 0.08);
   if (distance.comparable) score += 0.2 * distance.score;
-  if (duration.comparable) score += 0.15 * duration.score;
-  if (candidate.scope === "session" && family(evidence.activity.activity_type) === "strength") score += 0.15;
+  if (duration.comparable) score += (strengthSession ? 0.1 : 0.15) * duration.score;
+  if (strengthSession) {
+    score += 0.15;
+    score += strengthTimingScore(evidence.activity.started_at, candidate.startedAt);
+  }
   return { ...candidate, dateOffsetDays: offset, score: Math.round(Math.min(1, score) * 1000) / 1000 };
 }
 
@@ -238,8 +269,9 @@ Deno.serve(async (req: Request) => {
       if (connectionError || !connection || connection.status !== "active") return json({ error: "Provider is not connected" }, 409, corsHeaders);
 
       const cutoff = new Date(Date.now() - MANUAL_SYNC_COOLDOWN_MS).toISOString();
+      const manualSyncStartedAt = new Date().toISOString();
       const claimed = await adminClient.from("external_connections")
-        .update({ last_manual_sync_at: new Date().toISOString() }).eq("id", connection.id)
+        .update({ last_manual_sync_at: manualSyncStartedAt }).eq("id", connection.id)
         .or(`last_manual_sync_at.is.null,last_manual_sync_at.lt.${cutoff}`)
         .select("id,last_manual_sync_at").maybeSingle();
       if (claimed.error) throw claimed.error;
@@ -254,8 +286,14 @@ Deno.serve(async (req: Request) => {
       const accessToken = await refreshStravaAccessToken(adminClient, connection.id);
       const imported = await importRecentStravaActivities(adminClient, connection, accessToken, { days: 7 });
       const reconciliation = await reconcileVerifiedActivitiesForProfile(adminClient, profileId);
-      await audit(adminClient, authData.user.id, profile, "manual_sync", { provider, eventData: { imported, reconciliation } });
-      return json({ provider, imported, reconciliation, nextAllowedAt: new Date(Date.now() + MANUAL_SYNC_COOLDOWN_MS).toISOString() }, 200, corsHeaders);
+      const syncedAt = new Date().toISOString();
+      const connectionUpdate = await adminClient.from("external_connections").update({
+        last_sync_at: syncedAt,
+        last_error_code: null,
+      }).eq("id", connection.id);
+      if (connectionUpdate.error) throw connectionUpdate.error;
+      await audit(adminClient, authData.user.id, profile, "manual_sync", { provider, eventData: { imported, reconciliation, syncedAt } });
+      return json({ provider, imported, reconciliation, syncedAt, nextAllowedAt: new Date(Date.parse(manualSyncStartedAt) + MANUAL_SYNC_COOLDOWN_MS).toISOString() }, 200, corsHeaders);
     }
 
     if (["match_candidates", "manual_match", "detach_match", "ignore_activity", "unignore_activity", "reset_automatic_matching"].includes(action)) {
