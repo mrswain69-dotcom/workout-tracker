@@ -1,3 +1,4 @@
+# Registered workflow trigger
 name: Stage 7.2 finish patch
 
 on:
@@ -57,7 +58,6 @@ jobs:
               "Session extra state",
           )
 
-          # Preserve authoritative log row IDs so block-level verification links can resolve exactly.
           app = app.replace(
               '  .map((r) => ({\n    date_ymd: r.date_ymd,\n    log: getLogRowPayload(r),',
               '  .map((r) => ({\n    id: r.id || null,\n    date_ymd: r.date_ymd,\n    log: getLogRowPayload(r),',
