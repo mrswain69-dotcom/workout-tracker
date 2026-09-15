@@ -44,6 +44,23 @@ export async function runVerificationAction(profileId, action, payload = {}) {
   return { data: data || null, error: error || null };
 }
 
+export async function runVerificationAutoPopulationAction(profileId, action = "apply", payload = {}) {
+  if (!supabase) return unavailable();
+  if (!profileId || !action) return { data: null, error: new Error("Athlete profile and auto-population action are required") };
+  const { data, error } = await supabase.functions.invoke("verification-auto-populate", {
+    body: { profileId, action, ...(payload || {}) },
+  });
+  return { data: data || null, error: error || null };
+}
+
+export function applyRecentVerifiedAutoPopulation(profileId) {
+  return runVerificationAutoPopulationAction(profileId, "apply");
+}
+
+export function undoVerifiedAutoPopulation(profileId, verifiedActivityId) {
+  return runVerificationAutoPopulationAction(profileId, "undo", { verifiedActivityId });
+}
+
 export function checkConnectedSources(profileId, provider = "strava") {
   return runVerificationAction(profileId, "manual_sync", { provider });
 }

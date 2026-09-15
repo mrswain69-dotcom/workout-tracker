@@ -1,15 +1,25 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { loadVerifiedActivityData } from "../../verifiedActivityDb.js";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  applyRecentVerifiedAutoPopulation,
+  loadVerifiedActivityData,
+  undoVerifiedAutoPopulation,
+} from "../../verifiedActivityDb.js";
 import { buildVerifiedCardioEvidence } from "../../engine/verifiedCardioEvidenceEngine.js";
 import { matchVerifiedPlanCompletionEvidence } from "../../engine/verifiedPlanCompletionEngine.js";
+import { getAutoPopulationForVerifiedActivity } from "../../engine/verificationAutoPopulationEngine.js";
 import "./LogVerificationSummary.css";
 
-const DEFAULT_API = Object.freeze({ loadVerifiedActivityData });
+const DEFAULT_API = Object.freeze({
+  applyRecentVerifiedAutoPopulation,
+  loadVerifiedActivityData,
+  undoVerifiedAutoPopulation,
+});
 const VERIFY_TYPES = new Set([
   "strength",
   "hiit",
   "box",
   "cardio",
+  "dynamic-cardio",
   "run",
   "swim",
   "duration",
@@ -60,6 +70,12 @@ function providerLabel(value) {
 function directLinkStatus(block) {
   const type = text(block?.typeId).toLowerCase();
   return ["strength", "hiit", "box", "session"].includes(type) ? "partial" : "verified";
+}
+
+function hasActiveAutoPopulation(population) {
+  if (!population) return false;
+  return (population.fields || []).some((row) => row.state === "imported") ||
+    (population.extraBlocks || []).some((row) => row.state === "imported");
 }
 
 export function buildLogVerificationModel({ data = {}, dateYmd = "", manualLogId = "", blocks = [] } = {}) {
@@ -151,12 +167,37 @@ export default function LogVerificationSummary({
   dateYmd,
   manualLogId = "",
   blocks = [],
+  logJson = null,
+  onAutoPopulationChanged = null,
   onOpenProgress = null,
   api = DEFAULT_API,
 }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [autoBusy, setAutoBusy] = useState("");
+  const [autoError, setAutoError] = useState("");
+  const appliedProfileRef = useRef("");
+
+  useEffect(() => {
+    let active = true;
+    if (!profileId || typeof api.applyRecentVerifiedAutoPopulation !== "function") return () => { active = false; };
+    if (appliedProfileRef.current === profileId) return () => { active = false; };
+    appliedProfileRef.current = profileId;
+    Promise.resolve(api.applyRecentVerifiedAutoPopulation(profileId))
+      .then((result) => {
+        if (!active || result?.error) return;
+        const summary = result?.data || {};
+        const changed = Number(summary.logsChanged || 0) > 0 || Number(summary.fieldsFilled || 0) > 0 || Number(summary.extraBlocksCreated || 0) > 0;
+        if (changed) {
+          setRefreshKey((value) => value + 1);
+          onAutoPopulationChanged?.(summary);
+        }
+      })
+      .catch(() => null);
+    return () => { active = false; };
+  }, [api, onAutoPopulationChanged, profileId]);
 
   useEffect(() => {
     let active = true;
@@ -177,12 +218,28 @@ export default function LogVerificationSummary({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [api, profileId]);
+  }, [api, profileId, refreshKey]);
 
   const model = useMemo(
     () => buildLogVerificationModel({ data: data || {}, dateYmd, manualLogId, blocks }),
     [blocks, data, dateYmd, manualLogId]
   );
+
+  async function undoPopulation(verifiedActivityId) {
+    if (!verifiedActivityId || typeof api.undoVerifiedAutoPopulation !== "function") return;
+    setAutoBusy(verifiedActivityId);
+    setAutoError("");
+    try {
+      const result = await api.undoVerifiedAutoPopulation(profileId, verifiedActivityId);
+      if (result?.error) throw result.error;
+      setRefreshKey((value) => value + 1);
+      onAutoPopulationChanged?.(result?.data || {});
+    } catch (error) {
+      setAutoError(error?.message || "Automatic fill could not be undone.");
+    } finally {
+      setAutoBusy("");
+    }
+  }
 
   if (loading || model.overallStatus === "none") return null;
   if (!model.connectedCount && !model.hasEvidence) return null;
@@ -211,6 +268,10 @@ export default function LogVerificationSummary({
         <div className="log-verification__detail">
           {model.rows.map((row) => {
             const copy = statusCopy(row.status);
+            const population = row.verifiedActivityId
+              ? getAutoPopulationForVerifiedActivity(logJson, row.verifiedActivityId)
+              : null;
+            const autoFilled = hasActiveAutoPopulation(population);
             return (
               <div key={row.blockId} className={`log-verification__row is-${row.status}`}>
                 <span aria-hidden="true">{copy.symbol}</span>
@@ -221,13 +282,25 @@ export default function LogVerificationSummary({
                     {row.providers.length ? ` · ${row.providers.map(providerLabel).join(" + ")}` : ""}
                     {row.performedDate && row.performedDate !== dateYmd ? ` · performed ${row.performedDate}` : ""}
                     {row.matchMethod ? ` · ${row.matchMethod}` : ""}
+                    {autoFilled ? " · ↓ Auto-filled" : ""}
                   </small>
+                  {autoFilled ? (
+                    <button
+                      type="button"
+                      className="log-verification__undo"
+                      disabled={!!autoBusy}
+                      onClick={() => undoPopulation(row.verifiedActivityId)}
+                    >
+                      {autoBusy === row.verifiedActivityId ? "Undoing…" : "Undo automatic fill"}
+                    </button>
+                  ) : null}
                 </span>
               </div>
             );
           })}
+          {autoError ? <div className="log-verification__error" role="alert">{autoError}</div> : null}
           <div className="log-verification__footer">
-            <span>Verification is evidence only. It does not add bonus XP or rewrite manual history.</span>
+            <span>Verification does not add bonus XP or overwrite manual entries. Automatic fills are provenance-tracked and reversible.</span>
             {typeof onOpenProgress === "function" ? (
               <button type="button" onClick={onOpenProgress}>Open verification details</button>
             ) : null}

@@ -1,3 +1,5 @@
+import { applyRecentVerifiedAutoPopulationForProfile } from "./verificationAutoPopulate.ts";
+
 export const MATCH_VERSION = "verification_match_v1";
 const PROVIDER_THRESHOLD = 0.7;
 const MANUAL_THRESHOLD = 0.75;
@@ -461,6 +463,8 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
     if (deleted.error) throw deleted.error;
   }
 
+  const autoPopulation = await applyRecentVerifiedAutoPopulationForProfile(adminClient, profileId);
+
   return {
     profileId,
     observationCount: (observationsResult.data || []).filter((row: any) => !row.source_deleted_at).length,
@@ -469,5 +473,6 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
     preservedUserLinks,
     removedStaleIdentities: staleIds.length,
     matchVersion: MATCH_VERSION,
+    autoPopulation,
   };
 }

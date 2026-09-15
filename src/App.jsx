@@ -3138,6 +3138,7 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const [isSavingLog, setIsSavingLog] = useState(false);
   const [allLogs, setAllLogs] = useState([]); // for stats
   const [logsReady, setLogsReady] = useState(false);
+  const [externalLogRevision, setExternalLogRevision] = useState(0);
 
   // --- History pill / modal ---
 const [historyModal, setHistoryModal] = useState(null); 
@@ -3549,7 +3550,7 @@ const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
     // Even if it fails, mark as "done" so we don't get stuck.
     setLogsReady(true);
   });
-}, [family?.id, activeProfileId]);
+}, [family?.id, activeProfileId, externalLogRevision]);
 
 
 // --- Load day log ---
@@ -3613,7 +3614,7 @@ useEffect(() => {
     console.error("getLog exception", e);
     if (!cached) setLogForDay(null);
   });
-}, [family?.id, activeProfileId, selectedDate, plan]);
+}, [family?.id, activeProfileId, selectedDate, plan, externalLogRevision]);
 
 const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
@@ -8057,6 +8058,8 @@ const cardioProgress = useMemo(() => {
                   dateYmd={selectedDate}
                   manualLogId={selectedLogRowId}
                   blocks={Array.isArray(logForDay?.blocks) && logForDay.blocks.length ? logForDay.blocks : plannedBlocksForSelectedDay}
+                  logJson={logForDay}
+                  onAutoPopulationChanged={() => setExternalLogRevision((value) => value + 1)}
                   onOpenProgress={() => setTab("stats")}
                 />
 
