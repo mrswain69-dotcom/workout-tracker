@@ -29,7 +29,7 @@ async function listProfileGroupsOnce(profileId) {
   const groupIds = [...new Set(rows.map((row) => row.group_id).filter(Boolean))];
   const { data: groups, error: groupError } = await supabase
     .from("groups")
-    .select("id,name,description,group_type,status,max_members,competition_start_date,xp_history_scope,created_at,updated_at")
+    .select("id,name,description,group_type,status,max_members,join_mode,competition_start_date,xp_history_scope,created_at,updated_at")
     .in("id", groupIds)
     .eq("status", "active");
 
@@ -99,6 +99,7 @@ export async function createGroup({ profileId, name, nickname, description = "",
   return { data: firstRow(data), error };
 }
 
+// Legacy one-use/private invites remain available as an optional Admin tool.
 export async function createGroupInvite(groupId, { expiresInDays = 7, maxUses = 1 } = {}) {
   if (!supabase) return unavailable();
   const { data, error } = await supabase.rpc("group_create_invite", {
@@ -129,6 +130,72 @@ export async function joinGroup({ profileId, inviteCode, nickname }) {
     pendingJoinedGroupByProfile.set(profileId, joined.group_id);
   }
   return { data: joined, error };
+}
+
+// Stage 10 reusable team join route.
+export async function getGroupJoinSettings(groupId) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_get_join_settings", {
+    p_group_id: groupId,
+  });
+  return { data: firstRow(data), error };
+}
+
+export async function rotateGroupJoinCode(groupId) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_rotate_join_code", {
+    p_group_id: groupId,
+  });
+  return { data: firstRow(data), error };
+}
+
+export async function setGroupJoinMode(groupId, joinMode) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_set_join_mode", {
+    p_group_id: groupId,
+    p_join_mode: joinMode,
+  });
+  return { data: firstRow(data), error };
+}
+
+export async function previewGroupJoinCode(joinCode) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_preview_join_code", {
+    p_join_code: joinCode,
+  });
+  return { data: firstRow(data), error };
+}
+
+export async function joinGroupWithCode({ profileId, joinCode, nickname }) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_join_or_request", {
+    p_profile_id: profileId,
+    p_join_code: joinCode,
+    p_nickname: nickname || null,
+  });
+  const result = firstRow(data);
+  if (!error && result?.join_status === "joined" && result?.group_id && profileId) {
+    pendingJoinedGroupByProfile.set(profileId, result.group_id);
+  }
+  return { data: result, error };
+}
+
+export async function listGroupJoinRequests(groupId) {
+  if (!supabase) return { data: [], error: new Error("Supabase not configured") };
+  const { data, error } = await supabase.rpc("group_list_join_requests", {
+    p_group_id: groupId,
+  });
+  return { data: data || [], error };
+}
+
+export async function reviewGroupJoinRequest(groupId, requestId, decision) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_review_join_request", {
+    p_group_id: groupId,
+    p_request_id: requestId,
+    p_decision: decision,
+  });
+  return { data: firstRow(data), error };
 }
 
 export async function updateGroupNickname(groupId, profileId, nickname) {
