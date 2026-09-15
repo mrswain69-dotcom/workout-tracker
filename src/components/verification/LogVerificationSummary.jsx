@@ -67,9 +67,66 @@ function providerLabel(value) {
   return text(value, "External source").replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function canonicalActivityFamily(value) {
+  const token = text(value, "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (/(strength|weight_?training|weights|weightlifting|resistance)/.test(token)) return "strength";
+  return token;
+}
+
+function isoMs(value) {
+  const ms = Date.parse(text(value));
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function strengthBlockPerformed(block) {
+  return Object.values(block?.sets || {}).some((sets) =>
+    (Array.isArray(sets) ? sets : []).some((set) => {
+      const values = [set?.reps, set?.weight, set?.timeSeconds, set?.seconds];
+      return values.some((value) => Number.isFinite(Number(value)) && Number(value) > 0);
+    })
+  );
+}
+
+function strengthActivityCoversBlock(data, verifiedActivityId, block) {
+  if (text(block?.typeId).toLowerCase() !== "strength" || !strengthBlockPerformed(block)) return false;
+  const activity = (data?.verifiedActivities || []).find((row) => row.id === verifiedActivityId);
+  if (canonicalActivityFamily(activity?.activity_type) !== "strength") return false;
+
+  const blockStart = isoMs(block?.startedAt || block?.loggedAt);
+  const blockEnd = isoMs(block?.completedAt || block?.updatedAt) ?? blockStart;
+  if (blockStart === null || blockEnd === null) return false;
+
+  const observationIds = new Set(
+    (data?.observationLinks || [])
+      .filter((row) => row.verified_activity_id === verifiedActivityId)
+      .map((row) => row.observation_id)
+  );
+  const observations = (data?.observations || []).filter(
+    (row) => observationIds.has(row.id) && !row.source_deleted_at && row.source_manual_entry !== true
+  );
+  const evidenceStarts = [activity?.started_at, ...observations.map((row) => row.started_at)]
+    .map(isoMs)
+    .filter((value) => value !== null);
+  if (!evidenceStarts.length) return false;
+  const evidenceStart = Math.min(...evidenceStarts);
+  const evidenceEnds = observations.map((row) => {
+    const start = isoMs(row.started_at);
+    const durationSec = Number(row.moving_duration_sec) > 0
+      ? Number(row.moving_duration_sec)
+      : Number(row.elapsed_duration_sec) > 0
+        ? Number(row.elapsed_duration_sec)
+        : 0;
+    return start !== null && durationSec > 0 ? start + durationSec * 1000 : null;
+  }).filter((value) => value !== null);
+  const evidenceEnd = evidenceEnds.length ? Math.max(...evidenceEnds) : evidenceStart;
+  const toleranceMs = 5 * 60 * 1000;
+  return blockStart <= evidenceEnd + toleranceMs && blockEnd >= evidenceStart - toleranceMs;
+}
+
 function directLinkStatus(block) {
   const type = text(block?.typeId).toLowerCase();
-  return ["strength", "hiit", "box", "session"].includes(type) ? "partial" : "verified";
+  if (type === "strength") return "verified";
+  return ["hiit", "box", "session"].includes(type) ? "partial" : "verified";
 }
 
 function hasActiveAutoPopulation(population) {
@@ -84,9 +141,15 @@ export function buildLogVerificationModel({ data = {}, dateYmd = "", manualLogId
   );
   const providerMap = providersByVerifiedActivity(data);
   const manualLinks = (data.manualLinks || []).filter((link) =>
-    manualLogId && link.manual_log_id === manualLogId && text(link.manual_block_id)
+    manualLogId && link.manual_log_id === manualLogId
   );
-  const directByBlock = new Map(manualLinks.map((link) => [text(link.manual_block_id), link]));
+  const directByBlock = new Map(
+    manualLinks.filter((link) => text(link.manual_block_id)).map((link) => [text(link.manual_block_id), link])
+  );
+  const verifiedActivityById = new Map((data.verifiedActivities || []).map((row) => [row.id, row]));
+  const strengthSessionLinks = manualLinks.filter((link) =>
+    canonicalActivityFamily(verifiedActivityById.get(link.verified_activity_id)?.activity_type) === "strength"
+  );
   const verifiedCardio = buildVerifiedCardioEvidence(data);
   const completion = matchVerifiedPlanCompletionEvidence({
     dateYmd,
@@ -100,17 +163,28 @@ export function buildLogVerificationModel({ data = {}, dateYmd = "", manualLogId
 
   const rows = sourceBlocks.map((block, index) => {
     const direct = directByBlock.get(block.id) || null;
+    const type = text(block?.typeId).toLowerCase();
+    const sessionLink = type === "strength"
+      ? strengthSessionLinks.find((link) =>
+          link === direct || strengthActivityCoversBlock(data, link.verified_activity_id, block)
+        ) || null
+      : null;
+    const linked = direct || sessionLink;
     const automatic = automaticByBlock.get(block.id) || null;
-    if (direct) {
-      const providers = providerMap.get(direct.verified_activity_id) || [];
+    if (linked) {
+      const providers = providerMap.get(linked.verified_activity_id) || [];
+      const strengthSessionEvidence = type === "strength" &&
+        canonicalActivityFamily(verifiedActivityById.get(linked.verified_activity_id)?.activity_type) === "strength";
       return {
         blockId: block.id,
         label: blockLabel(block, index),
-        status: directLinkStatus(block),
+        status: strengthSessionEvidence ? "verified" : directLinkStatus(block),
         providers,
-        performedDate: performedDateForActivity(data, direct.verified_activity_id),
-        matchMethod: direct.match_method === "manual" ? "Athlete confirmed" : "Automatically matched",
-        verifiedActivityId: direct.verified_activity_id,
+        performedDate: performedDateForActivity(data, linked.verified_activity_id),
+        matchMethod: linked.match_method === "manual"
+          ? strengthSessionEvidence ? "Athlete confirmed · session evidence" : "Athlete confirmed"
+          : strengthSessionEvidence ? "Automatically matched · session evidence" : "Automatically matched",
+        verifiedActivityId: linked.verified_activity_id,
       };
     }
     if (automatic) {
