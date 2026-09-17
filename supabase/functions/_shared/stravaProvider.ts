@@ -78,19 +78,44 @@ function webhookSubscriptionUrl(subscriptionId = "") {
     : STRAVA_WEBHOOK_SUBSCRIPTIONS_URL;
 }
 
-export async function ensureStravaWebhookSubscription() {
-  const config = stravaAppConfig();
-  if (!config.clientId || !config.clientSecret || !config.webhookVerifyToken || !config.webhookSigningSecret || !config.webhookCallbackUrl) {
-    return { state: "unavailable", reason: "missing_configuration", id: null, created: false, repaired: false };
-  }
-
+async function listStravaWebhookSubscriptions(config = stravaAppConfig()) {
+  if (!config.clientId || !config.clientSecret) throw new Error("Strava application credentials are not configured");
   const listUrl = new URL(STRAVA_WEBHOOK_SUBSCRIPTIONS_URL);
   listUrl.searchParams.set("client_id", config.clientId);
   listUrl.searchParams.set("client_secret", config.clientSecret);
   const listedResponse = await fetch(listUrl);
   const listedBody = await listedResponse.json().catch(() => []);
   if (!listedResponse.ok) throw new Error(`Strava webhook subscription lookup failed (${listedResponse.status})`);
-  const subscriptions = Array.isArray(listedBody) ? listedBody : [];
+  return Array.isArray(listedBody) ? listedBody : [];
+}
+
+export async function resolvedStravaWebhookVerifyToken() {
+  const config = stravaAppConfig();
+  if (config.webhookVerifyToken) return config.webhookVerifyToken;
+  if (!config.clientSecret) return "";
+  return (await sha256Hex(`workout-tracker:strava:webhook:${config.clientSecret}`)).slice(0, 48);
+}
+
+export async function isExpectedStravaWebhookSubscription(subscriptionId: unknown) {
+  const received = String(subscriptionId ?? "").trim();
+  if (!received) return false;
+  const config = stravaAppConfig();
+  if (config.webhookSubscriptionId && received === config.webhookSubscriptionId) return true;
+  if (!config.clientId || !config.clientSecret || !config.webhookCallbackUrl) return false;
+  const subscriptions = await listStravaWebhookSubscriptions(config);
+  return subscriptions.some((row: any) =>
+    String(row?.id ?? "") === received && String(row?.callback_url || "") === config.webhookCallbackUrl
+  );
+}
+
+export async function ensureStravaWebhookSubscription() {
+  const config = stravaAppConfig();
+  const verifyToken = await resolvedStravaWebhookVerifyToken();
+  if (!config.clientId || !config.clientSecret || !verifyToken || !config.webhookCallbackUrl) {
+    return { state: "unavailable", reason: "missing_configuration", id: null, created: false, repaired: false };
+  }
+
+  const subscriptions = await listStravaWebhookSubscriptions(config);
   const matching = subscriptions.find((row: any) => String(row?.callback_url || "") === config.webhookCallbackUrl);
   if (matching?.id !== null && matching?.id !== undefined) {
     return { state: "active", id: String(matching.id), created: false, repaired: false, callbackUrl: config.webhookCallbackUrl };
@@ -118,7 +143,7 @@ export async function ensureStravaWebhookSubscription() {
       client_id: config.clientId,
       client_secret: config.clientSecret,
       callback_url: config.webhookCallbackUrl,
-      verify_token: config.webhookVerifyToken,
+      verify_token: verifyToken,
     }),
   });
   const createdBody = await createdResponse.json().catch(() => ({}));

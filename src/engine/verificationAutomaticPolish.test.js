@@ -29,6 +29,9 @@ describe("automatic verification polish", () => {
     const callback = read("supabase/functions/strava-oauth-callback/index.ts");
     expect(provider).toContain("STRAVA_WEBHOOK_SUBSCRIPTIONS_URL");
     expect(provider).toContain("export async function ensureStravaWebhookSubscription");
+    expect(provider).toContain("export async function resolvedStravaWebhookVerifyToken");
+    expect(provider).toContain("workout-tracker:strava:webhook:");
+    expect(provider).not.toContain("!config.webhookVerifyToken || !config.webhookSigningSecret");
     expect(provider).toContain('method: "DELETE"');
     expect(provider).toContain('method: "POST"');
     expect(actions).toContain('action === "ensure_auto_sync"');
@@ -36,10 +39,14 @@ describe("automatic verification polish", () => {
     expect(callback).toContain("await ensureStravaWebhookSubscription()");
   });
 
-  it("keeps the signed webhook authoritative if self-healing changes a legacy subscription id", () => {
+  it("supports Strava's live unsigned-delivery fallback without trusting arbitrary webhook payloads", () => {
+    const provider = read("supabase/functions/_shared/stravaProvider.ts");
     const webhook = read("supabase/functions/strava-webhook/index.ts");
-    expect(webhook).toContain("Signed Strava webhook arrived on a subscription id different from the legacy configured id");
-    expect(webhook).not.toContain('return json({ error: "Unexpected webhook subscription" }, 403)');
+    expect(provider).toContain("export async function isExpectedStravaWebhookSubscription");
+    expect(webhook).toContain("await isExpectedStravaWebhookSubscription(event.subscription_id)");
+    expect(webhook).toContain('processing_error: "unexpected_subscription"');
+    expect(webhook).toContain("if (config.webhookSigningSecret &&");
+    expect(webhook).not.toContain('return json({ error: "Webhook signing is not configured" }, 503)');
   });
 
   it("silently provisions automatic sync and refreshes evidence after returning to the app", () => {
