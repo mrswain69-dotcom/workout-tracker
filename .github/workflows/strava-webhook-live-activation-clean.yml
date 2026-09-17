@@ -22,7 +22,16 @@ jobs:
           ref: fix/strava-webhook-live-activation-clean
       - name: Apply patch
         run: |
-          sed -i 's/${STRAVA_WEBHOOK_SUBSCRIPTIONS_URL}/\${STRAVA_WEBHOOK_SUBSCRIPTIONS_URL}/g' scripts/strava-webhook-live-activation-clean.mjs
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("scripts/strava-webhook-live-activation-clean.mjs")
+          s = p.read_text()
+          anchor = 'import fs from "node:fs";'
+          injected = anchor + '\nconst STRAVA_WEBHOOK_SUBSCRIPTIONS_URL = "${STRAVA_WEBHOOK_SUBSCRIPTIONS_URL}";'
+          if anchor not in s:
+              raise SystemExit("patch-script import anchor missing")
+          p.write_text(s.replace(anchor, injected, 1))
+          PY
           node scripts/strava-webhook-live-activation-clean.mjs
       - name: Use Node.js
         uses: actions/setup-node@v7
