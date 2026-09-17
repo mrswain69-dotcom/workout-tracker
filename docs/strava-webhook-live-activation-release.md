@@ -1,0 +1,1 @@
+Release gate: full tests, production build and security audit must pass on the clean hotfix branch and again on main after merge. Production validation then requires the authenticated Strava sync response to report automatic sync as active.
