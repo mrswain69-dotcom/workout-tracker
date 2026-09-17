@@ -12,6 +12,7 @@ describe("automatic verification polish", () => {
     expect(source).toContain("const candidates = groupStrengthManualCandidates(rawCandidates)");
     expect(source).toContain("rawCandidates.find((candidate)");
     expect(source).toContain("candidateTargetKeys(candidate).every");
+    expect(source).toContain("STRENGTH_CLUSTER_MAX_START_GAP_MS");
   });
 
   it("allows a unique same-session strength match without requiring exact movement names or a trustworthy form-entry duration", () => {
@@ -49,5 +50,6 @@ describe("automatic verification polish", () => {
     expect(ui).toContain('window.addEventListener("focus", refreshWhenVisible)');
     expect(ui).toContain('document.addEventListener("visibilitychange", refreshWhenVisible)');
     expect(ui).toContain("Automatic Strava updates are active.");
+    expect(ui).toContain("stravaConnection?.auto_sync_enabled === false");
   });
 });

@@ -268,6 +268,7 @@ Deno.serve(async (req: Request) => {
         .select("id,family_id,profile_id,provider,status,auto_sync_enabled")
         .eq("profile_id", profileId).eq("provider", provider).maybeSingle();
       if (connectionError || !connection || connection.status !== "active") return json({ error: "Provider is not connected" }, 409, corsHeaders);
+      if (connection.auto_sync_enabled === false) return json({ provider, autoSync: { state: "disabled", id: null, created: false, repaired: false } }, 200, corsHeaders);
       let autoSync: any;
       try {
         autoSync = await ensureStravaWebhookSubscription();
@@ -283,7 +284,7 @@ Deno.serve(async (req: Request) => {
       const provider = text(body?.provider, "strava");
       if (provider !== "strava") return json({ error: "Manual source check is not available for this provider yet" }, 400, corsHeaders);
       const { data: connection, error: connectionError } = await userClient.from("external_connections")
-        .select("id,family_id,profile_id,provider,status,last_manual_sync_at")
+        .select("id,family_id,profile_id,provider,status,auto_sync_enabled,last_manual_sync_at")
         .eq("profile_id", profileId).eq("provider", provider).maybeSingle();
       if (connectionError || !connection || connection.status !== "active") return json({ error: "Provider is not connected" }, 409, corsHeaders);
 
@@ -302,12 +303,14 @@ Deno.serve(async (req: Request) => {
           nextAllowedAt: Number.isFinite(lastMs) ? new Date(lastMs + MANUAL_SYNC_COOLDOWN_MS).toISOString() : new Date(Date.now() + MANUAL_SYNC_COOLDOWN_MS).toISOString(),
         }, 429, corsHeaders);
       }
-      let autoSync: any;
-      try {
-        autoSync = await ensureStravaWebhookSubscription();
-      } catch (error) {
-        console.error("Strava automatic sync provisioning failed during manual sync", error);
-        autoSync = { state: "error", reason: String((error as any)?.message || error), id: null, created: false, repaired: false };
+      let autoSync: any = { state: "disabled", id: null, created: false, repaired: false };
+      if (connection.auto_sync_enabled !== false) {
+        try {
+          autoSync = await ensureStravaWebhookSubscription();
+        } catch (error) {
+          console.error("Strava automatic sync provisioning failed during manual sync", error);
+          autoSync = { state: "error", reason: String((error as any)?.message || error), id: null, created: false, repaired: false };
+        }
       }
       const accessToken = await refreshStravaAccessToken(adminClient, connection.id);
       const imported = await importRecentStravaActivities(adminClient, connection, accessToken, { days: 7 });

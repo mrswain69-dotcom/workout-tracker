@@ -61,7 +61,7 @@ async function processEvent(adminClient: any, eventRow: any, event: any) {
   try {
     const { data: connection, error: connectionError } = await adminClient
       .from("external_connections")
-      .select("id,family_id,profile_id,provider,provider_account_id,status,scopes")
+      .select("id,family_id,profile_id,provider,provider_account_id,status,auto_sync_enabled,scopes")
       .eq("provider", "strava")
       .eq("provider_account_id", String(event.owner_id))
       .maybeSingle();
@@ -76,6 +76,14 @@ async function processEvent(adminClient: any, eventRow: any, event: any) {
     }
 
     await markEvent(adminClient, eventRow.id, { connection_id: connection.id });
+
+    if (connection.auto_sync_enabled === false) {
+      await markEvent(adminClient, eventRow.id, {
+        processed_at: new Date().toISOString(),
+        processing_error: "auto_sync_disabled",
+      });
+      return;
+    }
 
     const deauthorized =
       event.object_type === "athlete" &&

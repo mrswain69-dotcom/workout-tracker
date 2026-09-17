@@ -123,6 +123,7 @@ export function groupManualMatchCandidates(candidates = []) {
   const consumed = new Set();
   const grouped = [];
   const toleranceMs = 2 * 60 * 1000;
+  const maxStartGapMs = 90 * 60 * 1000;
 
   source.forEach((candidate, index) => {
     if (consumed.has(index)) return;
@@ -144,7 +145,11 @@ export function groupManualMatchCandidates(candidates = []) {
         if (consumed.has(peerIndex) || peer?.manualLogId !== candidate.manualLogId || !candidateIsStrength(peer)) return;
         const peerInterval = candidateInterval(peer);
         if (!peerInterval) return;
-        if (peerInterval.start <= clusterEnd + toleranceMs && peerInterval.end >= clusterStart - toleranceMs) {
+        if (
+          peerInterval.start <= clusterEnd + toleranceMs &&
+          peerInterval.end >= clusterStart - toleranceMs &&
+          Math.abs(peerInterval.start - clusterStart) <= maxStartGapMs
+        ) {
           cluster.push({ candidate: peer, index: peerIndex, interval: peerInterval });
           consumed.add(peerIndex);
           clusterStart = Math.min(clusterStart, peerInterval.start);
@@ -292,7 +297,7 @@ export default function VerifiedActivityEvidenceSection({
 
   useEffect(() => {
     const key = profileId && stravaConnection?.id ? `${profileId}:${stravaConnection.id}` : "";
-    if (!key || autoSyncEnsureKeyRef.current === key || typeof api.ensureConnectedSourceAutoSync !== "function") return;
+    if (!key || stravaConnection?.auto_sync_enabled === false || autoSyncEnsureKeyRef.current === key || typeof api.ensureConnectedSourceAutoSync !== "function") return;
     autoSyncEnsureKeyRef.current = key;
     void api.ensureConnectedSourceAutoSync(profileId, "strava").catch(() => null);
   }, [api, profileId, stravaConnection?.id]);

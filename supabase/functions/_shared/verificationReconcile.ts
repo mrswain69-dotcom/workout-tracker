@@ -6,6 +6,7 @@ const MANUAL_THRESHOLD = 0.75;
 const MANUAL_MARGIN = 0.1;
 const USER_MATCH_WINDOW_DAYS = 2;
 const STRENGTH_CLUSTER_TOLERANCE_MS = 2 * 60 * 1000;
+const STRENGTH_CLUSTER_MAX_START_GAP_MS = 90 * 60 * 1000;
 const STRENGTH_AUTO_DURATION_MAX_MS = 2 * 60 * 60 * 1000;
 
 function text(value: unknown, fallback = "") {
@@ -328,7 +329,11 @@ function groupStrengthManualCandidates(candidates: any[]) {
         if (peer?.manualLogId !== candidate.manualLogId) return;
         const peerInterval = strengthCandidateInterval(peer);
         if (!peerInterval) return;
-        if (peerInterval.start <= clusterEnd + STRENGTH_CLUSTER_TOLERANCE_MS && peerInterval.end >= clusterStart - STRENGTH_CLUSTER_TOLERANCE_MS) {
+        if (
+          peerInterval.start <= clusterEnd + STRENGTH_CLUSTER_TOLERANCE_MS &&
+          peerInterval.end >= clusterStart - STRENGTH_CLUSTER_TOLERANCE_MS &&
+          Math.abs(peerInterval.start - clusterStart) <= STRENGTH_CLUSTER_MAX_START_GAP_MS
+        ) {
           cluster.push({ candidate: peer, index: peerIndex, interval: peerInterval });
           consumed.add(peerIndex);
           clusterStart = Math.min(clusterStart, peerInterval.start);
