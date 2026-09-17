@@ -1,0 +1,1 @@
+Hotfix source changes have passed the clean branch gate before final PR validation. Production confirmation still requires the live manual sync to report automatic Strava updates as active.
