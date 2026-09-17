@@ -1,1 +1,0 @@
-The Strava live activation hotfix changes only provider webhook configuration/authentication behaviour plus tests/docs. It does not alter XP, rewards or provider evidence authority.
