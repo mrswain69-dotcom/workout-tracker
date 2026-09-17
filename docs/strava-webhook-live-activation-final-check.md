@@ -1,0 +1,1 @@
+Final check before merge: clean diff, full tests, production build and security audit. Final production proof: manual sync returns `autoSync.state = active`, followed by a later real Strava webhook event.
