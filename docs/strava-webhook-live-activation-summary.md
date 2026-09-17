@@ -1,0 +1,1 @@
+Automatic Strava provisioning was blocked by an over-strict configuration guard. The hotfix derives the verification token when needed, treats signing as optional, and authenticates unsigned events against the app's live subscription before processing.
