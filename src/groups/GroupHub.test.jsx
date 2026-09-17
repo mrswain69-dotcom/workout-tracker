@@ -157,8 +157,8 @@ describe("Group Hub scalable onboarding", () => {
     groupDb.listGroupDirectory.mockResolvedValue({ data: [{ membership_id: "membership-self", nickname: "WS10", role: "admin", avatar_id: "emoji_bolt", avatar_frame: "", avatar_frames_enabled: true }], error: null });
     const active = [];
     const generated = [
-      { invite_id: "invite-1", invite_code: "one-use-first", code_hint: "one…irst", expires_at: "2026-09-17T12:00:00Z", max_uses: 1 },
-      { invite_id: "invite-2", invite_code: "one-use-second", code_hint: "one…cond", expires_at: "2026-09-17T12:00:00Z", max_uses: 1 },
+      { invite_id: "invite-1", invite_code: "one-use-first", code_hint: "one…irst", expires_at: "2099-09-17T12:00:00Z", max_uses: 1 },
+      { invite_id: "invite-2", invite_code: "one-use-second", code_hint: "one…cond", expires_at: "2099-09-17T12:00:00Z", max_uses: 1 },
     ];
     groupDb.listGroupInvites.mockImplementation(async () => ({
       data: active.map((invite) => ({ id: invite.invite_id, code_hint: invite.code_hint, expires_at: invite.expires_at, max_uses: 1, use_count: 0, revoked_at: null })),

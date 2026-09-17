@@ -169,10 +169,10 @@ Required secrets/configuration are:
 
 - `STRAVA_CLIENT_ID`;
 - `STRAVA_CLIENT_SECRET`;
-- `STRAVA_WEBHOOK_VERIFY_TOKEN`;
-- `STRAVA_WEBHOOK_SIGNING_SECRET`;
 - `WORKOUT_TRACKER_APP_URL`;
-- `STRAVA_WEBHOOK_SUBSCRIPTION_ID` after the one application-level subscription is created.
+- optional `STRAVA_WEBHOOK_VERIFY_TOKEN` override (otherwise derived server-side from the Strava app secret);
+- optional `STRAVA_WEBHOOK_SIGNING_SECRET` when Strava exposes a usable signing secret for the application;
+- optional legacy `STRAVA_WEBHOOK_SUBSCRIPTION_ID` override. The live subscription is otherwise authenticated against Strava's application-level subscription API before processing.
 
 Optional overrides:
 
