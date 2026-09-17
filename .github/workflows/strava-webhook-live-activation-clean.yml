@@ -21,7 +21,9 @@ jobs:
         with:
           ref: fix/strava-webhook-live-activation-clean
       - name: Apply patch
-        run: node scripts/strava-webhook-live-activation-clean.mjs
+        run: |
+          sed -i 's/${STRAVA_WEBHOOK_SUBSCRIPTIONS_URL}/\${STRAVA_WEBHOOK_SUBSCRIPTIONS_URL}/g' scripts/strava-webhook-live-activation-clean.mjs
+          node scripts/strava-webhook-live-activation-clean.mjs
       - name: Use Node.js
         uses: actions/setup-node@v7
         with:
