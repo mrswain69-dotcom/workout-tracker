@@ -34,6 +34,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
+      # Full-suite retry: the first run hit an unrelated intermittent Groups UI assertion.
       - name: Run tests
         run: npm test
 
