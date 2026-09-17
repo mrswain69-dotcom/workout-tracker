@@ -1,0 +1,36 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bronzeMetal_intensity_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F7D7B3"/>
+      <stop offset="18%" stop-color="#E4B27A"/>
+      <stop offset="45%" stop-color="#C9873F"/>
+      <stop offset="72%" stop-color="#9C5C22"/>
+      <stop offset="100%" stop-color="#5B2F0E"/>
+    </linearGradient>
+
+    <linearGradient id="bronzeLine_intensity_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFE8C9" stop-opacity="0.98"/>
+      <stop offset="35%" stop-color="#F2C48F" stop-opacity="0.88"/>
+      <stop offset="70%" stop-color="#B46B2A" stop-opacity="0.78"/>
+      <stop offset="100%" stop-color="#6A3710" stop-opacity="0.72"/>
+    </linearGradient>
+
+    <radialGradient id="intensityCore_bronze_ultraslim" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="55%" stop-color="#C1121F"/>
+      <stop offset="100%" stop-color="#4A0A12"/>
+    </radialGradient>
+
+    <linearGradient id="coreShine_intensity_bronze_ultraslim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <polygon points="256,36 446,146 446,366 256,476 66,366 66,146" fill="url(#bronzeMetal_intensity_ultraslim)"/>
+  <polygon points="256,43 440,149 440,363 256,469 72,363 72,149" fill="none" stroke="url(#bronzeLine_intensity_ultraslim)" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="url(#intensityCore_bronze_ultraslim)"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="none" stroke="#3A0A10" stroke-width="2.5" stroke-opacity="0.42" stroke-linejoin="round"/>
+  <polygon points="126,184 386,184 362,206 150,206" fill="url(#coreShine_intensity_bronze_ultraslim)" opacity="0.55"/>
+</svg>

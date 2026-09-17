@@ -3,9 +3,11 @@ import {
   createAdminClient,
   epochToIso,
   fetchStravaActivity,
+  isExpectedStravaWebhookSubscription,
   json,
   markStravaObservationDeleted,
   refreshStravaAccessToken,
+  resolvedStravaWebhookVerifyToken,
   sha256Hex,
   stravaAppConfig,
   upsertStravaObservation,
@@ -59,6 +61,15 @@ async function markEvent(adminClient: any, eventId: string, values: Record<strin
 
 async function processEvent(adminClient: any, eventRow: any, event: any) {
   try {
+    const expectedSubscription = await isExpectedStravaWebhookSubscription(event.subscription_id);
+    if (!expectedSubscription) {
+      await markEvent(adminClient, eventRow.id, {
+        processed_at: new Date().toISOString(),
+        processing_error: "unexpected_subscription",
+      });
+      return;
+    }
+
     const { data: connection, error: connectionError } = await adminClient
       .from("external_connections")
       .select("id,family_id,profile_id,provider,provider_account_id,status,auto_sync_enabled,scopes")
@@ -159,19 +170,22 @@ Deno.serve(async (req: Request) => {
     const mode = url.searchParams.get("hub.mode") || "";
     const challenge = url.searchParams.get("hub.challenge") || "";
     const verifyToken = url.searchParams.get("hub.verify_token") || "";
-    if (!config.webhookVerifyToken) return json({ error: "Webhook verification is not configured" }, 503);
-    if (mode !== "subscribe" || verifyToken !== config.webhookVerifyToken || !challenge) {
+    const expectedVerifyToken = await resolvedStravaWebhookVerifyToken();
+    if (!expectedVerifyToken) return json({ error: "Webhook verification is not configured" }, 503);
+    if (mode !== "subscribe" || verifyToken !== expectedVerifyToken || !challenge) {
       return json({ error: "Webhook verification failed" }, 403);
     }
     return json({ "hub.challenge": challenge });
   }
 
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  if (!config.webhookSigningSecret) return json({ error: "Webhook signing is not configured" }, 503);
 
   const signatureHeader = req.headers.get("X-Strava-Signature") || "";
   const rawBody = await req.text();
-  if (!signatureHeader || !(await verifyWebhookSignature(rawBody, signatureHeader, config.webhookSigningSecret))) {
+  // Strava's current production webhook signing secret is not available to every app.
+  // Verify signatures whenever configured; otherwise authenticate the event against
+  // the application's single live subscription before any provider data is changed.
+  if (config.webhookSigningSecret && (!signatureHeader || !(await verifyWebhookSignature(rawBody, signatureHeader, config.webhookSigningSecret)))) {
     return json({ error: "Invalid webhook signature" }, 403);
   }
 
@@ -199,7 +213,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Incomplete webhook payload" }, 400);
   }
   if (config.webhookSubscriptionId && String(subscriptionId) !== config.webhookSubscriptionId) {
-    console.warn("Signed Strava webhook arrived on a subscription id different from the legacy configured id", {
+    console.warn("Strava webhook arrived on a subscription id different from the legacy configured id", {
       received: String(subscriptionId),
       configured: config.webhookSubscriptionId,
     });
@@ -225,7 +239,7 @@ Deno.serve(async (req: Request) => {
     .single();
 
   if (insertError) {
-    // Strava retries unacknowledged events. An identical signed body is already durable,
+    // Strava retries unacknowledged events. An identical body is already durable,
     // so a uniqueness retry should be acknowledged without processing it twice.
     if ((insertError as any)?.code === "23505") return json({ ok: true, duplicate: true });
     console.error("Strava webhook event persistence failed", insertError);

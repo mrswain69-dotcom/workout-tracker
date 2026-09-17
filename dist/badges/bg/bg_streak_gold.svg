@@ -1,0 +1,54 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rim_streak_gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF3B0"/>
+      <stop offset="18%" stop-color="#FFC107"/>
+      <stop offset="55%" stop-color="#B8860B"/>
+      <stop offset="100%" stop-color="#6B4300"/>
+    </linearGradient>
+
+    <linearGradient id="rimInner_streak_gold" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFD36A"/>
+      <stop offset="55%" stop-color="#B97A07"/>
+      <stop offset="100%" stop-color="#6B4300"/>
+    </linearGradient>
+
+    <radialGradient id="core_streak_gold" cx="45%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#5B23C7"/>
+      <stop offset="55%" stop-color="#2F0E78"/>
+      <stop offset="100%" stop-color="#160639"/>
+    </radialGradient>
+
+    <linearGradient id="ring_streak_gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.0"/>
+      <stop offset="35%" stop-color="#FFD700" stop-opacity="0.55"/>
+      <stop offset="65%" stop-color="#FFD700" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#FFD700" stop-opacity="0.0"/>
+    </linearGradient>
+
+    <linearGradient id="shine_streak_gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+
+  <polygon points="256,36 448,146 448,366 256,476 64,366 64,146" fill="url(#rim_streak_gold)"/>
+  <polygon points="256,52 432,154 432,358 256,460 80,358 80,154" fill="#080214" opacity="0.55"/>
+
+  <polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="url(#rimInner_streak_gold)"/>
+  <polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="none" stroke="#FFD700" stroke-width="5" opacity="0.35"/>
+
+  <polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="url(#core_streak_gold)"/>
+  <polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="#000000" stroke-width="8" opacity="0.35"/>
+
+  <polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="none" stroke="url(#ring_streak_gold)" stroke-width="6" opacity="0.6"/>
+
+  <polygon points="256,70 414,160 404,170 256,86 108,170 98,160" fill="#FFFFFF" opacity="0.12"/>
+
+  <polygon points="132,190 380,190 348,222 164,222" fill="url(#shine_streak_gold)" opacity="0.6"/>
+
+  <polygon points="142,320 256,252 370,320 256,392" fill="#FFFFFF" opacity="0.05"/>
+  <polygon points="150,314 256,260 362,314 256,382" fill="#000000" opacity="0.1"/>
+</svg>

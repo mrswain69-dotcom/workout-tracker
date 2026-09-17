@@ -1,0 +1,36 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="silverMetal_performance_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F8FBFF"/>
+      <stop offset="18%" stop-color="#E2E8F1"/>
+      <stop offset="45%" stop-color="#BFC8D4"/>
+      <stop offset="72%" stop-color="#8D97A6"/>
+      <stop offset="100%" stop-color="#3E4653"/>
+    </linearGradient>
+
+    <linearGradient id="silverLine_performance_ultraslim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="35%" stop-color="#EFF4FB" stop-opacity="0.88"/>
+      <stop offset="70%" stop-color="#C7D1DE" stop-opacity="0.78"/>
+      <stop offset="100%" stop-color="#667080" stop-opacity="0.72"/>
+    </linearGradient>
+
+    <radialGradient id="performanceCore_silver_ultraslim" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="55%" stop-color="#0E7490"/>
+      <stop offset="100%" stop-color="#083344"/>
+    </radialGradient>
+
+    <linearGradient id="coreShine_performance_silver_ultraslim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <polygon points="256,36 446,146 446,366 256,476 66,366 66,146" fill="url(#silverMetal_performance_ultraslim)"/>
+  <polygon points="256,43 440,149 440,363 256,469 72,363 72,149" fill="none" stroke="url(#silverLine_performance_ultraslim)" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="url(#performanceCore_silver_ultraslim)"/>
+  <polygon points="256,47 435,150 435,362 256,465 77,362 77,150" fill="none" stroke="#072B38" stroke-width="2.5" stroke-opacity="0.42" stroke-linejoin="round"/>
+  <polygon points="126,184 386,184 362,206 150,206" fill="url(#coreShine_performance_silver_ultraslim)" opacity="0.55"/>
+</svg>

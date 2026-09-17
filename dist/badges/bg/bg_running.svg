@@ -1,0 +1,80 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Metallic outer rim -->
+    <linearGradient id="rimBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#46C8FF"/>
+      <stop offset="22%" stop-color="#1F8BFF"/>
+      <stop offset="55%" stop-color="#0B3FA0"/>
+      <stop offset="100%" stop-color="#072A6C"/>
+    </linearGradient>
+
+    <!-- Inner rim darker -->
+    <linearGradient id="rimBlueInner" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0E5ED6"/>
+      <stop offset="55%" stop-color="#073780"/>
+      <stop offset="100%" stop-color="#062654"/>
+    </linearGradient>
+
+    <!-- Core plate (deep) -->
+    <radialGradient id="corePlate" cx="45%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#165DBA"/>
+      <stop offset="55%" stop-color="#0A3B86"/>
+      <stop offset="100%" stop-color="#06224C"/>
+    </radialGradient>
+
+    <!-- Soft glow ring -->
+    <linearGradient id="glowCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.0"/>
+      <stop offset="35%" stop-color="#00E5FF" stop-opacity="0.55"/>
+      <stop offset="65%" stop-color="#00E5FF" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0.0"/>
+    </linearGradient>
+
+    <!-- Shine sweep band -->
+    <linearGradient id="shineBand" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+      <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- OUTER RIM -->
+  <polygon points="256,36 448,146 448,366 256,476 64,366 64,146" fill="url(#rimBlue)"/>
+
+  <!-- OUTER RIM INNER CUT (creates bevel edge) -->
+  <polygon points="256,52 432,154 432,358 256,460 80,358 80,154" fill="#021635" opacity="0.55"/>
+
+  <!-- INNER RIM -->
+  <polygon points="256,70 414,160 414,352 256,442 98,352 98,160" fill="url(#rimBlueInner)"/>
+
+  <!-- INNER RIM EDGE (thin highlight) -->
+  <polygon points="256,70 414,160 414,352 256,442 98,352 98,160"
+           fill="none" stroke="#66D6FF" stroke-width="5" opacity="0.22"/>
+
+  <!-- CORE PLATE -->
+  <polygon points="256,96 392,176 392,336 256,416 120,336 120,176" fill="url(#corePlate)"/>
+
+  <!-- CORE INNER STROKE (depth line) -->
+  <polygon points="256,96 392,176 392,336 256,416 120,336 120,176"
+           fill="none" stroke="#021126" stroke-width="8" opacity="0.35"/>
+
+  <!-- CYAN GLOW RING (subtle) -->
+  <polygon points="256,96 392,176 392,336 256,416 120,336 120,176"
+           fill="none" stroke="url(#glowCyan)" stroke-width="6" opacity="0.55"/>
+
+  <!-- HARD BEVEL HIGHLIGHT (top-left edge) -->
+  <polygon points="256,70 414,160 404,170 256,86 108,170 98,160"
+           fill="#FFFFFF" opacity="0.10"/>
+
+  <!-- GLOSS PANEL (like your reference) -->
+  <polygon points="132,190 380,190 348,222 164,222"
+           fill="url(#shineBand)" opacity="0.55"/>
+
+  <!-- ANGLED LIGHT CUTS (adds Fortnite-like depth) -->
+  <polygon points="142,320 256,252 370,320 256,392"
+           fill="#FFFFFF" opacity="0.05"/>
+  <polygon points="150,314 256,260 362,314 256,382"
+           fill="#000000" opacity="0.10"/>
+
+</svg>
