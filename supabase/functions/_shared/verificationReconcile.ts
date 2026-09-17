@@ -5,6 +5,8 @@ const PROVIDER_THRESHOLD = 0.7;
 const MANUAL_THRESHOLD = 0.75;
 const MANUAL_MARGIN = 0.1;
 const USER_MATCH_WINDOW_DAYS = 2;
+const STRENGTH_CLUSTER_TOLERANCE_MS = 2 * 60 * 1000;
+const STRENGTH_AUTO_DURATION_MAX_MS = 2 * 60 * 60 * 1000;
 
 function text(value: unknown, fallback = "") {
   if (value === null || value === undefined) return fallback;
@@ -252,6 +254,7 @@ function strengthEntries(payload: any) {
       durationSec,
       startedAt: startedAt || null,
       completedAt: completedAt || null,
+      isExtra: block?.isExtra === true,
       manualOnly: true,
     });
   }
@@ -277,10 +280,91 @@ function manualCandidates(logs: any[], profileId: string) {
       durationSec: entry.durationSec,
       startedAt: entry.startedAt || null,
       completedAt: entry.completedAt || null,
+      isExtra: entry.isExtra === true,
       manualOnly: entry.manualOnly === true,
     }));
   }
   return result;
+}
+
+function strengthCandidateInterval(candidate: any) {
+  const start = isoMs(candidate?.startedAt);
+  if (start === null) return null;
+  const explicitEnd = isoMs(candidate?.completedAt);
+  const durationSec = positive(candidate?.durationSec);
+  const end = explicitEnd !== null && explicitEnd >= start
+    ? explicitEnd
+    : durationSec !== null
+      ? start + durationSec * 1000
+      : start;
+  return { start, end };
+}
+
+function groupStrengthManualCandidates(candidates: any[]) {
+  const source = Array.isArray(candidates) ? candidates : [];
+  const consumed = new Set<number>();
+  const grouped: any[] = [];
+
+  source.forEach((candidate, index) => {
+    if (consumed.has(index)) return;
+    const interval = strengthCandidateInterval(candidate);
+    const isStrength = candidate?.manualOnly === true && canonicalActivityFamily(candidate?.activityType) === "strength";
+    if (!isStrength || !interval || !candidate?.manualLogId) {
+      grouped.push(candidate);
+      consumed.add(index);
+      return;
+    }
+
+    const cluster = [{ candidate, index, interval }];
+    consumed.add(index);
+    let clusterStart = interval.start;
+    let clusterEnd = interval.end;
+    let changed = true;
+    while (changed) {
+      changed = false;
+      source.forEach((peer, peerIndex) => {
+        if (consumed.has(peerIndex)) return;
+        if (peer?.manualOnly !== true || canonicalActivityFamily(peer?.activityType) !== "strength") return;
+        if (peer?.manualLogId !== candidate.manualLogId) return;
+        const peerInterval = strengthCandidateInterval(peer);
+        if (!peerInterval) return;
+        if (peerInterval.start <= clusterEnd + STRENGTH_CLUSTER_TOLERANCE_MS && peerInterval.end >= clusterStart - STRENGTH_CLUSTER_TOLERANCE_MS) {
+          cluster.push({ candidate: peer, index: peerIndex, interval: peerInterval });
+          consumed.add(peerIndex);
+          clusterStart = Math.min(clusterStart, peerInterval.start);
+          clusterEnd = Math.max(clusterEnd, peerInterval.end);
+          changed = true;
+        }
+      });
+    }
+
+    if (cluster.length === 1) {
+      grouped.push(candidate);
+      return;
+    }
+
+    const primary = cluster.slice().sort((left, right) => {
+      const extraOrder = Number(left.candidate?.isExtra === true) - Number(right.candidate?.isExtra === true);
+      if (extraOrder) return extraOrder;
+      const leftDuration = left.interval.end - left.interval.start;
+      const rightDuration = right.interval.end - right.interval.start;
+      return rightDuration - leftDuration || left.interval.start - right.interval.start || text(left.candidate?.id).localeCompare(text(right.candidate?.id));
+    })[0].candidate;
+    const sessionDurationMs = Math.max(0, clusterEnd - clusterStart);
+    const credibleDurationSec = sessionDurationMs > 0 && sessionDurationMs <= STRENGTH_AUTO_DURATION_MAX_MS
+      ? Math.round(sessionDurationMs / 1000)
+      : null;
+    grouped.push({
+      ...primary,
+      startedAt: new Date(clusterStart).toISOString(),
+      completedAt: new Date(clusterEnd).toISOString(),
+      durationSec: credibleDurationSec,
+      sessionBlockCount: cluster.length,
+      coveredTargetKeys: cluster.map((entry) => `${text(entry.candidate?.manualLogId)}:${text(entry.candidate?.manualBlockId)}`),
+    });
+  });
+
+  return grouped;
 }
 
 function strengthSessionAutoScore(group: any, candidate: any) {
@@ -293,15 +377,16 @@ function strengthSessionAutoScore(group: any, candidate: any) {
   if (externalStart === null || workoutStart === null) return 0;
   const deltaMin = Math.abs(externalStart - workoutStart) / 60000;
   let startScore = 0;
-  if (deltaMin <= 5) startScore = 0.4;
-  else if (deltaMin <= 15) startScore = 0.3;
+  if (deltaMin <= 5) startScore = 0.45;
+  else if (deltaMin <= 15) startScore = 0.35;
   else if (deltaMin <= 30) startScore = 0.2;
   else return 0;
-  const dateScore = Math.max(0.08, 0.2 - Math.abs(offset) * 0.06);
+  const offsetDays = Math.abs(offset);
+  const dateScore = offsetDays === 0 ? 0.25 : offsetDays === 1 ? 0.16 : 0.08;
   const durationScore = similarityScore(group.durationSec, candidate.durationSec, [
-    { relative: 0.08, absolute: 120, score: 0.2 },
-    { relative: 0.2, absolute: 300, score: 0.12 },
-    { relative: 0.35, absolute: 600, score: 0.06 },
+    { relative: 0.08, absolute: 120, score: 0.15 },
+    { relative: 0.2, absolute: 300, score: 0.1 },
+    { relative: 0.35, absolute: 600, score: 0.05 },
   ]);
   return Math.round((dateScore + 0.15 + startScore + durationScore) * 1000) / 1000;
 }
@@ -345,6 +430,11 @@ function findManualMatch(group: any, candidates: any[]) {
 
 function targetKey(value: any) {
   return `${text(value?.manualLogId || value?.manual_log_id)}:${text(value?.manualBlockId || value?.manual_block_id)}`;
+}
+
+function candidateTargetKeys(candidate: any) {
+  const keys = Array.isArray(candidate?.coveredTargetKeys) ? candidate.coveredTargetKeys.map((value: any) => text(value)).filter(Boolean) : [];
+  return keys.length ? keys : [targetKey(candidate)];
 }
 
 function userLinkStillCompatible(group: any, candidate: any) {
@@ -424,7 +514,8 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
   }
 
   const groups = buildGroups(observationsResult.data || []);
-  const candidates = manualCandidates(logsResult.data || [], profileId);
+  const rawCandidates = manualCandidates(logsResult.data || [], profileId);
+  const candidates = groupStrengthManualCandidates(rawCandidates);
   const existingManualByActivity = new Map(
     (existingLinksResult.data || []).filter((row: any) => row.match_method === "manual").map((row: any) => [row.verified_activity_id, row])
   );
@@ -456,7 +547,7 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
 
     const existingManual = existingManualByActivity.get(verifiedId);
     const existingCandidate = existingManual
-      ? candidates.find((candidate) => candidate.manualLogId === existingManual.manual_log_id && (candidate.manualBlockId || null) === (existingManual.manual_block_id || null))
+      ? rawCandidates.find((candidate) => candidate.manualLogId === existingManual.manual_log_id && (candidate.manualBlockId || null) === (existingManual.manual_block_id || null))
       : null;
     const preserveManual = !!existingManual && !!existingCandidate && userLinkStillCompatible(group, existingCandidate);
 
@@ -477,7 +568,7 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
       continue;
     }
 
-    const availableCandidates = candidates.filter((candidate) => !claimedManualTargets.has(targetKey(candidate)));
+    const availableCandidates = candidates.filter((candidate) => candidateTargetKeys(candidate).every((key) => !claimedManualTargets.has(key)));
     const match = findManualMatch(group, availableCandidates);
     const clearedManual = await adminClient.from("external_activity_links").delete().eq("verified_activity_id", verifiedId);
     if (clearedManual.error) throw clearedManual.error;
@@ -497,7 +588,7 @@ export async function reconcileVerifiedActivitiesForProfile(adminClient: any, pr
         confirmed_at: null,
       });
       if (persisted.error) throw persisted.error;
-      claimedManualTargets.add(targetKey(match.candidate));
+      candidateTargetKeys(match.candidate).forEach((key) => claimedManualTargets.add(key));
       linkedManual += 1;
     }
   }

@@ -61,6 +61,10 @@ export function undoVerifiedAutoPopulation(profileId, verifiedActivityId) {
   return runVerificationAutoPopulationAction(profileId, "undo", { verifiedActivityId });
 }
 
+export function ensureConnectedSourceAutoSync(profileId, provider = "strava") {
+  return runVerificationAction(profileId, "ensure_auto_sync", { provider });
+}
+
 export function checkConnectedSources(profileId, provider = "strava") {
   return runVerificationAction(profileId, "manual_sync", { provider });
 }

@@ -191,7 +191,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Incomplete webhook payload" }, 400);
   }
   if (config.webhookSubscriptionId && String(subscriptionId) !== config.webhookSubscriptionId) {
-    return json({ error: "Unexpected webhook subscription" }, 403);
+    console.warn("Signed Strava webhook arrived on a subscription id different from the legacy configured id", {
+      received: String(subscriptionId),
+      configured: config.webhookSubscriptionId,
+    });
   }
 
   const adminClient = createAdminClient();
