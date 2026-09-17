@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   checkConnectedSources,
   confirmManualVerifiedMatch,
   detachVerifiedMatch,
+  ensureConnectedSourceAutoSync,
   loadManualMatchCandidates,
   loadVerifiedActivityData,
   resetVerifiedAutomaticMatching,
@@ -19,6 +20,7 @@ const DEFAULT_API = Object.freeze({
   checkConnectedSources,
   confirmManualVerifiedMatch,
   detachVerifiedMatch,
+  ensureConnectedSourceAutoSync,
   loadManualMatchCandidates,
   loadVerifiedActivityData,
   resetVerifiedAutomaticMatching,
@@ -121,6 +123,7 @@ export function groupManualMatchCandidates(candidates = []) {
   const consumed = new Set();
   const grouped = [];
   const toleranceMs = 2 * 60 * 1000;
+  const maxStartGapMs = 90 * 60 * 1000;
 
   source.forEach((candidate, index) => {
     if (consumed.has(index)) return;
@@ -142,7 +145,11 @@ export function groupManualMatchCandidates(candidates = []) {
         if (consumed.has(peerIndex) || peer?.manualLogId !== candidate.manualLogId || !candidateIsStrength(peer)) return;
         const peerInterval = candidateInterval(peer);
         if (!peerInterval) return;
-        if (peerInterval.start <= clusterEnd + toleranceMs && peerInterval.end >= clusterStart - toleranceMs) {
+        if (
+          peerInterval.start <= clusterEnd + toleranceMs &&
+          peerInterval.end >= clusterStart - toleranceMs &&
+          Math.abs(peerInterval.start - clusterStart) <= maxStartGapMs
+        ) {
           cluster.push({ candidate: peer, index: peerIndex, interval: peerInterval });
           consumed.add(peerIndex);
           clusterStart = Math.min(clusterStart, peerInterval.start);
@@ -223,6 +230,7 @@ export default function VerifiedActivityEvidenceSection({
   const [syncNotice, setSyncNotice] = useState("");
   const [nowTick, setNowTick] = useState(Date.now());
   const [candidatesByActivity, setCandidatesByActivity] = useState({});
+  const autoSyncEnsureKeyRef = useRef("");
 
   async function load() {
     if (!profileId) {
@@ -259,6 +267,24 @@ export default function VerifiedActivityEvidenceSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, onDataChange, profileId]);
 
+  useEffect(() => {
+    let lastRefreshAt = Date.now();
+    const refreshWhenVisible = () => {
+      if (!profileId || document.visibilityState === "hidden") return;
+      const now = Date.now();
+      if (now - lastRefreshAt < 15000) return;
+      lastRefreshAt = now;
+      void load();
+    };
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, onDataChange, profileId]);
+
   const allRows = useMemo(() => buildRows(data), [data]);
   const activityRows = useMemo(() => allRows.filter((row) => row.status !== "ignored"), [allRows]);
   const ignoredRows = useMemo(() => allRows.filter((row) => row.status === "ignored"), [allRows]);
@@ -268,6 +294,13 @@ export default function VerifiedActivityEvidenceSection({
   const matchedCount = (data?.manualLinks || []).length;
   const stravaConnection = (data?.connections || []).find((row) => row.provider === "strava" && row.status === "active") || null;
   const syncCooldown = useMemo(() => manualSyncCooldown(stravaConnection, nowTick), [stravaConnection, nowTick]);
+
+  useEffect(() => {
+    const key = profileId && stravaConnection?.id ? `${profileId}:${stravaConnection.id}` : "";
+    if (!key || stravaConnection?.auto_sync_enabled === false || autoSyncEnsureKeyRef.current === key || typeof api.ensureConnectedSourceAutoSync !== "function") return;
+    autoSyncEnsureKeyRef.current = key;
+    void api.ensureConnectedSourceAutoSync(profileId, "strava").catch(() => null);
+  }, [api, profileId, stravaConnection?.id]);
 
   useEffect(() => {
     if (!syncCooldown.blocked) return undefined;
@@ -284,7 +317,9 @@ export default function VerifiedActivityEvidenceSection({
       const result = await api.checkConnectedSources(profileId, "strava");
       if (result?.error) throw result.error;
       const imported = Number(result?.data?.imported || 0);
-      setSyncNotice(`Sync complete. ${imported} connected activit${imported === 1 ? "y was" : "ies were"} refreshed and verification was reconciled.`);
+      const autoSyncState = text(result?.data?.autoSync?.state);
+      const autoSyncSuffix = autoSyncState === "active" ? " Automatic Strava updates are active." : "";
+      setSyncNotice(`Sync complete. ${imported} connected activit${imported === 1 ? "y was" : "ies were"} refreshed and verification was reconciled.${autoSyncSuffix}`);
       await load();
       setNowTick(Date.now());
     } catch (syncFailure) {

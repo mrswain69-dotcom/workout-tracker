@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {
   createAdminClient,
   createUserClient,
+  ensureStravaWebhookSubscription,
   importRecentStravaActivities,
   json,
   refreshStravaAccessToken,
@@ -260,11 +261,30 @@ Deno.serve(async (req: Request) => {
       .select("id,family_id,archived").eq("id", profileId).maybeSingle();
     if (profileError || !profile || profile.archived) return json({ error: "Athlete profile is not available" }, 404, corsHeaders);
 
+    if (action === "ensure_auto_sync") {
+      const provider = text(body?.provider, "strava");
+      if (provider !== "strava") return json({ error: "Automatic source sync is not available for this provider yet" }, 400, corsHeaders);
+      const { data: connection, error: connectionError } = await userClient.from("external_connections")
+        .select("id,family_id,profile_id,provider,status,auto_sync_enabled")
+        .eq("profile_id", profileId).eq("provider", provider).maybeSingle();
+      if (connectionError || !connection || connection.status !== "active") return json({ error: "Provider is not connected" }, 409, corsHeaders);
+      if (connection.auto_sync_enabled === false) return json({ provider, autoSync: { state: "disabled", id: null, created: false, repaired: false } }, 200, corsHeaders);
+      let autoSync: any;
+      try {
+        autoSync = await ensureStravaWebhookSubscription();
+      } catch (error) {
+        console.error("Strava automatic sync provisioning failed", error);
+        autoSync = { state: "error", reason: String((error as any)?.message || error), id: null, created: false, repaired: false };
+      }
+      await audit(adminClient, authData.user.id, profile, "auto_sync_ensure", { provider, eventData: { autoSync } });
+      return json({ provider, autoSync }, 200, corsHeaders);
+    }
+
     if (action === "manual_sync") {
       const provider = text(body?.provider, "strava");
       if (provider !== "strava") return json({ error: "Manual source check is not available for this provider yet" }, 400, corsHeaders);
       const { data: connection, error: connectionError } = await userClient.from("external_connections")
-        .select("id,family_id,profile_id,provider,status,last_manual_sync_at")
+        .select("id,family_id,profile_id,provider,status,auto_sync_enabled,last_manual_sync_at")
         .eq("profile_id", profileId).eq("provider", provider).maybeSingle();
       if (connectionError || !connection || connection.status !== "active") return json({ error: "Provider is not connected" }, 409, corsHeaders);
 
@@ -283,6 +303,15 @@ Deno.serve(async (req: Request) => {
           nextAllowedAt: Number.isFinite(lastMs) ? new Date(lastMs + MANUAL_SYNC_COOLDOWN_MS).toISOString() : new Date(Date.now() + MANUAL_SYNC_COOLDOWN_MS).toISOString(),
         }, 429, corsHeaders);
       }
+      let autoSync: any = { state: "disabled", id: null, created: false, repaired: false };
+      if (connection.auto_sync_enabled !== false) {
+        try {
+          autoSync = await ensureStravaWebhookSubscription();
+        } catch (error) {
+          console.error("Strava automatic sync provisioning failed during manual sync", error);
+          autoSync = { state: "error", reason: String((error as any)?.message || error), id: null, created: false, repaired: false };
+        }
+      }
       const accessToken = await refreshStravaAccessToken(adminClient, connection.id);
       const imported = await importRecentStravaActivities(adminClient, connection, accessToken, { days: 7 });
       const reconciliation = await reconcileVerifiedActivitiesForProfile(adminClient, profileId);
@@ -292,8 +321,8 @@ Deno.serve(async (req: Request) => {
         last_error_code: null,
       }).eq("id", connection.id);
       if (connectionUpdate.error) throw connectionUpdate.error;
-      await audit(adminClient, authData.user.id, profile, "manual_sync", { provider, eventData: { imported, reconciliation, syncedAt } });
-      return json({ provider, imported, reconciliation, syncedAt, nextAllowedAt: new Date(Date.parse(manualSyncStartedAt) + MANUAL_SYNC_COOLDOWN_MS).toISOString() }, 200, corsHeaders);
+      await audit(adminClient, authData.user.id, profile, "manual_sync", { provider, eventData: { imported, reconciliation, syncedAt, autoSync } });
+      return json({ provider, imported, reconciliation, syncedAt, autoSync, nextAllowedAt: new Date(Date.parse(manualSyncStartedAt) + MANUAL_SYNC_COOLDOWN_MS).toISOString() }, 200, corsHeaders);
     }
 
     if (["match_candidates", "manual_match", "detach_match", "ignore_activity", "unignore_activity", "reset_automatic_matching"].includes(action)) {

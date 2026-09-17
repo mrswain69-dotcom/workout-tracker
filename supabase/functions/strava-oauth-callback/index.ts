@@ -5,6 +5,7 @@ import {
   createAdminClient,
   fixedAppRedirect,
   hasActivityReadScope,
+  ensureStravaWebhookSubscription,
   importRecentStravaActivities,
   json,
   revokeStravaToken,
@@ -128,6 +129,12 @@ Deno.serve(async (req: Request) => {
     EdgeRuntime.waitUntil(
       (async () => {
         try {
+          try {
+            const autoSync = await ensureStravaWebhookSubscription();
+            if (autoSync.state !== "active") console.warn("Strava automatic sync is not active after OAuth", autoSync);
+          } catch (autoSyncError) {
+            console.error("Strava automatic sync provisioning failed after OAuth", autoSyncError);
+          }
           await importRecentStravaActivities(adminClient, connection, accessToken);
           await reconcileVerifiedActivitiesForProfile(adminClient, connection.profile_id);
         } catch (error) {

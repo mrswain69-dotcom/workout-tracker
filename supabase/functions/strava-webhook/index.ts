@@ -61,7 +61,7 @@ async function processEvent(adminClient: any, eventRow: any, event: any) {
   try {
     const { data: connection, error: connectionError } = await adminClient
       .from("external_connections")
-      .select("id,family_id,profile_id,provider,provider_account_id,status,scopes")
+      .select("id,family_id,profile_id,provider,provider_account_id,status,auto_sync_enabled,scopes")
       .eq("provider", "strava")
       .eq("provider_account_id", String(event.owner_id))
       .maybeSingle();
@@ -76,6 +76,14 @@ async function processEvent(adminClient: any, eventRow: any, event: any) {
     }
 
     await markEvent(adminClient, eventRow.id, { connection_id: connection.id });
+
+    if (connection.auto_sync_enabled === false) {
+      await markEvent(adminClient, eventRow.id, {
+        processed_at: new Date().toISOString(),
+        processing_error: "auto_sync_disabled",
+      });
+      return;
+    }
 
     const deauthorized =
       event.object_type === "athlete" &&
@@ -191,7 +199,10 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Incomplete webhook payload" }, 400);
   }
   if (config.webhookSubscriptionId && String(subscriptionId) !== config.webhookSubscriptionId) {
-    return json({ error: "Unexpected webhook subscription" }, 403);
+    console.warn("Signed Strava webhook arrived on a subscription id different from the legacy configured id", {
+      received: String(subscriptionId),
+      configured: config.webhookSubscriptionId,
+    });
   }
 
   const adminClient = createAdminClient();

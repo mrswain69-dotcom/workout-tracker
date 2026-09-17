@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 export const STRAVA_AUTHORIZE_URL = "https://www.strava.com/oauth/authorize";
 export const STRAVA_TOKEN_URL = "https://www.strava.com/api/v3/oauth/token";
 export const STRAVA_REVOKE_URL = "https://www.strava.com/oauth/revoke";
+export const STRAVA_WEBHOOK_SUBSCRIPTIONS_URL = "https://www.strava.com/api/v3/push_subscriptions";
 export const STRAVA_API_BASE = Deno.env.get("STRAVA_API_BASE_URL") || "https://www.strava.com/api/v3";
 
 export function platformKey(jsonName: string, singleName: string, legacyName: string) {
@@ -61,10 +62,75 @@ export function stravaAppConfig() {
     webhookVerifyToken: Deno.env.get("STRAVA_WEBHOOK_VERIFY_TOKEN") || "",
     webhookSigningSecret: Deno.env.get("STRAVA_WEBHOOK_SIGNING_SECRET") || "",
     webhookSubscriptionId: Deno.env.get("STRAVA_WEBHOOK_SUBSCRIPTION_ID") || "",
+    webhookCallbackUrl:
+      Deno.env.get("STRAVA_WEBHOOK_CALLBACK_URL") ||
+      (supabaseUrl ? `${supabaseUrl}/functions/v1/strava-webhook` : ""),
     oauthCallbackUrl:
       Deno.env.get("STRAVA_OAUTH_CALLBACK_URL") ||
       (supabaseUrl ? `${supabaseUrl}/functions/v1/strava-oauth-callback` : ""),
     appUrl: Deno.env.get("WORKOUT_TRACKER_APP_URL") || "",
+  };
+}
+
+function webhookSubscriptionUrl(subscriptionId = "") {
+  return subscriptionId
+    ? `${STRAVA_WEBHOOK_SUBSCRIPTIONS_URL}/${encodeURIComponent(subscriptionId)}`
+    : STRAVA_WEBHOOK_SUBSCRIPTIONS_URL;
+}
+
+export async function ensureStravaWebhookSubscription() {
+  const config = stravaAppConfig();
+  if (!config.clientId || !config.clientSecret || !config.webhookVerifyToken || !config.webhookSigningSecret || !config.webhookCallbackUrl) {
+    return { state: "unavailable", reason: "missing_configuration", id: null, created: false, repaired: false };
+  }
+
+  const listUrl = new URL(STRAVA_WEBHOOK_SUBSCRIPTIONS_URL);
+  listUrl.searchParams.set("client_id", config.clientId);
+  listUrl.searchParams.set("client_secret", config.clientSecret);
+  const listedResponse = await fetch(listUrl);
+  const listedBody = await listedResponse.json().catch(() => []);
+  if (!listedResponse.ok) throw new Error(`Strava webhook subscription lookup failed (${listedResponse.status})`);
+  const subscriptions = Array.isArray(listedBody) ? listedBody : [];
+  const matching = subscriptions.find((row: any) => String(row?.callback_url || "") === config.webhookCallbackUrl);
+  if (matching?.id !== null && matching?.id !== undefined) {
+    return { state: "active", id: String(matching.id), created: false, repaired: false, callbackUrl: config.webhookCallbackUrl };
+  }
+
+  if (subscriptions.length > 1) {
+    return { state: "ambiguous", reason: "multiple_application_subscriptions", id: null, created: false, repaired: false };
+  }
+
+  let repaired = false;
+  if (subscriptions.length === 1 && subscriptions[0]?.id !== null && subscriptions[0]?.id !== undefined) {
+    const existingId = String(subscriptions[0].id);
+    const deleteUrl = new URL(webhookSubscriptionUrl(existingId));
+    deleteUrl.searchParams.set("client_id", config.clientId);
+    deleteUrl.searchParams.set("client_secret", config.clientSecret);
+    const deleted = await fetch(deleteUrl, { method: "DELETE" });
+    if (!deleted.ok && deleted.status !== 404) throw new Error(`Strava webhook subscription repair failed (${deleted.status})`);
+    repaired = true;
+  }
+
+  const createdResponse = await fetch(STRAVA_WEBHOOK_SUBSCRIPTIONS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      callback_url: config.webhookCallbackUrl,
+      verify_token: config.webhookVerifyToken,
+    }),
+  });
+  const createdBody = await createdResponse.json().catch(() => ({}));
+  if (!createdResponse.ok || createdBody?.id === null || createdBody?.id === undefined) {
+    throw new Error(`Strava webhook subscription creation failed (${createdResponse.status})`);
+  }
+  return {
+    state: "active",
+    id: String(createdBody.id),
+    created: true,
+    repaired,
+    callbackUrl: config.webhookCallbackUrl,
   };
 }
 
