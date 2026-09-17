@@ -1,0 +1,63 @@
+name: Automatic verification polish patch
+
+on:
+  push:
+    branches:
+      - feature/automatic-verification-polish
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+        with:
+          ref: feature/automatic-verification-polish
+          fetch-depth: 0
+
+      - name: Apply deterministic patch
+        run: python scripts/automatic-verification-polish-patch.py
+
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build app
+        run: npm run build
+
+      - name: Security audit
+        run: npm audit --audit-level=low
+
+      - name: Remove temporary patch machinery
+        run: rm scripts/automatic-verification-polish-patch.py .github/workflows/automatic-verification-polish-patch.yml
+
+      - name: Commit verified source changes only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            supabase/functions/_shared/verificationReconcile.ts \
+            supabase/functions/_shared/stravaProvider.ts \
+            supabase/functions/verification-actions/index.ts \
+            supabase/functions/strava-oauth-callback/index.ts \
+            supabase/functions/strava-webhook/index.ts \
+            src/verifiedActivityDb.js \
+            src/components/progress/VerifiedActivityEvidenceSection.jsx \
+            src/engine/verificationAutomaticPolish.test.js
+          git add -u scripts/automatic-verification-polish-patch.py .github/workflows/automatic-verification-polish-patch.yml
+          git commit -m "Automate Strava sync and high-confidence strength matching"
+          git push origin HEAD:feature/automatic-verification-polish
