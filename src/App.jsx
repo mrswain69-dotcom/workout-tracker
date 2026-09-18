@@ -47,6 +47,10 @@ import {
   computeXpFromLogs as computeXpFromLogsEngine,
 } from "./engine/xpEngine.js";
 import {
+  buildDashboardWeekSummary,
+  getNextAvatarReward,
+} from "./engine/dashboardEngine.js";
+import {
   buildSessionLogBlockSnapshot,
   hydrateSessionSnapshotsInLog,
   reconcileSessionLogBlockSnapshot,
@@ -78,6 +82,7 @@ import SessionLogger from "./components/sessions/SessionLogger.jsx";
 import AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx";
 import AssessmentHub from "./components/assessments/AssessmentHub.jsx";
 import ProgressDashboard from "./components/progress/ProgressDashboard.jsx";
+import PerformanceDashboard from "./components/dashboard/PerformanceDashboard.jsx";
 import ConnectionsSettings from "./components/settings/ConnectionsSettings.jsx";
 import LogVerificationSummary from "./components/verification/LogVerificationSummary.jsx";
 const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
@@ -2912,7 +2917,7 @@ export default function App() {
   const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
 
   const [providerReturn] = useState(() => readProviderReturn());
-  const [tab, setTab] = useState(() => providerReturn ? "connections" : "log");
+  const [tab, setTab] = useState(() => providerReturn ? "connections" : "dashboard");
 
   useEffect(() => {
     if (providerReturn) clearProviderReturnFromUrl();
@@ -2956,6 +2961,7 @@ const [motivationKey, setMotivationKey] = useState(0);
 const [healthKey, setHealthKey] = useState(0);
 
 useEffect(() => {
+  if (tab !== "dashboard") return;
   setMotivationLine(pickRandom(MOTIVATION_QUOTES));
   setHealthTip(pickRandom(HEALTH_TIPS));
   setMotivationKey((k) => k + 1);
@@ -4002,10 +4008,10 @@ if (cached) {
   const level = 1 + Math.floor(xp / 100);
   const unlocked = { arcade: level >= 3, chill: level >= 5 };
 
-  // Avatars: 1 unlock every 1000 XP (every 10 levels)
-  const avatarTier = Math.floor(xp / 1000); // 0 = none yet, 1 = first avatar, etc.
-  const nextAvatarAt = (avatarTier + 1) * 1000;
-  const xpToNextAvatar = nextAvatarAt - xp;
+  const nextAvatarReward = useMemo(
+    () => getNextAvatarReward(xp, AVATAR_PACKS),
+    [xp]
+  );
 
 // Rewards meta (stored in profile plan JSON so it syncs across devices)
 const claimedRewardsNorm = useMemo(
@@ -4990,6 +4996,41 @@ const todayPlanStatus = useMemo(() => {
 
   return "amber";
 }, [allLogs, todayYmd]);
+
+const dashboardWeekSummary = useMemo(
+  () =>
+    buildDashboardWeekSummary({
+      xpRows: xpDebugRows,
+      logs: allLogs,
+      referenceDate: todayYmd,
+    }),
+  [xpDebugRows, allLogs, todayYmd]
+);
+
+const dashboardRecoveryPeriod = useMemo(
+  () =>
+    getProfileRecoveryModeForDate(
+      profileRecoveryPeriods,
+      activeProfileId,
+      todayYmd,
+      todayYmd
+    ),
+  [profileRecoveryPeriods, activeProfileId, todayYmd]
+);
+
+const dashboardRecoveryMode =
+  normaliseProfileRecoveryMode(dashboardRecoveryPeriod?.mode) || "normal";
+
+const dashboardTodayBlocks = useMemo(() => {
+  if (!plan) return [];
+  const weekday = weekdayFromYMD(todayYmd);
+  const blocks = getDayActivitiesForWeekday(plan, weekday) || [];
+  return applyProfileRecoveryModeToPlannedBlocks(blocks, {
+    profileId: activeProfileId,
+    dateYmd: todayYmd,
+    mode: dashboardRecoveryMode,
+  });
+}, [plan, todayYmd, activeProfileId, dashboardRecoveryMode]);
 
   
 const recoveryEligibilityForSelectedDate = useMemo(() => {
@@ -8018,7 +8059,7 @@ const cardioProgress = useMemo(() => {
     </div>
 
     <div className="brandActions">
-      <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Manage Workout Tracker" title="Manage">
+      <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Open Settings" title="Settings">
         <span className="iconEmoji">⚙️</span>
       </button>
 
@@ -8088,20 +8129,24 @@ const cardioProgress = useMemo(() => {
       </div>
 
       <div className="tabsRow">
-        <div className="tabs primaryNavTabs" aria-label="Primary navigation">
-          {["log", "stats", "rewards"].map((t) => (
-            <SecondaryButton key={t} onClick={() => setTab(t)}>
-              {t === "stats" ? "Progress" : t[0].toUpperCase() + t.slice(1)}
-            </SecondaryButton>
+        <nav className="tabs primaryNavTabs" aria-label="Primary navigation">
+          {[
+            ["dashboard", "Dashboard"],
+            ["log", "Log"],
+            ["stats", "Progress"],
+            ["rewards", "Rewards"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={`btn btn-secondary primaryNavButton ${tab === key ? "active" : ""}`}
+              aria-current={tab === key ? "page" : undefined}
+              onClick={() => setTab(key)}
+            >
+              {label}
+            </button>
           ))}
-          <div className="setupTabsDesktop" role="group" aria-label="Management shortcuts">
-            {["plan", "assessments"].map((t) => (
-              <SecondaryButton key={t} onClick={() => setTab(t)}>
-                {t === "assessments" ? "Assess" : "Plan"}
-              </SecondaryButton>
-            ))}
-          </div>
-        </div>
+        </nav>
       </div>
     </div>
   </div>
@@ -8117,14 +8162,15 @@ const cardioProgress = useMemo(() => {
   </React.Suspense>
 )}
 
-{["settings", "plan", "assessments", "connections"].includes(tab) && (
+{["settings", "plan", "assessments", "connections", "appsettings"].includes(tab) && (
   <div className="manageTabsRow">
-    <nav className="manageTabs" aria-label="Manage Workout Tracker">
+    <nav className="manageTabs" aria-label="Workout Tracker settings">
       {[
-        ["settings", "General"],
+        ["settings", "People"],
         ["plan", "Plan"],
         ["assessments", "Assessments"],
         ["connections", "Connections"],
+        ["appsettings", "App"],
       ].map(([key, label]) => (
         <button
           key={key}
@@ -8140,15 +8186,32 @@ const cardioProgress = useMemo(() => {
   </div>
 )}
 
-        <Card className="pad motivator">
-          <div className="motGrid">
-            {motivationMessages.map((m, i) => (
-              <div key={i} className="motItem">{m}</div>
-            ))}
-          </div>
-        </Card>
-
-
+        {tab === "dashboard" && (
+          <PerformanceDashboard
+            familyId={family?.id || ""}
+            profileId={activeProfileId}
+            profileName={activeProfile?.name || "Athlete"}
+            todayYmd={todayYmd}
+            todayStatus={todayPlanStatus}
+            currentStreak={currentPlanStreak}
+            weekSummary={dashboardWeekSummary}
+            totalXp={xp}
+            nextAvatarReward={nextAvatarReward}
+            todayBlocks={dashboardTodayBlocks}
+            recoveryMode={dashboardRecoveryMode}
+            motivationLine={motivationLine}
+            healthTip={healthTip}
+            onOpenLog={() => {
+              setSelectedDate(todayYmd);
+              setTab("log");
+            }}
+            onOpenProgress={() => setTab("stats")}
+            onOpenRewards={() => setTab("rewards")}
+            onOpenGroups={() => setShowGroups(true)}
+            onOpenConnections={() => setTab("connections")}
+            onOpenAssessments={() => setTab("assessments")}
+          />
+        )}
 
         {tab === "log" && (
           <div className="gridLog" key={`${activeProfileId}_${selectedDate}`}>
@@ -11216,14 +11279,22 @@ the same time tomorrow.
 
         
 {tab === "assessments" && (
-  <div className="panel">
-    <AssessmentHub
-      familyId={family?.id || ""}
-      profileId={activeProfileId}
-      athleteName={activeProfile?.name || "Athlete"}
-      todayYmd={todayYmd}
-    />
-  </div>
+  <>
+    <div className="panel">
+      <AssessmentHub
+        familyId={family?.id || ""}
+        profileId={activeProfileId}
+        athleteName={activeProfile?.name || "Athlete"}
+        todayYmd={todayYmd}
+      />
+    </div>
+    <div className="panel mt16">
+      <AssessmentTemplateLibrary
+        familyId={family?.id || ""}
+        authorizeMutation={(reason) => ensureUnlocked(reason)}
+      />
+    </div>
+  </>
 )}
 
 {tab === "rewards" && (
@@ -11273,9 +11344,12 @@ the same time tomorrow.
             gap: 8,
           }}
         >
-          <SummaryStat label="XP" value={xp} />
+          <SummaryStat label="XP this week" value={dashboardWeekSummary.xp} />
+          <div className="mini muted" style={{ paddingLeft: 2 }}>
+            {xp.toLocaleString("en-GB")} XP total
+          </div>
           <SummaryStat label="Level" value={level} />
-          <SummaryStat label="XP to next" value={xpToNext} />
+          <SummaryStat label="XP to next level" value={xpToNext} />
         </div>
       </div>
 
@@ -11300,15 +11374,21 @@ the same time tomorrow.
       </div>
 
       <div className="panel mt12">
-        <div className="h3">Next big milestone</div>
+        <div className="h3">Next avatar milestone</div>
         <div className="mini muted mt4">
-          Avatar packs unlock every 1,000 XP.
+          Avatar rewards unlock at XP milestones. Higher-level reward tiers can use wider gaps.
         </div>
         <div className="mini mt8">
-          {xp < nextAvatarAt ? (
-            <>Next avatar unlock at <b>{nextAvatarAt}</b> XP ({xpToNextAvatar} XP to go).</>
+          {nextAvatarReward ? (
+            <>
+              <b>{nextAvatarReward.title}</b> unlocks at{" "}
+              <b>{nextAvatarReward.unlockAtXp.toLocaleString("en-GB")}</b> XP
+              {" "}({nextAvatarReward.remainingXp.toLocaleString("en-GB")} XP to go).
+            </>
           ) : (
-            <>You’ve hit an avatar tier — claim your pack below.</>
+            <>
+              Current avatar milestones are complete. The next high-XP avatar tiers are the next reward expansion.
+            </>
           )}
         </div>
       </div>
@@ -12143,9 +12223,10 @@ if (!didClaim) {
   />
 )}
 
-{tab === "settings" && (
+{["settings", "appsettings"].includes(tab) && (
           <div className="grid2cols">
-            <Card className="pad">
+            {tab === "settings" && (
+            <Card className="pad" style={{ gridColumn: "1 / -1" }}>
               <div ref={peopleRef} />
               <div className="h2">People on this account</div>
               <div className="stack mt12">
@@ -12296,8 +12377,10 @@ if (!didClaim) {
                 </SecondaryButton>
               </div>
             </Card>
+            )}
 
-            <Card className="pad">
+            {tab === "appsettings" && (
+            <Card className="pad" style={{ gridColumn: "1 / -1" }}>
               <div ref={accountRef} />
               <div className="h2">Data notes</div>
               <div className="mini mt12">
@@ -12440,13 +12523,8 @@ if (!didClaim) {
                 </div>
               </div>
             </Card>
+            )}
 
-            <div className="panel" style={{ gridColumn: "1 / -1" }}>
-              <AssessmentTemplateLibrary
-                familyId={family?.id || ""}
-                authorizeMutation={(reason) => ensureUnlocked(reason)}
-              />
-            </div>
           </div>
         )}
 
