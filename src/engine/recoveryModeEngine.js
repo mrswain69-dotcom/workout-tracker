@@ -53,7 +53,7 @@ export function getProfileRecoveryModeForDate(
 }
 
 export function profileRecoveryBlockId(profileId, dateYmd) {
-  return \`profile-recovery::\${text(profileId)}::\${ymd(dateYmd)}\`;
+  return `profile-recovery::${text(profileId)}::${ymd(dateYmd)}`;
 }
 
 export function isProfileRecoveryLogBlock(block) {

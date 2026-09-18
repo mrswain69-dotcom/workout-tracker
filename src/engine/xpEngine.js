@@ -1,6 +1,6 @@
 import { BADGE_XP_BY_KEY } from "./xpRewardMap.generated.js";
 
-export const XP_ENGINE_SCORE_VERSION = 1;
+export const XP_ENGINE_SCORE_VERSION = 2;
 export const SESSION_COMPLETION_XP = 10;
 
 export const XP_RULES = Object.freeze({
@@ -9,6 +9,9 @@ export const XP_RULES = Object.freeze({
   cardioPerKm: 1 / 0.5,
   durationPerMin: 2 / 10,
   sessionComplete: SESSION_COMPLETION_XP,
+  recoveryComplete: 5,
+  injuryPhysioComplete: 10,
+  illnessRecoveryComplete: 5,
   taskDefault: 5,
   blockComplete: 5,
   progression: 10,
@@ -174,7 +177,13 @@ function xpForDurationBlock(block) {
 }
 
 function xpForRecoveryBlock(block) {
-  return profileRecoveryBlockComplete(block) ? 5 : 0;
+  if (!profileRecoveryBlockComplete(block)) return 0;
+  if (block?.isProfileRecoveryBlock) {
+    const mode = String(block?.profileRecoveryMode || "").toLowerCase();
+    if (mode === "injury") return XP_RULES.injuryPhysioComplete;
+    if (mode === "illness") return XP_RULES.illnessRecoveryComplete;
+  }
+  return XP_RULES.recoveryComplete;
 }
 
 function findPlanBlockForLogBlock(plan, logBlockId) {
@@ -337,11 +346,7 @@ function computeGroupChallengeRewardsXpByDate(plan) {
 
 function computeStreakBonusMap(records) {
   const completeDates = records
-    .filter(
-      (row) =>
-        (isDayGreenForXp(row.log) && !isProfileRecoveryModeLog(row.log)) ||
-        !!row.log?.meta?.streakSaved
-    )
+    .filter((row) => isDayGreenForXp(row.log) || !!row.log?.meta?.streakSaved)
     .map((row) => row.date_ymd)
     .sort();
   if (!completeDates.length) return {};
@@ -482,10 +487,7 @@ export function buildXpDebugRows(inputRecords, plan) {
       cardioXp = Math.round(cardioXp * (CARDIO_MODE_MULTIPLIER[cardioMode] || 1));
     }
 
-    dayCompleteXp =
-      complete && !isProfileRecoveryModeLog(log)
-        ? XP_RULES.dayCompleteBonus
-        : 0;
+    dayCompleteXp = complete ? XP_RULES.dayCompleteBonus : 0;
     const streakXp = streakXpByDate[date] || 0;
     const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
     const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;

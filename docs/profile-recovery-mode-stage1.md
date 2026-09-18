@@ -31,3 +31,8 @@ The profile_recovery_periods table records recovery periods separately from plan
 ## Safety boundary
 
 Recovery Mode is an activity-planning state, not a diagnosis or medical recommendation.
+
+
+## Future reward family
+
+A future **Recovery Specialist** cosmetic/avatar progression is reserved as an expansion candidate. Progress should use legitimate completed recovery/physio days or recovery-specific achievements, never raw minutes, so it cannot be farmed by entering longer durations. This follows the Rewards & Badges rule that XP unlocks cosmetics while badges represent achievement identity.

@@ -26,14 +26,40 @@ function injuryLog(minutes = 20) {
 }
 
 describe("profile recovery mode integration", () => {
-  it("awards only fixed Recovery XP and no normal day/streak XP", () => {
-    const rows = buildXpDebugRows([{ date_ymd: "2026-09-18", log: injuryLog(20) }], {});
-    expect(rows).toHaveLength(1);
-    expect(rows[0].recoveryXp).toBe(5);
-    expect(rows[0].strengthXp).toBe(0);
-    expect(rows[0].dayCompleteXp).toBe(0);
-    expect(rows[0].streakXp).toBe(0);
-    expect(rows[0].totalXp).toBe(5);
+  it("keeps the streak, rewards physio more than illness recovery, and ignores paused training XP", () => {
+    const injuryRows = buildXpDebugRows(
+      [
+        {
+          date_ymd: "2026-09-17",
+          log: { blocks: [{ id: "recovery", typeId: "recovery", recoveryDone: true }] },
+        },
+        { date_ymd: "2026-09-18", log: injuryLog(20) },
+      ],
+      {}
+    );
+    const injury = injuryRows.find((row) => row.date === "2026-09-18");
+    expect(injury.recoveryXp).toBe(10);
+    expect(injury.strengthXp).toBe(0);
+    expect(injury.dayCompleteXp).toBe(10);
+    expect(injury.streakXp).toBe(5);
+
+    const illnessLog = {
+      meta: { profileRecoveryMode: "illness" },
+      blocks: [{
+        id: "illness",
+        typeId: "recovery",
+        isProfileRecoveryBlock: true,
+        profileRecoveryMode: "illness",
+        recoveryDone: true,
+      }],
+    };
+    const illness = buildXpDebugRows(
+      [{ date_ymd: "2026-09-18", log: illnessLog }],
+      {}
+    )[0];
+    expect(illness.recoveryXp).toBe(5);
+    expect(illness.dayCompleteXp).toBe(10);
+    expect(injury.recoveryXp).toBeGreaterThan(illness.recoveryXp);
   });
 
   it("lets completed parent-authorised recovery satisfy a planned Consistency day", () => {
