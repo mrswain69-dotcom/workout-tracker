@@ -14,10 +14,11 @@ describe("Group & Team Stage 2 integration contract", () => {
     expect(app).toContain('aria-label="Open Groups"');
     expect(app).toContain("showGroups &&");
     expect(app).toContain("<GroupHub");
-    expect(app).toContain('["log", "stats", "rewards"]');
-    expect(app).toContain('["plan", "assessments"]');
-    expect(app).not.toContain('["log", "stats", "rewards", "groups"]');
-    expect(app).not.toContain('["log", "stats", "plan", "assessments", "rewards", "groups"]');
+    expect(app).toContain('["dashboard", "Dashboard"]');
+    expect(app).toContain('["log", "Log"]');
+    expect(app).toContain('["stats", "Progress"]');
+    expect(app).toContain('["rewards", "Rewards"]');
+    expect(app).not.toContain('["groups", "Groups"]');
   });
 
   it("keeps Group mutations behind RPCs and reads the deliberately safe directory surface", () => {

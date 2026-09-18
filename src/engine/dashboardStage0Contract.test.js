@@ -5,10 +5,15 @@ const source = fs.readFileSync(
   new URL("../components/dashboard/PerformanceDashboard.jsx", import.meta.url),
   "utf8"
 );
+const engine = fs.readFileSync(
+  new URL("./dashboardEngine.js", import.meta.url),
+  "utf8"
+);
 
 describe("Phase 5 dashboard contract", () => {
   it("keeps the dashboard focused on now, weekly performance and actionable routes", () => {
-    expect(source).toContain("PERFORMANCE COACH");
+    expect(engine).toContain("PERFORMANCE COACH");
+    expect(source).toContain("buildDashboardCoachInsight");
     expect(source).toContain("XP this week");
     expect(source).toContain("Weekly performance summary");
     expect(source).toContain("Progress highlights");
