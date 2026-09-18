@@ -103,6 +103,27 @@ export async function updateAgeGroup(profileId, ageGroup) {
   return { data, error };
 }
 
+export async function listProfileRecoveryPeriods(familyId) {
+  if (!familyId) return { data: [], error: null };
+  const { data, error } = await supabase
+    .from("profile_recovery_periods")
+    .select("id,family_id,profile_id,mode,started_on,ended_on,started_at,ended_at,created_at,updated_at")
+    .eq("family_id", familyId)
+    .order("started_at", { ascending: false });
+  return { data: data || [], error };
+}
+
+export async function setProfileRecoveryMode(profileId, mode, effectiveOn) {
+  const normalisedMode =
+    mode === "injury" || mode === "illness" ? mode : "normal";
+  const { data, error } = await supabase.rpc("set_profile_recovery_mode", {
+    p_profile_id: profileId,
+    p_mode: normalisedMode,
+    p_effective_on: effectiveOn || null,
+  });
+  return { data, error };
+}
+
 
 export async function archiveProfile(profileId) {
   const { data, error } = await supabase

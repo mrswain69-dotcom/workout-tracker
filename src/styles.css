@@ -1604,3 +1604,56 @@ button.btn.primary:hover{
   .manageTabs{width:100%;gap:5px;padding:5px;border-radius:14px}
   .manageTab{min-height:44px;padding:7px 6px;font-size:13px}
 }
+
+
+/* Profile Recovery Mode */
+.profileRecoveryModeBanner{
+  margin:16px 0;
+  padding:18px;
+  border:1px solid rgba(255,122,24,.35);
+  border-radius:18px;
+  background:rgba(255,122,24,.08);
+}
+.profileRecoveryModeBanner--injury{
+  border-color:rgba(245,158,11,.45);
+  background:rgba(245,158,11,.08);
+}
+.profileRecoveryModeBanner--illness{
+  border-color:rgba(59,130,246,.35);
+  background:rgba(59,130,246,.07);
+}
+.profileRecoveryModeBanner__eyebrow{
+  margin-bottom:6px;
+  font-size:.76rem;
+  font-weight:800;
+  letter-spacing:.12em;
+  color:#b45309;
+}
+.recoveryModeSuspended{
+  position:relative;
+  opacity:.38;
+  filter:grayscale(.7);
+  pointer-events:none;
+}
+.recoveryModePausedLabel{
+  display:inline-flex;
+  margin-bottom:8px;
+  padding:4px 9px;
+  border:1px solid rgba(15,23,42,.14);
+  border-radius:999px;
+  font-size:.76rem;
+  font-weight:700;
+  color:#475569;
+  background:rgba(255,255,255,.75);
+}
+.profileRecoveryLogCard{
+  padding:16px;
+  border:1px solid rgba(255,122,24,.28);
+  border-radius:16px;
+  background:rgba(255,122,24,.045);
+}
+.profileRecoveryMinutes{max-width:260px;}
+.profileRecoveryXpNote{
+  font-weight:800;
+  color:#166534;
+}

@@ -21,6 +21,8 @@ import {
   renameProfile,
   setProfileBodyweight,
   updateAgeGroup,
+  listProfileRecoveryPeriods,
+  setProfileRecoveryMode,
   archiveProfile,
   getPlan,
   upsertPlan,
@@ -58,6 +60,14 @@ import {
   sessionBlockHasActivity,
   sessionBlockIsComplete,
 } from "./engine/sessionCore.js";
+import {
+  applyProfileRecoveryModeToPlannedBlocks,
+  getProfileRecoveryModeForDate,
+  isProfileRecoveryLogBlock,
+  isProfileRecoveryModeLog,
+  normaliseProfileRecoveryMode,
+  profileRecoveryBlockComplete,
+} from "./engine/recoveryModeEngine.js";
 
 import { AVATAR_PACKS } from "./config/avatars";
 import SessionPlanBlockEditor, {
@@ -1433,8 +1443,8 @@ function isDayGreen(log) {
   for (const block of log.blocks) {
     if (!block) continue;
 
-    // cancelled blocks do not count, and also do not block the day
-    if (block.cancelled) continue;
+    // cancelled or recovery-mode-suspended blocks do not block the day
+    if (block.cancelled || block.suspendedByRecoveryMode) continue;
 
     const typeId = block.typeId;
 
@@ -1457,7 +1467,9 @@ function isDayGreen(log) {
     } else if (typeId === "session") {
       hasData = sessionBlockIsComplete(block);
     } else if (typeId === "recovery") {
-      hasData = !!block?.recoveryDone;
+      hasData = isProfileRecoveryLogBlock(block)
+        ? profileRecoveryBlockComplete(block)
+        : !!block?.recoveryDone;
     }
 
     if (!hasData) return false;
@@ -1475,7 +1487,7 @@ function sameYmdFromIso(iso, targetYmd) {
 }
 
 function blockHasSameDayLoggedActivity(block, targetYmd) {
-  if (!block || block.cancelled) return false;
+  if (!block || block.cancelled || block.suspendedByRecoveryMode) return false;
 
   const typeId = String(block.typeId || "").toLowerCase();
   if (typeId === "tasks") return false;
@@ -1496,7 +1508,9 @@ function blockHasSameDayLoggedActivity(block, targetYmd) {
   } else if (typeId === "session") {
       hasData = sessionBlockIsComplete(block);
     } else if (typeId === "recovery") {
-      hasData = !!block?.recoveryDone;
+      hasData = isProfileRecoveryLogBlock(block)
+        ? profileRecoveryBlockComplete(block)
+        : !!block?.recoveryDone;
     }
 
   if (!hasData) return false;
@@ -1516,7 +1530,7 @@ function isEligibleForSameDayDailyBonus(log, targetYmd) {
   if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
 
   const qualifyingBlocks = log.blocks.filter((block) => {
-    if (!block || block.cancelled) return false;
+    if (!block || block.cancelled || block.suspendedByRecoveryMode) return false;
     const typeId = String(block.typeId || "").toLowerCase();
     return typeId !== "tasks";
   });
@@ -1609,7 +1623,7 @@ function computeTotalMinutesForDay(log) {
 }
 
 function isTrainingBlockForRecoveryLogic(block) {
-  if (!block || block.cancelled) return false;
+  if (!block || block.cancelled || block.suspendedByRecoveryMode) return false;
   const typeId = String(block.typeId || "").toLowerCase();
 
   if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
@@ -3053,6 +3067,7 @@ useEffect(() => {
 
   const [family, setFamily] = useState(null);
   const [profiles, setProfiles] = useState([]);
+  const [profileRecoveryPeriods, setProfileRecoveryPeriods] = useState([]);
   const [activeProfileId, setActiveProfileId] = useState(() => {
   try {
     const v = localStorage.getItem("wt_activeProfileId") || "";
@@ -3078,6 +3093,22 @@ useEffect(() => { planRef.current = plan; }, [plan]);
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
   const selectedWeekday = weekdayFromYMD(selectedDate);
+
+  const selectedProfileRecovery = useMemo(
+    () =>
+      getProfileRecoveryModeForDate(
+        profileRecoveryPeriods,
+        activeProfileId,
+        selectedDate,
+        getTodayYMD()
+      ),
+    [profileRecoveryPeriods, activeProfileId, selectedDate]
+  );
+  const selectedProfileRecoveryMode =
+    normaliseProfileRecoveryMode(selectedProfileRecovery?.mode) || "normal";
+  const profileRecoveryModeActive =
+    selectedProfileRecoveryMode === "injury" ||
+    selectedProfileRecoveryMode === "illness";
   
     // Tick-box tasks (from weekly plan) for the currently selected log date
   const tasksActivityForSelectedDay = useMemo(() => {
@@ -3116,8 +3147,19 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   // All planned blocks (primary + extras) for the selected log weekday
   const plannedBlocksForSelectedDay = useMemo(() => {
     if (!plan) return [];
-    return getDayActivitiesForWeekday(plan, selectedWeekday) || [];
-  }, [plan, selectedWeekday]);
+    const baseBlocks = getDayActivitiesForWeekday(plan, selectedWeekday) || [];
+    return applyProfileRecoveryModeToPlannedBlocks(baseBlocks, {
+      profileId: activeProfileId,
+      dateYmd: selectedDate,
+      mode: selectedProfileRecoveryMode,
+    });
+  }, [
+    plan,
+    selectedWeekday,
+    activeProfileId,
+    selectedDate,
+    selectedProfileRecoveryMode,
+  ]);
   
   // Plan editing should NOT depend on log date.
   const [planWeekday, setPlanWeekday] = useState("Mon");
@@ -3261,6 +3303,12 @@ useEffect(() => {
   const [showExtraBlockForm, setShowExtraBlockForm] = useState(false);
    const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration" | "session" | "recovery" | "activity"
   const [extraSessionDraft, setExtraSessionDraft] = useState(() => createSessionPlanBlock(""));
+
+  useEffect(() => {
+    if (profileRecoveryModeActive && extraBlockKind !== "activity") {
+      setExtraBlockKind("activity");
+    }
+  }, [profileRecoveryModeActive, extraBlockKind]);
 
   // Cardio extra-block drafts
   const [extraCardioNameDraft, setExtraCardioNameDraft] = useState("");
@@ -3478,6 +3526,10 @@ const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
       const again = await listProfiles(fam.id);
       profList = again.data || [];
     }
+
+    const { data: recoveryPeriods } = await listProfileRecoveryPeriods(fam.id);
+    setProfileRecoveryPeriods(recoveryPeriods || []);
+
     setProfiles(profList);
     const storedProfileId = (() => {
   try {
@@ -3614,7 +3666,14 @@ useEffect(() => {
     console.error("getLog exception", e);
     if (!cached) setLogForDay(null);
   });
-}, [family?.id, activeProfileId, selectedDate, plan, externalLogRevision]);
+}, [
+  family?.id,
+  activeProfileId,
+  selectedDate,
+  plan,
+  externalLogRevision,
+  selectedProfileRecoveryMode,
+]);
 
 const activeProfile = profiles.find((p) => p.id === activeProfileId) || profiles[0] || null;
 
@@ -4190,6 +4249,9 @@ const XP_RULES = {
   cardioPerKm: 1 / 0.5,      // +1 XP per 0.5km (rounded up)
   durationPerMin: 2 / 10,    // +2 XP per 10 minutes
   sessionComplete: SESSION_COMPLETION_XP, // fixed total XP for a completed structured Session
+  recoveryComplete: 5,
+  injuryPhysioComplete: 10,
+  illnessRecoveryComplete: 5,
   taskDefault: 5,            // fallback if a task has no xpValue
   blockComplete: 5,          // +5 XP per completed workout block (non-task)
 
@@ -4272,7 +4334,7 @@ function playSparkleSound() {
 
 
 function blockHasData(block) {
-  if (!block) return false;
+  if (!block || block.suspendedByRecoveryMode) return false;
   const typeId = block.typeId;
 
   if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
@@ -4293,7 +4355,9 @@ function blockHasData(block) {
   }
 
   if (typeId === "recovery") {
-    return !!block.recoveryDone;
+    return isProfileRecoveryLogBlock(block)
+      ? profileRecoveryBlockComplete(block)
+      : !!block.recoveryDone;
   }
 
   if (typeId === "session") {
@@ -4344,7 +4408,16 @@ function xpForDurationBlock(block) {
 }
 
 function xpForRecoveryBlock(block) {
-  return block?.recoveryDone ? 5 : 0;
+  const complete = isProfileRecoveryLogBlock(block)
+    ? profileRecoveryBlockComplete(block)
+    : !!block?.recoveryDone;
+  if (!complete) return 0;
+  if (block?.isProfileRecoveryBlock) {
+    const mode = normaliseProfileRecoveryMode(block.profileRecoveryMode);
+    if (mode === "injury") return XP_RULES.injuryPhysioComplete;
+    if (mode === "illness") return XP_RULES.illnessRecoveryComplete;
+  }
+  return XP_RULES.recoveryComplete;
 }
 
 function findPlanBlockForLogBlock(plan, logBlockId) {
@@ -4547,7 +4620,7 @@ let progressCount = 0;
 // Walk all blocks once and accumulate stats / XP
 
     for (const block of blocks) {
-      if (!block) continue;
+      if (!block || block.suspendedByRecoveryMode) continue;
 
       switch (block.typeId) {
         case "strength":
@@ -4874,7 +4947,7 @@ const selectedDayStatus = useMemo(() => {
   const any = dayHasAnyBlockActivity(log);
 
   const hasRecoveryDone = hasRecoveryDoneForLog(log);
-  if (green && hasRecoveryDone) {
+  if (green && hasRecoveryDone && !isProfileRecoveryModeLog(log)) {
     const eligibility = getRecoveryEligibilityForDateApp(allLogs, d);
     if (!eligibility?.qualifies) {
       green = false;
@@ -4905,7 +4978,7 @@ const todayPlanStatus = useMemo(() => {
   const any = dayHasAnyBlockActivity(log);
 
   const hasRecoveryDone = hasRecoveryDoneForLog(log);
-  if (green && hasRecoveryDone) {
+  if (green && hasRecoveryDone && !isProfileRecoveryModeLog(log)) {
     const eligibility = getRecoveryEligibilityForDateApp(allLogs, todayYmd);
     if (!eligibility?.qualifies) {
       green = false;
@@ -5581,7 +5654,7 @@ function cloneBlockForPlanPreserveIds(block) {
   }
   
   function hasBlockActivityForTiming(block) {
-  if (!block || block.cancelled) return false;
+  if (!block || block.cancelled || block.suspendedByRecoveryMode) return false;
 
   const typeId = String(block.typeId || "").toLowerCase();
 
@@ -5613,7 +5686,9 @@ function cloneBlockForPlanPreserveIds(block) {
   }
 
   if (typeId === "recovery") {
-    return !!block?.recoveryDone;
+    return isProfileRecoveryLogBlock(block)
+      ? profileRecoveryBlockComplete(block)
+      : !!block?.recoveryDone;
   }
 
   if (typeId === "session") {
@@ -5866,13 +5941,9 @@ function blankLogForDay() {
   // Plan V2: snapshot the planned blocks for this weekday.
   // This does NOT change XP or UI yet – it's just stored on the log
   // so we can later attach per-block distances, durations, etc.
-  const plannedBlocks =
-    plan && selectedWeekday
-      ? getDayActivitiesForWeekday(
-          plan || defaultPlanForFamily(),
-          selectedWeekday
-        ) || []
-      : [];
+  const plannedBlocks = Array.isArray(plannedBlocksForSelectedDay)
+    ? plannedBlocksForSelectedDay
+    : [];
 
   return {
     // Timing/session meta lives in meta.
@@ -5882,6 +5953,12 @@ function blankLogForDay() {
       dayManualMin: "", // optional override for whole day
       oneOffActivities: [],
       extraMovements: [], // per-day strength/time movements
+      profileRecoveryMode: profileRecoveryModeActive
+        ? selectedProfileRecoveryMode
+        : "",
+      profileRecoveryPeriodId: profileRecoveryModeActive
+        ? selectedProfileRecovery?.id || ""
+        : "",
     },
     weekday: selectedWeekday,
     typeId: dayTypeId,
@@ -5919,6 +5996,10 @@ function blankLogForDay() {
       activityName: b.activityName || "",
       targetText: b.targetText || "",
 
+      isProfileRecoveryBlock: !!b.isProfileRecoveryBlock,
+      profileRecoveryMode: b.profileRecoveryMode || "",
+      suspendedByRecoveryMode: !!b.suspendedByRecoveryMode,
+      suspendedByRecoveryReason: b.suspendedByRecoveryReason || "",
       recoveryMode: b.recoveryMode || "full",
       recoveryDone: false,
 
@@ -5941,11 +6022,9 @@ function ensureBlocksSnapshot(baseLog) {
   const existingBlocks = Array.isArray(baseLog.blocks) ? baseLog.blocks : [];
 
   // Rebuild the per-block snapshot from the current plan for this weekday
-  const plannedBlocks =
-    getDayActivitiesForWeekday(
-      plan || defaultPlanForFamily(),
-      selectedWeekday
-    ) || [];
+  const plannedBlocks = Array.isArray(plannedBlocksForSelectedDay)
+    ? plannedBlocksForSelectedDay
+    : [];
 
   // Index existing blocks by id so we can merge
   const existingById = new Map();
@@ -5976,6 +6055,8 @@ function ensureBlocksSnapshot(baseLog) {
 
       mergedBlocks.push({
         ...sessionBlock,
+        suspendedByRecoveryMode: !!pb.suspendedByRecoveryMode,
+        suspendedByRecoveryReason: pb.suspendedByRecoveryReason || "",
         cardio: sessionCardio,
         duration: sessionDuration,
       });
@@ -6028,6 +6109,10 @@ targetText:
   existing?.targetText ||
   "",
 
+      isProfileRecoveryBlock: !!pb.isProfileRecoveryBlock,
+      profileRecoveryMode: pb.profileRecoveryMode || "",
+      suspendedByRecoveryMode: !!pb.suspendedByRecoveryMode,
+      suspendedByRecoveryReason: pb.suspendedByRecoveryReason || "",
       recoveryMode:
         pb.recoveryMode ||
         existing?.recoveryMode ||
@@ -6050,6 +6135,14 @@ targetText:
   for (const [id, b] of existingById.entries()) {
     if (!b) continue;
 
+    if (
+      b.isProfileRecoveryBlock &&
+      !profileRecoveryModeActive &&
+      !profileRecoveryBlockComplete(b)
+    ) {
+      continue;
+    }
+
     const baseCardio =
       b.cardio && typeof b.cardio === "object"
         ? b.cardio
@@ -6065,6 +6158,16 @@ targetText:
       // This block no longer belongs to the active weekly plan.
       // Treat it as a one-day extra so it still renders in the log UI.
       isExtra: true,
+      suspendedByRecoveryMode:
+        profileRecoveryModeActive &&
+        b.typeId !== "tasks" &&
+        !b.isProfileRecoveryBlock,
+      suspendedByRecoveryReason:
+        profileRecoveryModeActive &&
+        b.typeId !== "tasks" &&
+        !b.isProfileRecoveryBlock
+          ? selectedProfileRecoveryMode
+          : "",
       cardio: baseCardio,
       duration: baseDuration,
     });
@@ -6128,7 +6231,17 @@ targetText:
     }
   }
 
-  return { ...baseLog, blocks: mergedBlocks };
+  const nextMeta = {
+    ...(baseLog.meta || {}),
+    profileRecoveryMode: profileRecoveryModeActive
+      ? selectedProfileRecoveryMode
+      : "",
+    profileRecoveryPeriodId: profileRecoveryModeActive
+      ? selectedProfileRecovery?.id || ""
+      : "",
+  };
+
+  return { ...baseLog, meta: nextMeta, blocks: mergedBlocks };
 }
 
 // --- Per-block log helpers (Plan V2, Stage 2) ---
@@ -6538,6 +6651,29 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     setLogForDay(next);
 
     if (ctx && recoveryDone) playBling(ctx, 1, victoryTheme);
+  }
+
+  async function updateProfileRecoveryMinutes(blockId, minutes) {
+    const ctx = await ensureAudio();
+    const clean =
+      minutes === "" || minutes == null
+        ? ""
+        : Math.max(0, Number(minutes) || 0);
+    const done = Number(clean) > 0;
+    const base = ensureBlocksSnapshot(
+      logForDay ? { ...logForDay } : blankLogForDay()
+    );
+    const previous = getBlockLog(base, blockId) || {};
+    const wasDone = profileRecoveryBlockComplete(previous);
+    const next = updateBlockLog(base, blockId, {
+      duration: { minutes: clean },
+      recoveryDone: done,
+    });
+
+    await saveLog(next);
+    setLogForDay(next);
+
+    if (ctx && done && !wasDone) playBling(ctx, 1, victoryTheme);
   }  
   
 async function toggleBlockCancelled(blockId, cancelled) {
@@ -7209,6 +7345,14 @@ async function addExtraActivityBlockForToday(draft) {
   
 // Click handler for the "+ Add extra block" button on the Log tab
 async function addExtraMovement() {
+  if (profileRecoveryModeActive && extraBlockKind !== "activity") {
+    window.alert(
+      "Recovery mode is active. Physical training stays paused; tasks can still be added."
+    );
+    setExtraBlockKind("activity");
+    return;
+  }
+
   const selectedDayHasRecovery =
     Array.isArray(logForDay?.blocks) &&
     logForDay.blocks.some((b) => b && b.typeId === "recovery");
@@ -8053,11 +8197,39 @@ const cardioProgress = useMemo(() => {
   </div>
                 </div>
 
+                {profileRecoveryModeActive && (
+                  <div
+                    className={`profileRecoveryModeBanner profileRecoveryModeBanner--${selectedProfileRecoveryMode}`}
+                    role="status"
+                  >
+                    <div className="profileRecoveryModeBanner__eyebrow">
+                      {selectedProfileRecoveryMode === "injury"
+                        ? "INJURY RECOVERY"
+                        : "ILLNESS RECOVERY"}
+                    </div>
+                    <div className="h2">
+                      {selectedProfileRecoveryMode === "injury"
+                        ? "Training paused — physio is today's plan."
+                        : "Training paused — recovery is today's plan."}
+                    </div>
+                    <div className="muted mt8">
+                      {selectedProfileRecoveryMode === "injury"
+                        ? "Normal physical blocks are paused. Record one total for all physio/rehab completed today. Tasks remain active, and completing physio keeps the streak alive."
+                        : "Normal physical blocks are paused while illness recovery is active. Confirm the recovery day below when rest was genuinely respected. Tasks remain active, and completing recovery keeps the streak alive."}
+                    </div>
+                  </div>
+                )}
+
                 <LogVerificationSummary
                   profileId={activeProfileId}
                   dateYmd={selectedDate}
                   manualLogId={selectedLogRowId}
-                  blocks={Array.isArray(logForDay?.blocks) && logForDay.blocks.length ? logForDay.blocks : plannedBlocksForSelectedDay}
+                  blocks={(Array.isArray(logForDay?.blocks) && logForDay.blocks.length ? logForDay.blocks : plannedBlocksForSelectedDay).filter(
+                    (block) =>
+                      block &&
+                      !block.suspendedByRecoveryMode &&
+                      !block.isProfileRecoveryBlock
+                  )}
                   logJson={logForDay}
                   onAutoPopulationChanged={() => setExternalLogRevision((value) => value + 1)}
                   onOpenProgress={() => setTab("stats")}
@@ -8073,6 +8245,9 @@ const cardioProgress = useMemo(() => {
                     {allStrengthBlocksForDay.map((block) => {
                       const blockLog = getBlockLog(logForDay, block.id) || {};
                       const isCancelled = !!blockLog.cancelled;
+                      const isSuspended =
+                        !!blockLog.suspendedByRecoveryMode ||
+                        !!block.suspendedByRecoveryMode;
                       const setsByMovement =
                         blockLog.sets && typeof blockLog.sets === "object"
                           ? blockLog.sets
@@ -8106,7 +8281,13 @@ const cardioProgress = useMemo(() => {
                           : "";
 
                       return (
-  <div key={block.id} className="mt12">
+  <div
+    key={block.id}
+    className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""}`}
+  >
+    {isSuspended && (
+      <div className="recoveryModePausedLabel">Paused by recovery mode</div>
+    )}
     <div className="row between" style={{ alignItems: "center" }}>
       {block.label ? (
         <div
@@ -8447,6 +8628,9 @@ const targetInfo = buildTargetInfoForMovement({
     {allSessionBlocksForDay.map((block) => {
       const blockLog = getBlockLog(logForDay, block.id) || block || {};
       const isCancelled = !!blockLog.cancelled;
+      const isSuspended =
+        !!blockLog.suspendedByRecoveryMode ||
+        !!block.suspendedByRecoveryMode;
       const frozenSession =
         blockLog.session && typeof blockLog.session === "object"
           ? blockLog.session
@@ -8465,7 +8649,13 @@ const targetInfo = buildTargetInfoForMovement({
           : "";
 
       return (
-        <div key={block.id} className="mt12 session-log-block">
+        <div
+          key={block.id}
+          className={`mt12 session-log-block ${isSuspended ? "recoveryModeSuspended" : ""}`}
+        >
+          {isSuspended && (
+            <div className="recoveryModePausedLabel">Paused by recovery mode</div>
+          )}
           <div className="row between session-log-block__top">
             <div className="h3">{label}</div>
             <label
@@ -8542,6 +8732,9 @@ const targetInfo = buildTargetInfoForMovement({
     {allCardioBlocksForDay.map((block) => {
       const blockLog = getBlockLog(logForDay, block.id) || {};
       const isCancelled = !!blockLog.cancelled;
+      const isSuspended =
+        !!blockLog.suspendedByRecoveryMode ||
+        !!block.suspendedByRecoveryMode;
       const cardio =
         (blockLog && blockLog.cardio) || {
           distanceKm: "",
@@ -8571,7 +8764,13 @@ const targetInfo = buildTargetInfoForMovement({
       const paceFromSpeed = getPaceFromSpeedKmh(avgSpeedKmh);
 
       return (
-        <div key={block.id} className="mt12">
+        <div
+          key={block.id}
+          className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""}`}
+        >
+          {isSuspended && (
+            <div className="recoveryModePausedLabel">Paused by recovery mode</div>
+          )}
           <div className="rowBetween">
   <div className="h3">{label}</div>
 
@@ -8698,70 +8897,149 @@ const targetInfo = buildTargetInfoForMovement({
 {/* Recovery blocks log */}
 {hasAnyRecoveryBlocks && (
   <div className="panel mt16">
-    <div className="h2">Recovery log</div>
+    <div className="h2">
+      {profileRecoveryModeActive ? "Recovery mode" : "Recovery log"}
+    </div>
 
     {allRecoveryBlocksForDay.map((block) => {
-      const blockLog = getBlockLog(logForDay, block.id) || {};
+      const blockLog = getBlockLog(logForDay, block.id) || block || {};
       const isCancelled = !!blockLog.cancelled;
-      const recoveryDone = !!blockLog.recoveryDone;
+      const isProfileRecovery = isProfileRecoveryLogBlock(blockLog);
+      const recoveryDone = isProfileRecovery
+        ? profileRecoveryBlockComplete(blockLog)
+        : !!blockLog.recoveryDone;
+      const recoveryMode =
+        normaliseProfileRecoveryMode(blockLog.profileRecoveryMode) ||
+        normaliseProfileRecoveryMode(block.profileRecoveryMode);
+      const isInjuryRecovery =
+        isProfileRecovery && recoveryMode === "injury";
+      const isIllnessRecovery =
+        isProfileRecovery && recoveryMode === "illness";
+      const isSuspended =
+        !!blockLog.suspendedByRecoveryMode ||
+        !!block.suspendedByRecoveryMode;
       const label = block.label || "Recovery block";
 
       return (
-        <div key={block.id} className="mt12">
-          <div className="rowBetween">
-  <div className="h3">{label}</div>
+        <div
+          key={block.id}
+          className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""} ${isProfileRecovery ? "profileRecoveryLogCard" : ""}`}
+        >
+          {isSuspended && (
+            <div className="recoveryModePausedLabel">Paused by recovery mode</div>
+          )}
 
-  {block.isExtra && (
-    <div className="row space">
-      <div className="muted mini">One-day extra recovery</div>
-      <SecondaryButton
-        className="btnSmall"
-        onClick={() => removeExtraMovement(block.id)}
-      >
-        Remove
-      </SecondaryButton>
-    </div>
-  )}
-</div>
+          <div className="rowBetween">
+            <div className="h3">{label}</div>
+
+            {block.isExtra && !isProfileRecovery && (
+              <div className="row space">
+                <div className="muted mini">One-day extra recovery</div>
+                <SecondaryButton
+                  className="btnSmall"
+                  onClick={() => removeExtraMovement(block.id)}
+                >
+                  Remove
+                </SecondaryButton>
+              </div>
+            )}
+          </div>
 
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
 
-          <div className="row between mt4">
-            <div className="muted small">
-              {recoveryDone
-                ? "Recovery respected today."
-                : "Tick when recovery was genuinely respected today."}
-            </div>
-            <label
-              className="mini"
-              style={{ opacity: isCancelled ? 0.5 : 1 }}
-              title="Mark recovery complete when the day was genuinely used for recovery."
-            >
-              <input
-                type="checkbox"
-                checked={recoveryDone}
-                disabled={isCancelled}
-                onChange={(e) =>
-                  toggleRecoveryForBlock(block.id, e.target.checked)
-                }
-              />
-              <span>Recovery respected</span>
-            </label>
-          </div>
+          {isInjuryRecovery ? (
+            <>
+              <div className="mt12 profileRecoveryMinutes">
+                <div className="label">Total physio today (minutes)</div>
+                <input
+                  className="input"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={blockLog?.duration?.minutes ?? ""}
+                  onChange={(e) =>
+                    updateProfileRecoveryMinutes(block.id, e.target.value)
+                  }
+                  placeholder="e.g. 20"
+                />
+              </div>
+              <div className="muted mt8">
+                Add all physio/rehab sessions together and enter one daily total.
+              </div>
+              <div className="profileRecoveryXpNote mt8">
+                {recoveryDone
+                  ? "✓ Physio complete · 10 XP · streak maintained"
+                  : "Complete today’s physio · 10 XP · keeps the streak alive"}
+              </div>
+            </>
+          ) : isIllnessRecovery ? (
+            <>
+              <div className="row between mt12">
+                <div className="muted small">
+                  {recoveryDone
+                    ? "Illness recovery respected today."
+                    : "Confirm once today when rest and recovery were genuinely respected."}
+                </div>
+                <label
+                  className="mini"
+                  title="Confirm the illness recovery day when rest was genuinely respected."
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!blockLog.recoveryDone}
+                    onChange={(e) =>
+                      toggleRecoveryForBlock(block.id, e.target.checked)
+                    }
+                  />
+                  <span>Recovery respected</span>
+                </label>
+              </div>
+              <div className="profileRecoveryXpNote mt8">
+                {recoveryDone
+                  ? "✓ Recovery complete · 5 XP · streak maintained"
+                  : "Respect today’s recovery · 5 XP · keeps the streak alive"}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="row between mt4">
+                <div className="muted small">
+                  {recoveryDone
+                    ? "Recovery respected today."
+                    : "Tick when recovery was genuinely respected today."}
+                </div>
+                <label
+                  className="mini"
+                  style={{ opacity: isCancelled ? 0.5 : 1 }}
+                  title="Mark recovery complete when the day was genuinely used for recovery."
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!blockLog.recoveryDone}
+                    disabled={isCancelled}
+                    onChange={(e) =>
+                      toggleRecoveryForBlock(block.id, e.target.checked)
+                    }
+                  />
+                  <span>Recovery respected</span>
+                </label>
+              </div>
 
-          <div className="muted mt8">
-            Full recovery: complete rest or very light movement.
-            Light recovery: walking, mobility, stretching, easy cycling.
-          </div>
+              <div className="muted mt8">
+                Full recovery: complete rest or very light movement.
+                Light recovery: walking, mobility, stretching, easy cycling.
+              </div>
 
-          {recoveryDone && selectedDate === (selectedDate || "") && recoveryEligibilityForSelectedDate && (
-            <div className="muted mt8">
-              {recoveryEligibilityForSelectedDate.qualifies
-                ? "Eligible recovery day: counts as intelligent recovery."
-                : "Recovery logged, but this one does not qualify for streak protection yet."}
-            </div>
+              {recoveryDone && recoveryEligibilityForSelectedDate && (
+                <div className="muted mt8">
+                  {recoveryEligibilityForSelectedDate.qualifies
+                    ? "Eligible recovery day: counts as intelligent recovery."
+                    : "Recovery logged, but this one does not qualify for streak protection yet."}
+                </div>
+              )}
+            </>
           )}
         </div>
       );
@@ -8777,6 +9055,9 @@ const targetInfo = buildTargetInfoForMovement({
     {allDurationBlocksForDay.map((block) => {
       const blockLog = getBlockLog(logForDay, block.id) || {};
       const isCancelled = !!blockLog.cancelled;
+      const isSuspended =
+        !!blockLog.suspendedByRecoveryMode ||
+        !!block.suspendedByRecoveryMode;
       const duration =
         (blockLog && blockLog.duration) || {
           minutes: "",
@@ -8784,7 +9065,13 @@ const targetInfo = buildTargetInfoForMovement({
       const label = block.label || "Duration block";
 
       return (
-          <div key={block.id} className="mt12">
+          <div
+            key={block.id}
+            className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""}`}
+          >
+            {isSuspended && (
+              <div className="recoveryModePausedLabel">Paused by recovery mode</div>
+            )}
             <div className="rowBetween">
   <div className="h3">{label}</div>
 
@@ -8988,7 +9275,7 @@ const targetInfo = buildTargetInfoForMovement({
               
 {/* Extra movements + One-off activities (legacy, still useful) */}
 <div className="stack mt16">
-  {recoveryRecommendationToday?.recommended && !selectedDayHasRecoveryBlock && (
+  {!profileRecoveryModeActive && recoveryRecommendationToday?.recommended && !selectedDayHasRecoveryBlock && (
   <div className="panel readinessBanner">
     <div className="h2">⚡ Recovery Recommended Today</div>
     <div className="muted mt8">
@@ -9027,10 +9314,9 @@ const targetInfo = buildTargetInfoForMovement({
 <div className="panel">
   <div className="h2">Extra block for today</div>
     <div className="muted mt4">
-    Add a one-day-only Strength, Cardio, Duration, Session, Recovery or Activity/Task block that shows in today&apos;s log
-    but doesn&apos;t change the weekly plan. Use Cardio for anything with distance + time
-    (runs, cycles, walks, swims, rows). Use Duration for movement where you only want
-    to record minutes (no distance). Use Session to choose a structured Session Library template.
+    {profileRecoveryModeActive
+      ? "Recovery mode is active, so physical training extras stay paused. Tasks can still be added without changing the weekly plan."
+      : "Add a one-day-only Strength, Cardio, Duration, Session, Recovery or Activity/Task block that shows in today’s log but doesn’t change the weekly plan. Use Cardio for distance + time, Duration for minutes only, and Session for a structured Session Library template."}
   </div>
 
   <button
@@ -9050,14 +9336,18 @@ const targetInfo = buildTargetInfoForMovement({
       <Select
         value={extraBlockKind}
         onChange={setExtraBlockKind}
-        options={[
-          { value: "strength", label: "Strength / HIIT / Box" },
-          { value: "cardio", label: "Cardio (run / cycle / walk / swim / row)" },
-          { value: "duration", label: "Duration (minutes only)" },
-          { value: "session", label: "Session (structured template)" },
-          { value: "recovery", label: "Recovery" },
-          { value: "activity", label: "Activity / task" },
-        ]}
+        options={
+          profileRecoveryModeActive
+            ? [{ value: "activity", label: "Activity / task" }]
+            : [
+                { value: "strength", label: "Strength / HIIT / Box" },
+                { value: "cardio", label: "Cardio (run / cycle / walk / swim / row)" },
+                { value: "duration", label: "Duration (minutes only)" },
+                { value: "session", label: "Session (structured template)" },
+                { value: "recovery", label: "Recovery" },
+                { value: "activity", label: "Activity / task" },
+              ]
+        }
       />
     </div>
   </div>
@@ -11918,6 +12208,73 @@ if (!didClaim) {
                         ]}
                       />
                       <div className="muted mt8">Used only to scale suggested progress steps.</div>
+                    </div>
+
+                    <div className="mt12">
+                      <div className="label">Recovery mode</div>
+                      <Select
+                        value={
+                          normaliseProfileRecoveryMode(
+                            getProfileRecoveryModeForDate(
+                              profileRecoveryPeriods,
+                              p.id,
+                              getTodayYMD(),
+                              getTodayYMD()
+                            )?.mode
+                          ) || "normal"
+                        }
+                        onChange={async (value) => {
+                          const nextMode =
+                            normaliseProfileRecoveryMode(value) || "normal";
+                          const currentMode =
+                            normaliseProfileRecoveryMode(
+                              getProfileRecoveryModeForDate(
+                                profileRecoveryPeriods,
+                                p.id,
+                                getTodayYMD(),
+                                getTodayYMD()
+                              )?.mode
+                            ) || "normal";
+
+                          if (nextMode === currentMode) return;
+                          if (!(await ensureUnlocked("change recovery mode"))) return;
+
+                          const message =
+                            nextMode === "injury"
+                              ? `Switch ${p.name} to Injury Recovery? Physical training will pause, Today’s Physio will become the plan, and completing it will maintain the streak.`
+                              : nextMode === "illness"
+                              ? `Switch ${p.name} to Illness Recovery? Physical training will pause, rest/recovery will become the plan, and completing it will maintain the streak.`
+                              : `End recovery mode for ${p.name} and resume the normal training plan?`;
+
+                          if (!window.confirm(message)) return;
+
+                          const { error } = await setProfileRecoveryMode(
+                            p.id,
+                            nextMode,
+                            getTodayYMD()
+                          );
+
+                          if (error) {
+                            window.alert(error.message || String(error));
+                            return;
+                          }
+
+                          const { data: periods } =
+                            await listProfileRecoveryPeriods(family.id);
+                          setProfileRecoveryPeriods(periods || []);
+                        }}
+                        options={[
+                          { value: "normal", label: "Normal training" },
+                          { value: "injury", label: "Injury Recovery" },
+                          { value: "illness", label: "Illness Recovery" },
+                        ]}
+                      />
+                      <div className="muted mt8">
+                        Injury Recovery pauses physical training and adds Today’s
+                        Physio (10 XP). Illness Recovery pauses physical training
+                        and replaces it with a recovery confirmation (5 XP).
+                        Completing either maintains the streak. Tasks stay active.
+                      </div>
                     </div>
                     </div>
                   </div>

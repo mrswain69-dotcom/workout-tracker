@@ -1,6 +1,6 @@
 import { BADGE_XP_BY_KEY } from "./xpRewardMap.generated.js";
 
-export const XP_ENGINE_SCORE_VERSION = 1;
+export const XP_ENGINE_SCORE_VERSION = 2;
 export const SESSION_COMPLETION_XP = 10;
 
 export const XP_RULES = Object.freeze({
@@ -9,6 +9,9 @@ export const XP_RULES = Object.freeze({
   cardioPerKm: 1 / 0.5,
   durationPerMin: 2 / 10,
   sessionComplete: SESSION_COMPLETION_XP,
+  recoveryComplete: 5,
+  injuryPhysioComplete: 10,
+  illnessRecoveryComplete: 5,
   taskDefault: 5,
   blockComplete: 5,
   progression: 10,
@@ -97,12 +100,25 @@ function sessionBlockIsComplete(block) {
   return !!session?.completed;
 }
 
+function isProfileRecoveryModeLog(log) {
+  const mode = String(log?.meta?.profileRecoveryMode || "").toLowerCase();
+  return mode === "injury" || mode === "illness";
+}
+
+function profileRecoveryBlockComplete(block) {
+  if (!block?.isProfileRecoveryBlock) return !!block?.recoveryDone;
+  const mode = String(block?.profileRecoveryMode || "").toLowerCase();
+  if (mode === "injury") return safeNumber(block?.duration?.minutes) > 0;
+  if (mode === "illness") return !!block?.recoveryDone;
+  return !!block?.recoveryDone;
+}
+
 export function isDayGreenForXp(log) {
   if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
   let any = false;
 
   for (const block of log.blocks) {
-    if (!block || block.cancelled) continue;
+    if (!block || block.cancelled || block.suspendedByRecoveryMode) continue;
     const typeId = String(block.typeId || "").toLowerCase();
     if (typeId === "tasks") continue;
 
@@ -121,7 +137,7 @@ export function isDayGreenForXp(log) {
     } else if (typeId === "session") {
       hasData = sessionBlockIsComplete(block);
     } else if (typeId === "recovery") {
-      hasData = !!block?.recoveryDone;
+      hasData = profileRecoveryBlockComplete(block);
     }
 
     if (!hasData) return false;
@@ -161,7 +177,13 @@ function xpForDurationBlock(block) {
 }
 
 function xpForRecoveryBlock(block) {
-  return block?.recoveryDone ? 5 : 0;
+  if (!profileRecoveryBlockComplete(block)) return 0;
+  if (block?.isProfileRecoveryBlock) {
+    const mode = String(block?.profileRecoveryMode || "").toLowerCase();
+    if (mode === "injury") return XP_RULES.injuryPhysioComplete;
+    if (mode === "illness") return XP_RULES.illnessRecoveryComplete;
+  }
+  return XP_RULES.recoveryComplete;
 }
 
 function findPlanBlockForLogBlock(plan, logBlockId) {
@@ -384,7 +406,7 @@ export function buildXpDebugRows(inputRecords, plan) {
     let progressCount = 0;
 
     for (const block of blocks) {
-      if (!block) continue;
+      if (!block || block.suspendedByRecoveryMode) continue;
       switch (block.typeId) {
         case "strength":
         case "hiit":

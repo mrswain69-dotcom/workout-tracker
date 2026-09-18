@@ -1,4 +1,4 @@
-export const GROUP_CHALLENGE_XP_SCORE_VERSION = 1;
+export const GROUP_CHALLENGE_XP_SCORE_VERSION = 2;
 
 const XP_RULES = Object.freeze({
   strengthSet: 2,
@@ -6,6 +6,9 @@ const XP_RULES = Object.freeze({
   cardioPerKm: 1 / 0.5,
   durationPerMin: 2 / 10,
   sessionComplete: 10,
+  recoveryComplete: 5,
+  injuryPhysioComplete: 10,
+  illnessRecoveryComplete: 5,
   taskDefault: 5,
   blockComplete: 5,
   progression: 10,
@@ -49,11 +52,23 @@ function sessionComplete(block) {
   return !!session.completed;
 }
 
+function isProfileRecoveryModeLog(log) {
+  const mode = String(log?.meta?.profileRecoveryMode || "").toLowerCase();
+  return mode === "injury" || mode === "illness";
+}
+
+function profileRecoveryComplete(block) {
+  if (!block?.isProfileRecoveryBlock) return !!block?.recoveryDone;
+  const mode = String(block?.profileRecoveryMode || "").toLowerCase();
+  if (mode === "injury") return safeNumber(block?.duration?.minutes) > 0;
+  return !!block?.recoveryDone;
+}
+
 function dayGreen(log) {
   if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
   let any = false;
   for (const block of log.blocks) {
-    if (!block || block.cancelled) continue;
+    if (!block || block.cancelled || block.suspendedByRecoveryMode) continue;
     const typeId = String(block.typeId || "").toLowerCase();
     if (typeId === "tasks") continue;
     let complete = false;
@@ -66,7 +81,7 @@ function dayGreen(log) {
     } else if (typeId === "session") {
       complete = sessionComplete(block);
     } else if (typeId === "recovery") {
-      complete = !!block.recoveryDone;
+      complete = profileRecoveryComplete(block);
     }
     if (!complete) return false;
     any = true;
@@ -194,7 +209,7 @@ export function buildGroupChallengeTrainingXpRows(inputRecords = [], plan = {}) 
     let allCardioWalk = true;
 
     for (const block of Array.isArray(log?.blocks) ? log.blocks : []) {
-      if (!block) continue;
+      if (!block || block.suspendedByRecoveryMode) continue;
       const typeId = String(block.typeId || "").toLowerCase();
       if (["strength", "hiit", "box"].includes(typeId)) {
         let setCount = 0;
@@ -228,7 +243,14 @@ export function buildGroupChallengeTrainingXpRows(inputRecords = [], plan = {}) 
       } else if (typeId === "session") {
         if (sessionComplete(block)) sessionXp += XP_RULES.sessionComplete;
       } else if (typeId === "recovery") {
-        if (block.recoveryDone) recoveryXp += 5;
+        if (profileRecoveryComplete(block)) {
+          const mode = String(block?.profileRecoveryMode || "").toLowerCase();
+          recoveryXp += block?.isProfileRecoveryBlock && mode === "injury"
+            ? XP_RULES.injuryPhysioComplete
+            : block?.isProfileRecoveryBlock && mode === "illness"
+              ? XP_RULES.illnessRecoveryComplete
+              : XP_RULES.recoveryComplete;
+        }
       } else if (typeId === "tasks") {
         taskXp += tasksXp(block, plan);
       }
