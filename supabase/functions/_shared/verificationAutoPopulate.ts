@@ -5,6 +5,7 @@ import {
   undoVerifiedActivityPopulation,
 } from "../../../src/engine/verificationAutoPopulationEngine.js";
 import { buildSessionLogBlockSnapshot } from "../../../src/engine/sessionEngine.js";
+import { getProfileRecoveryModeForDate } from "../../../src/engine/recoveryModeEngine.js";
 
 const DEFAULT_AUTO_LOG_WINDOW_DAYS = 2;
 
@@ -132,7 +133,7 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
   }
   const profile = profileResult.data;
 
-  const [connectionsResult, preferencesResult, activitiesResult, observationsResult, observationLinksResult, manualLinksResult, controlsResult, logsResult] = await Promise.all([
+  const [connectionsResult, preferencesResult, activitiesResult, observationsResult, observationLinksResult, manualLinksResult, controlsResult, logsResult, recoveryPeriodsResult] = await Promise.all([
     adminClient.from("external_connections").select("id,provider,status").eq("profile_id", profileId),
     adminClient.from("external_connection_preferences").select("provider,activity_data_enabled,auto_log_window_days").eq("profile_id", profileId),
     adminClient.from("verified_activities").select("id,activity_type,started_at,status,auto_match_suppressed").eq("profile_id", profileId).eq("status", "active"),
@@ -141,14 +142,15 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
     adminClient.from("external_activity_links").select("verified_activity_id,manual_log_id,manual_block_id,match_method").eq("profile_id", profileId),
     adminClient.from("external_activity_population_controls").select("verified_activity_id,suppressed_at,suppress_reason").eq("profile_id", profileId),
     adminClient.from("logs").select("id,date_ymd,log_json").eq("profile_id", profileId).gte("date_ymd", earliestYmd).lte("date_ymd", todayYmd),
+    adminClient.from("profile_recovery_periods").select("id,profile_id,mode,started_on,ended_on,started_at,ended_at").eq("profile_id", profileId),
   ]);
-  const firstError = [connectionsResult, preferencesResult, activitiesResult, observationsResult, observationLinksResult, manualLinksResult, controlsResult, logsResult]
+  const firstError = [connectionsResult, preferencesResult, activitiesResult, observationsResult, observationLinksResult, manualLinksResult, controlsResult, logsResult, recoveryPeriodsResult]
     .map((result) => result.error).find(Boolean);
   if (firstError) throw firstError;
 
   const preferenceMap = activePreferenceMap(connectionsResult.data || [], preferencesResult.data || []);
   if (!preferenceMap.size) {
-    return { profileId, logsChanged: 0, fieldsFilled: 0, extraBlocksCreated: 0, manualOverridesPreserved: 0, skippedSuppressed: 0, skippedLinked: 0, consideredActivities: 0 };
+    return { profileId, logsChanged: 0, fieldsFilled: 0, extraBlocksCreated: 0, manualOverridesPreserved: 0, skippedSuppressed: 0, skippedLinked: 0, skippedRecoveryMode: 0, consideredActivities: 0 };
   }
 
   const observationById = new Map((observationsResult.data || []).map((row: any) => [row.id, row]));
@@ -181,6 +183,7 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
     manualOverridesPreserved: 0,
     skippedSuppressed: 0,
     skippedLinked: 0,
+    skippedRecoveryMode: 0,
     consideredActivities: 0,
   };
   const changedDates = new Set<string>();
@@ -200,6 +203,17 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
     summary.consideredActivities += 1;
 
     const dateYmd = evidence.localDateYmd;
+    const recoveryPeriod = getProfileRecoveryModeForDate(
+      recoveryPeriodsResult.data || [],
+      profileId,
+      dateYmd,
+      todayYmd
+    );
+    if (recoveryPeriod) {
+      summary.skippedRecoveryMode += 1;
+      continue;
+    }
+
     let logRow: any = logByDate.get(dateYmd) || null;
     const originalLog = logRow?.log_json && typeof logRow.log_json === "object" ? logRow.log_json : null;
     const dayKey = weekday(dateYmd);
