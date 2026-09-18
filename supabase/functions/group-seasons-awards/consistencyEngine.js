@@ -215,6 +215,22 @@ export function normaliseConsistencyRecords(records = []) {
     .sort((a, b) => a.date_ymd.localeCompare(b.date_ymd));
 }
 
+function profileRecoveryModeCompletedOnDay(log, targetYmd) {
+  const mode = cleanText(log?.meta?.profileRecoveryMode).toLowerCase();
+  if (mode !== "injury" && mode !== "illness") return false;
+  const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
+  return blocks.some((block) => {
+    if (!block?.isProfileRecoveryBlock || block.cancelled) return false;
+    if (!blockHasSameDayEvidence(block, targetYmd)) return false;
+    const blockMode = cleanText(block.profileRecoveryMode).toLowerCase() || mode;
+    if (blockMode === "injury") {
+      return finiteNumber(block?.duration?.minutes) > 0;
+    }
+    if (blockMode === "illness") return !!block.recoveryDone;
+    return false;
+  });
+}
+
 export function consistencyPlannedDayCompleted({
   dateYmd,
   schedule,
@@ -237,6 +253,20 @@ export function consistencyPlannedDayCompleted({
   }
 
   const logBlocks = Array.isArray(log?.blocks) ? log.blocks : [];
+
+  if (profileRecoveryModeCompletedOnDay(log, dateYmd)) {
+    return {
+      planned: true,
+      completed: true,
+      expectedBlocks: expected.length,
+      completedBlocks: expected.length,
+      manualCompletedBlocks: 0,
+      verifiedCompletedBlocks: 0,
+      completionSource: "recovery_mode",
+      verifiedAssignments: [],
+    };
+  }
+
   const manualCompletedBlockIds = [];
 
   for (const expectedBlock of expected) {
