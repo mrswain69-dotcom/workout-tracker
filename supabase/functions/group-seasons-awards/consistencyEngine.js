@@ -1,6 +1,6 @@
 import { matchVerifiedPlanCompletionEvidence } from "./verifiedPlanCompletionEngine.js";
 
-export const CONSISTENCY_SCORE_VERSION = 1;
+export const CONSISTENCY_SCORE_VERSION = 2;
 export const CONSISTENCY_TIME_ZONE = "Europe/London";
 
 export const CONSISTENCY_ELIGIBLE_BLOCK_TYPES = Object.freeze([
