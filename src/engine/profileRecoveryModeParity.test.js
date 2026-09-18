@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 
-const read = (path) => fs.readFileSync(new URL(\`../../\${path}\`, import.meta.url), "utf8");
+const read = (path) => fs.readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
 
 describe("profile recovery production engine parity", () => {
   it("keeps suspended physical blocks and recovery XP rules in server XP mirrors", () => {
@@ -14,6 +14,8 @@ describe("profile recovery production engine parity", () => {
       expect(source).toContain("suspendedByRecoveryMode");
       expect(source).toContain("profileRecoveryMode");
       expect(source).toContain("isProfileRecoveryModeLog");
+      expect(source).toContain("injuryPhysioComplete");
+      expect(source).toContain("illnessRecoveryComplete");
     }
   });
 
