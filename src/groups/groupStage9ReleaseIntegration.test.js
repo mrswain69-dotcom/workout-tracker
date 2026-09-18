@@ -14,31 +14,33 @@ const normalizedStyles = normalizeCss(styles);
 const normalizedHubCss = normalizeCss(hubCss);
 
 describe("Group Stage 9 navigation and release integration contract", () => {
-  it("uses the locked compact primary navigation without making Groups a sixth text tab", () => {
-    expect(app).toContain('["log", "stats", "rewards"].map((t) => (');
+  it("uses the Phase 5 compact primary navigation without making Groups a text tab", () => {
+    expect(app).toContain('["dashboard", "Dashboard"]');
+    expect(app).toContain('["log", "Log"]');
+    expect(app).toContain('["stats", "Progress"]');
+    expect(app).toContain('["rewards", "Rewards"]');
     expect(app).toContain('className="groupHeaderButton"');
     expect(app).toContain('aria-label="Open Groups"');
-    expect(app).not.toContain('["log", "stats", "groups"');
-    expect(app).not.toContain('["log", "stats", "plan", "assessments", "rewards"].map');
+    expect(app).not.toContain('["groups", "Groups"]');
   });
 
-  it("keeps Plan, Assessments and Connections in one management surface while preserving direct Assessment CTAs", () => {
-    expect(app).toContain('["settings", "plan", "assessments", "connections"].includes(tab)');
-    expect(app).toContain('["settings", "General"]');
+  it("keeps setup destinations inside Settings while preserving direct Assessment CTAs", () => {
+    expect(app).toContain('["settings", "plan", "assessments", "connections", "appsettings"].includes(tab)');
+    expect(app).toContain('["settings", "People"]');
     expect(app).toContain('["plan", "Plan"]');
     expect(app).toContain('["assessments", "Assessments"]');
     expect(app).toContain('["connections", "Connections"]');
-    expect(app).toContain('aria-label="Manage Workout Tracker"');
+    expect(app).toContain('["appsettings", "App"]');
+    expect(app).toContain('aria-label="Open Settings"');
     expect(app).toContain('onOpenAssessments={() => setTab("assessments")}');
   });
 
-  it("hides setup shortcuts on mobile and keeps every primary/manage target at least 44px tall", () => {
-    expect(normalizedStyles).toContain(".setupTabsDesktop{display:contents}");
+  it("keeps primary and Settings targets touch-safe without separate setup shortcuts", () => {
     expect(normalizedStyles).toContain("@media(max-width:760px){");
-    expect(normalizedStyles).toContain(".setupTabsDesktop{display:none}");
     expect(normalizedStyles).toContain(".primaryNavTabs .btn{min-height:44px}");
-    expect(normalizedStyles).toContain(".manageTab{flex:1 1 0;min-height:44px");
+    expect(normalizedStyles).toContain(".manageTab{flex:0 0 auto;min-width:108px;min-height:44px");
     expect(normalizedHubCss).toContain(".groupHeaderButton{width:44px;height:44px;min-width:44px");
+    expect(app).not.toContain("setupTabsDesktop");
   });
 
   it("keeps the Group shell full-screen and horizontally safe on mobile", () => {

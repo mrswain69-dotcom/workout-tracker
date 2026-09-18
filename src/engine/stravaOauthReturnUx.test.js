@@ -7,7 +7,7 @@ describe("Strava OAuth return UX", () => {
   it("routes recognised provider returns to Connections and clears one-shot query state", () => {
     const app = read("src/App.jsx");
     expect(app).toContain('provider !== "strava"');
-    expect(app).toContain('providerReturn ? "connections" : "log"');
+    expect(app).toContain('providerReturn ? "connections" : "dashboard"');
     expect(app).toContain('clearProviderReturnFromUrl()');
     expect(app).toContain('connectionReturn={providerReturn}');
     expect(app).toContain('initialProfileId={providerReturn?.profileId || activeProfileId}');
