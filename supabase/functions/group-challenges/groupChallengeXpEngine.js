@@ -1,4 +1,4 @@
-export const GROUP_CHALLENGE_XP_SCORE_VERSION = 1;
+export const GROUP_CHALLENGE_XP_SCORE_VERSION = 2;
 
 const XP_RULES = Object.freeze({
   strengthSet: 2,
@@ -6,6 +6,9 @@ const XP_RULES = Object.freeze({
   cardioPerKm: 1 / 0.5,
   durationPerMin: 2 / 10,
   sessionComplete: 10,
+  recoveryComplete: 5,
+  injuryPhysioComplete: 10,
+  illnessRecoveryComplete: 5,
   taskDefault: 5,
   blockComplete: 5,
   progression: 10,
@@ -167,11 +170,7 @@ function tasksXp(block, plan) {
 
 function streakMap(records) {
   const dates = records
-    .filter(
-      (row) =>
-        (dayGreen(row.log) && !isProfileRecoveryModeLog(row.log)) ||
-        !!row.log?.meta?.streakSaved
-    )
+    .filter((row) => dayGreen(row.log) || !!row.log?.meta?.streakSaved)
     .map((row) => row.date_ymd)
     .sort();
   const map = {};
@@ -244,7 +243,14 @@ export function buildGroupChallengeTrainingXpRows(inputRecords = [], plan = {}) 
       } else if (typeId === "session") {
         if (sessionComplete(block)) sessionXp += XP_RULES.sessionComplete;
       } else if (typeId === "recovery") {
-        if (profileRecoveryComplete(block)) recoveryXp += 5;
+        if (profileRecoveryComplete(block)) {
+          const mode = String(block?.profileRecoveryMode || "").toLowerCase();
+          recoveryXp += block?.isProfileRecoveryBlock && mode === "injury"
+            ? XP_RULES.injuryPhysioComplete
+            : block?.isProfileRecoveryBlock && mode === "illness"
+              ? XP_RULES.illnessRecoveryComplete
+              : XP_RULES.recoveryComplete;
+        }
       } else if (typeId === "tasks") {
         taskXp += tasksXp(block, plan);
       }
@@ -256,10 +262,7 @@ export function buildGroupChallengeTrainingXpRows(inputRecords = [], plan = {}) 
     const cardioProgressXp = previousCardio && cardioImproved({ distanceKm: cardioKm, durationMin: cardioMin }, previousCardio)
       ? XP_RULES.cardioProgression
       : 0;
-    const dayCompleteXp =
-      dayGreen(log) && !isProfileRecoveryModeLog(log)
-        ? XP_RULES.dayCompleteBonus
-        : 0;
+    const dayCompleteXp = dayGreen(log) ? XP_RULES.dayCompleteBonus : 0;
     const totalXp = strengthXp + cardioXp + durationXp + sessionXp + recoveryXp + taskXp
       + strengthProgressXp + cardioProgressXp + dayCompleteXp + (streakXp[date] || 0);
 
