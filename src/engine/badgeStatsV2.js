@@ -3,6 +3,7 @@ import {
   sessionBlockHasActivity,
   sessionBlockIsComplete,
 } from "./sessionCore.js";
+import { profileRecoveryBlockComplete } from "./recoveryModeEngine.js";
 
 //
 // Builds stats used by badges.js.
@@ -259,7 +260,7 @@ function getSessionHourWindow(log, row) {
   };
 
   for (const b of blocks) {
-    if (!b || b.cancelled) continue;
+    if (!b || b.cancelled || b.suspendedByRecoveryMode) continue;
 
     let hasData = false;
     const typeId = String(b.typeId || "").toLowerCase();
@@ -592,7 +593,7 @@ function getSportKeysForLog(log) {
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
 
   for (const b of blocks) {
-    if (!b || b.cancelled) continue;
+    if (!b || b.cancelled || b.suspendedByRecoveryMode) continue;
 
     const typeId = normaliseText(b.typeId);
 
@@ -703,7 +704,7 @@ function getLoggedStrengthSetsByMovement(log) {
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
 
   for (const b of blocks) {
-    if (!b || b.cancelled) continue;
+    if (!b || b.cancelled || b.suspendedByRecoveryMode) continue;
     if (b.typeId !== "strength" && b.typeId !== "hiit" && b.typeId !== "box") continue;
 
     const setsObj = b.sets && typeof b.sets === "object" ? b.sets : {};
@@ -921,7 +922,7 @@ greenByDate.set(dateStr, isStreakCountingDay(log));
     }
 
     for (const b of blocks) {
-      if (!b || b.cancelled) continue;
+      if (!b || b.cancelled || b.suspendedByRecoveryMode) continue;
       if (b.typeId !== "strength") continue;
 
       const setsObj = b.sets && typeof b.sets === "object" ? b.sets : {};
