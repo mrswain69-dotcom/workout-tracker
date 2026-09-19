@@ -73,7 +73,7 @@ import {
   profileRecoveryBlockComplete,
 } from "./engine/recoveryModeEngine.js";
 
-import { AVATAR_PACKS } from "./config/avatars";
+import { AVATAR_PACKS, AVATAR_PACK_GROUPS } from "./config/avatars";
 import SessionPlanBlockEditor, {
   createSessionPlanBlock,
   normaliseSessionPlanBlock,
@@ -11796,127 +11796,156 @@ if (!didClaim) {
                 Unlock avatar packs as your XP grows. Pick one to show next to your name.
               </div>
 
-              <div className="stack mt12">
-                {AVATAR_PACKS.map((pack) => {
-                  const unlockedNow = xp >= pack.unlockAtXp;
-                  const alreadyUnlocked = unlockedAvatarPacksSet.has(pack.key);
-
-                  return (
-                    <div key={pack.key} className="panel">
-                      <div className="rowBetween">
-                        <div>
-                          <div className="h3">{pack.title}</div>
-                          <div className="mini muted mt4">{pack.desc}</div>
+              <div className="avatarEraStack mt12">
+                {AVATAR_PACK_GROUPS.map((era, eraIndex) => (
+                  <section className="avatarEraSection" key={era.key}>
+                    <div className="avatarEraHeader">
+                      <div>
+                        <div className="avatarEraKicker">
+                          {era.minXp > 0
+                            ? `${era.minXp.toLocaleString("en-GB")} XP+`
+                            : "FOUNDATION"}
                         </div>
-
-                        {!alreadyUnlocked ? (
-                          <button
-                            type="button"
-                            className={"btn " + (unlockedNow ? "" : "disabled")}
-                            disabled={!unlockedNow}
-                            onClick={async () => {
-                              const next = Array.from(
-                                new Set([...(unlockedAvatarPacksArr || []), pack.key])
-                              );
-                              await savePlanMetaNoPin({ unlockedAvatarPacks: next });
-                              setClaimModal({
-                                title: "Avatar pack unlocked!",
-                                desc: `${pack.title} is now available.`,
-                              });
-                            }}
-                          >
-                            {unlockedNow ? "Claim" : `Locked (${pack.unlockAtXp} XP)`}
-                          </button>
-                        ) : (
-                          <div className="pill">Unlocked</div>
-                        )}
-                      </div>
-
-                      <div className="mt12">
-                        <div className="mini muted">
-                          {alreadyUnlocked
-                            ? "Choose your avatar:"
-                            : "Preview the pack:"}
-                        </div>
-
-                        <div
-                          className={
-  "mt8 avatarRoster " +
-  (pack.unlockAtXp >= 4000 ? "avatarPackPremium " : "") +
-  (pack.unlockAtXp >= 5000 ? "avatarPackMythic " : "") +
-  (pack.unlockAtXp >= 10000 ? "avatarPackPrestige " : "") +
-  (!alreadyUnlocked ? "avatarRosterLocked " : "")
-}
-                        >
-                          {(pack.avatars || []).map((a) => {
-                            const isSelected = selectedAvatarId === a.id;
-                            const isLockedPreview = !alreadyUnlocked;
-
-                            return (
-                              <button
-                                key={a.id}
-                                type="button"
-                                disabled={isLockedPreview}
-                                className={
-  "avatarPick " +
-  (a.prestige ? "prestigeAvatarPick " : "") +
-  (isSelected ? "active " : "") +
-  (isLockedPreview ? "lockedPreview " : "")
-}
-                                onClick={async () => {
-                                  if (isLockedPreview) return;
-                                  await savePlanMetaNoPin({ avatarId: a.id });
-                                  setClaimModal({
-                                    title: "Avatar selected!",
-                                    desc: "Check the header 👆",
-                                  });
-                                }}
-                              >
-                                <div className="avatarPickArt">
-                                  {a.imgSrc ? (
-                                    <img
-                                      src={a.imgSrc}
-                                      alt={a.label || "Avatar"}
-                                      className="avatarPickImg"
-                                    />
-                                  ) : (
-                                    <span className="avatarPickEmoji">{a.emoji || a.label}</span>
-                                  )}
-                                </div>
-
-                                <div className={`avatarPickLabel ${isLockedPreview ? "avatarPickLabelLocked" : ""}`}>
-  {isLockedPreview ? (
-    <>
-      <span>Classified</span>
-      {pack.unlockAtXp >= 10000 ? (
-        <span className="avatarPickSubtitle">Prestige avatar</span>
-      ) : (
-        <span className="avatarPickSubtitle">Locked avatar</span>
-      )}
-    </>
-  ) : (
-    <>
-      <span>{a.label || "Avatar"}</span>
-      {a.subtitle ? (
-        <span className="avatarPickSubtitle">{a.subtitle}</span>
-      ) : null}
-    </>
-  )}
-</div>
-
-                                {isLockedPreview && (
-                                  <div className="avatarPickLockText">
-                                    Locked
-                                  </div>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <div className="h2">{era.title}</div>
+                        <div className="mini muted mt4">{era.desc}</div>
                       </div>
                     </div>
-                  );
-                })}
+
+                    <details className="avatarEraDetails" open={eraIndex === 0}>
+                      <summary className="avatarEraSummary">
+                        <span>
+                          {era.packs.length} pack{era.packs.length === 1 ? "" : "s"}
+                        </span>
+                        <span className="mini muted">Show / hide collection</span>
+                      </summary>
+
+                      <div className="stack mt12">
+                        {era.packs.map((pack) => {
+                          const unlockedNow = xp >= pack.unlockAtXp;
+                          const alreadyUnlocked = unlockedAvatarPacksSet.has(pack.key);
+
+                          return (
+                            <div key={pack.key} className="panel">
+                              <div className="rowBetween">
+                                <div>
+                                  <div className="h3">{pack.title}</div>
+                                  <div className="mini muted mt4">{pack.desc}</div>
+                                </div>
+
+                                {!alreadyUnlocked ? (
+                                  <button
+                                    type="button"
+                                    className={"btn " + (unlockedNow ? "" : "disabled")}
+                                    disabled={!unlockedNow}
+                                    onClick={async () => {
+                                      const next = Array.from(
+                                        new Set([...(unlockedAvatarPacksArr || []), pack.key])
+                                      );
+                                      await savePlanMetaNoPin({ unlockedAvatarPacks: next });
+                                      setClaimModal({
+                                        title: "Avatar pack unlocked!",
+                                        desc: `${pack.title} is now available.`,
+                                      });
+                                    }}
+                                  >
+                                    {unlockedNow ? "Claim" : `Locked (${pack.unlockAtXp} XP)`}
+                                  </button>
+                                ) : (
+                                  <div className="pill">Unlocked</div>
+                                )}
+                              </div>
+
+                              <div className="mt12">
+                                <div className="mini muted">
+                                  {alreadyUnlocked
+                                    ? "Choose your avatar:"
+                                    : "Preview the pack:"}
+                                </div>
+
+                                <div
+                                  className={
+                                    "mt8 avatarRoster " +
+                                    (pack.unlockAtXp >= 4000 ? "avatarPackPremium " : "") +
+                                    (pack.unlockAtXp >= 5000 ? "avatarPackMythic " : "") +
+                                    (pack.unlockAtXp >= 10000 ? "avatarPackPrestige " : "") +
+                                    (!alreadyUnlocked ? "avatarRosterLocked " : "")
+                                  }
+                                >
+                                  {(pack.avatars || []).map((a) => {
+                                    const isSelected = selectedAvatarId === a.id;
+                                    const isLockedPreview = !alreadyUnlocked;
+
+                                    return (
+                                      <button
+                                        key={a.id}
+                                        type="button"
+                                        disabled={isLockedPreview}
+                                        className={
+                                          "avatarPick " +
+                                          (a.prestige ? "prestigeAvatarPick " : "") +
+                                          (isSelected ? "active " : "") +
+                                          (isLockedPreview ? "lockedPreview " : "")
+                                        }
+                                        onClick={async () => {
+                                          if (isLockedPreview) return;
+                                          await savePlanMetaNoPin({ avatarId: a.id });
+                                          setClaimModal({
+                                            title: "Avatar selected!",
+                                            desc: "Check the header 👆",
+                                          });
+                                        }}
+                                      >
+                                        <div className="avatarPickArt">
+                                          {a.imgSrc ? (
+                                            <img
+                                              src={a.imgSrc}
+                                              alt={a.label || "Avatar"}
+                                              className="avatarPickImg"
+                                              loading="lazy"
+                                              decoding="async"
+                                            />
+                                          ) : (
+                                            <span className="avatarPickEmoji">{a.emoji || a.label}</span>
+                                          )}
+                                        </div>
+
+                                        <div
+                                          className={`avatarPickLabel ${isLockedPreview ? "avatarPickLabelLocked" : ""}`}
+                                        >
+                                          {isLockedPreview ? (
+                                            <>
+                                              <span>Classified</span>
+                                              {pack.unlockAtXp >= 10000 ? (
+                                                <span className="avatarPickSubtitle">Prestige avatar</span>
+                                              ) : (
+                                                <span className="avatarPickSubtitle">Locked avatar</span>
+                                              )}
+                                            </>
+                                          ) : (
+                                            <>
+                                              <span>{a.label || "Avatar"}</span>
+                                              {a.subtitle ? (
+                                                <span className="avatarPickSubtitle">{a.subtitle}</span>
+                                              ) : null}
+                                            </>
+                                          )}
+                                        </div>
+
+                                        {isLockedPreview && (
+                                          <div className="avatarPickLockText">Locked</div>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </details>
+                  </section>
+                ))}
               </div>
             </>
           ) : (

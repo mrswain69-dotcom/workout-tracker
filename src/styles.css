@@ -1661,3 +1661,58 @@ button.btn.primary:hover{
   font-weight:800;
   color:#166534;
 }
+
+
+/* === Post-10k Avatar Rewards scaling === */
+.avatarEraStack{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.avatarEraSection{
+  border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;
+  background:rgba(255,255,255,.66);
+  overflow:hidden;
+}
+.avatarEraHeader{
+  padding:16px 16px 10px;
+  background:linear-gradient(135deg,rgba(255,122,24,.07),rgba(15,118,110,.035));
+}
+.avatarEraKicker{
+  margin-bottom:3px;
+  color:#0f766e;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.avatarEraDetails{
+  border-top:1px solid rgba(15,23,42,.07);
+}
+.avatarEraSummary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:44px;
+  padding:9px 16px;
+  cursor:pointer;
+  list-style:none;
+  font-size:12px;
+  font-weight:900;
+  color:#334155;
+}
+.avatarEraSummary::-webkit-details-marker{display:none}
+.avatarEraSummary::after{
+  content:"▾";
+  margin-left:auto;
+  color:#0f766e;
+  transition:transform .18s ease;
+}
+.avatarEraDetails:not([open]) .avatarEraSummary::after{transform:rotate(-90deg)}
+.avatarEraDetails > .stack{padding:0 12px 12px}
+@media(max-width:600px){
+  .avatarEraHeader{padding:14px 12px 9px}
+  .avatarEraSummary{padding:9px 12px}
+  .avatarEraDetails > .stack{padding:0 8px 8px}
+}
