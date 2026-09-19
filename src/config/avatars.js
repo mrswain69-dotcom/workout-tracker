@@ -470,3 +470,68 @@ export const AVATAR_PACKS = [
 },
   
 ];
+
+// Post-10k reward eras.
+// Keep the pack thresholds themselves in AVATAR_PACKS; these metadata rows only
+// organise presentation and future expansion.
+export const AVATAR_ERAS = [
+  {
+    key: "athlete_journey",
+    title: "Athlete Journey",
+    minXp: 0,
+    maxXp: 10000,
+    desc: "Build the foundations and unlock the original athlete journey.",
+  },
+  {
+    key: "legends_beyond_sport",
+    title: "Legends Beyond Sport",
+    minXp: 12000,
+    maxXp: 20000,
+    desc: "Playful, imaginative prestige characters beyond conventional athletes.",
+  },
+  {
+    key: "elite_machines_operators",
+    title: "Elite Machines & Operators",
+    minXp: 22000,
+    maxXp: 35000,
+    desc: "Machines, operators and high-status performance archetypes.",
+  },
+  {
+    key: "mythic_prestige",
+    title: "Mythic Prestige",
+    minXp: 40000,
+    maxXp: 60000,
+    desc: "Rarer, iconic designs built through stronger concepts, materials and silhouettes.",
+  },
+  {
+    key: "infinite_mastery",
+    title: "Infinite Mastery",
+    minXp: 70000,
+    maxXp: null,
+    desc: "Ultra-rare long-horizon rewards that can continue beyond 120,000 XP.",
+  },
+];
+
+export function getAvatarEraForPack(pack = {}) {
+  const explicit = AVATAR_ERAS.find((era) => era.key === pack?.eraKey);
+  if (explicit) return explicit;
+
+  const xp = Number(pack?.unlockAtXp) || 0;
+  if (xp <= 10000) return AVATAR_ERAS[0];
+  if (xp <= 20000) return AVATAR_ERAS[1];
+  if (xp <= 35000) return AVATAR_ERAS[2];
+  if (xp <= 60000) return AVATAR_ERAS[3];
+  return AVATAR_ERAS[4];
+}
+
+export function groupAvatarPacksByEra(packs = AVATAR_PACKS) {
+  return AVATAR_ERAS.map((era) => ({
+    ...era,
+    packs: (Array.isArray(packs) ? packs : []).filter(
+      (pack) => getAvatarEraForPack(pack)?.key === era.key
+    ),
+  })).filter((era) => era.packs.length > 0);
+}
+
+export const AVATAR_PACK_GROUPS = groupAvatarPacksByEra();
+
