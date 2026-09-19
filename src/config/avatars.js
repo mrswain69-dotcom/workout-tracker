@@ -469,6 +469,74 @@ export const AVATAR_PACKS = [
   ],
 },
   
+  {
+    key: "avatar_pack_11_cosmic_sprouts",
+    title: "Avatar Pack 11 – Cosmic Sprouts",
+    desc: "Unlock at 12,000 XP",
+    unlockAtXp: 12000,
+    prestigePack: true,
+    eraKey: "legends_beyond_sport",
+    eraTitle: "Legends Beyond Sport",
+    avatars: [
+      {
+        id: "p11_astro_sprout",
+        label: "Astro Sprout",
+        imgSrc: "/avatars/pack11/astro-sprout.png",
+        prestige: true,
+        subtitle: "Cosmic Scout",
+      },
+      {
+        id: "p11_nebula_nib",
+        label: "Nebula Nib",
+        imgSrc: "/avatars/pack11/nebula-nib.png",
+        prestige: true,
+        subtitle: "Three-Eye Explorer",
+      },
+      {
+        id: "p11_orbit_pop",
+        label: "Orbit Pop",
+        imgSrc: "/avatars/pack11/orbit-pop.png",
+        prestige: true,
+        subtitle: "Hover Trickster",
+      },
+      {
+        id: "p11_comet_bean",
+        label: "Comet Bean",
+        imgSrc: "/avatars/pack11/comet-bean.png",
+        prestige: true,
+        subtitle: "Armoured Comet",
+      },
+      {
+        id: "p11_zippy_quark",
+        label: "Zippy Quark",
+        imgSrc: "/avatars/pack11/zippy-quark.png",
+        prestige: true,
+        subtitle: "Sprint Alien",
+      },
+      {
+        id: "p11_luna_mite",
+        label: "Luna Mite",
+        imgSrc: "/avatars/pack11/luna-mite.png",
+        prestige: true,
+        subtitle: "Lunar Explorer",
+      },
+      {
+        id: "p11_pulse_pix",
+        label: "Pulse Pix",
+        imgSrc: "/avatars/pack11/pulse-pix.png",
+        prestige: true,
+        subtitle: "Tech Sprite",
+      },
+      {
+        id: "p11_star_pogo",
+        label: "Star Pogo",
+        imgSrc: "/avatars/pack11/star-pogo.png",
+        prestige: true,
+        subtitle: "Spring Jumper",
+      },
+    ],
+  },
+
 ];
 
 // Post-10k reward eras.
