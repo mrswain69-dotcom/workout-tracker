@@ -537,6 +537,75 @@ export const AVATAR_PACKS = [
     ],
   },
 
+  {
+    key: "avatar_pack_12_bounce_brigade",
+    title: "Avatar Pack 12 – Bounce Brigade",
+    desc: "Unlock at 14,000 XP",
+    unlockAtXp: 14000,
+    prestigePack: true,
+    eraKey: "legends_beyond_sport",
+    eraTitle: "Legends Beyond Sport",
+    avatars: [
+      {
+        id: "p12_bounce_bolt",
+        label: "Bounce Bolt",
+        imgSrc: "/avatars/pack12/bounce-bolt.png",
+        prestige: true,
+        subtitle: "Shock Mascot",
+      },
+      {
+        id: "p12_jelly_dash",
+        label: "Jelly Dash",
+        imgSrc: "/avatars/pack12/jelly-dash.png",
+        prestige: true,
+        subtitle: "Gel Runner",
+      },
+      {
+        id: "p12_bean_blazer",
+        label: "Bean Blazer",
+        imgSrc: "/avatars/pack12/bean-blazer.png",
+        prestige: true,
+        subtitle: "Varsity Icon",
+      },
+      {
+        id: "p12_tumble_zap",
+        label: "Tumble Zap",
+        imgSrc: "/avatars/pack12/tumble-zap.png",
+        prestige: true,
+        subtitle: "Crash Mascot",
+      },
+      {
+        id: "p12_orbit_bop",
+        label: "Orbit Bop",
+        imgSrc: "/avatars/pack12/orbit-bop.png",
+        prestige: true,
+        subtitle: "Ring Dancer",
+      },
+      {
+        id: "p12_turbo_pip",
+        label: "Turbo Pip",
+        imgSrc: "/avatars/pack12/turbo-pip.png",
+        prestige: true,
+        subtitle: "Mini Racer",
+      },
+      {
+        id: "p12_fizz_hopper",
+        label: "Fizz Hopper",
+        imgSrc: "/avatars/pack12/fizz-hopper.png",
+        prestige: true,
+        subtitle: "Bubble Hopper",
+      },
+      {
+        id: "p12_pop_rocket",
+        label: "Pop Rocket",
+        imgSrc: "/avatars/pack12/pop-rocket.png",
+        prestige: true,
+        subtitle: "Launch Mascot",
+      },
+    ],
+  },
+
+
 ];
 
 // Post-10k reward eras.

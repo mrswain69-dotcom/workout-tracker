@@ -11,7 +11,7 @@ import {
 const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
 
 describe("post-10k avatar rewards scaffolding", () => {
-  it("locks the five reward eras and recognises the first released post-10k pack", () => {
+  it("locks the five reward eras and recognises the released Legends Beyond Sport packs", () => {
     expect(AVATAR_ERAS.map((era) => era.key)).toEqual([
       "athlete_journey",
       "legends_beyond_sport",
@@ -19,13 +19,16 @@ describe("post-10k avatar rewards scaffolding", () => {
       "mythic_prestige",
       "infinite_mastery",
     ]);
-    expect(Math.max(...AVATAR_PACKS.map((pack) => pack.unlockAtXp))).toBe(12000);
+    expect(Math.max(...AVATAR_PACKS.map((pack) => pack.unlockAtXp))).toBe(14000);
     expect(AVATAR_PACK_GROUPS.map((era) => era.key)).toEqual([
       "athlete_journey",
       "legends_beyond_sport",
     ]);
-    expect(AVATAR_PACK_GROUPS[1].packs.map((pack) => pack.key)).toContain(
-      "avatar_pack_11_cosmic_sprouts"
+    expect(AVATAR_PACK_GROUPS[1].packs.map((pack) => pack.key)).toEqual(
+      expect.arrayContaining([
+        "avatar_pack_11_cosmic_sprouts",
+        "avatar_pack_12_bounce_brigade",
+      ])
     );
   });
 

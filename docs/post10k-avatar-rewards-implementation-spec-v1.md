@@ -872,3 +872,41 @@ The next working sequence is locked as:
 7. move to Batch B.
 
 This specification should be updated only when a deliberate product/art decision changes. Do not recreate the roadmap from memory in future chats; reference this document.
+
+
+## 20. Avatar Identity Views
+
+Avatar Identity Views turn selected avatars from cosmetic images into collectible identities with their own origin, story and verified history. The feature has two privacy-aware presentations: a full personal view and a restricted group view. Usage statistics begin prospectively when selection-history tracking is released; historical avatar usage must not be guessed or backfilled.
+
+### 20.1 Personal Avatar View
+
+Tapping the signed-in user's own avatar in the header, Dashboard, profile or Rewards collection opens the personal Avatar Identity View. On mobile, the artwork uses nearly the full available width. On desktop, it appears as a large centred modal card. A clearly visible × control in the upper-right closes the view, and standard Escape, backdrop and focus-management behaviour must remain accessible.
+
+The view includes:
+- large avatar artwork, name, subtitle and collection/pack;
+- unlock source and exact earning requirement, such as XP, mastery, group challenge, season or special award;
+- short character backstory and optional personality traits;
+- date first unlocked, date first selected and cumulative time selected;
+- XP earned, workouts completed and personal records achieved while selected;
+- competition/group achievements won while selected where authoritative result records exist;
+- future Avatar Mastery progress or affinity information when that system is released.
+
+### 20.2 Group Avatar View
+
+Tapping another member's avatar or username inside Groups opens a reduced Avatar Identity View. Artwork, avatar identity and the public earning route remain visible, but performance data is limited to the group context shared by the viewer and that member.
+
+
+## 21. Audience and Character Maturity Standard
+
+This is a standing art-direction rule for all future avatar production.
+
+- **Minimum target age is 10+.**
+- Characters must remain visually credible and desirable for **teenagers through adults**, not only younger users.
+- The finish should be **sharp, premium, clean and collectible**, with the same serious game-skin quality bar used by the wider Workout Tracker brand.
+- Playful themes and mascots are allowed, but they must not read as preschool, nursery, toddler or very-young-child character design.
+- Avoid baby proportions, overly soft toy-like faces, excessive rounded cuteness, childish costume language or visual treatment that makes a character feel aimed at roughly five-year-olds.
+- Prefer stronger silhouette design, purposeful posture, cleaner facial treatment, confident styling, higher-quality material definition and restrained expression.
+- A character can be funny, colourful, strange or cute while still feeling age-appropriate for a 10-year-old, a teenager and an adult user.
+- If a character passes the technical brief but feels too young, it must be reworked before pack approval.
+
+**Release question:** Would this avatar still feel credible on the profile of a 10-year-old, a 14-year-old and an adult user? If not, refine it before release.
