@@ -605,6 +605,210 @@ export const AVATAR_PACKS = [
     ],
   },
 
+  {
+    key: "avatar_pack_13_rescue_legends",
+    title: "Avatar Pack 13 – Rescue Legends",
+    desc: "Unlock at 16,000 XP",
+    unlockAtXp: 16000,
+    prestigePack: true,
+    eraKey: "legends_beyond_sport",
+    eraTitle: "Legends Beyond Sport",
+    avatars: [
+      {
+        id: "p13_rescue_rover",
+        label: "Rescue Rover",
+        imgSrc: "/avatars/pack13/rescue-rover.png",
+        prestige: true,
+        subtitle: "Search Leader",
+      },
+      {
+        id: "p13_blaze_pup",
+        label: "Blaze Pup",
+        imgSrc: "/avatars/pack13/blaze-pup.png",
+        prestige: true,
+        subtitle: "Fire Rescue",
+      },
+      {
+        id: "p13_turbo_terrier",
+        label: "Turbo Terrier",
+        imgSrc: "/avatars/pack13/turbo-terrier.png",
+        prestige: true,
+        subtitle: "Trail Specialist",
+      },
+      {
+        id: "p13_sky_collie",
+        label: "Sky Collie",
+        imgSrc: "/avatars/pack13/sky-collie.png",
+        prestige: true,
+        subtitle: "Air Search",
+      },
+      {
+        id: "p13_patch_patrol",
+        label: "Patch Patrol",
+        imgSrc: "/avatars/pack13/patch-patrol.png",
+        prestige: true,
+        subtitle: "Heavy Rescue",
+      },
+      {
+        id: "p13_scout_shepherd",
+        label: "Scout Shepherd",
+        imgSrc: "/avatars/pack13/scout-shepherd.png",
+        prestige: true,
+        subtitle: "Tracking Specialist",
+      },
+      {
+        id: "p13_ember_hound",
+        label: "Ember Hound",
+        imgSrc: "/avatars/pack13/ember-hound.png",
+        prestige: true,
+        subtitle: "Thermal Search",
+      },
+      {
+        id: "p13_bolt_beagle",
+        label: "Bolt Beagle",
+        imgSrc: "/avatars/pack13/bolt-beagle.png",
+        prestige: true,
+        subtitle: "Comms Scout",
+      },
+    ],
+  },
+
+  {
+    key: "avatar_pack_14_velvet_icons",
+    title: "Avatar Pack 14 – Velvet Icons",
+    desc: "Unlock at 18,000 XP",
+    unlockAtXp: 18000,
+    prestigePack: true,
+    eraKey: "legends_beyond_sport",
+    eraTitle: "Legends Beyond Sport",
+    avatars: [
+      {
+        id: "p14_velvet_star",
+        label: "Velvet Star",
+        imgSrc: "/avatars/pack14/velvet-star.png",
+        prestige: true,
+        subtitle: "Tailored Icon",
+      },
+      {
+        id: "p14_nova_chic",
+        label: "Nova Chic",
+        imgSrc: "/avatars/pack14/nova-chic.png",
+        prestige: true,
+        subtitle: "Metallic Editorial",
+      },
+      {
+        id: "p14_gloss_ace",
+        label: "Gloss Ace",
+        imgSrc: "/avatars/pack14/gloss-ace.png",
+        prestige: true,
+        subtitle: "Moto Luxe",
+      },
+      {
+        id: "p14_luxe_dash",
+        label: "Luxe Dash",
+        imgSrc: "/avatars/pack14/luxe-dash.png",
+        prestige: true,
+        subtitle: "Sport Tailoring",
+      },
+      {
+        id: "p14_runway_rebel",
+        label: "Runway Rebel",
+        imgSrc: "/avatars/pack14/runway-rebel.png",
+        prestige: true,
+        subtitle: "Layered Street Icon",
+      },
+      {
+        id: "p14_satin_spark",
+        label: "Satin Spark",
+        imgSrc: "/avatars/pack14/satin-spark.png",
+        prestige: true,
+        subtitle: "Sculpted Bomber",
+      },
+      {
+        id: "p14_gold_glider",
+        label: "Gold Glider",
+        imgSrc: "/avatars/pack14/gold-glider.png",
+        prestige: true,
+        subtitle: "Aero Couture",
+      },
+      {
+        id: "p14_prism_pop",
+        label: "Prism Pop",
+        imgSrc: "/avatars/pack14/prism-pop.png",
+        prestige: true,
+        subtitle: "Playful Premium",
+      },
+    ],
+  },
+
+  {
+    key: "avatar_pack_15_neon_cipher_squad",
+    title: "Avatar Pack 15 – Neon Cipher Squad",
+    desc: "Unlock at 20,000 XP",
+    unlockAtXp: 20000,
+    prestigePack: true,
+    eraKey: "legends_beyond_sport",
+    eraTitle: "Legends Beyond Sport",
+    avatars: [
+      {
+        id: "p15_neon_cipher",
+        label: "Neon Cipher",
+        imgSrc: "/avatars/pack15/neon-cipher.png",
+        prestige: true,
+        subtitle: "Cyber Vanguard",
+      },
+      {
+        id: "p15_pixel_viper",
+        label: "Pixel Viper",
+        imgSrc: "/avatars/pack15/pixel-viper.png",
+        prestige: true,
+        subtitle: "Agile Hacker",
+      },
+      {
+        id: "p15_circuit_jax",
+        label: "Circuit Jax",
+        imgSrc: "/avatars/pack15/circuit-jax.png",
+        prestige: true,
+        subtitle: "Heavy Exo Athlete",
+      },
+      {
+        id: "p15_pulse_nova",
+        label: "Pulse Nova",
+        imgSrc: "/avatars/pack15/pulse-nova.png",
+        prestige: true,
+        subtitle: "Ceramic Android",
+      },
+      {
+        id: "p15_vector_nyx",
+        label: "Vector Nyx",
+        imgSrc: "/avatars/pack15/vector-nyx.png",
+        prestige: true,
+        subtitle: "Masked Synthetic",
+      },
+      {
+        id: "p15_chrome_flicker",
+        label: "Chrome Flicker",
+        imgSrc: "/avatars/pack15/chrome-flicker.png",
+        prestige: true,
+        subtitle: "Asymmetric Robot",
+      },
+      {
+        id: "p15_holo_dash",
+        label: "Holo Dash",
+        imgSrc: "/avatars/pack15/holo-dash.png",
+        prestige: true,
+        subtitle: "Transparent Tech Runner",
+      },
+      {
+        id: "p15_byte_runner",
+        label: "Byte Runner",
+        imgSrc: "/avatars/pack15/byte-runner.png",
+        prestige: true,
+        subtitle: "Street Bot",
+      },
+    ],
+  },
+
 
 ];
 
@@ -671,4 +875,3 @@ export function groupAvatarPacksByEra(packs = AVATAR_PACKS) {
 }
 
 export const AVATAR_PACK_GROUPS = groupAvatarPacksByEra();
-
