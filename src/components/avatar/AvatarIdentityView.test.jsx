@@ -52,6 +52,19 @@ describe("AvatarIdentityView", () => {
     expect(onSelect).toHaveBeenCalledOnce();
   });
 
+  it("keeps selection available when statistics cannot load", () => {
+    render(
+      <AvatarIdentityView
+        identity={identity}
+        athleteName="Alex"
+        error="Identity statistics are temporarily unavailable."
+        onSelect={() => {}}
+        onClose={() => {}}
+      />
+    );
+    expect(screen.getByRole("button", { name: "Use this avatar" })).toBeTruthy();
+  });
+
   it("keeps the Group version limited to shared context", () => {
     render(
       <AvatarIdentityView

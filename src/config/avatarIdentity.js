@@ -1,5 +1,6 @@
 import { SPORT_MASTERY_PACKS } from "./badges";
 import { AVATAR_PACKS } from "./avatars";
+import { AVATAR_STORY_PROFILES } from "./avatarStories";
 
 export const AVATAR_IDENTITY_TRACKING_RELEASED_AT = "2026-09-21T00:00:00.000Z";
 
@@ -32,24 +33,20 @@ const PACK_TONES = {
   avatar_pack_15_neon_cipher_squad: ["ingenuity", "speed", "future-ready focus"],
 };
 
-const SPECIAL_STORIES = {
-  p13_sky_collie:
-    "Sky Collie maps difficult terrain from above, using a stable flight pack and folding rescue wings to reach places ground teams cannot. Sharp-eyed and unflappable, this air-search specialist proves that good preparation, clear communication, and controlled speed can turn a risky mission into a safe return.",
-  p15_neon_cipher:
-    "Neon Cipher leads the squad through shifting digital arenas where every route changes mid-run. Rather than relying on brute force, this cyber vanguard reads patterns, protects the team, and chooses the cleanest line forward—an emblem for athletes who combine quick thinking with disciplined execution.",
-};
-
 function tidyPackTitle(title = "") {
   return String(title).replace(/^Avatar Pack \d+\s*[–-]\s*/, "").trim() || "Avatar Collection";
 }
 
 function storyFor(avatar, pack) {
-  if (SPECIAL_STORIES[avatar.id]) return SPECIAL_STORIES[avatar.id];
+  const profile = AVATAR_STORY_PROFILES[avatar.id];
+  if (profile?.story) return profile.story;
   const [first, second, third] = PACK_TONES[pack.key] || ["focus", "courage", "consistent effort"];
   return `${avatar.label} carries the spirit of ${tidyPackTitle(pack.title)}, turning ${first} into steady progress. Known for ${second}, this character studies the challenge, supports the team, and keeps moving when the easy option disappears. The emblem belongs to athletes who value ${third}, patience, and purposeful effort.`;
 }
 
 function traitsFor(avatar, pack) {
+  const profile = AVATAR_STORY_PROFILES[avatar.id];
+  if (profile?.traits?.length) return profile.traits;
   const tones = PACK_TONES[pack.key] || ["Focused", "Resilient", "Consistent"];
   return tones.slice(0, 3).map((value) => value.replace(/\b\w/g, (letter) => letter.toUpperCase()));
 }

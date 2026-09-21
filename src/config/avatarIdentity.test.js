@@ -5,6 +5,7 @@ describe("avatar identity metadata", () => {
   it("gives every XP avatar complete identity metadata and a 30–70 word story", () => {
     const identities = listAvatarIdentities();
     expect(identities.length).toBeGreaterThan(100);
+    expect(new Set(identities.map((identity) => identity.story)).size).toBe(identities.length);
     for (const identity of identities) {
       const words = identity.story.trim().split(/\s+/).length;
       expect(identity.collection).toBeTruthy();
@@ -13,6 +14,7 @@ describe("avatar identity metadata", () => {
       expect(identity.traits).toHaveLength(3);
       expect(words).toBeGreaterThanOrEqual(30);
       expect(words).toBeLessThanOrEqual(70);
+      expect(identity.story).not.toContain("carries the spirit of");
     }
   });
 

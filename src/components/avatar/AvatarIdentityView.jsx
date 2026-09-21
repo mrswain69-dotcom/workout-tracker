@@ -115,6 +115,28 @@ export default function AvatarIdentityView({
           {loading ? <div className="avatarIdentityStatus">Loading identity record…</div> : null}
           {error ? <div className="avatarIdentityStatus error">{error}</div> : null}
 
+          {!isGroup && onSelect ? (
+            <div className="avatarIdentityActions">
+              <button
+                type="button"
+                className={isSelected ? "avatarIdentitySelected" : "avatarIdentityApply"}
+                disabled={isSelected || selectionBusy}
+                onClick={onSelect}
+              >
+                {isSelected
+                  ? "Currently active"
+                  : selectionBusy
+                    ? "Applying avatar…"
+                    : "Use this avatar"}
+              </button>
+              <span>
+                {isSelected
+                  ? "This avatar is currently shown on your profile."
+                  : "Apply this avatar to your profile when you are ready."}
+              </span>
+            </div>
+          ) : null}
+
           {!loading && !error && !isGroup ? (
             <>
               <section className="avatarIdentityStats" aria-label="Personal avatar statistics">
@@ -127,27 +149,6 @@ export default function AvatarIdentityView({
                 <div><strong>{Number(stats?.competitionAchievements || 0)}</strong><span>Competition achievements</span></div>
                 <div><strong>{Number(stats?.selectionCount || 0)}</strong><span>Selection periods</span></div>
               </section>
-              {onSelect ? (
-                <div className="avatarIdentityActions">
-                  <button
-                    type="button"
-                    className={isSelected ? "avatarIdentitySelected" : "avatarIdentityApply"}
-                    disabled={isSelected || selectionBusy}
-                    onClick={onSelect}
-                  >
-                    {isSelected
-                      ? "Currently active"
-                      : selectionBusy
-                        ? "Applying avatar…"
-                        : "Use this avatar"}
-                  </button>
-                  <span>
-                    {isSelected
-                      ? "This avatar is currently shown on your profile."
-                      : "Apply this avatar to your profile when you are ready."}
-                  </span>
-                </div>
-              ) : null}
               <p className="avatarIdentityPrivacyNote">Selection statistics begin with this feature release. Earlier choices are not guessed or backfilled.</p>
             </>
           ) : null}
