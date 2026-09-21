@@ -74,6 +74,15 @@ import {
 } from "./engine/recoveryModeEngine.js";
 
 import { AVATAR_PACKS, AVATAR_PACK_GROUPS } from "./config/avatars";
+import { resolveAvatarIdentity, AVATAR_IDENTITY_TRACKING_RELEASED_AT } from "./config/avatarIdentity";
+import {
+  listAvatarSelectionPeriods,
+  listProfileGroupAwards,
+  setProfileAvatarIdentity,
+} from "./avatarIdentityDb";
+import { loadCompletedAssessmentHistory } from "./assessmentRunDb";
+import { buildAvatarPersonalStats } from "./engine/avatarIdentityEngine";
+import AvatarIdentityView from "./components/avatar/AvatarIdentityView.jsx";
 import SessionPlanBlockEditor, {
   createSessionPlanBlock,
   normaliseSessionPlanBlock,
@@ -3070,6 +3079,7 @@ useEffect(() => {
   const [sessionReady, setSessionReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
+  const [avatarIdentityModal, setAvatarIdentityModal] = useState(null);
 
   const [family, setFamily] = useState(null);
   const [profiles, setProfiles] = useState([]);
@@ -5228,6 +5238,53 @@ const selectedDayHasHeavyTrainingBlocks =
 
     // Persist
     await upsertProfilePlan(family.id, activeProfileId, next);
+  }
+
+  async function selectAvatar(avatarId) {
+    if (!family?.id || !activeProfileId || !avatarId) return false;
+    const current = plan || buildDefaultPlan();
+    const next = normalisePlanForRuntime({
+      ...current,
+      meta: { ...(current.meta || {}), avatarId },
+    });
+    setAndCachePlan(activeProfileId, next);
+    const { error } = await setProfileAvatarIdentity(activeProfileId, avatarId);
+    if (error) {
+      setAndCachePlan(activeProfileId, current);
+      setClaimModal({ title: "Avatar not changed", desc: error.message || "Please try again." });
+      return false;
+    }
+    return true;
+  }
+
+  async function openPersonalAvatarIdentity(avatarId = selectedAvatarId) {
+    const identity = resolveAvatarIdentity(avatarId);
+    if (!identity || !activeProfileId || !family?.id) return;
+    setAvatarIdentityModal({ mode: "personal", identity, loading: true, stats: null, error: "" });
+    const [periodResult, assessmentResult, groupAwardResult] = await Promise.all([
+      listAvatarSelectionPeriods(activeProfileId),
+      loadCompletedAssessmentHistory(family.id, activeProfileId),
+      listProfileGroupAwards(activeProfileId),
+    ]);
+    const loadError = periodResult.error || assessmentResult.error || groupAwardResult.error;
+    const packUnlockedAt = plan?.meta?.avatarPackUnlocks?.[identity.collectionKey] || null;
+    const sportClaim = normaliseClaimedRewards(plan?.meta).find((claim) => claim?.key === avatarId);
+    const firstUnlockedAt = packUnlockedAt || (sportClaim?.claimedAtYmd ? `${sportClaim.claimedAtYmd}T12:00:00.000Z` : null);
+    const personalStats = loadError ? null : buildAvatarPersonalStats({
+      avatarId,
+      periods: periodResult.data,
+      logs: allLogs,
+      plan,
+      assessmentHistory: assessmentResult.data,
+      groupAwards: groupAwardResult.data,
+    });
+    setAvatarIdentityModal({
+      mode: "personal",
+      identity,
+      loading: false,
+      error: loadError?.message || "",
+      stats: personalStats ? { ...personalStats, firstUnlockedAt } : null,
+    });
   }
 
   async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
@@ -8076,9 +8133,11 @@ const cardioProgress = useMemo(() => {
   <div className="headerBottom">
     <h1 className="title">
   <span className="titleRow">
-    <span
+    <button
+  type="button"
   className={`avatarChip ${headerAvatarStateClass} ${headerAvatarIsPrestige ? "avatarChipPrestige " : ""}${headerAvatarFrameClass}`}
-  aria-hidden="true"
+  onClick={() => openPersonalAvatarIdentity()}
+  aria-label={`Open ${headerAvatar?.label || "avatar"} identity`}
   title={
     headerAvatarIsPrestige
       ? `${headerAvatar?.label || "Prestige avatar"} · ${headerAvatar?.subtitle || "Prestige unlocked"}`
@@ -8099,7 +8158,7 @@ const cardioProgress = useMemo(() => {
   ) : (
     <span className="headerAvatarEmoji">{headerAvatarEmoji}</span>
   )}
-</span>
+</button>
     <span>{activeProfile?.name || "Profile"}</span>
     <button
       type="button"
@@ -8161,6 +8220,19 @@ const cardioProgress = useMemo(() => {
     />
   </React.Suspense>
 )}
+
+{avatarIdentityModal ? (
+  <AvatarIdentityView
+    mode={avatarIdentityModal.mode}
+    identity={avatarIdentityModal.identity}
+    athleteName={activeProfile?.name || "Athlete"}
+    stats={avatarIdentityModal.stats}
+    trackedSince={avatarIdentityModal.stats?.trackingStartedAt || AVATAR_IDENTITY_TRACKING_RELEASED_AT}
+    loading={avatarIdentityModal.loading}
+    error={avatarIdentityModal.error}
+    onClose={() => setAvatarIdentityModal(null)}
+  />
+) : null}
 
 {["settings", "plan", "assessments", "connections", "appsettings"].includes(tab) && (
   <div className="manageTabsRow">
@@ -11302,7 +11374,10 @@ the same time tomorrow.
     <Card className="pad" style={{ minWidth: 0 }}>
       <div className="row" style={{ gap: 16, alignItems: "stretch" }}>
         {/* Left: current avatar */}
-        <div
+        <button
+  type="button"
+  onClick={() => openPersonalAvatarIdentity()}
+  aria-label={`Open ${headerAvatar?.label || "avatar"} identity`}
   className={`panel selectedAvatarPanel ${headerAvatarIsPrestige ? "selectedAvatarPanelPrestige " : ""}${headerAvatarFrameClass}`}
   style={{
     flex: 1,
@@ -11333,7 +11408,7 @@ the same time tomorrow.
               {headerAvatarEmoji}
             </div>
           )}
-        </div>
+        </button>
 
         {/* Right: XP / Level / XP to next */}
         <div
@@ -11841,7 +11916,13 @@ if (!didClaim) {
                                       const next = Array.from(
                                         new Set([...(unlockedAvatarPacksArr || []), pack.key])
                                       );
-                                      await savePlanMetaNoPin({ unlockedAvatarPacks: next });
+                                      await savePlanMetaNoPin({
+                                        unlockedAvatarPacks: next,
+                                        avatarPackUnlocks: {
+                                          ...(plan?.meta?.avatarPackUnlocks || {}),
+                                          [pack.key]: new Date().toISOString(),
+                                        },
+                                      });
                                       setClaimModal({
                                         title: "Avatar pack unlocked!",
                                         desc: `${pack.title} is now available.`,
@@ -11888,7 +11969,11 @@ if (!didClaim) {
                                         }
                                         onClick={async () => {
                                           if (isLockedPreview) return;
-                                          await savePlanMetaNoPin({ avatarId: a.id });
+                                          if (isSelected) {
+                                            await openPersonalAvatarIdentity(a.id);
+                                            return;
+                                          }
+                                          if (!(await selectAvatar(a.id))) return;
                                           setClaimModal({
                                             title: "Avatar selected!",
                                             desc: "Check the header 👆",
@@ -12030,19 +12115,21 @@ if (!didClaim) {
                               <button
                                 type="button"
                                 className={
-                                  "btn btn-secondary " +
-                                  (avatar.selected ? "disabled" : "")
+                                  "btn btn-secondary"
                                 }
-                                disabled={avatar.selected}
                                 onClick={async () => {
-                                  await savePlanMetaNoPin({ avatarId: avatar.id });
+                                  if (avatar.selected) {
+                                    await openPersonalAvatarIdentity(avatar.id);
+                                    return;
+                                  }
+                                  if (!(await selectAvatar(avatar.id))) return;
                                   setClaimModal({
                                     title: "Avatar selected!",
                                     desc: `${avatar.sportLabel} ${avatar.prestigeLabel} is now active.`,
                                   });
                                 }}
                               >
-                                {avatar.selected ? "Selected" : "Select"}
+                                {avatar.selected ? "View identity" : "Select"}
                               </button>
                             ) : avatar.claimable ? (
                               <button
@@ -13088,7 +13175,11 @@ function StyleTag() {
   font-size:16px;
   position:relative;
   overflow:visible;
+  padding:0;
+  color:inherit;
+  cursor:pointer;
 }
+.avatarChip:focus-visible{outline:3px solid rgba(59,211,255,.72);outline-offset:3px}
 
 .avatarChipState{
   transition:
@@ -13863,7 +13954,11 @@ function StyleTag() {
 .selectedAvatarPanel{
   position:relative;
   overflow:hidden;
+  color:inherit;
+  cursor:pointer;
+  width:100%;
 }
+.selectedAvatarPanel:focus-visible{outline:3px solid rgba(59,211,255,.72);outline-offset:3px}
 
 .selectedAvatarPanelPrestige{
   border-color:color-mix(in srgb, var(--avatar-frame-b, #FFD700) 52%, transparent) !important;
@@ -14775,4 +14870,3 @@ const boxRounds = (names) =>
     },
   ];
 };
-

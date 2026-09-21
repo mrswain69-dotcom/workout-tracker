@@ -20,6 +20,9 @@ import {
   updateGroupNickname,
 } from "./groupDb";
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
+import { resolveAvatarIdentity } from "../config/avatarIdentity";
+import { loadGroupAvatarIdentityStats } from "../avatarIdentityDb";
+import AvatarIdentityView from "../components/avatar/AvatarIdentityView.jsx";
 import GroupWeeklyXp from "./GroupWeeklyXp.jsx";
 import GroupConsistency from "./GroupConsistency.jsx";
 import GroupChallenges from "./GroupChallenges.jsx";
@@ -81,14 +84,20 @@ export function buildGroupJoinLink(joinCode) {
   }
 }
 
-function MemberIdentity({ member, isSelf = false }) {
+function MemberIdentity({ member, isSelf = false, onOpen = null }) {
   const avatar = resolveGroupAvatar(member?.avatar_id);
   const frameClass = groupAvatarFrameClass({
     avatarFrame: member?.avatar_frame,
     avatarFramesEnabled: member?.avatar_frames_enabled,
   });
   return (
-    <div className="groupMemberIdentity">
+    <button
+      type="button"
+      className="groupMemberIdentity"
+      onClick={onOpen || undefined}
+      disabled={!onOpen}
+      aria-label={onOpen ? `Open ${member?.nickname || "athlete"} avatar identity` : undefined}
+    >
       <span className={`groupMemberAvatar ${frameClass}`} aria-hidden="true">
         {avatar.imgSrc ? <img src={avatar.imgSrc} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
       </span>
@@ -96,7 +105,7 @@ function MemberIdentity({ member, isSelf = false }) {
         <strong>{member?.nickname || "Athlete"}{isSelf ? " · You" : ""}</strong>
         <span>{member?.role === "admin" ? "Admin" : "Member"}</span>
       </span>
-    </div>
+    </button>
   );
 }
 
@@ -122,6 +131,7 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
   const [notice, setNotice] = useState("");
   const [privateInviteSecrets, setPrivateInviteSecrets] = useState({});
   const [latestPrivateInviteId, setLatestPrivateInviteId] = useState("");
+  const [memberIdentity, setMemberIdentity] = useState(null);
 
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
@@ -135,6 +145,23 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
   const selectedGroup = groups.find((group) => group.id === selectedGroupId) || null;
   const ownMembership = selectedGroup?.membership || null;
   const isAdmin = ownMembership?.role === "admin";
+
+  async function openMemberIdentity(member) {
+    const identity = resolveAvatarIdentity(member?.avatar_id);
+    if (!identity || !selectedGroup?.id || !member?.membership_id) return;
+    setMemberIdentity({ member, identity, loading: true, stats: null, error: "" });
+    const { data, error: statsError } = await loadGroupAvatarIdentityStats(
+      selectedGroup.id,
+      member.membership_id
+    );
+    setMemberIdentity({
+      member,
+      identity,
+      loading: false,
+      stats: data || null,
+      error: statsError?.message || "",
+    });
+  }
 
   async function refreshGroups(preferredGroupId = "") {
     if (!profileId) {
@@ -483,7 +510,11 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                   </div>
 
                   <div className="groupHubOwnIdentity">
-                    <MemberIdentity member={{ ...ownMembership, membership_id: ownMembership.id }} isSelf />
+                    <MemberIdentity
+                      member={{ ...ownMembership, membership_id: ownMembership.id }}
+                      isSelf
+                      onOpen={() => openMemberIdentity({ ...ownMembership, membership_id: ownMembership.id })}
+                    />
                     <button className="groupHubSecondary" onClick={handleNicknameSave} disabled={busy}>Edit nickname</button>
                   </div>
 
@@ -588,7 +619,7 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                         const self = member.membership_id === ownMembership.id;
                         return (
                           <div key={member.membership_id} className={`groupMemberRow ${self ? "self" : ""}`}>
-                            <MemberIdentity member={member} isSelf={self} />
+                            <MemberIdentity member={member} isSelf={self} onOpen={() => openMemberIdentity(member)} />
                             {isAdmin && !self ? (
                               <details className="groupMemberManage">
                                 <summary>Manage</summary>
@@ -611,6 +642,17 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
           </div>
         )}
       </section>
+      {memberIdentity ? (
+        <AvatarIdentityView
+          mode="group"
+          identity={memberIdentity.identity}
+          athleteName={memberIdentity.member?.nickname || "Athlete"}
+          stats={memberIdentity.stats}
+          loading={memberIdentity.loading}
+          error={memberIdentity.error}
+          onClose={() => setMemberIdentity(null)}
+        />
+      ) : null}
     </div>
   );
 }
