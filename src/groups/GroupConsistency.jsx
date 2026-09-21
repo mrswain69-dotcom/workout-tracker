@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupConsistencyLeaderboard } from "./groupDb";
-import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
+import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import GroupImprovement from "./GroupImprovement.jsx";
 import "./GroupWeeklyXp.css";
 import "./GroupConsistency.css";
@@ -18,19 +18,6 @@ function formatWeek(startDate, endDate) {
   return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}`;
 }
 
-function LeaderAvatar({ row }) {
-  const avatar = resolveGroupAvatar(row?.avatar_id);
-  const frameClass = groupAvatarFrameClass({
-    avatarFrame: row?.avatar_frame,
-    avatarFramesEnabled: row?.avatar_frames_enabled,
-  });
-  return (
-    <span className={`groupXpAvatar ${frameClass}`} aria-hidden="true">
-      {avatar.imgSrc ? <img src={avatar.imgSrc} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
-    </span>
-  );
-}
-
 function scoreLabel(row) {
   if (!Number(row?.plannedDays)) return "—";
   const value = Number(row?.consistencyPct);
@@ -44,7 +31,7 @@ function ratioLabel(row) {
   return `${Number(row.completedDays || 0)} / ${Number(row.plannedDays || 0)} planned days`;
 }
 
-function TopThree({ rows = [], selfId }) {
+function TopThree({ rows = [], selfId, onOpenIdentity }) {
   const top = rows.filter(
     (row) => Number(row?.plannedDays) > 0 && Number(row?.rank || 99) <= 3
   );
@@ -58,8 +45,7 @@ function TopThree({ rows = [], selfId }) {
           className={`groupXpPodium rank${row.rank} ${row.membership_id === selfId ? "self" : ""}`}
         >
           <span className="groupXpMedal">#{row.rank}</span>
-          <LeaderAvatar row={row} />
-          <strong>{row.nickname || "Athlete"}</strong>
+          <GroupIdentityTrigger member={row} isSelf={row.membership_id === selfId} onOpen={onOpenIdentity} className="groupPodiumIdentityTrigger" />
           <span className="groupConsistencyPodiumScore">{scoreLabel(row)}</span>
           <small>{ratioLabel(row)}</small>
         </div>
@@ -68,7 +54,7 @@ function TopThree({ rows = [], selfId }) {
   );
 }
 
-function Standings({ rows = [], selfId }) {
+function Standings({ rows = [], selfId, onOpenIdentity }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
   return (
     <div className="groupXpStandings" role="table" aria-label="Consistency standings">
@@ -87,10 +73,7 @@ function Standings({ rows = [], selfId }) {
             role="row"
           >
             <span className="groupXpRank" role="cell">{row.rank ? `#${row.rank}` : "—"}</span>
-            <span className="groupXpIdentity" role="cell">
-              <LeaderAvatar row={row} />
-              <span><strong>{row.nickname || "Athlete"}{self ? " · You" : ""}</strong></span>
-            </span>
+            <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" role="cell" />
             <span className="groupConsistencyScoreCell" role="cell">
               <strong>{scoreLabel(row)}</strong>
               <small>{ratioLabel(row)}</small>
@@ -102,7 +85,7 @@ function Standings({ rows = [], selfId }) {
   );
 }
 
-export default function GroupConsistency({ group, membership }) {
+export default function GroupConsistency({ group, membership, onOpenIdentity }) {
   const [mode, setMode] = useState("current");
   const [historyIndex, setHistoryIndex] = useState(0);
   const [data, setData] = useState(null);
@@ -194,8 +177,8 @@ export default function GroupConsistency({ group, membership }) {
               <div className="groupHubEmpty compact">This Group had not started yet.</div>
             ) : rows.length ? (
               <>
-                <TopThree rows={rows} selfId={membership.id} />
-                <Standings rows={rows} selfId={membership.id} />
+              <TopThree rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
+              <Standings rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
               </>
             ) : (
               <div className="groupHubEmpty compact">No Consistency standings are available for this period.</div>
@@ -208,7 +191,7 @@ export default function GroupConsistency({ group, membership }) {
         </div>
       </section>
 
-      <GroupImprovement group={group} membership={membership} />
+      <GroupImprovement group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
     </>
   );
 }

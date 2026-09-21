@@ -76,6 +76,9 @@ describe("AvatarIdentityView", () => {
       />
     );
     expect(screen.getByText("Shared-group weeks won")).toBeTruthy();
+    expect(screen.getByText("16,000 XP milestone")).toBeTruthy();
+    expect(screen.queryByText(identity.story)).toBeNull();
+    expect(screen.queryByText("Teamwork")).toBeNull();
     expect(screen.queryByText("XP while selected")).toBeNull();
     expect(screen.queryByText("Time selected")).toBeNull();
     expect(screen.getByText(/workout history.*stay private/i)).toBeTruthy();

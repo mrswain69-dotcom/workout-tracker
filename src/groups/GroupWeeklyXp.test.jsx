@@ -79,6 +79,23 @@ describe("GroupWeeklyXp", () => {
     expect(container.querySelectorAll(".groupXpStandingRow.neighbour")).toHaveLength(2);
   });
 
+  it("opens the restricted avatar identity from a leaderboard name or avatar", async () => {
+    const onOpenIdentity = vi.fn();
+    render(
+      <GroupWeeklyXp
+        group={group}
+        membership={membership}
+        onOpenIdentity={onOpenIdentity}
+      />
+    );
+    const triggers = await screen.findAllByRole("button", { name: "Open Rocket avatar identity" });
+    fireEvent.click(triggers[0]);
+    expect(onOpenIdentity).toHaveBeenCalledWith(expect.objectContaining({
+      membership_id: "m1",
+      nickname: "Rocket",
+    }));
+  });
+
   it("opens four completed week choices under Last 4 weeks", async () => {
     render(<GroupWeeklyXp group={group} membership={membership} />);
     await screen.findByText("Weekly XP");

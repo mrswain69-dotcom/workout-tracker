@@ -151,10 +151,8 @@
 .groupTeamSpotlightCard {
   min-width: 0;
   display: grid;
-  grid-template-columns: auto 46px minmax(0, 1fr);
-  grid-template-areas:
-    "rank avatar name"
-    "rank avatar score";
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "rank identity score";
   align-items: center;
   gap: 2px 9px;
   padding: 11px;
@@ -166,8 +164,8 @@
 .groupTeamSpotlightCard.rank1 { border-color: rgba(255, 215, 0, 0.45); }
 .groupTeamSpotlightCard.self { outline: 1px solid rgba(0, 229, 255, 0.55); outline-offset: 2px; }
 .groupTeamSpotlightRank { grid-area: rank; color: #ffd700; font-weight: 900; }
-.groupTeamSpotlightCard .groupXpAvatar { grid-area: avatar; width: 44px; height: 44px; }
-.groupTeamSpotlightCard > strong { grid-area: name; min-width: 0; overflow-wrap: anywhere; }
+.groupTeamSpotlightCard .groupPodiumIdentityTrigger { grid-area: identity; width:100%; display:grid; grid-template-columns:46px minmax(0,1fr); align-items:center; gap:9px; text-align:left; }
+.groupTeamSpotlightCard .groupXpAvatar { width: 44px; height: 44px; }
 .groupTeamSpotlightCard > span:last-child { grid-area: score; color: #00ff88; font-size: 0.8rem; font-weight: 800; }
 
 .groupTeamPrTable { margin-top: 10px; }

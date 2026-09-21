@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupImprovementLeaderboard } from "./groupDb";
-import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
+import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import GroupSeasons from "./GroupSeasons.jsx";
 import GroupTeamView from "./GroupTeamView.jsx";
 import "./GroupWeeklyXp.css";
@@ -24,19 +24,6 @@ function numericScore(row) {
   if (raw === null || raw === undefined || raw === "") return null;
   const value = Number(raw);
   return Number.isFinite(value) ? value : null;
-}
-
-function LeaderAvatar({ row }) {
-  const avatar = resolveGroupAvatar(row?.avatar_id);
-  const frameClass = groupAvatarFrameClass({
-    avatarFrame: row?.avatar_frame,
-    avatarFramesEnabled: row?.avatar_frames_enabled,
-  });
-  return (
-    <span className={`groupXpAvatar ${frameClass}`} aria-hidden="true">
-      {avatar.imgSrc ? <img src={avatar.imgSrc} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
-    </span>
-  );
 }
 
 function scoreLabel(row) {
@@ -68,7 +55,7 @@ function scoreTone(row) {
   return "neutral";
 }
 
-function TopThree({ rows = [], selfId }) {
+function TopThree({ rows = [], selfId, onOpenIdentity }) {
   const top = rows.filter(
     (row) => numericScore(row) !== null && Number(row?.rank || 99) <= 3
   );
@@ -82,8 +69,7 @@ function TopThree({ rows = [], selfId }) {
           className={`groupXpPodium rank${row.rank} ${row.membership_id === selfId ? "self" : ""}`}
         >
           <span className="groupXpMedal">#{row.rank}</span>
-          <LeaderAvatar row={row} />
-          <strong>{row.nickname || "Athlete"}</strong>
+          <GroupIdentityTrigger member={row} isSelf={row.membership_id === selfId} onOpen={onOpenIdentity} className="groupPodiumIdentityTrigger" />
           <span className={`groupImprovementPodiumScore ${scoreTone(row)}`}>{scoreLabel(row)}</span>
           <small>{evidenceLabel(row)}</small>
         </div>
@@ -92,7 +78,7 @@ function TopThree({ rows = [], selfId }) {
   );
 }
 
-function Standings({ rows = [], selfId }) {
+function Standings({ rows = [], selfId, onOpenIdentity }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
   return (
     <div className="groupXpStandings" role="table" aria-label="Improvement standings">
@@ -111,10 +97,7 @@ function Standings({ rows = [], selfId }) {
             role="row"
           >
             <span className="groupXpRank" role="cell">{row.rank ? `#${row.rank}` : "—"}</span>
-            <span className="groupXpIdentity" role="cell">
-              <LeaderAvatar row={row} />
-              <span><strong>{row.nickname || "Athlete"}{self ? " · You" : ""}</strong></span>
-            </span>
+            <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" role="cell" />
             <span className={`groupImprovementScoreCell ${scoreTone(row)}`} role="cell">
               <strong>{scoreLabel(row)}</strong>
               <small>{evidenceLabel(row)}</small>
@@ -126,7 +109,7 @@ function Standings({ rows = [], selfId }) {
   );
 }
 
-export default function GroupImprovement({ group, membership }) {
+export default function GroupImprovement({ group, membership, onOpenIdentity }) {
   const [mode, setMode] = useState("current");
   const [historyIndex, setHistoryIndex] = useState(0);
   const [data, setData] = useState(null);
@@ -216,8 +199,8 @@ export default function GroupImprovement({ group, membership }) {
               <div className="groupHubEmpty compact">This Group had not started yet.</div>
             ) : rows.length ? (
               <>
-                <TopThree rows={rows} selfId={membership.id} />
-                <Standings rows={rows} selfId={membership.id} />
+              <TopThree rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
+              <Standings rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
               </>
             ) : (
               <div className="groupHubEmpty compact">No Improvement standings are available for this period.</div>
@@ -229,8 +212,8 @@ export default function GroupImprovement({ group, membership }) {
           <strong>How it stays fair:</strong> comparable metrics are measured against each athlete’s own preceding 28-day average, then weighted equally. Declines count as well as gains, unsafe percentage metrics are excluded, practice volume does not become performance, and each metric has a ±50% outlier cap.
         </div>
       </section>
-      <GroupSeasons group={group} membership={membership} />
-      <GroupTeamView group={group} membership={membership} />
+      <GroupSeasons group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
+      <GroupTeamView group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
     </>
   );
 }

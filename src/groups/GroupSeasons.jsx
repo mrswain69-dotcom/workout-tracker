@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupSeasonsAwards } from "./groupDb";
-import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
+import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import "./GroupWeeklyXp.css";
 import "./GroupSeasons.css";
 
@@ -79,20 +79,7 @@ function metricEvidence(row, metric) {
   return `${count} comparable ${count === 1 ? "metric" : "metrics"}`;
 }
 
-function LeaderAvatar({ row }) {
-  const avatar = resolveGroupAvatar(row?.avatar_id);
-  const frameClass = groupAvatarFrameClass({
-    avatarFrame: row?.avatar_frame,
-    avatarFramesEnabled: row?.avatar_frames_enabled,
-  });
-  return (
-    <span className={`groupXpAvatar ${frameClass}`} aria-hidden="true">
-      {avatar.imgSrc ? <img src={avatar.imgSrc} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
-    </span>
-  );
-}
-
-function PeriodStandings({ period, metric, selfId, periodType }) {
+function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity }) {
   const rows = useMemo(() => {
     const rankKey = metric === "xp" ? "xpRank" : metric === "consistency" ? "consistencyRank" : "improvementRank";
     return [...(Array.isArray(period?.rows) ? period.rows : [])].sort((a, b) => {
@@ -120,10 +107,7 @@ function PeriodStandings({ period, metric, selfId, periodType }) {
         return (
           <div key={row.membership_id} className={`groupXpStandingRow ${self ? "self" : ""}`} role="row">
             <span className="groupXpRank" role="cell">{rank ? `#${rank}` : "—"}</span>
-            <span className="groupXpIdentity" role="cell">
-              <LeaderAvatar row={row} />
-              <span><strong>{row.nickname || "Athlete"}{self ? " · You" : ""}</strong></span>
-            </span>
+            <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" role="cell" />
             <span className="groupSeasonScoreCell" role="cell">
               <strong>{metricValue(row, metric)}</strong>
               <small>{metricEvidence(row, metric)}</small>
@@ -135,7 +119,7 @@ function PeriodStandings({ period, metric, selfId, periodType }) {
   );
 }
 
-function AwardCard({ award, selfId }) {
+function AwardCard({ award, selfId, onOpenIdentity }) {
   const label = AWARD_LABELS[award?.awardType] || "Progress Award";
   const self = award?.membership_id === selfId;
   return (
@@ -143,14 +127,22 @@ function AwardCard({ award, selfId }) {
       <span className="groupSeasonAwardIcon" aria-hidden="true">{award?.awardType === "season_finisher" ? "🎖️" : "🏆"}</span>
       <div>
         <strong>{label}</strong>
-        <span>{award?.nickname || "Athlete"}{self ? " · You" : ""}</span>
+        <button
+          type="button"
+          className="groupAwardIdentityTrigger"
+          onClick={() => onOpenIdentity?.(award)}
+          disabled={!onOpenIdentity}
+          aria-label={onOpenIdentity ? `Open ${award?.nickname || "athlete"} avatar identity` : undefined}
+        >
+          {award?.nickname || "Athlete"}{self ? " · You" : ""}
+        </button>
         <small>{award?.periodType === "month" ? formatMonth(award.periodStart) : `Season ${award?.seasonNumber || ""}`}</small>
       </div>
     </div>
   );
 }
 
-export default function GroupSeasons({ group, membership }) {
+export default function GroupSeasons({ group, membership, onOpenIdentity }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -233,7 +225,7 @@ export default function GroupSeasons({ group, membership }) {
             <span>{period.state === "frozen" ? "Final standings" : periodType === "season" ? `Live · week ${period.weekNumber || 1} of 8` : "Live monthly standings"}</span>
           </div>
 
-          <PeriodStandings period={period} metric={metric} selfId={membership.id} periodType={periodType} />
+          <PeriodStandings period={period} metric={metric} selfId={membership.id} periodType={periodType} onOpenIdentity={onOpenIdentity} />
         </>
       ) : null}
 
@@ -243,7 +235,7 @@ export default function GroupSeasons({ group, membership }) {
       </div>
       {awards.length ? (
         <div className="groupSeasonAwards" aria-label="Progress Awards">
-          {awards.slice(0, 12).map((award, index) => <AwardCard key={`${award.awardType}-${award.periodStart}-${award.membership_id}-${index}`} award={award} selfId={membership.id} />)}
+          {awards.slice(0, 12).map((award, index) => <AwardCard key={`${award.awardType}-${award.periodStart}-${award.membership_id}-${index}`} award={award} selfId={membership.id} onOpenIdentity={onOpenIdentity} />)}
         </div>
       ) : (
         <div className="groupHubMuted groupSeasonNoAwards">No completed-period awards yet — the first ones will lock when a month or season finishes.</div>

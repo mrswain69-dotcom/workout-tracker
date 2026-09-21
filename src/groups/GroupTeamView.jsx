@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupImprovementLeaderboard, loadGroupSeasonsAwards } from "./groupDb";
 import { loadGroupTeamPrBoard } from "./groupTeamDb";
-import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
+import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import {
   buildTeamImprovementSeries,
   buildTeamSeasonSummary,
@@ -44,19 +44,6 @@ function formatPct(value) {
   const number = numeric(value);
   if (number === null) return "—";
   return `${number > 0 ? "+" : ""}${number.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
-}
-
-function LeaderAvatar({ row }) {
-  const avatar = resolveGroupAvatar(row?.avatar_id);
-  const frameClass = groupAvatarFrameClass({
-    avatarFrame: row?.avatar_frame,
-    avatarFramesEnabled: row?.avatar_frames_enabled,
-  });
-  return (
-    <span className={`groupXpAvatar ${frameClass}`} aria-hidden="true">
-      {avatar.imgSrc ? <img src={avatar.imgSrc} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
-    </span>
-  );
 }
 
 function ImprovementGraph({ series = [] }) {
@@ -122,7 +109,7 @@ function spotlightRank(row, metric) {
   return row?.xpRank;
 }
 
-function TopThreeSpotlight({ period, metric, selfId }) {
+function TopThreeSpotlight({ period, metric, selfId, onOpenIdentity }) {
   const rows = selectTeamTopThree(period, metric);
   if (!rows.length) return <div className="groupHubMuted groupTeamEmptyLine">No scored athletes yet for this spotlight.</div>;
   return (
@@ -130,8 +117,7 @@ function TopThreeSpotlight({ period, metric, selfId }) {
       {rows.map((row) => (
         <div key={`${metric}-${row.membership_id}`} className={`groupTeamSpotlightCard rank${spotlightRank(row, metric)} ${row.membership_id === selfId ? "self" : ""}`}>
           <span className="groupTeamSpotlightRank">#{spotlightRank(row, metric)}</span>
-          <LeaderAvatar row={row} />
-          <strong>{row.nickname || "Athlete"}{row.membership_id === selfId ? " · You" : ""}</strong>
+          <GroupIdentityTrigger member={row} isSelf={row.membership_id === selfId} onOpen={onOpenIdentity} className="groupPodiumIdentityTrigger" />
           <span>{spotlightValue(row, metric)}</span>
         </div>
       ))}
@@ -139,7 +125,7 @@ function TopThreeSpotlight({ period, metric, selfId }) {
   );
 }
 
-function PrBoard({ rows = [], selfId, label }) {
+function PrBoard({ rows = [], selfId, label, onOpenIdentity }) {
   if (!rows.length) return <div className="groupHubMuted groupTeamEmptyLine">No active athletes are available for the current PR board.</div>;
   return (
     <div className="groupXpStandings groupTeamPrTable" role="table" aria-label={`${label} PR board`}>
@@ -153,10 +139,7 @@ function PrBoard({ rows = [], selfId, label }) {
         return (
           <div key={row.membership_id} className={`groupXpStandingRow ${self ? "self" : ""}`} role="row">
             <span className="groupXpRank" role="cell">{row.rank ? `#${row.rank}` : "—"}</span>
-            <span className="groupXpIdentity" role="cell">
-              <LeaderAvatar row={row} />
-              <span><strong>{row.nickname || "Athlete"}{self ? " · You" : ""}</strong></span>
-            </span>
+            <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" role="cell" />
             <span className="groupTeamPrScore" role="cell">
               <strong>{Number(row.prCount || 0)} {Number(row.prCount || 0) === 1 ? "PR" : "PRs"}</strong>
               <small>{row.latestPrDate ? `Latest ${formatShortDate(row.latestPrDate)}` : "No new PR yet"}</small>
@@ -168,7 +151,7 @@ function PrBoard({ rows = [], selfId, label }) {
   );
 }
 
-export default function GroupTeamView({ group, membership }) {
+export default function GroupTeamView({ group, membership, onOpenIdentity }) {
   const teamMode = group?.group_type === "squad" || group?.group_type === "club";
   const [seasonData, setSeasonData] = useState(null);
   const [improvementData, setImprovementData] = useState(null);
@@ -273,12 +256,12 @@ export default function GroupTeamView({ group, membership }) {
               <button type="button" key={item.id} className={spotlightMetric === item.id ? "active" : ""} onClick={() => setSpotlightMetric(item.id)}>{item.label}</button>
             ))}
           </div>
-          <TopThreeSpotlight period={season} metric={spotlightMetric} selfId={membership.id} />
+          <TopThreeSpotlight period={season} metric={spotlightMetric} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
 
           <div className="groupTeamSectionHeading">
             <div><strong>{teamLabel} PR Board</strong><span>New training personal records achieved during this season</span></div>
           </div>
-          <PrBoard rows={prRows} selfId={membership.id} label={teamLabel} />
+          <PrBoard rows={prRows} selfId={membership.id} label={teamLabel} onOpenIdentity={onOpenIdentity} />
 
           <div className="groupTeamPrivacyNote">
             <strong>Team-safe by design:</strong> the PR board shares only PR counts and the latest PR date. Exercise names, weights, raw workout data, body information and Assessment results stay private. A first-ever result is a baseline, not a PR.

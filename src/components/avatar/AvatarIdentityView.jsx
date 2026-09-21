@@ -96,16 +96,20 @@ export default function AvatarIdentityView({
             <p className="avatarIdentitySubtitle">{identity.subtitle || identity.collection}</p>
             <div className="avatarIdentityTags">
               <span>{identity.collection}</span>
-              {(identity.traits || []).map((trait) => <span key={trait}>{trait}</span>)}
+              {!isGroup
+                ? (identity.traits || []).map((trait) => <span key={trait}>{trait}</span>)
+                : null}
             </div>
           </div>
         </header>
 
         <div className="avatarIdentityBody">
-          <section className="avatarIdentitySection">
-            <h3>Origin</h3>
-            <p>{identity.story}</p>
-          </section>
+          {!isGroup ? (
+            <section className="avatarIdentitySection">
+              <h3>Origin</h3>
+              <p>{identity.story}</p>
+            </section>
+          ) : null}
 
           <section className="avatarIdentitySection avatarIdentityUnlock">
             <div><span>Earned through</span><strong>{identity.unlockSource?.label || "Avatar reward"}</strong></div>
