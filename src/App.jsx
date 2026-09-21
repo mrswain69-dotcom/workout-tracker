@@ -3080,6 +3080,7 @@ useEffect(() => {
   const [authed, setAuthed] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
   const [avatarIdentityModal, setAvatarIdentityModal] = useState(null);
+  const [avatarIdentitySelecting, setAvatarIdentitySelecting] = useState(false);
 
   const [family, setFamily] = useState(null);
   const [profiles, setProfiles] = useState([]);
@@ -5285,6 +5286,14 @@ const selectedDayHasHeavyTrainingBlocks =
       error: loadError?.message || "",
       stats: personalStats ? { ...personalStats, firstUnlockedAt } : null,
     });
+  }
+
+  async function applyAvatarFromIdentity() {
+    const avatarId = avatarIdentityModal?.identity?.id;
+    if (!avatarId || avatarIdentitySelecting || avatarId === selectedAvatarId) return;
+    setAvatarIdentitySelecting(true);
+    await selectAvatar(avatarId);
+    setAvatarIdentitySelecting(false);
   }
 
   async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
@@ -8230,6 +8239,9 @@ const cardioProgress = useMemo(() => {
     trackedSince={avatarIdentityModal.stats?.trackingStartedAt || AVATAR_IDENTITY_TRACKING_RELEASED_AT}
     loading={avatarIdentityModal.loading}
     error={avatarIdentityModal.error}
+    isSelected={avatarIdentityModal.identity?.id === selectedAvatarId}
+    selectionBusy={avatarIdentitySelecting}
+    onSelect={avatarIdentityModal.mode === "personal" ? applyAvatarFromIdentity : null}
     onClose={() => setAvatarIdentityModal(null)}
   />
 ) : null}
@@ -11969,15 +11981,7 @@ if (!didClaim) {
                                         }
                                         onClick={async () => {
                                           if (isLockedPreview) return;
-                                          if (isSelected) {
-                                            await openPersonalAvatarIdentity(a.id);
-                                            return;
-                                          }
-                                          if (!(await selectAvatar(a.id))) return;
-                                          setClaimModal({
-                                            title: "Avatar selected!",
-                                            desc: "Check the header 👆",
-                                          });
+                                          await openPersonalAvatarIdentity(a.id);
                                         }}
                                       >
                                         <div className="avatarPickArt">
@@ -12118,18 +12122,10 @@ if (!didClaim) {
                                   "btn btn-secondary"
                                 }
                                 onClick={async () => {
-                                  if (avatar.selected) {
-                                    await openPersonalAvatarIdentity(avatar.id);
-                                    return;
-                                  }
-                                  if (!(await selectAvatar(avatar.id))) return;
-                                  setClaimModal({
-                                    title: "Avatar selected!",
-                                    desc: `${avatar.sportLabel} ${avatar.prestigeLabel} is now active.`,
-                                  });
+                                  await openPersonalAvatarIdentity(avatar.id);
                                 }}
                               >
-                                {avatar.selected ? "View identity" : "Select"}
+                                View identity
                               </button>
                             ) : avatar.claimable ? (
                               <button

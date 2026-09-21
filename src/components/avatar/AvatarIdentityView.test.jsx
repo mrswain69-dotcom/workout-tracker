@@ -25,13 +25,31 @@ describe("AvatarIdentityView", () => {
         athleteName="Alex"
         stats={{ xpEarned: 120, workoutsCompleted: 3, selectionCount: 1 }}
         trackedSince="2026-09-21T00:00:00.000Z"
+        isSelected
+        onSelect={() => {}}
         onClose={onClose}
       />
     );
     expect(screen.getByRole("dialog", { name: "Sky Collie" })).toBeTruthy();
     expect(screen.getByText("120")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Currently active" }).disabled).toBe(true);
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("lets an unlocked avatar be applied from its identity card", () => {
+    const onSelect = vi.fn();
+    render(
+      <AvatarIdentityView
+        identity={identity}
+        athleteName="Alex"
+        stats={{ selectionCount: 0 }}
+        onSelect={onSelect}
+        onClose={() => {}}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Use this avatar" }));
+    expect(onSelect).toHaveBeenCalledOnce();
   });
 
   it("keeps the Group version limited to shared context", () => {

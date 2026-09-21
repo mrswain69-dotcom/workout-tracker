@@ -31,6 +31,9 @@ export default function AvatarIdentityView({
   trackedSince,
   loading = false,
   error = "",
+  isSelected = false,
+  selectionBusy = false,
+  onSelect = null,
   onClose,
 }) {
   const dialogRef = useRef(null);
@@ -124,6 +127,27 @@ export default function AvatarIdentityView({
                 <div><strong>{Number(stats?.competitionAchievements || 0)}</strong><span>Competition achievements</span></div>
                 <div><strong>{Number(stats?.selectionCount || 0)}</strong><span>Selection periods</span></div>
               </section>
+              {onSelect ? (
+                <div className="avatarIdentityActions">
+                  <button
+                    type="button"
+                    className={isSelected ? "avatarIdentitySelected" : "avatarIdentityApply"}
+                    disabled={isSelected || selectionBusy}
+                    onClick={onSelect}
+                  >
+                    {isSelected
+                      ? "Currently active"
+                      : selectionBusy
+                        ? "Applying avatar…"
+                        : "Use this avatar"}
+                  </button>
+                  <span>
+                    {isSelected
+                      ? "This avatar is currently shown on your profile."
+                      : "Apply this avatar to your profile when you are ready."}
+                  </span>
+                </div>
+              ) : null}
               <p className="avatarIdentityPrivacyNote">Selection statistics begin with this feature release. Earlier choices are not guessed or backfilled.</p>
             </>
           ) : null}
