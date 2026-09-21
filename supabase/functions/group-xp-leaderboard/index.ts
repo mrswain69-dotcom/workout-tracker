@@ -122,15 +122,17 @@ Deno.serve(async (req: Request) => {
     const activeMembers = allMemberships.filter((member: any) => member.status === "active");
     const profileIds = [...new Set(allMemberships.map((member: any) => member.profile_id).filter(Boolean))];
 
-    const [profilesResult, logsResult] = profileIds.length
+    const [profilesResult, logsResult, schedulesResult] = profileIds.length
       ? await Promise.all([
           adminClient.from("profiles").select("id,plan_json").in("id", profileIds).eq("archived", false),
           adminClient.from("logs").select("profile_id,date_ymd,log_json").in("profile_id", profileIds).lte("date_ymd", getCurrentWeekWindow(referenceDate)?.endDate || referenceDate).order("date_ymd", { ascending: true }),
+          adminClient.from("profile_consistency_schedule_snapshots").select("profile_id,effective_date,schedule_json").in("profile_id", profileIds).lte("effective_date", referenceDate).order("effective_date", { ascending: true }),
         ])
-      : [{ data: [], error: null }, { data: [], error: null }];
+      : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }];
 
     if (profilesResult.error) throw profilesResult.error;
     if (logsResult.error) throw logsResult.error;
+    if (schedulesResult.error) throw schedulesResult.error;
 
     const planByProfile = new Map((profilesResult.data || []).map((profile: any) => [profile.id, profile.plan_json || {}]));
     const logsByProfile = new Map<string, any[]>();
@@ -139,12 +141,22 @@ Deno.serve(async (req: Request) => {
       list.push({ date_ymd: logRow.date_ymd, log: logRow.log_json });
       logsByProfile.set(logRow.profile_id, list);
     }
+    const schedulesByProfile = new Map<string, any[]>();
+    for (const row of schedulesResult.data || []) {
+      const list = schedulesByProfile.get(row.profile_id) || [];
+      list.push({ effective_date: row.effective_date, schedule_json: row.schedule_json });
+      schedulesByProfile.set(row.profile_id, list);
+    }
 
     const ledgerByMembership = new Map<string, any[]>();
     for (const member of allMemberships) {
       ledgerByMembership.set(
         member.id,
-        buildXpDebugRows(logsByProfile.get(member.profile_id) || [], planByProfile.get(member.profile_id) || {})
+        buildXpDebugRows(
+          logsByProfile.get(member.profile_id) || [],
+          planByProfile.get(member.profile_id) || {},
+          { todayYmd: referenceDate, scheduleSnapshots: schedulesByProfile.get(member.profile_id) || [] }
+        )
       );
     }
 

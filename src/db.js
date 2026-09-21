@@ -63,10 +63,22 @@ export async function listProfiles(familyId) {
   return { data: data || [], error };
 }
 
-export async function addProfile(familyId, name) {
+export async function addProfile(familyId, name, planJson = null) {
+  const payload = { family_id: familyId, name };
+  if (planJson && typeof planJson === "object") payload.plan_json = planJson;
   const { data, error } = await supabase
     .from("profiles")
-    .insert({ family_id: familyId, name })
+    .insert(payload)
+    .select("*")
+    .single();
+  return { data, error };
+}
+
+export async function updateFamilyOnboardingState(familyId, onboardingState) {
+  const { data, error } = await supabase
+    .from("families")
+    .update({ onboarding_state: onboardingState })
+    .eq("id", familyId)
     .select("*")
     .single();
   return { data, error };
@@ -175,6 +187,14 @@ export async function upsertProfilePlan(familyId, profileId, plan) {
     .single();
 
   return { data, error };
+}
+
+export async function listProfileStreakScheduleSnapshots(profileId, fromDate = null) {
+  const { data, error } = await supabase.rpc("get_profile_streak_schedule_snapshots", {
+    p_profile_id: profileId,
+    p_from_date: fromDate,
+  });
+  return { data: data || [], error };
 }
 
 
