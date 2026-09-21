@@ -111,6 +111,26 @@
   margin-top: 2px;
 }
 
+.groupAwardIdentityTrigger {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.groupAwardIdentityTrigger:hover { color: #82e9ff; }
+.groupAwardIdentityTrigger:focus-visible { outline: 3px solid rgba(119,232,255,.7); outline-offset: 3px; border-radius: 4px; }
+.groupAwardIdentityTrigger:disabled { cursor: default; }
+
 .groupSeasonAward small {
   margin-top: 3px;
   opacity: 0.64;

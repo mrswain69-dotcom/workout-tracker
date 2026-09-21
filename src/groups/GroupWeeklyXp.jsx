@@ -3,7 +3,7 @@ import {
   loadGroupXpLeaderboard,
   updateGroupXpHistoryScope,
 } from "./groupDb";
-import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
+import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import "./GroupWeeklyXp.css";
 
 function errorText(error, fallback = "Could not load Weekly XP.") {
@@ -31,21 +31,7 @@ function formatStartDate(value) {
   });
 }
 
-function LeaderAvatar({ row }) {
-  const avatar = resolveGroupAvatar(row?.avatar_id);
-  const frameClass = groupAvatarFrameClass({
-    avatarFrame: row?.avatar_frame,
-    avatarFramesEnabled: row?.avatar_frames_enabled,
-  });
-
-  return (
-    <span className={`groupXpAvatar ${frameClass}`} aria-hidden="true">
-      {avatar.imgSrc ? <img src={avatar.imgSrc} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
-    </span>
-  );
-}
-
-function TopThree({ rows = [], selfId }) {
+function TopThree({ rows = [], selfId, onOpenIdentity }) {
   const top = rows.filter((row) => Number(row?.xp || 0) > 0 && Number(row?.rank || 99) <= 3);
   if (!top.length) return null;
 
@@ -57,8 +43,12 @@ function TopThree({ rows = [], selfId }) {
           className={`groupXpPodium rank${row.rank} ${row.membership_id === selfId ? "self" : ""}`}
         >
           <span className="groupXpMedal">#{row.rank}</span>
-          <LeaderAvatar row={row} />
-          <strong>{row.nickname || "Athlete"}</strong>
+          <GroupIdentityTrigger
+            member={row}
+            isSelf={row.membership_id === selfId}
+            onOpen={onOpenIdentity}
+            className="groupPodiumIdentityTrigger"
+          />
           <span>{Number(row.xp || 0).toLocaleString()} XP</span>
         </div>
       ))}
@@ -66,7 +56,7 @@ function TopThree({ rows = [], selfId }) {
   );
 }
 
-function Standings({ rows = [], selfId }) {
+function Standings({ rows = [], selfId, onOpenIdentity }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
 
   return (
@@ -86,10 +76,13 @@ function Standings({ rows = [], selfId }) {
             role="row"
           >
             <span className="groupXpRank" role="cell">#{row.rank}</span>
-            <span className="groupXpIdentity" role="cell">
-              <LeaderAvatar row={row} />
-              <span><strong>{row.nickname || "Athlete"}{self ? " · You" : ""}</strong></span>
-            </span>
+            <GroupIdentityTrigger
+              member={row}
+              isSelf={self}
+              onOpen={onOpenIdentity}
+              className="groupXpIdentity"
+              role="cell"
+            />
             <strong className="groupXpScore" role="cell">{Number(row.xp || 0).toLocaleString()} XP</strong>
           </div>
         );
@@ -98,7 +91,7 @@ function Standings({ rows = [], selfId }) {
   );
 }
 
-export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGroupChanged }) {
+export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGroupChanged, onOpenIdentity }) {
   const [mode, setMode] = useState("current");
   const [historyIndex, setHistoryIndex] = useState(0);
   const [data, setData] = useState(null);
@@ -206,8 +199,8 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
             <div className="groupHubEmpty compact">This Group had not started yet.</div>
           ) : rows.length ? (
             <>
-              <TopThree rows={rows} selfId={membership.id} />
-              <Standings rows={rows} selfId={membership.id} />
+              <TopThree rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
+              <Standings rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
             </>
           ) : (
             <div className="groupHubEmpty compact">No Weekly XP standings are available for this period.</div>

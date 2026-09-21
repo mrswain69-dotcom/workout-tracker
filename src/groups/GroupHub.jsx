@@ -147,15 +147,20 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
   const isAdmin = ownMembership?.role === "admin";
 
   async function openMemberIdentity(member) {
-    const identity = resolveAvatarIdentity(member?.avatar_id);
-    if (!identity || !selectedGroup?.id || !member?.membership_id) return;
-    setMemberIdentity({ member, identity, loading: true, stats: null, error: "" });
+    const directoryMember = directory.find((entry) => entry.membership_id === member?.membership_id);
+    const resolvedMember = { ...directoryMember, ...member };
+    if (!resolvedMember.avatar_id && directoryMember?.avatar_id) {
+      resolvedMember.avatar_id = directoryMember.avatar_id;
+    }
+    const identity = resolveAvatarIdentity(resolvedMember.avatar_id);
+    if (!identity || !selectedGroup?.id || !resolvedMember.membership_id) return;
+    setMemberIdentity({ member: resolvedMember, identity, loading: true, stats: null, error: "" });
     const { data, error: statsError } = await loadGroupAvatarIdentityStats(
       selectedGroup.id,
-      member.membership_id
+      resolvedMember.membership_id
     );
     setMemberIdentity({
-      member,
+      member: resolvedMember,
       identity,
       loading: false,
       stats: data || null,
@@ -518,8 +523,8 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                     <button className="groupHubSecondary" onClick={handleNicknameSave} disabled={busy}>Edit nickname</button>
                   </div>
 
-                  <GroupWeeklyXp group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} />
-                  <GroupConsistency group={selectedGroup} membership={ownMembership} />
+                  <GroupWeeklyXp group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} onOpenIdentity={openMemberIdentity} />
+                  <GroupConsistency group={selectedGroup} membership={ownMembership} onOpenIdentity={openMemberIdentity} />
                   <GroupChallenges group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} />
 
                   {isAdmin ? (
