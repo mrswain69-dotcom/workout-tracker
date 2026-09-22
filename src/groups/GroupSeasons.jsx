@@ -69,7 +69,7 @@ function metricValue(row, metric) {
 }
 
 function metricEvidence(row, metric) {
-  if (metric === "xp") return "Authoritative XP earned in this period";
+  if (metric === "xp") return "Earned XP only · reward/award Bonus XP excluded";
   if (metric === "consistency") {
     if (!Number(row?.plannedDays || 0)) return row?.consistencyState === "schedule_unavailable" ? "Schedule unavailable" : "No planned days due";
     return `${Number(row?.completedDays || 0)} / ${Number(row?.plannedDays || 0)} planned days`;
@@ -104,10 +104,22 @@ function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity })
       {rows.map((row) => {
         const rank = metricRank(row, metric);
         const self = row.membership_id === selfId;
+        const excluded = row.competition_excluded === true;
         return (
-          <div key={row.membership_id} className={`groupXpStandingRow ${self ? "self" : ""}`} role="row">
+          <div
+            key={row.membership_id}
+            className={`groupXpStandingRow ${self ? "self" : ""} ${excluded ? "excluded" : ""}`}
+            role="row"
+          >
             <span className="groupXpRank" role="cell">{rank ? `#${rank}` : "—"}</span>
-            <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" role="cell" />
+            <span className="groupXpAthleteCell" role="cell">
+              <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" />
+              {excluded ? (
+                <small className="groupXpIntegrityLabel">
+                  {row.competition_exclusion_label || "Gamed XP"}
+                </small>
+              ) : null}
+            </span>
             <span className="groupSeasonScoreCell" role="cell">
               <strong>{metricValue(row, metric)}</strong>
               <small>{metricEvidence(row, metric)}</small>
@@ -188,7 +200,7 @@ export default function GroupSeasons({ group, membership, onOpenIdentity }) {
         <div>
           <span className="groupXpEyebrow groupSeasonsEyebrow">🏆 LONG GAME</span>
           <h4>Seasons & Awards</h4>
-          <p>Calendar-month standings and fixed 8-week seasons. XP, Consistency and Improvement stay separate so every award has a clear reason.</p>
+          <p>Calendar-month standings and fixed 8-week seasons. XP standings use Earned XP only; reward/award Bonus XP does not influence competition.</p>
         </div>
         <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Seasons and Awards">↻</button>
       </div>
