@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildDashboardCoachInsight,
   buildDashboardWeekSummary,
+  buildRewardsRoadmap,
   getNextAvatarReward,
 } from "./dashboardEngine.js";
 
@@ -60,6 +61,33 @@ describe("dashboard engine", () => {
       remainingXp: 1500,
     });
     expect(getNextAvatarReward(12000, [{ unlockAtXp: 12000 }])).toBeNull();
+  });
+
+  it("builds a moving rewards roadmap around the user's current position", () => {
+    const result = buildRewardsRoadmap(8657, [
+      { key: "p8", title: "Avatar Pack 8 – Apex Beings", unlockAtXp: 8000 },
+      { key: "p9", title: "Avatar Pack 9 – Apex Beings 2", unlockAtXp: 9000 },
+      { key: "p10", title: "Avatar Pack 10 – Prestige Athlete Archetypes", unlockAtXp: 10000 },
+    ]);
+
+    expect(result.currentLevel).toBe(87);
+    expect(result.nextLevel).toBe(88);
+    expect(result.nextLevelRemainingXp).toBe(43);
+    expect(result.unlockedAvatarCount).toBe(1);
+    expect(result.nextAvatar).toMatchObject({
+      key: "p9",
+      packLabel: "Pack 9",
+      name: "Apex Beings 2",
+      unlockAtXp: 9000,
+      remainingXp: 343,
+      progressPct: 96.2,
+    });
+    expect(result.followingAvatar).toMatchObject({
+      key: "p10",
+      packLabel: "Pack 10",
+      name: "Prestige Athlete Archetypes",
+      remainingXp: 1343,
+    });
   });
 
   it("makes recovery adherence a first-class coaching message", () => {
