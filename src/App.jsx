@@ -7111,24 +7111,31 @@ async function updateCardioForBlock(blockId, cardioPatch) {
 
     let sessionToSave = { ...nextSession };
 
-    // Capture a real elapsed duration when a currently-running Session is first
-    // completed. If the timer anchor is stale (for example a historical edit),
-    // leave actualDurationSec alone and the engine can fall back to planned time.
-    if (sessionToSave.completed && !previousSession?.completed) {
-      const hasActualDuration = Number(sessionToSave.actualDurationSec) > 0;
-      const startedMs = existingBlock.startedAt
-        ? new Date(existingBlock.startedAt).getTime()
-        : NaN;
-      const elapsedSec = Number.isFinite(startedMs)
-        ? Math.round((Date.now() - startedMs) / 1000)
-        : 0;
+    // Structured Sessions are physical activity, so keep a live elapsed time
+    // once the athlete has actually started recording work. This makes Session
+    // time contribute to the day summary during the Session as well as after it
+    // is completed. Historical edits never inherit a huge "time since start".
+    const startedMs = existingBlock.startedAt
+      ? new Date(existingBlock.startedAt).getTime()
+      : NaN;
+    const elapsedSec = Number.isFinite(startedMs)
+      ? Math.round((Date.now() - startedMs) / 1000)
+      : 0;
+    const validLiveTimer =
+      elapsedSec > 0 &&
+      elapsedSec <= 12 * 60 * 60 &&
+      sameYmdFromIso(existingBlock.startedAt, selectedDate);
 
-      if (!hasActualDuration && elapsedSec > 0 && elapsedSec <= 12 * 60 * 60) {
-        sessionToSave = {
-          ...sessionToSave,
-          actualDurationSec: Math.max(1, elapsedSec),
-        };
-      }
+    if (validLiveTimer && sessionHasActivity(sessionToSave)) {
+      const existingActual = Math.max(
+        0,
+        Number(sessionToSave.actualDurationSec) || 0,
+        Number(previousSession?.actualDurationSec) || 0
+      );
+      sessionToSave = {
+        ...sessionToSave,
+        actualDurationSec: Math.max(existingActual, elapsedSec),
+      };
     }
 
     const next = updateBlockLog(base, blockId, { session: sessionToSave });
