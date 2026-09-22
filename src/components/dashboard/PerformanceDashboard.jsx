@@ -245,7 +245,7 @@ export default function PerformanceDashboard({
           note="Following the plan"
         />
         <Metric
-          label="XP this week"
+          label="Earned XP this week"
           value={(weekSummary?.xp || 0).toLocaleString("en-GB")}
           note={`${Math.max(0, Number(totalXp) || 0).toLocaleString("en-GB")} XP total`}
         />
@@ -305,14 +305,17 @@ export default function PerformanceDashboard({
           <div className="dashboardCard__kicker">THIS WEEK</div>
           <h3>Weekly performance summary</h3>
           <div className="dashboardSummaryRows">
-            <div><span>XP earned</span><strong>{(weekSummary?.xp || 0).toLocaleString("en-GB")}</strong></div>
+            <div><span>Earned XP</span><strong>{(weekSummary?.earnedXp ?? weekSummary?.xp ?? 0).toLocaleString("en-GB")}</strong></div>
+            {Number(weekSummary?.bonusXp || 0) > 0 ? (
+              <div><span>Bonus XP</span><strong>+{Number(weekSummary.bonusXp).toLocaleString("en-GB")}</strong></div>
+            ) : null}
             <div><span>Plan days complete</span><strong>{weekSummary?.completedDays || 0}</strong></div>
             <div><span>Active days</span><strong>{weekSummary?.activeDays || 0}</strong></div>
             <div><span>Recovery-mode days</span><strong>{weekSummary?.recoveryDays || 0}</strong></div>
           </div>
           {weekSummary?.bestXpDay ? (
             <div className="dashboardFootnote">
-              Best XP day: {weekSummary.bestXpDay.date} · {weekSummary.bestXpDay.xp} XP
+              Best Earned XP day: {weekSummary.bestXpDay.date} · {weekSummary.bestXpDay.xp} XP
             </div>
           ) : null}
         </article>
