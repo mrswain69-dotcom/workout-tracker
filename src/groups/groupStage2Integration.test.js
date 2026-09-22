@@ -23,7 +23,7 @@ describe("Group & Team Stage 2 integration contract", () => {
 
   it("keeps Group mutations behind RPCs and reads the deliberately safe directory surface", () => {
     expect(db).toContain('.from("group_member_directory")');
-    expect(db).toContain('"membership_id,group_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,joined_at,updated_at"');
+    expect(db).toContain('"membership_id,group_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,xp_evidence_visible,competition_excluded,competition_exclusion_label,joined_at,updated_at"');
     expect(db).not.toContain('"membership_id,group_id,family_id,profile_id');
     for (const rpc of [
       "group_create",
