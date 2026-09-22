@@ -64,3 +64,113 @@
   .groupXpWeekPicker { flex-wrap:nowrap; overflow-x:auto; padding-bottom:3px; }
   .groupXpWeekPicker button { flex:0 0 auto; min-height:40px; }
 }
+
+/* XP Classification + Group Integrity */
+.groupXpStandingRow.excluded{
+  opacity:.66;
+  background:rgba(255,166,0,.035);
+  box-shadow:inset 3px 0 0 rgba(255,166,0,.34);
+}
+.groupXpAthleteCell{display:grid;gap:4px;min-width:0}
+.groupXpIntegrityLabel{
+  display:inline-flex;
+  width:max-content;
+  max-width:100%;
+  padding:2px 7px;
+  border-radius:999px;
+  border:1px solid rgba(255,166,0,.3);
+  background:rgba(255,166,0,.08);
+  color:#ffc46b;
+  font-size:.66rem;
+  font-weight:850;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.groupXpVerification,.groupXpVerificationButton{
+  width:max-content;
+  max-width:100%;
+  font-size:.68rem;
+  font-weight:750;
+  color:rgba(255,255,255,.58);
+}
+.groupXpVerificationButton{
+  border:0;
+  padding:0;
+  background:transparent;
+  cursor:pointer;
+  text-decoration:underline;
+  text-decoration-style:dotted;
+  text-underline-offset:3px;
+}
+.groupXpScoreCell{text-align:right;min-width:0}
+.groupXpScoreEvidenceButton{
+  border:0;
+  background:transparent;
+  color:#00ff88;
+  font:inherit;
+  font-weight:850;
+  cursor:pointer;
+  padding:7px 0 7px 7px;
+  white-space:nowrap;
+}
+.groupXpScoreEvidenceButton:hover,.groupXpVerificationButton:hover{color:#82e9ff}
+.groupXpEvidenceBackdrop{
+  position:fixed;
+  inset:0;
+  z-index:1500;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:rgba(4,7,12,.84);
+  backdrop-filter:blur(8px);
+}
+.groupXpEvidenceDialog{
+  width:min(620px,100%);
+  max-height:min(780px,calc(100vh - 36px));
+  overflow:auto;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:20px;
+  background:#10141d;
+  box-shadow:0 26px 90px rgba(0,0,0,.5);
+  padding:20px;
+}
+.groupXpEvidenceHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.groupXpEvidenceHeader>div{display:grid;gap:3px}
+.groupXpEvidenceHeader span{font-size:.68rem;letter-spacing:.13em;font-weight:850;color:#00e5ff}
+.groupXpEvidenceHeader h4{margin:0;font-size:1.35rem}
+.groupXpEvidenceHeader small{color:rgba(255,255,255,.55)}
+.groupXpEvidenceHeader button{
+  width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
+  background:#181d27;color:#fff;font-size:24px;cursor:pointer
+}
+.groupXpEvidenceHero{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  margin-top:16px;padding:16px;border-radius:15px;
+  border:1px solid rgba(0,229,255,.2);background:rgba(0,229,255,.055)
+}
+.groupXpEvidenceHero strong{font-size:1.2rem;color:#00ff88}
+.groupXpEvidenceHero span{font-size:.78rem;color:rgba(255,255,255,.66);text-align:right}
+.groupXpEvidenceSection{margin-top:16px;display:grid;gap:9px}
+.groupXpEvidenceSection>strong{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.68)}
+.groupXpEvidenceBreakdown,.groupXpEvidenceActivities{
+  border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden
+}
+.groupXpEvidenceBreakdown>div,.groupXpEvidenceActivities>div{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  min-height:42px;padding:8px 12px;border-top:1px solid rgba(255,255,255,.06)
+}
+.groupXpEvidenceBreakdown>div:first-child,.groupXpEvidenceActivities>div:first-child{border-top:0}
+.groupXpEvidenceBreakdown span,.groupXpEvidenceActivities span{font-size:.78rem;color:rgba(255,255,255,.72)}
+.groupXpEvidenceActivities .verified{color:#00ff88;font-weight:800;white-space:nowrap}
+.groupXpEvidenceActivities .unverified{color:rgba(255,255,255,.48);font-weight:750;white-space:nowrap}
+.groupXpEvidencePrivacy{
+  margin-top:16px;padding:11px 13px;border-radius:11px;border-left:3px solid #00e5ff;
+  background:rgba(0,229,255,.045);color:rgba(255,255,255,.55);font-size:.75rem;line-height:1.45
+}
+@media(max-width:480px){
+  .groupXpEvidenceDialog{padding:15px}
+  .groupXpEvidenceHero{align-items:flex-start;flex-direction:column}
+  .groupXpEvidenceHero span{text-align:left}
+  .groupXpEvidenceActivities>div{align-items:flex-start;flex-direction:column;gap:4px}
+  .groupXpScoreEvidenceButton{font-size:.76rem}
+}
