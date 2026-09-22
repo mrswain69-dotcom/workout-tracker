@@ -8,6 +8,13 @@ describe("signup auth session guard", () => {
     expect(db).toContain("const { error: clearError } = await clearLocalAuthSession()");
   });
 
+  it("uses the current Workout Tracker origin for signup and resend confirmation links", () => {
+    const db = fs.readFileSync(new URL("../db.js", import.meta.url), "utf8");
+    expect(db).toContain("getBrowserAuthRedirectUrl");
+    expect(db).toContain("{ options: { emailRedirectTo } }");
+    expect(db).toContain("supabase.auth.resend");
+  });
+
   it("does not enter the app when signup requires email confirmation", () => {
     const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
     expect(app).toContain("if (data?.session?.user)");
