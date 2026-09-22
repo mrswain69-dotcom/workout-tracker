@@ -77,6 +77,10 @@ import {
   normaliseProfileRecoveryMode,
   profileRecoveryBlockComplete,
 } from "./engine/recoveryModeEngine.js";
+import {
+  estimateStrengthMinutes,
+  formatActivityMinutes,
+} from "./engine/activityTimeEngine.js";
 
 import { AVATAR_PACKS, AVATAR_PACK_GROUPS } from "./config/avatars";
 import { resolveAvatarIdentity, AVATAR_IDENTITY_TRACKING_RELEASED_AT } from "./config/avatarIdentity";
@@ -1710,63 +1714,107 @@ function countSetsLoggedInLog(log) {
 function computeTotalMinutesForDay(log) {
   if (!log) return null;
 
-  // 1) Manual override wins
+  // A deliberate manual day override remains authoritative.
   const manualDay = safeNumber(log?.meta?.dayManualMin);
   if (manualDay > 0) return manualDay;
 
   const blocks = Array.isArray(log.blocks) ? log.blocks : [];
-
-  // 2) New model: sum minutes from per-block cardio + duration + structured Sessions
-  let blockCardioMin = 0;
-  let blockDurationMin = 0;
-  let blockSessionMin = 0;
+  let totalMinutes = 0;
+  let hasActivityMinutes = false;
 
   if (blocks.length) {
     for (const b of blocks) {
-      if (!b) continue;
+      if (!b || b.cancelled || b.suspendedByRecoveryMode) continue;
 
-      if (b.cardio && typeof b.cardio === "object") {
-        blockCardioMin += safeNumber(b.cardio.durationMin);
+      const typeId = String(b.typeId || "").toLowerCase();
+
+      if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+        const actualMinutes = safeNumber(b?.duration?.minutes);
+
+        if (actualMinutes > 0) {
+          totalMinutes += actualMinutes;
+          hasActivityMinutes = true;
+          continue;
+        }
+
+        const setCount = countCompletedSetsInBlock(b);
+        if (setCount > 0) {
+          const restSec =
+            safeNumber(b?.restSec) ||
+            safeNumber(log?.meta?.restSec) ||
+            60;
+          totalMinutes += estimateStrengthMinutes(setCount, restSec);
+          hasActivityMinutes = true;
+        }
+        continue;
       }
 
-      if (b.duration && typeof b.duration === "object") {
-        // duration blocks use duration.minutes
-        blockDurationMin += safeNumber(b.duration.minutes);
+      if (
+        typeId === "cardio" ||
+        typeId === "run" ||
+        typeId === "swim" ||
+        typeId === "walk" ||
+        typeId === "row" ||
+        typeId === "cycle" ||
+        typeId === "bike"
+      ) {
+        const minutes = safeNumber(b?.cardio?.durationMin);
+        if (minutes > 0) {
+          totalMinutes += minutes;
+          hasActivityMinutes = true;
+        }
+        continue;
       }
 
-      if (b.typeId === "session") {
-        blockSessionMin += getSessionBlockTrainingMinutes(b);
+      if (typeId === "duration") {
+        const minutes = safeNumber(b?.duration?.minutes);
+        if (minutes > 0) {
+          totalMinutes += minutes;
+          hasActivityMinutes = true;
+        }
+        continue;
+      }
+
+      if (typeId === "session") {
+        const minutes = getSessionBlockTrainingMinutes(b);
+        if (minutes > 0) {
+          totalMinutes += minutes;
+          hasActivityMinutes = true;
+        }
+        continue;
+      }
+
+      if (typeId === "recovery") {
+        const minutes = safeNumber(b?.duration?.minutes);
+        if (minutes > 0) {
+          totalMinutes += minutes;
+          hasActivityMinutes = true;
+        }
       }
     }
+
+    return hasActivityMinutes
+      ? Math.round(totalMinutes * 60) / 60
+      : null;
   }
 
-  if (blockCardioMin > 0 || blockDurationMin > 0 || blockSessionMin > 0) {
-    // e.g. 25 min run + 20 min yoga + 15 min skill Session = 60
-    return blockCardioMin + blockDurationMin + blockSessionMin;
-  }
-
-  // 3) Legacy fallback ONLY if we have no blocks snapshot
-  // (old logs that just had log.cardio/log.custom)
-  if (!blocks.length) {
-    const cardioMin = safeNumber(log?.cardio?.durationMin);
-    const customMin = safeNumber(log?.custom?.durationMin);
-    const totalDur = cardioMin + customMin;
-    if (totalDur > 0) return totalDur;
-  }
-
-  // 4) Finally, estimate from sets + rest interval (rough, motivation-only)
-  const restSec =
-    safeNumber(log?.meta?.restSec) || 60;
+  // Legacy logs without a block snapshot.
+  const cardioMin = safeNumber(log?.cardio?.durationMin);
+  const customMin = safeNumber(log?.custom?.durationMin);
+  const legacyDuration = cardioMin + customMin;
 
   const setsLogged = countSetsLoggedInLog(log);
-  if (setsLogged <= 0) return null;
+  const legacyStrength = setsLogged > 0
+    ? estimateStrengthMinutes(
+        setsLogged,
+        safeNumber(log?.meta?.restSec) || 60
+      )
+    : 0;
 
-  const workPerSetMin = 1; // quick heuristic
-  const est =
-    setsLogged * workPerSetMin +
-    Math.max(0, setsLogged) * (restSec / 60);
-
-  return Math.round(est * 10) / 10;
+  const legacyTotal = legacyDuration + legacyStrength;
+  return legacyTotal > 0
+    ? Math.round(legacyTotal * 60) / 60
+    : null;
 }
 
 function isTrainingBlockForRecoveryLogic(block) {
@@ -10072,7 +10120,10 @@ const targetInfo = buildTargetInfoForMovement({
                 </div>
 
                 <div className="grid2 mt12">
-                  <SummaryStat label="Total minutes" value={computeTotalMinutesForDay(logForDay) ?? "—"} />
+                  <SummaryStat
+                    label="Total time"
+                    value={formatActivityMinutes(computeTotalMinutesForDay(logForDay))}
+                  />
                   <SummaryStat
   label="Sets logged"
   value={countSetsLoggedInLog(logForDay) || 0}
