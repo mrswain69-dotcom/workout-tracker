@@ -11,7 +11,7 @@ import "./GroupWeeklyXp.css";
 import "./GroupTeamView.css";
 
 const SPOTLIGHT_METRICS = [
-  { id: "xp", label: "XP" },
+  { id: "xp", label: "Earned XP" },
   { id: "consistency", label: "Consistency" },
   { id: "improvement", label: "Improvement" },
 ];
@@ -136,10 +136,22 @@ function PrBoard({ rows = [], selfId, label, onOpenIdentity }) {
       </div>
       {rows.map((row) => {
         const self = row.membership_id === selfId;
+        const excluded = row.competition_excluded === true;
         return (
-          <div key={row.membership_id} className={`groupXpStandingRow ${self ? "self" : ""}`} role="row">
+          <div
+            key={row.membership_id}
+            className={`groupXpStandingRow ${self ? "self" : ""} ${excluded ? "excluded" : ""}`}
+            role="row"
+          >
             <span className="groupXpRank" role="cell">{row.rank ? `#${row.rank}` : "—"}</span>
-            <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" role="cell" />
+            <span className="groupXpAthleteCell" role="cell">
+              <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" />
+              {excluded ? (
+                <small className="groupXpIntegrityLabel">
+                  {row.competition_exclusion_label || "Gamed XP"}
+                </small>
+              ) : null}
+            </span>
             <span className="groupTeamPrScore" role="cell">
               <strong>{Number(row.prCount || 0)} {Number(row.prCount || 0) === 1 ? "PR" : "PRs"}</strong>
               <small>{row.latestPrDate ? `Latest ${formatShortDate(row.latestPrDate)}` : "No new PR yet"}</small>
@@ -205,7 +217,7 @@ export default function GroupTeamView({ group, membership, onOpenIdentity }) {
         <div>
           <span className="groupXpEyebrow groupTeamEyebrow">◎ {teamLabel.toUpperCase()} PERFORMANCE</span>
           <h4>{teamLabel} View</h4>
-          <p>One team picture built from the same truthful competition engines: season progress, collective consistency, weekly Improvement and personal-record momentum.</p>
+          <p>One team picture built from the same truthful competition engines. Earned XP, Consistency, Improvement and PR views all honour Group integrity exclusions.</p>
         </div>
         <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label={`Refresh ${teamLabel} View`}>↻</button>
       </div>
@@ -227,9 +239,12 @@ export default function GroupTeamView({ group, membership, onOpenIdentity }) {
 
           <div className="groupTeamSummaryGrid">
             <div className="groupTeamSummaryCard">
-              <span>Team XP</span>
+              <span>Team Earned XP</span>
               <strong>{summary.teamXp.toLocaleString()}</strong>
-              <small>{summary.participatingAthletes} / {summary.athleteCount} participating</small>
+              <small>
+                {summary.participatingAthletes} / {summary.athleteCount} participating
+                {summary.excludedAthletes ? ` · ${summary.excludedAthletes} excluded` : ""}
+              </small>
             </div>
             <div className="groupTeamSummaryCard consistency">
               <span>🛡 Team Consistency</span>
