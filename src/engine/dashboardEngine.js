@@ -22,6 +22,9 @@ export function buildDashboardWeekSummary({
       startDate: "",
       endDate: "",
       xp: 0,
+      earnedXp: 0,
+      bonusXp: 0,
+      totalXp: 0,
       completedDays: 0,
       activeDays: 0,
       recoveryDays: 0,
@@ -39,13 +42,28 @@ export function buildDashboardWeekSummary({
     return date >= window.startDate && date <= referenceDate;
   });
 
-  const xp = rows.reduce((sum, row) => sum + safeNumber(row?.totalXp), 0);
+  const earnedXp = rows.reduce(
+    (sum, row) =>
+      sum +
+      (row?.earnedXp === undefined
+        ? safeNumber(row?.totalXp)
+        : safeNumber(row?.earnedXp)),
+    0
+  );
+  const bonusXp = rows.reduce((sum, row) => sum + safeNumber(row?.bonusXp), 0);
+  const totalXp = rows.reduce((sum, row) => sum + safeNumber(row?.totalXp), 0);
+  const xp = earnedXp;
   const completedDays = new Set(
     rows.filter((row) => row?.complete).map((row) => cleanText(row?.date)).filter(Boolean)
   ).size;
   const activeDays = new Set(
     rows
-      .filter((row) => safeNumber(row?.totalXp) > 0 || row?.complete)
+      .filter(
+        (row) =>
+          (row?.earnedXp === undefined
+            ? safeNumber(row?.totalXp)
+            : safeNumber(row?.earnedXp)) > 0 || row?.complete
+      )
       .map((row) => cleanText(row?.date))
       .filter(Boolean)
   ).size;
@@ -62,7 +80,15 @@ export function buildDashboardWeekSummary({
   ).size;
 
   const bestXpDay = rows.reduce((best, row) => {
-    if (!best || safeNumber(row?.totalXp) > safeNumber(best?.totalXp)) return row;
+    const rowEarned =
+      row?.earnedXp === undefined
+        ? safeNumber(row?.totalXp)
+        : safeNumber(row?.earnedXp);
+    const bestEarned =
+      best?.earnedXp === undefined
+        ? safeNumber(best?.totalXp)
+        : safeNumber(best?.earnedXp);
+    if (!best || rowEarned > bestEarned) return row;
     return best;
   }, null);
 
@@ -70,11 +96,20 @@ export function buildDashboardWeekSummary({
     startDate: window.startDate,
     endDate: window.endDate,
     xp,
+    earnedXp,
+    bonusXp,
+    totalXp,
     completedDays,
     activeDays,
     recoveryDays,
     bestXpDay: bestXpDay
-      ? { date: cleanText(bestXpDay.date), xp: safeNumber(bestXpDay.totalXp) }
+      ? {
+          date: cleanText(bestXpDay.date),
+          xp:
+            bestXpDay?.earnedXp === undefined
+              ? safeNumber(bestXpDay.totalXp)
+              : safeNumber(bestXpDay.earnedXp),
+        }
       : null,
   };
 }
