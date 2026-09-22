@@ -6412,7 +6412,7 @@ function stampLogTiming(prevLog, nextLog) {
     setIsSavingLog(true);
 
     try {
-      const { error } = await upsertLog(
+      const { data: savedRow, error } = await upsertLog(
         familyId,
         profileId,
         dateKey,
@@ -6424,8 +6424,12 @@ function stampLogTiming(prevLog, nextLog) {
         return [];
       }
 
-      // If the user typed again while this request was in flight, the local
-      // cache is newer. Do not reconcile an older server copy back over it.
+      // The UPSERT already returns the row that was written. Do not perform an
+      // immediate GET and reconcile that response back into the controlled
+      // inputs: a read that is even one request behind makes the first typed
+      // value disappear and the first deletion reappear about one debounce
+      // later. The write response is the only server response allowed to
+      // confirm this revision.
       if (
         cacheKey &&
         logSaveRevisionRef.current.get(cacheKey) !== revision
@@ -6433,34 +6437,22 @@ function stampLogTiming(prevLog, nextLog) {
         return [];
       }
 
-      const { data: dayData, error: dayError } = await getLog(
-        familyId,
-        profileId,
-        dateKey
-      );
+      const canonicalLog =
+        getLogRowPayload(savedRow) || logToStore || null;
 
-      if (
-        !dayError &&
-        (!cacheKey ||
-          logSaveRevisionRef.current.get(cacheKey) === revision)
-      ) {
-        const row = Array.isArray(dayData) ? dayData[0] : dayData;
-        const canonicalLog = row?.log_json || row?.log || logToStore || null;
-
-        if (cacheKey) {
-          const prev = lastLogByDateRef.current || {};
-          if (canonicalLog) {
-            lastLogByDateRef.current = { ...prev, [cacheKey]: canonicalLog };
-          } else {
-            const copy = { ...prev };
-            delete copy[cacheKey];
-            lastLogByDateRef.current = copy;
-          }
+      if (cacheKey) {
+        const prev = lastLogByDateRef.current || {};
+        if (canonicalLog) {
+          lastLogByDateRef.current = { ...prev, [cacheKey]: canonicalLog };
+        } else {
+          const copy = { ...prev };
+          delete copy[cacheKey];
+          lastLogByDateRef.current = copy;
         }
+      }
 
-        if (activeProfileId === profileId && selectedDate === dateKey) {
-          setLogForDay(canonicalLog);
-        }
+      if (activeProfileId === profileId && selectedDate === dateKey) {
+        setLogForDay(canonicalLog);
       }
 
       // A final revision check protects allLogs/XP from stale reconciliation.
