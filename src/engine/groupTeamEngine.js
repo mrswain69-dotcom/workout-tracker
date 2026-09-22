@@ -1,4 +1,4 @@
-export const GROUP_TEAM_PR_SCORE_VERSION = 1;
+export const GROUP_TEAM_PR_SCORE_VERSION = 2;
 
 const STRENGTH_TYPES = new Set(["strength", "hiit", "box"]);
 const CARDIO_TYPES = new Set(["cardio", "run", "swim", "walk", "row", "cycle", "bike"]);
@@ -197,7 +197,10 @@ export function buildTrainingPrSummary({
 }
 
 export function rankTeamPrRows(rows = []) {
-  const ordered = [...(Array.isArray(rows) ? rows : [])].sort((a, b) => {
+  const source = Array.isArray(rows) ? rows : [];
+  const included = source.filter((row) => !row?.competition_excluded);
+  const excluded = source.filter((row) => row?.competition_excluded);
+  const ordered = [...included].sort((a, b) => {
     const aCount = Math.max(0, Number(a?.prCount || 0));
     const bCount = Math.max(0, Number(b?.prCount || 0));
     if (aCount !== bCount) return bCount - aCount;
@@ -206,17 +209,30 @@ export function rankTeamPrRows(rows = []) {
 
   let lastCount = null;
   let lastRank = 0;
-  return ordered.map((row, index) => {
+  const ranked = ordered.map((row, index) => {
     const count = Math.max(0, Number(row?.prCount || 0));
     if (!count) return { ...row, rank: null };
     if (lastCount === null || count !== lastCount) lastRank = index + 1;
     lastCount = count;
     return { ...row, rank: lastRank };
   });
+
+  return [
+    ...ranked,
+    ...excluded
+      .sort((a, b) =>
+        cleanText(a?.nickname).localeCompare(cleanText(b?.nickname), "en", {
+          sensitivity: "base",
+        })
+      )
+      .map((row) => ({ ...row, rank: null })),
+  ];
 }
 
 export function buildTeamConsistency(rows = []) {
-  const source = Array.isArray(rows) ? rows : [];
+  const source = (Array.isArray(rows) ? rows : []).filter(
+    (row) => !row?.competition_excluded
+  );
   if (source.some((row) => row?.consistencyState === "schedule_unavailable")) {
     return { available: false, reason: "schedule_unavailable", plannedDays: 0, completedDays: 0, consistencyPct: null };
   }
@@ -239,6 +255,7 @@ export function buildTeamConsistency(rows = []) {
 export function buildTeamImprovementPoint(period = null) {
   if (!period?.available) return null;
   const scores = (Array.isArray(period?.rows) ? period.rows : [])
+    .filter((row) => !row?.competition_excluded)
     .filter((row) => Number(row?.improvementMetricCount || row?.metricCount || 0) > 0)
     .map((row) => finiteNullable(row?.improvementPct))
     .filter((value) => value !== null);
@@ -274,14 +291,19 @@ function participated(row) {
 
 export function buildTeamSeasonSummary(period = null) {
   if (!period?.available) return null;
-  const rows = Array.isArray(period?.rows) ? period.rows : [];
-  const improvement = buildTeamImprovementPoint(period);
+  const allRows = Array.isArray(period?.rows) ? period.rows : [];
+  const rows = allRows.filter((row) => !row?.competition_excluded);
+  const improvement = buildTeamImprovementPoint({
+    ...period,
+    rows,
+  });
   return {
     seasonNumber: Number(period?.seasonNumber || 1),
     weekNumber: Number(period?.weekNumber || 1),
     startDate: period?.startDate || "",
     endDate: period?.endDate || "",
     athleteCount: rows.length,
+    excludedAthletes: allRows.length - rows.length,
     participatingAthletes: rows.filter(participated).length,
     teamXp: rows.reduce((sum, row) => sum + Math.max(0, Number(row?.xp || 0)), 0),
     consistency: buildTeamConsistency(rows),
@@ -291,7 +313,9 @@ export function buildTeamSeasonSummary(period = null) {
 }
 
 export function selectTeamTopThree(period = null, metric = "xp") {
-  const rows = Array.isArray(period?.rows) ? period.rows : [];
+  const rows = (Array.isArray(period?.rows) ? period.rows : []).filter(
+    (row) => !row?.competition_excluded
+  );
   const rankKey = metric === "consistency"
     ? "consistencyRank"
     : metric === "improvement"

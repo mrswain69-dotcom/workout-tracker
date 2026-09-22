@@ -31,7 +31,7 @@ function payload() {
       available: true,
       rows: [
         { membership_id: "m1", nickname: "Rocket", xp: 170, rank: 1, avatar_id: "", avatar_frame: "", avatar_frames_enabled: true },
-        { membership_id: "m2", nickname: "WS10", xp: 140, rank: 2, avatar_id: "", avatar_frame: "", avatar_frames_enabled: true },
+        { membership_id: "m2", nickname: "WS10", xp: 140, rank: 2, avatar_id: "", avatar_frame: "", avatar_frames_enabled: true, verificationPct: 50, xp_evidence_visible: true, evidence: { earnedXp: 140, categories: [{ label: "Strength", xp: 100 }, { label: "Tasks", xp: 40 }], activities: [{ date: "2026-09-10", label: "Strength", category: "Strength", verified: true }] } },
         { membership_id: "m3", nickname: "Keeper", xp: 110, rank: 3, avatar_id: "", avatar_frame: "", avatar_frames_enabled: true },
         { membership_id: "m4", nickname: "Ace", xp: 90, rank: 4, avatar_id: "", avatar_frame: "", avatar_frames_enabled: true },
       ],
@@ -64,7 +64,7 @@ describe("GroupWeeklyXp", () => {
 
   it("uses This week as the standard leaderboard view with safe pseudonyms", async () => {
     render(<GroupWeeklyXp group={group} membership={membership} />);
-    expect(await screen.findByText("Weekly XP")).toBeTruthy();
+    expect(await screen.findByText("Weekly Earned XP")).toBeTruthy();
     expect(screen.getByRole("button", { name: "This week" }).className).toContain("active");
     expect(await screen.findAllByText(/WS10/)).not.toHaveLength(0);
     expect(screen.getAllByText("170 XP")).toHaveLength(2);
@@ -73,7 +73,7 @@ describe("GroupWeeklyXp", () => {
 
   it("shows Top 3 and emphasizes self plus the rows immediately around self", async () => {
     const { container } = render(<GroupWeeklyXp group={group} membership={membership} />);
-    await screen.findByLabelText("Weekly XP Top 3");
+    await screen.findByLabelText("Weekly Earned XP Top 3");
     expect(container.querySelectorAll(".groupXpPodium")).toHaveLength(3);
     expect(container.querySelectorAll(".groupXpStandingRow.self")).toHaveLength(1);
     expect(container.querySelectorAll(".groupXpStandingRow.neighbour")).toHaveLength(2);
@@ -96,9 +96,18 @@ describe("GroupWeeklyXp", () => {
     }));
   });
 
+  it("opens privacy-safe XP evidence when the member has opted in", async () => {
+    render(<GroupWeeklyXp group={group} membership={membership} />);
+    await screen.findByText("Weekly Earned XP");
+    fireEvent.click(screen.getByRole("button", { name: /140 XP/ }));
+    expect(screen.getByRole("dialog", { name: /WS10 XP evidence/ })).toBeTruthy();
+    expect(screen.getByText("Strength")).toBeTruthy();
+    expect(screen.getByText("✓ Verified")).toBeTruthy();
+  });
+
   it("opens four completed week choices under Last 4 weeks", async () => {
     render(<GroupWeeklyXp group={group} membership={membership} />);
-    await screen.findByText("Weekly XP");
+    await screen.findByText("Weekly Earned XP");
     fireEvent.click(screen.getByRole("button", { name: "Last 4 weeks" }));
     const picker = screen.getByRole("group", { name: "Choose completed week" });
     expect(picker.querySelectorAll("button")).toHaveLength(4);
@@ -107,7 +116,7 @@ describe("GroupWeeklyXp", () => {
 
   it("shows the Admin history-scope control only to Admins", async () => {
     const { rerender } = render(<GroupWeeklyXp group={group} membership={membership} isAdmin={false} />);
-    await screen.findByText("Weekly XP");
+    await screen.findByText("Weekly Earned XP");
     expect(screen.queryByRole("group", { name: "Weekly XP history setting" })).toBeNull();
 
     rerender(<GroupWeeklyXp group={group} membership={membership} isAdmin />);

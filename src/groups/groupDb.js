@@ -17,7 +17,7 @@ async function listProfileGroupsOnce(profileId) {
 
   const { data: memberships, error: membershipError } = await supabase
     .from("group_memberships")
-    .select("id,group_id,role,nickname,avatar_id,avatar_frame,avatar_frames_enabled,joined_at")
+    .select("id,group_id,role,nickname,avatar_id,avatar_frame,avatar_frames_enabled,xp_evidence_visible,competition_excluded,competition_exclusion_label,joined_at")
     .eq("profile_id", profileId)
     .eq("status", "active")
     .order("joined_at", { ascending: true });
@@ -70,7 +70,7 @@ export async function listGroupDirectory(groupId) {
   if (!groupId) return { data: [], error: null };
   const { data, error } = await supabase
     .from("group_member_directory")
-    .select("membership_id,group_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,joined_at,updated_at")
+    .select("membership_id,group_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,xp_evidence_visible,competition_excluded,competition_exclusion_label,joined_at,updated_at")
     .eq("group_id", groupId)
     .order("joined_at", { ascending: true });
   return { data: data || [], error };
@@ -236,6 +236,32 @@ export async function setGroupMemberRole(groupId, membershipId, role) {
     p_role: role,
   });
   return { data, error };
+}
+
+export async function setGroupXpEvidenceVisibility(groupId, membershipId, visible) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_set_xp_evidence_visibility", {
+    p_group_id: groupId,
+    p_membership_id: membershipId,
+    p_visible: !!visible,
+  });
+  return { data: firstRow(data), error };
+}
+
+export async function setGroupCompetitionExclusion(
+  groupId,
+  membershipId,
+  excluded,
+  label = "Gamed XP"
+) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_set_competition_exclusion", {
+    p_group_id: groupId,
+    p_membership_id: membershipId,
+    p_excluded: !!excluded,
+    p_label: label,
+  });
+  return { data: firstRow(data), error };
 }
 
 export async function removeGroupMember(groupId, membershipId) {

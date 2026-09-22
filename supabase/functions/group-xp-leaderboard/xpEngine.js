@@ -1,7 +1,7 @@
 import { BADGE_XP_BY_KEY } from "./xpRewardMap.generated.js";
 import { buildWorkoutStreakSeries } from "./workoutStreakEngine.js";
 
-export const XP_ENGINE_SCORE_VERSION = 2;
+export const XP_ENGINE_SCORE_VERSION = 3;
 export const SESSION_COMPLETION_XP = 10;
 
 export const XP_RULES = Object.freeze({
@@ -114,6 +114,17 @@ function profileRecoveryBlockComplete(block) {
   return !!block?.recoveryDone;
 }
 
+function isOptionalAlternativeBlock(block) {
+  if (!block) return false;
+  if (block.optional === true || block.isOptional === true) return true;
+  const label = String(block.label || "").toLowerCase();
+  const note = String(block.note || "").toLowerCase();
+  return (
+    (label.includes("swap") || note.includes("swap option") || note.includes("optional")) &&
+    (note.includes("replace") || note.includes("instead") || label.includes("swap"))
+  );
+}
+
 export function isDayGreenForXp(log) {
   if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
   let any = false;
@@ -141,7 +152,10 @@ export function isDayGreenForXp(log) {
       hasData = profileRecoveryBlockComplete(block);
     }
 
-    if (!hasData) return false;
+    if (!hasData) {
+      if (isOptionalAlternativeBlock(block)) continue;
+      return false;
+    }
     any = true;
   }
 
@@ -399,6 +413,8 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
     let strengthProgressXp = 0;
     let cardioProgressXp = 0;
     let progressCount = 0;
+    let strengthComparableCount = 0;
+    let cardioComparable = false;
 
     for (const block of blocks) {
       if (!block || block.suspendedByRecoveryMode) continue;
@@ -416,6 +432,7 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
             const lastSets = findLastMovementSets(records, movement.id, date);
             const lastScore = scoreSets(lastSets || []);
             const curScore = scoreSets(movementSets);
+            if (lastScore > 0) strengthComparableCount += 1;
             if (curScore > lastScore && lastScore > 0) progressCount += 1;
           }
           const blockXp = xpForStrengthBlock(block);
@@ -472,6 +489,7 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
             : safeNumber(log.cardio?.avgSpeedKmh),
       };
       const lastCardio = findLastCardio(records, date);
+      cardioComparable = !!lastCardio;
       if (lastCardio && isCardioImproved(effectiveCardio, lastCardio)) {
         cardioProgressXp = XP_RULES.cardioProgression;
       }
@@ -488,7 +506,10 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
     const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;
     const nonBonusXp = strengthXp + cardioXp + durationXp + sessionXp + recoveryXp + tasksXp + dayCompleteXp;
     const progXp = strengthProgressXp + cardioProgressXp;
-    const totalXp = nonBonusXp + progXp + streakXp + dailyBonusXp + badgeClaimXp;
+    const earnedXp = nonBonusXp + progXp + streakXp + dailyBonusXp;
+    const bonusXp = badgeClaimXp;
+    const totalXp = earnedXp + bonusXp;
+    const progressComparableCount = strengthComparableCount + (cardioComparable ? 1 : 0);
 
     rows.push({
       date,
@@ -496,6 +517,9 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
       kind: "blocks",
       complete,
       totalXp,
+      earnedXp,
+      bonusXp,
+      competitionXp: earnedXp,
       nonBonusXp,
       strengthXp,
       cardioXp,
@@ -508,6 +532,9 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
       strengthProgressXp,
       cardioProgressXp,
       progXp,
+      progressComparableCount,
+      strengthComparableCount,
+      cardioComparable,
       streakXp,
       badgeClaimXp,
       challengeRewardXp: 0,
@@ -537,6 +564,9 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
       kind: "badge_claim",
       complete: false,
       totalXp: xp,
+      earnedXp: 0,
+      bonusXp: xp,
+      competitionXp: 0,
       nonBonusXp: 0,
       strengthXp: 0,
       cardioXp: 0,
@@ -549,6 +579,9 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
       strengthProgressXp: 0,
       cardioProgressXp: 0,
       progXp: 0,
+      progressComparableCount: 0,
+      strengthComparableCount: 0,
+      cardioComparable: false,
       streakXp: 0,
       badgeClaimXp: xp,
       challengeRewardXp: 0,
@@ -577,6 +610,9 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
       kind: "group_challenge_reward",
       complete: false,
       totalXp: xp,
+      earnedXp: 0,
+      bonusXp: xp,
+      competitionXp: 0,
       nonBonusXp: 0,
       strengthXp: 0,
       cardioXp: 0,
@@ -611,9 +647,15 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
 
   rows.sort((a, b) => b.date.localeCompare(a.date));
   let running = rows.reduce((sum, row) => sum + safeNumber(row.totalXp), 0);
+  let runningEarned = rows.reduce((sum, row) => sum + safeNumber(row.earnedXp), 0);
+  let runningBonus = rows.reduce((sum, row) => sum + safeNumber(row.bonusXp), 0);
   for (const row of rows) {
     row.runningTotalXp = running;
+    row.runningEarnedXp = runningEarned;
+    row.runningBonusXp = runningBonus;
     running -= safeNumber(row.totalXp);
+    runningEarned -= safeNumber(row.earnedXp);
+    runningBonus -= safeNumber(row.bonusXp);
   }
   return rows;
 }
@@ -666,13 +708,29 @@ export function getPreviousCompletedWeekWindows(referenceYmd, count = 4) {
   });
 }
 
-export function sumXpRowsInRange(rows, startDate, endDate, eligibleFrom = "") {
+export function sumXpRowsInRange(rows, startDate, endDate, eligibleFrom = "", field = "totalXp") {
   const effectiveStart = eligibleFrom && eligibleFrom > startDate ? eligibleFrom : startDate;
   if (effectiveStart > endDate) return 0;
   return (Array.isArray(rows) ? rows : []).reduce((sum, row) => {
     const date = String(row?.date || "");
-    return date >= effectiveStart && date <= endDate ? sum + safeNumber(row.totalXp) : sum;
+    return date >= effectiveStart && date <= endDate ? sum + safeNumber(row?.[field]) : sum;
   }, 0);
+}
+
+export function sumEarnedXpRowsInRange(rows, startDate, endDate, eligibleFrom = "") {
+  return sumXpRowsInRange(rows, startDate, endDate, eligibleFrom, "earnedXp");
+}
+
+export function summarizeXpRows(rows) {
+  return (Array.isArray(rows) ? rows : []).reduce(
+    (summary, row) => {
+      summary.totalXp += safeNumber(row?.totalXp);
+      summary.earnedXp += safeNumber(row?.earnedXp);
+      summary.bonusXp += safeNumber(row?.bonusXp);
+      return summary;
+    },
+    { totalXp: 0, earnedXp: 0, bonusXp: 0 }
+  );
 }
 
 export function computeXpForWindow(records, plan, window, { eligibleFrom = "" } = {}) {

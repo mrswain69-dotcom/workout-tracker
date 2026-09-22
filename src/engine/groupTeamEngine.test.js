@@ -111,6 +111,19 @@ describe("Stage 7 Group team engine", () => {
     ]);
   });
 
+  it("moves integrity-excluded athletes below ranked PR competitors", () => {
+    const rows = rankTeamPrRows([
+      { membership_id: "a", nickname: "Alpha", prCount: 2 },
+      { membership_id: "b", nickname: "Beta", prCount: 9, competition_excluded: true },
+      { membership_id: "c", nickname: "Charlie", prCount: 1 },
+    ]);
+    expect(rows.map((row) => [row.membership_id, row.rank])).toEqual([
+      ["a", 1],
+      ["c", 2],
+      ["b", null],
+    ]);
+  });
+
   it("calculates team Consistency from total planned days rather than averaging athlete percentages", () => {
     const result = buildTeamConsistency([
       { completedDays: 1, plannedDays: 1, consistencyPct: 100, consistencyState: "scored" },
@@ -122,6 +135,18 @@ describe("Stage 7 Group team engine", () => {
       plannedDays: 4,
       completedDays: 2,
       consistencyPct: 50,
+    });
+  });
+
+  it("excludes integrity-flagged athletes from collective Consistency", () => {
+    const result = buildTeamConsistency([
+      { completedDays: 1, plannedDays: 1, consistencyState: "scored" },
+      { completedDays: 0, plannedDays: 4, consistencyState: "scored", competition_excluded: true },
+    ]);
+    expect(result).toMatchObject({
+      plannedDays: 1,
+      completedDays: 1,
+      consistencyPct: 100,
     });
   });
 
@@ -165,18 +190,19 @@ describe("Stage 7 Group team engine", () => {
         { membership_id: "a", nickname: "A", xp: 500, xpRank: 1, plannedDays: 4, completedDays: 4, consistencyPct: 100, consistencyRank: 1, improvementPct: 1, improvementMetricCount: 1, improvementRank: 3 },
         { membership_id: "b", nickname: "B", xp: 400, xpRank: 2, plannedDays: 4, completedDays: 3, consistencyPct: 75, consistencyRank: 3, improvementPct: 8, improvementMetricCount: 2, improvementRank: 1 },
         { membership_id: "c", nickname: "C", xp: 300, xpRank: 3, plannedDays: 4, completedDays: 3, consistencyPct: 75, consistencyRank: 3, improvementPct: 4, improvementMetricCount: 2, improvementRank: 2 },
-        { membership_id: "d", nickname: "D", xp: 250, xpRank: 4, plannedDays: 0, completedDays: 0, consistencyPct: null, consistencyRank: null, improvementPct: 1, improvementMetricCount: 1, improvementRank: 3 },
+        { membership_id: "d", nickname: "D", xp: 250, xpRank: null, plannedDays: 0, completedDays: 0, consistencyPct: null, consistencyRank: null, improvementPct: 1, improvementMetricCount: 1, improvementRank: null, competition_excluded: true },
       ],
     };
     expect(buildTeamSeasonSummary(period)).toMatchObject({
       seasonNumber: 2,
       weekNumber: 3,
-      athleteCount: 4,
-      participatingAthletes: 4,
-      teamXp: 1450,
-      improvementPct: 3.5,
+      athleteCount: 3,
+      excludedAthletes: 1,
+      participatingAthletes: 3,
+      teamXp: 1200,
+      improvementPct: 4.3,
     });
     expect(selectTeamTopThree(period, "xp").map((row) => row.membership_id)).toEqual(["a", "b", "c"]);
-    expect(selectTeamTopThree(period, "improvement").map((row) => row.membership_id)).toEqual(["b", "c", "a", "d"]);
+    expect(selectTeamTopThree(period, "improvement").map((row) => row.membership_id)).toEqual(["b", "c", "a"]);
   });
 });

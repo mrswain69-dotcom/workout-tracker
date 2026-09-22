@@ -10,10 +10,10 @@ describe("dashboard engine", () => {
     const result = buildDashboardWeekSummary({
       referenceDate: "2026-09-18",
       xpRows: [
-        { date: "2026-09-14", totalXp: 20, complete: true },
-        { date: "2026-09-16", totalXp: 15, complete: true },
-        { date: "2026-09-18", totalXp: 10, complete: false },
-        { date: "2026-09-10", totalXp: 99, complete: true },
+        { date: "2026-09-14", totalXp: 25, earnedXp: 20, bonusXp: 5, complete: true },
+        { date: "2026-09-16", totalXp: 15, earnedXp: 15, bonusXp: 0, complete: true },
+        { date: "2026-09-18", totalXp: 10, earnedXp: 10, bonusXp: 0, complete: false },
+        { date: "2026-09-10", totalXp: 99, earnedXp: 99, bonusXp: 0, complete: true },
       ],
       logs: [
         { date_ymd: "2026-09-16", log: { meta: { profileRecoveryMode: "injury" } } },
@@ -23,10 +23,28 @@ describe("dashboard engine", () => {
 
     expect(result.startDate).toBe("2026-09-14");
     expect(result.xp).toBe(45);
+    expect(result.earnedXp).toBe(45);
+    expect(result.bonusXp).toBe(5);
+    expect(result.totalXp).toBe(50);
     expect(result.completedDays).toBe(2);
     expect(result.activeDays).toBe(3);
     expect(result.recoveryDays).toBe(1);
     expect(result.bestXpDay).toEqual({ date: "2026-09-14", xp: 20 });
+  });
+
+  it("does not turn reward-only Bonus XP into an active training day", () => {
+    const result = buildDashboardWeekSummary({
+      referenceDate: "2026-09-18",
+      xpRows: [
+        { date: "2026-09-18", totalXp: 25, earnedXp: 0, bonusXp: 25, complete: false },
+      ],
+      logs: [],
+    });
+
+    expect(result.earnedXp).toBe(0);
+    expect(result.bonusXp).toBe(25);
+    expect(result.totalXp).toBe(25);
+    expect(result.activeDays).toBe(0);
   });
 
   it("uses actual configured avatar milestones rather than assuming every 1,000 XP forever", () => {

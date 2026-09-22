@@ -32,7 +32,7 @@ describe("session, recovery and live-entry hardening release contract", () => {
 
     expect(app).toContain('label="Consistency"');
     expect(app).toContain('label="Progress wins"');
-    expect(app).toContain('label="XP earned"');
+    expect(app).toContain('label="Earned XP"');
     expect(app).toContain("selectedDayPlanStreak");
     expect(app).toContain("selectedDayProgressWins");
   });

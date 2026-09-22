@@ -20,6 +20,8 @@ vi.mock("./groupDb", () => ({
   rotateGroupJoinCode: vi.fn(),
   setGroupJoinMode: vi.fn(),
   setGroupMemberRole: vi.fn(),
+  setGroupXpEvidenceVisibility: vi.fn(),
+  setGroupCompetitionExclusion: vi.fn(),
   updateGroupDetails: vi.fn(),
   updateGroupNickname: vi.fn(),
   loadGroupXpLeaderboard: vi.fn(),
@@ -80,6 +82,14 @@ beforeEach(() => {
   groupDb.loadGroupConsistencyLeaderboard.mockResolvedValue({ data: { scoreVersion: 1, competitionStartDate: "2026-09-10", current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] }, history: [] }, error: null });
   groupDb.loadGroupImprovementLeaderboard.mockResolvedValue({ data: { scoreVersion: 1, baselineDays: 28, competitionStartDate: "2026-09-10", current: { startDate: "2026-09-07", endDate: "2026-09-13", state: "live", available: true, rows: [] }, history: [] }, error: null });
   groupDb.updateGroupXpHistoryScope.mockResolvedValue({ data: { xp_history_scope: "group_start" }, error: null });
+  groupDb.setGroupXpEvidenceVisibility.mockResolvedValue({
+    data: { membership_id: "membership-self", xp_evidence_visible: true },
+    error: null,
+  });
+  groupDb.setGroupCompetitionExclusion.mockResolvedValue({
+    data: { membership_id: "membership-other", competition_excluded: true, competition_exclusion_label: "Gamed XP" },
+    error: null,
+  });
 });
 
 afterEach(() => cleanup());
@@ -150,6 +160,57 @@ describe("Group Hub scalable onboarding", () => {
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
     expect(await screen.findByText("Shadow")).toBeTruthy();
     expect(screen.getByText("Manage")).toBeTruthy();
+  });
+
+  it("lets a member opt in to privacy-safe Group XP evidence", async () => {
+    groupDb.listProfileGroups.mockResolvedValue({ data: [group()], error: null });
+    groupDb.listGroupDirectory.mockResolvedValue({
+      data: [{
+        membership_id: "membership-self",
+        nickname: "WS10",
+        role: "admin",
+        xp_evidence_visible: false,
+      }],
+      error: null,
+    });
+
+    render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    const toggle = await screen.findByRole("checkbox", {
+      name: /Show XP evidence to this Group/i,
+    });
+    fireEvent.click(toggle);
+    await waitFor(() =>
+      expect(groupDb.setGroupXpEvidenceVisibility).toHaveBeenCalledWith(
+        "group-1",
+        "membership-self",
+        true
+      )
+    );
+  });
+
+  it("lets an Admin exclude and later restore a member from competition without removing them", async () => {
+    groupDb.listProfileGroups.mockResolvedValue({ data: [group()], error: null });
+    groupDb.listGroupDirectory.mockResolvedValue({
+      data: [
+        { membership_id: "membership-self", nickname: "WS10", role: "admin" },
+        { membership_id: "membership-other", nickname: "Shadow", role: "member", competition_excluded: false },
+      ],
+      error: null,
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    await screen.findByText("Shadow");
+    fireEvent.click(screen.getAllByText("Manage")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Exclude from competition" }));
+    await waitFor(() =>
+      expect(groupDb.setGroupCompetitionExclusion).toHaveBeenCalledWith(
+        "group-1",
+        "membership-other",
+        true,
+        "Gamed XP"
+      )
+    );
   });
 
   it("keeps every one-use invite generated in this Groups window copyable and revokable", async () => {
