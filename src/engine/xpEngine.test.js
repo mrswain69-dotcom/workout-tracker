@@ -111,9 +111,77 @@ describe("shared XP truth engine", () => {
       date: "2026-09-05",
       kind: "badge_claim",
       totalXp: 25,
+      earnedXp: 0,
+      bonusXp: 25,
+      competitionXp: 0,
       badgeClaimXp: 25,
     });
     expect(computeXpFromLogs([], plan)).toBe(25);
+  });
+
+  it("keeps reward XP in Total XP while excluding it from Earned/competition XP", () => {
+    const plan = {
+      meta: {
+        claimedRewards: [
+          { key: "sport_avatar_football_bronze", claimedAtYmd: "2026-09-08" },
+        ],
+      },
+    };
+    const rows = buildXpDebugRows(
+      [{ date_ymd: "2026-09-08", log: strengthLog(11) }],
+      plan
+    );
+    expect(rows[0].totalXp).toBe(rows[0].earnedXp + rows[0].bonusXp);
+    expect(rows[0].bonusXp).toBe(25);
+    expect(
+      sumXpRowsInRange(rows, "2026-09-08", "2026-09-08", "", "earnedXp")
+    ).toBe(rows[0].earnedXp);
+    expect(
+      sumXpRowsInRange(rows, "2026-09-08", "2026-09-08")
+    ).toBe(rows[0].totalXp);
+  });
+
+  it("does not require an unused optional swap block to complete the day", () => {
+    const rows = buildXpDebugRows(
+      [{
+        date_ymd: "2026-09-21",
+        log: {
+          blocks: [
+            {
+              id: "strength-main",
+              typeId: "strength",
+              movements: [{ id: "squat" }],
+              sets: { squat: [{ reps: 10 }] },
+            },
+            {
+              id: "outdoor-swap",
+              typeId: "strength",
+              label: "Power — Outdoor Swap (DRY GARDEN)",
+              note: "Swap option: use this instead of the indoor power block.",
+              movements: [{ id: "jump" }],
+              sets: {},
+            },
+          ],
+        },
+      }],
+      {}
+    );
+    expect(rows[0].complete).toBe(true);
+    expect(rows[0].dayCompleteXp).toBe(10);
+  });
+
+  it("marks progress as comparable only once previous matching performance exists", () => {
+    const rows = buildXpDebugRows(
+      [
+        { date_ymd: "2026-09-07", log: strengthLog(10) },
+        { date_ymd: "2026-09-08", log: strengthLog(10) },
+      ],
+      {}
+    );
+    const byDate = Object.fromEntries(rows.map((row) => [row.date, row]));
+    expect(byDate["2026-09-07"].progressComparableCount).toBe(0);
+    expect(byDate["2026-09-08"].progressComparableCount).toBe(1);
+    expect(byDate["2026-09-08"].progXp).toBe(0);
   });
 
   it("uses Monday-Sunday current week and four prior completed weeks", () => {
