@@ -10349,7 +10349,26 @@ const targetInfo = buildTargetInfoForMovement({
                       {selectedDayBonusXp > 0
                         ? ` · includes +${selectedDayBonusXp} Bonus XP from rewards/awards`
                         : ""}
-                      {" "}ⓘ
+                      {" "}
+                      <button
+                        type="button"
+                        aria-label="Explain Total XP for this day"
+                        title="Explain Total XP"
+                        onClick={() =>
+                          window.alert(
+                            "Earned XP comes from logged training/activity, tasks, day completion, progression, streak and normal daily challenge XP. Bonus XP comes from claimed badges, mastery/avatar rewards and Group awards. Total XP combines Earned XP + Bonus XP. Open Rewards → XP receipt for the full reconciliation."
+                          )
+                        }
+                        style={{
+                          border: 0,
+                          background: "transparent",
+                          padding: 0,
+                          font: "inherit",
+                          cursor: "pointer",
+                        }}
+                      >
+                        ⓘ
+                      </button>
                     </>
                   ) : (
                     "No XP has been added for this day yet."
