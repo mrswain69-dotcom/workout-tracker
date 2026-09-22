@@ -44,8 +44,14 @@ export function getProfileRecoveryModeForDate(
       const start = ymd(period.started_on);
       const end = ymd(period.ended_on);
       if (!start || start > target) return false;
-      if (today && target === today && period.ended_at) return false;
-      return !end || end >= target;
+
+      // Recovery is a historical interval, not a permanent flag stamped onto
+      // the whole end date. If a period has been explicitly ended on this day,
+      // normal training must remain available when the user comes back later.
+      // This also prevents yesterday from turning grey again after midnight.
+      if (end && end === target && period.ended_at) return false;
+
+      return !end || end > target;
     })
     .sort((a, b) => periodTimestamp(b) - periodTimestamp(a));
 
