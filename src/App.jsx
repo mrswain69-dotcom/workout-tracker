@@ -49,6 +49,7 @@ import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 import {
   buildXpDebugRows as buildXpDebugRowsEngine,
   computeXpFromLogs as computeXpFromLogsEngine,
+  getWeekStartYmd,
 } from "./engine/xpEngine.js";
 import { buildWorkoutStreakSeries } from "./engine/workoutStreakEngine.js";
 import {
@@ -10344,7 +10345,7 @@ const targetInfo = buildTargetInfoForMovement({
                 <div className="muted mini mt6">
                   {selectedDayTotalXp > 0 ? (
                     <>
-                      Total XP added that day: <b>+${selectedDayTotalXp}</b>
+                      Total XP added that day: <b>+{selectedDayTotalXp}</b>
                       {selectedDayBonusXp > 0
                         ? ` · includes +${selectedDayBonusXp} Bonus XP from rewards/awards`
                         : ""}
@@ -12798,8 +12799,8 @@ if (!didClaim) {
     </tr>
   </thead>
   <tbody>
-    {(xpDebugRows || []).slice(0, 21).map((r) => (
-      <tr key={r.date}>
+    {(xpDebugRows || []).slice(0, 21).map((r, rowIndex) => (
+      <tr key={`${r.date}-${r.kind || "xp"}-${rowIndex}`}>
         <td>{r.date}</td>
         <td style={{ textAlign: "right" }}>
           <b>{r.earnedXp || 0}</b>
