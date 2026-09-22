@@ -1345,7 +1345,9 @@ function RecoveryTimingEditor({ period, onSave }) {
 
   return (
     <div className="panel mt12">
-      <div className="h3">Recovery timing</div>
+      <div className="h3">
+        {period.mode === "illness" ? "Illness" : "Injury"} recovery timing
+      </div>
       <div className="muted mt4">
         Correct the actual start and end of this recovery period. Historical log
         days use this timing rather than today's recovery setting.
@@ -12899,41 +12901,52 @@ if (!didClaim) {
                       </div>
 
                       {(() => {
-                        const latestRecoveryPeriod = (profileRecoveryPeriods || [])
+                        const recoveryHistory = (profileRecoveryPeriods || [])
                           .filter((period) => period?.profile_id === p.id)
                           .slice()
                           .sort(
                             (a, b) =>
                               new Date(b?.started_at || 0).getTime() -
                               new Date(a?.started_at || 0).getTime()
-                          )[0];
+                          )
+                          .slice(0, 5);
 
-                        if (!latestRecoveryPeriod) return null;
+                        if (!recoveryHistory.length) return null;
 
                         return (
-                          <RecoveryTimingEditor
-                            period={latestRecoveryPeriod}
-                            onSave={async (timing) => {
-                              if (!(await ensureUnlocked("change recovery timing"))) return;
+                          <div className="mt12">
+                            <div className="label">Recovery history</div>
+                            <div className="muted mt4">
+                              Adjust a period if recovery actually started or ended
+                              at a different date or time.
+                            </div>
+                            {recoveryHistory.map((period) => (
+                              <RecoveryTimingEditor
+                                key={period.id}
+                                period={period}
+                                onSave={async (timing) => {
+                                  if (!(await ensureUnlocked("change recovery timing"))) return;
 
-                              const { error } =
-                                await updateProfileRecoveryPeriodTiming(
-                                  latestRecoveryPeriod.id,
-                                  p.id,
-                                  timing
-                                );
+                                  const { error } =
+                                    await updateProfileRecoveryPeriodTiming(
+                                      period.id,
+                                      p.id,
+                                      timing
+                                    );
 
-                              if (error) {
-                                window.alert(error.message || String(error));
-                                return;
-                              }
+                                  if (error) {
+                                    window.alert(error.message || String(error));
+                                    return;
+                                  }
 
-                              const { data: periods } =
-                                await listProfileRecoveryPeriods(family.id);
-                              setProfileRecoveryPeriods(periods || []);
-                              setExternalLogRevision((value) => value + 1);
-                            }}
-                          />
+                                  const { data: periods } =
+                                    await listProfileRecoveryPeriods(family.id);
+                                  setProfileRecoveryPeriods(periods || []);
+                                  setExternalLogRevision((value) => value + 1);
+                                }}
+                              />
+                            ))}
+                          </div>
                         );
                       })()}
                     </div>
