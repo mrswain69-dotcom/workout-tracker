@@ -24,6 +24,7 @@ import {
   updateAgeGroup,
   listProfileRecoveryPeriods,
   setProfileRecoveryMode,
+  updateProfileRecoveryPeriodTiming,
   archiveProfile,
   getPlan,
   upsertPlan,
@@ -76,6 +77,10 @@ import {
   normaliseProfileRecoveryMode,
   profileRecoveryBlockComplete,
 } from "./engine/recoveryModeEngine.js";
+import {
+  estimateStrengthMinutes,
+  formatActivityMinutes,
+} from "./engine/activityTimeEngine.js";
 
 import { AVATAR_PACKS, AVATAR_PACK_GROUPS } from "./config/avatars";
 import { resolveAvatarIdentity, AVATAR_IDENTITY_TRACKING_RELEASED_AT } from "./config/avatarIdentity";
@@ -105,6 +110,7 @@ const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const LOG_INPUT_SAVE_DEBOUNCE_MS = 900;
 function weekdayFromYMD(ymd) {
   try {
     const d = new Date(`${ymd}T00:00:00`);
@@ -1280,6 +1286,100 @@ function SummaryStat({ label, value }) {
     </div>
   );
 }
+
+function toLocalDateTimeInputValue(iso) {
+  if (!iso) return "";
+  const parsed = new Date(iso);
+  if (!Number.isFinite(parsed.getTime())) return "";
+  const local = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function RecoveryTimingEditor({ period, onSave }) {
+  const [startValue, setStartValue] = useState(() =>
+    toLocalDateTimeInputValue(period?.started_at)
+  );
+  const [endValue, setEndValue] = useState(() =>
+    toLocalDateTimeInputValue(period?.ended_at)
+  );
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setStartValue(toLocalDateTimeInputValue(period?.started_at));
+    setEndValue(toLocalDateTimeInputValue(period?.ended_at));
+  }, [period?.id, period?.started_at, period?.ended_at]);
+
+  if (!period) return null;
+
+  const saveTiming = async () => {
+    if (busy) return;
+    if (!startValue) {
+      window.alert("Choose when recovery started.");
+      return;
+    }
+
+    const startDate = new Date(startValue);
+    const endDate = endValue ? new Date(endValue) : null;
+
+    if (!Number.isFinite(startDate.getTime())) {
+      window.alert("Recovery start time is not valid.");
+      return;
+    }
+    if (endDate && (!Number.isFinite(endDate.getTime()) || endDate < startDate)) {
+      window.alert("Recovery end time must be after the start time.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await onSave?.({
+        startedOn: startValue.slice(0, 10),
+        startedAt: startDate.toISOString(),
+        endedOn: endValue ? endValue.slice(0, 10) : null,
+        endedAt: endDate ? endDate.toISOString() : null,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="panel mt12">
+      <div className="h3">
+        {period.mode === "illness" ? "Illness" : "Injury"} recovery timing
+      </div>
+      <div className="muted mt4">
+        Correct the actual start and end of this recovery period. Historical log
+        days use this timing rather than today's recovery setting.
+      </div>
+      <div className="grid2 mt12">
+        <label>
+          <div className="label">Started</div>
+          <input
+            className="input"
+            type="datetime-local"
+            value={startValue}
+            onChange={(event) => setStartValue(event.target.value)}
+          />
+        </label>
+        <label>
+          <div className="label">Ended (leave blank if active)</div>
+          <input
+            className="input"
+            type="datetime-local"
+            value={endValue}
+            onChange={(event) => setEndValue(event.target.value)}
+          />
+        </label>
+      </div>
+      <div className="mt8">
+        <SecondaryButton disabled={busy} onClick={saveTiming}>
+          {busy ? "Saving…" : "Save recovery timing"}
+        </SecondaryButton>
+      </div>
+    </div>
+  );
+}
 function Challenge({ text, done }) {
   return (
     <div className="challenge">
@@ -1617,63 +1717,107 @@ function countSetsLoggedInLog(log) {
 function computeTotalMinutesForDay(log) {
   if (!log) return null;
 
-  // 1) Manual override wins
+  // A deliberate manual day override remains authoritative.
   const manualDay = safeNumber(log?.meta?.dayManualMin);
   if (manualDay > 0) return manualDay;
 
   const blocks = Array.isArray(log.blocks) ? log.blocks : [];
-
-  // 2) New model: sum minutes from per-block cardio + duration + structured Sessions
-  let blockCardioMin = 0;
-  let blockDurationMin = 0;
-  let blockSessionMin = 0;
+  let totalMinutes = 0;
+  let hasActivityMinutes = false;
 
   if (blocks.length) {
     for (const b of blocks) {
-      if (!b) continue;
+      if (!b || b.cancelled || b.suspendedByRecoveryMode) continue;
 
-      if (b.cardio && typeof b.cardio === "object") {
-        blockCardioMin += safeNumber(b.cardio.durationMin);
+      const typeId = String(b.typeId || "").toLowerCase();
+
+      if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+        const actualMinutes = safeNumber(b?.duration?.minutes);
+
+        if (actualMinutes > 0) {
+          totalMinutes += actualMinutes;
+          hasActivityMinutes = true;
+          continue;
+        }
+
+        const setCount = countCompletedSetsInBlock(b);
+        if (setCount > 0) {
+          const restSec =
+            safeNumber(b?.restSec) ||
+            safeNumber(log?.meta?.restSec) ||
+            60;
+          totalMinutes += estimateStrengthMinutes(setCount, restSec);
+          hasActivityMinutes = true;
+        }
+        continue;
       }
 
-      if (b.duration && typeof b.duration === "object") {
-        // duration blocks use duration.minutes
-        blockDurationMin += safeNumber(b.duration.minutes);
+      if (
+        typeId === "cardio" ||
+        typeId === "run" ||
+        typeId === "swim" ||
+        typeId === "walk" ||
+        typeId === "row" ||
+        typeId === "cycle" ||
+        typeId === "bike"
+      ) {
+        const minutes = safeNumber(b?.cardio?.durationMin);
+        if (minutes > 0) {
+          totalMinutes += minutes;
+          hasActivityMinutes = true;
+        }
+        continue;
       }
 
-      if (b.typeId === "session") {
-        blockSessionMin += getSessionBlockTrainingMinutes(b);
+      if (typeId === "duration") {
+        const minutes = safeNumber(b?.duration?.minutes);
+        if (minutes > 0) {
+          totalMinutes += minutes;
+          hasActivityMinutes = true;
+        }
+        continue;
+      }
+
+      if (typeId === "session") {
+        const minutes = getSessionBlockTrainingMinutes(b);
+        if (minutes > 0) {
+          totalMinutes += minutes;
+          hasActivityMinutes = true;
+        }
+        continue;
+      }
+
+      if (typeId === "recovery") {
+        const minutes = safeNumber(b?.duration?.minutes);
+        if (minutes > 0) {
+          totalMinutes += minutes;
+          hasActivityMinutes = true;
+        }
       }
     }
+
+    return hasActivityMinutes
+      ? Math.round(totalMinutes * 60) / 60
+      : null;
   }
 
-  if (blockCardioMin > 0 || blockDurationMin > 0 || blockSessionMin > 0) {
-    // e.g. 25 min run + 20 min yoga + 15 min skill Session = 60
-    return blockCardioMin + blockDurationMin + blockSessionMin;
-  }
-
-  // 3) Legacy fallback ONLY if we have no blocks snapshot
-  // (old logs that just had log.cardio/log.custom)
-  if (!blocks.length) {
-    const cardioMin = safeNumber(log?.cardio?.durationMin);
-    const customMin = safeNumber(log?.custom?.durationMin);
-    const totalDur = cardioMin + customMin;
-    if (totalDur > 0) return totalDur;
-  }
-
-  // 4) Finally, estimate from sets + rest interval (rough, motivation-only)
-  const restSec =
-    safeNumber(log?.meta?.restSec) || 60;
+  // Legacy logs without a block snapshot.
+  const cardioMin = safeNumber(log?.cardio?.durationMin);
+  const customMin = safeNumber(log?.custom?.durationMin);
+  const legacyDuration = cardioMin + customMin;
 
   const setsLogged = countSetsLoggedInLog(log);
-  if (setsLogged <= 0) return null;
+  const legacyStrength = setsLogged > 0
+    ? estimateStrengthMinutes(
+        setsLogged,
+        safeNumber(log?.meta?.restSec) || 60
+      )
+    : 0;
 
-  const workPerSetMin = 1; // quick heuristic
-  const est =
-    setsLogged * workPerSetMin +
-    Math.max(0, setsLogged) * (restSec / 60);
-
-  return Math.round(est * 10) / 10;
+  const legacyTotal = legacyDuration + legacyStrength;
+  return legacyTotal > 0
+    ? Math.round(legacyTotal * 60) / 60
+    : null;
 }
 
 function isTrainingBlockForRecoveryLogic(block) {
@@ -3400,8 +3544,20 @@ const [extraActivityXpDraft, setExtraActivityXpDraft] = useState("");
 const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
   useState("");
   const loadDayLogReqRef = useRef(0);
-  const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
+  const lastLogByDateRef = useRef({}); // latest optimistic log per profile/date
+  const logPersistTimersRef = useRef(new Map());
+  const logSaveRevisionRef = useRef(new Map());
+  const logSaveInFlightRef = useRef(0);
   const rewardClaimLockRef = useRef(new Set());
+
+  useEffect(() => {
+    return () => {
+      for (const timer of logPersistTimersRef.current.values()) {
+        clearTimeout(timer);
+      }
+      logPersistTimersRef.current.clear();
+    };
+  }, []);
 
   // Strength-like blocks for the selected day (planned + extra one-day)
   let allStrengthBlocksForDay = [];
@@ -6030,14 +6186,16 @@ function stampLogTiming(prevLog, nextLog) {
   };
 }
   
-  async function saveLog(nextLog) {
-  // Capture identity at the moment save starts
+  async function saveLog(nextLog, { debounceMs = 0 } = {}) {
+  // Capture identity at the moment the edit is made.
   const familyId = family?.id;
   const profileId = activeProfileId;
   const dateKey = selectedDate;
+  const cacheKey = makeLogCacheKey(familyId, profileId, dateKey);
 
-  // Resolve any newly planned Session blocks into immutable definition snapshots
-  // before the log is persisted. Existing block.session snapshots are never refreshed.
+  // Resolve newly planned Session blocks into immutable definition snapshots.
+  // Normal keystroke edits already have their snapshot and therefore stay fully
+  // optimistic; this async hydration path is only needed on first Session use.
   let preparedLog = nextLog ? { ...nextLog } : null;
 
   const hasUnresolvedSessionSnapshot =
@@ -6071,15 +6229,25 @@ function stampLogTiming(prevLog, nextLog) {
     }
   }
 
+  const previousLatest =
+    (cacheKey && lastLogByDateRef.current?.[cacheKey]) ||
+    logForDay ||
+    null;
+
   const logToStore = preparedLog
-    ? stampLogTiming(logForDay, preparedLog)
+    ? stampLogTiming(previousLatest, preparedLog)
     : null;
 
-  // 1) Update in-memory state for the currently viewed day
+  // Every edit gets a monotonically increasing revision. Older DB responses
+  // are never allowed to overwrite a newer local edit.
+  const revision = cacheKey
+    ? (logSaveRevisionRef.current.get(cacheKey) || 0) + 1
+    : 1;
+  if (cacheKey) logSaveRevisionRef.current.set(cacheKey, revision);
+
+  // Optimistic UI first: typing must never wait for the network.
   setLogForDay(logToStore);
 
-  // 2) Update per-day in-memory cache immediately
-  const cacheKey = makeLogCacheKey(familyId, profileId, dateKey);
   if (cacheKey) {
     const prev = lastLogByDateRef.current || {};
     if (logToStore) {
@@ -6091,7 +6259,6 @@ function stampLogTiming(prevLog, nextLog) {
     }
   }
 
-  // 3) Optimistically update allLogs for this exact day/profile
   setAllLogs((prev) => {
     const existing = Array.isArray(prev) ? prev : [];
     if (!familyId || !profileId || !dateKey) return existing;
@@ -6101,7 +6268,11 @@ function stampLogTiming(prevLog, nextLog) {
     );
 
     if (logToStore) {
-      const updatedRow = { ...(idx >= 0 ? existing[idx] : {}), date_ymd: dateKey, log: logToStore };
+      const updatedRow = {
+        ...(idx >= 0 ? existing[idx] : {}),
+        date_ymd: dateKey,
+        log: logToStore,
+      };
       if (idx >= 0) {
         const copy = existing.slice();
         copy[idx] = updatedRow;
@@ -6119,78 +6290,151 @@ function stampLogTiming(prevLog, nextLog) {
     return existing;
   });
 
-  // 4) Persist to DB
   if (!familyId || !profileId || !dateKey) return [];
 
-  setIsSavingLog(true);
-  try {
-    const { error } = await upsertLog(
-      familyId,
-      profileId,
-      dateKey,
-      logToStore
-    );
-
-    if (error) {
-      console.error("upsertLog failed", error);
+  const persistRevision = async () => {
+    // A superseded debounced edit has nothing left to write.
+    if (
+      cacheKey &&
+      logSaveRevisionRef.current.get(cacheKey) !== revision
+    ) {
       return [];
     }
 
-    // 5) Re-fetch THIS exact day back from DB and replace cache with canonical copy
-    const { data: dayData, error: dayError } = await getLog(
-      familyId,
-      profileId,
-      dateKey
-    );
+    logSaveInFlightRef.current += 1;
+    setIsSavingLog(true);
 
-    if (!dayError) {
-      const row = Array.isArray(dayData) ? dayData[0] : dayData;
-      const canonicalLog = row?.log_json || row?.log || logToStore || null;
+    try {
+      const { error } = await upsertLog(
+        familyId,
+        profileId,
+        dateKey,
+        logToStore
+      );
 
-      if (cacheKey) {
-        const prev = lastLogByDateRef.current || {};
-        if (canonicalLog) {
-          lastLogByDateRef.current = { ...prev, [cacheKey]: canonicalLog };
-        } else {
-          const copy = { ...prev };
-          delete copy[cacheKey];
-          lastLogByDateRef.current = copy;
+      if (error) {
+        console.error("upsertLog failed", error);
+        return [];
+      }
+
+      // If the user typed again while this request was in flight, the local
+      // cache is newer. Do not reconcile an older server copy back over it.
+      if (
+        cacheKey &&
+        logSaveRevisionRef.current.get(cacheKey) !== revision
+      ) {
+        return [];
+      }
+
+      const { data: dayData, error: dayError } = await getLog(
+        familyId,
+        profileId,
+        dateKey
+      );
+
+      if (
+        !dayError &&
+        (!cacheKey ||
+          logSaveRevisionRef.current.get(cacheKey) === revision)
+      ) {
+        const row = Array.isArray(dayData) ? dayData[0] : dayData;
+        const canonicalLog = row?.log_json || row?.log || logToStore || null;
+
+        if (cacheKey) {
+          const prev = lastLogByDateRef.current || {};
+          if (canonicalLog) {
+            lastLogByDateRef.current = { ...prev, [cacheKey]: canonicalLog };
+          } else {
+            const copy = { ...prev };
+            delete copy[cacheKey];
+            lastLogByDateRef.current = copy;
+          }
+        }
+
+        if (activeProfileId === profileId && selectedDate === dateKey) {
+          setLogForDay(canonicalLog);
         }
       }
 
-      // Only push back into visible day if the user is still on the same profile/date
-      if (activeProfileId === profileId && selectedDate === dateKey) {
-        setLogForDay(canonicalLog);
+      // A final revision check protects allLogs/XP from stale reconciliation.
+      if (
+        cacheKey &&
+        logSaveRevisionRef.current.get(cacheKey) !== revision
+      ) {
+        return [];
       }
+
+      const { data } = await listLogs(familyId, profileId, 2000);
+      const mapped = (data || [])
+        .map((r) => ({
+          id: r.id || null,
+          date_ymd: r.date_ymd,
+          log: getLogRowPayload(r),
+          created_at: r.created_at || null,
+          updated_at: r.updated_at || null,
+        }))
+        .filter((r) => r.log);
+
+      const merged = mergeMappedLogsWithLocalCache(
+        mapped,
+        familyId,
+        profileId
+      );
+
+      setAllLogs(merged);
+      setXp(computeXpFromLogs(merged, planRef.current));
+      return merged;
+    } finally {
+      logSaveInFlightRef.current = Math.max(
+        0,
+        logSaveInFlightRef.current - 1
+      );
+      setIsSavingLog(logSaveInFlightRef.current > 0);
     }
+  };
 
-    // 6) Refresh all logs for this exact profile
-    const { data } = await listLogs(familyId, profileId, 2000);
-    const mapped = (data || [])
-  .map((r) => ({
-    id: r.id || null,
-    date_ymd: r.date_ymd,
-    log: getLogRowPayload(r),
-    created_at: r.created_at || null,
-    updated_at: r.updated_at || null,
-  }))
-  .filter((r) => r.log);
+  // Text/number entry is intentionally debounced. The optimistic log above is
+  // already authoritative in the UI and cache, while persistence waits for a
+  // short pause in typing. Buttons/toggles continue to save immediately.
+  if (debounceMs > 0 && cacheKey) {
+    const existingTimer = logPersistTimersRef.current.get(cacheKey);
+    if (existingTimer) clearTimeout(existingTimer);
 
-    const merged = mergeMappedLogsWithLocalCache(
-      mapped,
-      familyId,
-      profileId
-    );
+    const timer = setTimeout(() => {
+      logPersistTimersRef.current.delete(cacheKey);
+      persistRevision().catch((error) =>
+        console.error("debounced log save failed", error)
+      );
+    }, debounceMs);
 
-    setAllLogs(merged);
-
-    // 7) Keep XP in sync with the refreshed source of truth
-    setXp(computeXpFromLogs(merged, planRef.current));
-
-    return merged;
-  } finally {
-    setIsSavingLog(false);
+    logPersistTimersRef.current.set(cacheKey, timer);
+    return [];
   }
+
+  if (cacheKey) {
+    const existingTimer = logPersistTimersRef.current.get(cacheKey);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      logPersistTimersRef.current.delete(cacheKey);
+    }
+  }
+
+  return persistRevision();
+}
+
+function latestLogForSelectedDay() {
+  const cacheKey = makeLogCacheKey(
+    family?.id,
+    activeProfileId,
+    selectedDate
+  );
+  const cached = cacheKey
+    ? lastLogByDateRef.current?.[cacheKey]
+    : null;
+
+  if (cached) return { ...cached };
+  if (logForDay) return { ...logForDay };
+  return blankLogForDay();
 }
 
 function blankLogForDay() {
@@ -6586,7 +6830,7 @@ async function claimDailyBonus(e, anchorEl) {
 
   playBuildUpSound();
 
-  const next = logForDay ? { ...logForDay } : blankLogForDay();
+  const next = latestLogForSelectedDay();
   next.meta = { ...(next.meta || {}), challengeClaimed: true };
 
   const refreshedLogs = await saveLog(next);
@@ -6651,7 +6895,7 @@ async function resetDay() {
 
   async function addOrUpdateSet(exId, idx, patch) {
     const ctx = await ensureAudio();
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const entries = { ...(next.entries || {}) };
     const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
     const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "", ...(cur[i] || {}) }));
@@ -6659,7 +6903,7 @@ async function resetDay() {
     entries[exId] = sets;
     next.entries = entries;
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
-    await saveLog(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
 
     if (ctx) {
       const combo = clamp((next.gamify?.comboMax || 1), 1, 10);
@@ -6670,22 +6914,22 @@ async function resetDay() {
 
   async function updateCardio(patch) {
     const ctx = await ensureAudio();
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const cardio = { ...(next.cardio || { distanceKm: "", durationMin: "", avgSpeedKmh: "" }), ...patch };
     const dist = safeNumber(cardio.distanceKm);
     const min = safeNumber(cardio.durationMin);
     const avg = min > 0 ? dist / (min / 60) : 0;
     cardio.avgSpeedKmh = avg ? avg.toFixed(2) : "";
     next.cardio = cardio;
-    await saveLog(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
   async function updateCustom(patch) {
     const ctx = await ensureAudio();
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     next.custom = { ...(next.custom || { durationMin: "" }), ...patch };
-    await saveLog(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -6696,7 +6940,7 @@ async function resetDay() {
       if (!ok) return;
     }
 
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     next.meta = { ...(next.meta || {}), streakSaved: checked };
     await saveLog(next);
     setLogForDay(next);
@@ -6707,7 +6951,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
 
   // Take a stable snapshot of today’s log (or a fresh blank one)
   const base = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   // Find the existing block so we can merge current cardio values
@@ -6763,15 +7007,14 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     }
   }
 
-  await saveLog(next);
-  setLogForDay(next);
+  await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
   if (ctx) playBling(ctx, 1, victoryTheme);
 }
 
     async function updateDurationForBlock(blockId, durationPatch) {
     const ctx = await ensureAudio();
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
 
     // Patch the specific block's duration
@@ -6790,8 +7033,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
       };
     }
 
-    await saveLog(next);
-    setLogForDay(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -6800,7 +7042,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     if (!blockId || !family?.id) return;
 
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
     const existingBlock = getBlockLog(base, blockId) || {};
 
@@ -6857,7 +7099,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     if (!blockId || !nextSession || typeof nextSession !== "object") return;
 
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
     const existingBlock = getBlockLog(base, blockId) || {};
     const previousSession =
@@ -6888,7 +7130,17 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     }
 
     const next = updateBlockLog(base, blockId, { session: sessionToSave });
-    await saveLog(next);
+    const shouldDebounce =
+      meta?.source === "movement" &&
+      (meta?.movementMeta?.source === "note" ||
+        meta?.movementMeta?.source === "result");
+
+    await saveLog(
+      next,
+      shouldDebounce
+        ? { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS }
+        : undefined
+    );
 
     if (meta?.source === "session-complete") {
       const ctx = await ensureAudio();
@@ -6899,7 +7151,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   async function toggleRecoveryForBlock(blockId, recoveryDone) {
     const ctx = await ensureAudio();
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
 
     const next = updateBlockLog(base, blockId, {
@@ -6920,7 +7172,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
         : Math.max(0, Number(minutes) || 0);
     const done = Number(clean) > 0;
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
     const previous = getBlockLog(base, blockId) || {};
     const wasDone = profileRecoveryBlockComplete(previous);
@@ -6929,8 +7181,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
       recoveryDone: done,
     });
 
-    await saveLog(next);
-    setLogForDay(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
 
     if (ctx && done && !wasDone) playBling(ctx, 1, victoryTheme);
   }  
@@ -6943,7 +7194,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
   }
 
   const base = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const next = updateBlockLog(base, blockId, { cancelled });
@@ -6960,7 +7211,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
 
         // Start from existing log or a fresh blank one
     const baseLog = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
 
     // Current block log (if any)
@@ -6982,8 +7233,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
       sets: nextSetsMap,
     });
 
-    await saveLog(nextLog);
-    setLogForDay(nextLog);
+    await saveLog(nextLog, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -6992,7 +7242,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
 
     // Start from the current log or a blank one
     const baseLog = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
 
     // --- 1) Update the block-level log (V3 way) ---
@@ -7278,7 +7528,7 @@ useEffect(() => {
     const trimmed = (name || "").trim();
     if (!trimmed) return;
 
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const meta = { ...(next.meta || {}) };
     const current = Array.isArray(meta.oneOffActivities)
       ? meta.oneOffActivities.slice()
@@ -7307,7 +7557,7 @@ async function addExtraMovementForToday(draft) {
 
   // Start from today’s log with a blocks snapshot
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7382,7 +7632,7 @@ const targetText = (draft?.targetText || "").trim();
 const coachNote = (draft?.coachNote || "").trim();
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7427,7 +7677,7 @@ async function addExtraDurationBlockForToday(draft) {
   const coachNote = (draft?.coachNote || "").trim();
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7474,7 +7724,7 @@ async function addExtraRecoveryBlockForToday(draft) {
   ).trim();
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7516,7 +7766,7 @@ async function addExtraSessionBlockForToday(draft) {
   if (!normalised.sessionTemplateId) return false;
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
   const existingBlocks = Array.isArray(baseLog.blocks)
     ? baseLog.blocks.slice()
@@ -7548,7 +7798,7 @@ async function addExtraActivityBlockForToday(draft) {
   const coachNote = (draft?.coachNote || "").trim();
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7739,7 +7989,7 @@ setExtraCardioCoachNoteDraft("");
 
   // Remove an extra movement block from today's log
 async function removeExtraMovement(blockId) {
-  const baseLog = logForDay ? { ...logForDay } : blankLogForDay();
+  const baseLog = latestLogForSelectedDay();
 
   const blocks = Array.isArray(baseLog.blocks) ? baseLog.blocks : [];
   const nextBlocks = blocks.filter(
@@ -7762,7 +8012,7 @@ async function removeExtraMovement(blockId) {
 }
 
   async function removeOneOffActivity(id) {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const meta = { ...(next.meta || {}) };
     const list = Array.isArray(meta.oneOffActivities)
       ? meta.oneOffActivities.slice()
@@ -7774,7 +8024,7 @@ async function removeExtraMovement(blockId) {
   }
   
   async function removeOneOffActivity(id) {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const meta = { ...(next.meta || {}) };
     const list = Array.isArray(meta.oneOffActivities)
       ? meta.oneOffActivities.slice()
@@ -7849,7 +8099,7 @@ async function removeExtraMovement(blockId) {
 
     async function updateTask(taskId, done) {
     const ctx = await ensureAudio();
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const tasks = { ...(next.tasks || {}) };
     tasks[taskId] = { ...(tasks[taskId] || {}), done };
     next.tasks = tasks;
@@ -9979,7 +10229,10 @@ const targetInfo = buildTargetInfoForMovement({
                 </div>
 
                 <div className="grid2 mt12">
-                  <SummaryStat label="Total minutes" value={computeTotalMinutesForDay(logForDay) ?? "—"} />
+                  <SummaryStat
+                    label="Total time"
+                    value={formatActivityMinutes(computeTotalMinutesForDay(logForDay))}
+                  />
                   <SummaryStat
   label="Sets logged"
   value={countSetsLoggedInLog(logForDay) || 0}
@@ -12646,6 +12899,56 @@ if (!didClaim) {
                         and replaces it with a recovery confirmation (5 XP).
                         Completing either maintains the streak. Tasks stay active.
                       </div>
+
+                      {(() => {
+                        const recoveryHistory = (profileRecoveryPeriods || [])
+                          .filter((period) => period?.profile_id === p.id)
+                          .slice()
+                          .sort(
+                            (a, b) =>
+                              new Date(b?.started_at || 0).getTime() -
+                              new Date(a?.started_at || 0).getTime()
+                          )
+                          .slice(0, 5);
+
+                        if (!recoveryHistory.length) return null;
+
+                        return (
+                          <div className="mt12">
+                            <div className="label">Recovery history</div>
+                            <div className="muted mt4">
+                              Adjust a period if recovery actually started or ended
+                              at a different date or time.
+                            </div>
+                            {recoveryHistory.map((period) => (
+                              <RecoveryTimingEditor
+                                key={period.id}
+                                period={period}
+                                onSave={async (timing) => {
+                                  if (!(await ensureUnlocked("change recovery timing"))) return;
+
+                                  const { error } =
+                                    await updateProfileRecoveryPeriodTiming(
+                                      period.id,
+                                      p.id,
+                                      timing
+                                    );
+
+                                  if (error) {
+                                    window.alert(error.message || String(error));
+                                    return;
+                                  }
+
+                                  const { data: periods } =
+                                    await listProfileRecoveryPeriods(family.id);
+                                  setProfileRecoveryPeriods(periods || []);
+                                  setExternalLogRevision((value) => value + 1);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                     </div>
                   </div>

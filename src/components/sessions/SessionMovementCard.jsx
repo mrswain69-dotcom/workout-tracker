@@ -77,10 +77,25 @@ export default function SessionMovementCard({
     }
   };
 
-  const markDone = () => {
+  const toggleDone = () => {
     if (disabled) return;
     const current = liveMovementRef.current;
-    if (current.completed && !current.skipped) return;
+
+    if (current.completed && !current.skipped) {
+      const confirmed =
+        typeof window === "undefined" ||
+        typeof window.confirm !== "function" ||
+        window.confirm("Undo completion for this movement?");
+
+      if (!confirmed) return;
+
+      emitPatch(
+        { completed: false, skipped: false },
+        { source: "status", status: "uncompleted" }
+      );
+      return;
+    }
+
     emitPatch(
       { completed: true, skipped: false },
       { source: "status", status: "completed" }
@@ -169,7 +184,7 @@ export default function SessionMovementCard({
                 }`}
                 aria-pressed={completed && !skipped}
                 disabled={disabled}
-                onClick={markDone}
+                onClick={toggleDone}
               >
                 Done
               </button>

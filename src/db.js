@@ -177,6 +177,25 @@ export async function setProfileRecoveryMode(profileId, mode, effectiveOn) {
   return { data, error };
 }
 
+export async function updateProfileRecoveryPeriodTiming(
+  periodId,
+  profileId,
+  { startedOn, startedAt, endedOn = null, endedAt = null } = {}
+) {
+  const { data, error } = await supabase.rpc(
+    "update_profile_recovery_period_timing",
+    {
+      p_period_id: periodId,
+      p_profile_id: profileId,
+      p_started_on: startedOn || null,
+      p_started_at: startedAt || null,
+      p_ended_on: endedOn || null,
+      p_ended_at: endedAt || null,
+    }
+  );
+  return { data, error };
+}
+
 
 export async function archiveProfile(profileId) {
   const { data, error } = await supabase

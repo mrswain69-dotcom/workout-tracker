@@ -21,7 +21,22 @@ describe("profile recovery mode engine", () => {
 
     const ended = { ...open, ended_on: "2026-09-18", ended_at: "2026-09-18T08:00:00Z" };
     expect(getProfileRecoveryModeForDate([ended], "p1", "2026-09-18", "2026-09-18")).toBeNull();
-    expect(getProfileRecoveryModeForDate([ended], "p1", "2026-09-18", "2026-09-19")?.mode).toBe("injury");
+    expect(getProfileRecoveryModeForDate([ended], "p1", "2026-09-18", "2026-09-19")).toBeNull();
+  });
+
+  it("keeps earlier dates inside an ended recovery period paused", () => {
+    const ended = {
+      id: "r2",
+      profile_id: "p1",
+      mode: "injury",
+      started_on: "2026-09-16",
+      ended_on: "2026-09-18",
+      started_at: "2026-09-16T07:00:00Z",
+      ended_at: "2026-09-18T08:00:00Z",
+    };
+
+    expect(getProfileRecoveryModeForDate([ended], "p1", "2026-09-17", "2026-09-19")?.mode).toBe("injury");
+    expect(getProfileRecoveryModeForDate([ended], "p1", "2026-09-18", "2026-09-19")).toBeNull();
   });
 
   it("pauses physical plan blocks, keeps tasks active and adds one recovery block", () => {
