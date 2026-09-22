@@ -1,4 +1,4 @@
-export const GROUP_PERIOD_SCORE_VERSION = 1;
+export const GROUP_PERIOD_SCORE_VERSION = 2;
 export const GROUP_SEASON_WEEKS = 8;
 export const GROUP_SEASON_DAYS = GROUP_SEASON_WEEKS * 7;
 
@@ -127,7 +127,11 @@ function metricState(row, metric) {
 }
 
 export function rankGroupPeriodMetric(rows = [], metric = "xp") {
-  const ordered = [...(Array.isArray(rows) ? rows : [])].sort((a, b) => {
+  const all = Array.isArray(rows) ? rows : [];
+  const included = all.filter((row) => !row?.competition_excluded);
+  const excluded = all.filter((row) => row?.competition_excluded);
+
+  const ordered = [...included].sort((a, b) => {
     const aState = metricState(a, metric);
     const bState = metricState(b, metric);
     if (aState.scored !== bState.scored) return aState.scored ? -1 : 1;
@@ -137,13 +141,24 @@ export function rankGroupPeriodMetric(rows = [], metric = "xp") {
 
   let lastScore = null;
   let lastRank = 0;
-  return ordered.map((row, index) => {
+  const ranked = ordered.map((row, index) => {
     const state = metricState(row, metric);
     if (!state.scored) return { ...row, rank: null };
     if (lastScore === null || state.value !== lastScore) lastRank = index + 1;
     lastScore = state.value;
     return { ...row, rank: lastRank };
   });
+
+  return [
+    ...ranked,
+    ...excluded
+      .sort((a, b) =>
+        cleanText(a?.nickname).localeCompare(cleanText(b?.nickname), "en", {
+          sensitivity: "base",
+        })
+      )
+      .map((row) => ({ ...row, rank: null })),
+  ];
 }
 
 export function addGroupPeriodRanks(rows = []) {
