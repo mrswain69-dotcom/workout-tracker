@@ -13,13 +13,28 @@ describe("session, recovery and live-entry hardening release contract", () => {
     expect(app).toContain("latestLogForSelectedDay()");
   });
 
-  it("shows human-readable total time rather than a raw decimal minute value", () => {
+  it("shows human-readable activity time from the shared activity-time engine", () => {
+    const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
+    const timeEngine = fs.readFileSync(
+      new URL("./activityTimeEngine.js", import.meta.url),
+      "utf8"
+    );
+
+    expect(app).toContain('label="Activity time"');
+    expect(app).toContain("formatActivityMinutes(computeTotalMinutesForDay(logForDay))");
+    expect(app).toContain("return computeActivityMinutesForDay(log);");
+    expect(timeEngine).toContain("countCompletedSetsInBlock");
+    expect(timeEngine).toContain("getSessionBlockTrainingMinutes(block)");
+  });
+
+  it("keeps the day summary focused on consistency, progression and earned XP", () => {
     const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
 
-    expect(app).toContain('label="Total time"');
-    expect(app).toContain("formatActivityMinutes(computeTotalMinutesForDay(logForDay))");
-    expect(app).toContain("estimateStrengthMinutes(setCount, restSec)");
-    expect(app).toContain("getSessionBlockTrainingMinutes(b)");
+    expect(app).toContain('label="Consistency"');
+    expect(app).toContain('label="Progress wins"');
+    expect(app).toContain('label="XP earned"');
+    expect(app).toContain("selectedDayPlanStreak");
+    expect(app).toContain("selectedDayProgressWins");
   });
 
   it("supports authorised start/end timing corrections for recovery history", () => {
