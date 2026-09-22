@@ -110,6 +110,7 @@ const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const LOG_INPUT_SAVE_DEBOUNCE_MS = 900;
 function weekdayFromYMD(ymd) {
   try {
     const d = new Date(`${ymd}T00:00:00`);
@@ -3541,8 +3542,20 @@ const [extraActivityXpDraft, setExtraActivityXpDraft] = useState("");
 const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
   useState("");
   const loadDayLogReqRef = useRef(0);
-  const lastLogByDateRef = useRef({}); // NEW: latest log we’ve saved per date
+  const lastLogByDateRef = useRef({}); // latest optimistic log per profile/date
+  const logPersistTimersRef = useRef(new Map());
+  const logSaveRevisionRef = useRef(new Map());
+  const logSaveInFlightRef = useRef(0);
   const rewardClaimLockRef = useRef(new Set());
+
+  useEffect(() => {
+    return () => {
+      for (const timer of logPersistTimersRef.current.values()) {
+        clearTimeout(timer);
+      }
+      logPersistTimersRef.current.clear();
+    };
+  }, []);
 
   // Strength-like blocks for the selected day (planned + extra one-day)
   let allStrengthBlocksForDay = [];
@@ -6171,14 +6184,16 @@ function stampLogTiming(prevLog, nextLog) {
   };
 }
   
-  async function saveLog(nextLog) {
-  // Capture identity at the moment save starts
+  async function saveLog(nextLog, { debounceMs = 0 } = {}) {
+  // Capture identity at the moment the edit is made.
   const familyId = family?.id;
   const profileId = activeProfileId;
   const dateKey = selectedDate;
+  const cacheKey = makeLogCacheKey(familyId, profileId, dateKey);
 
-  // Resolve any newly planned Session blocks into immutable definition snapshots
-  // before the log is persisted. Existing block.session snapshots are never refreshed.
+  // Resolve newly planned Session blocks into immutable definition snapshots.
+  // Normal keystroke edits already have their snapshot and therefore stay fully
+  // optimistic; this async hydration path is only needed on first Session use.
   let preparedLog = nextLog ? { ...nextLog } : null;
 
   const hasUnresolvedSessionSnapshot =
@@ -6212,15 +6227,25 @@ function stampLogTiming(prevLog, nextLog) {
     }
   }
 
+  const previousLatest =
+    (cacheKey && lastLogByDateRef.current?.[cacheKey]) ||
+    logForDay ||
+    null;
+
   const logToStore = preparedLog
-    ? stampLogTiming(logForDay, preparedLog)
+    ? stampLogTiming(previousLatest, preparedLog)
     : null;
 
-  // 1) Update in-memory state for the currently viewed day
+  // Every edit gets a monotonically increasing revision. Older DB responses
+  // are never allowed to overwrite a newer local edit.
+  const revision = cacheKey
+    ? (logSaveRevisionRef.current.get(cacheKey) || 0) + 1
+    : 1;
+  if (cacheKey) logSaveRevisionRef.current.set(cacheKey, revision);
+
+  // Optimistic UI first: typing must never wait for the network.
   setLogForDay(logToStore);
 
-  // 2) Update per-day in-memory cache immediately
-  const cacheKey = makeLogCacheKey(familyId, profileId, dateKey);
   if (cacheKey) {
     const prev = lastLogByDateRef.current || {};
     if (logToStore) {
@@ -6232,7 +6257,6 @@ function stampLogTiming(prevLog, nextLog) {
     }
   }
 
-  // 3) Optimistically update allLogs for this exact day/profile
   setAllLogs((prev) => {
     const existing = Array.isArray(prev) ? prev : [];
     if (!familyId || !profileId || !dateKey) return existing;
@@ -6242,7 +6266,11 @@ function stampLogTiming(prevLog, nextLog) {
     );
 
     if (logToStore) {
-      const updatedRow = { ...(idx >= 0 ? existing[idx] : {}), date_ymd: dateKey, log: logToStore };
+      const updatedRow = {
+        ...(idx >= 0 ? existing[idx] : {}),
+        date_ymd: dateKey,
+        log: logToStore,
+      };
       if (idx >= 0) {
         const copy = existing.slice();
         copy[idx] = updatedRow;
@@ -6260,78 +6288,151 @@ function stampLogTiming(prevLog, nextLog) {
     return existing;
   });
 
-  // 4) Persist to DB
   if (!familyId || !profileId || !dateKey) return [];
 
-  setIsSavingLog(true);
-  try {
-    const { error } = await upsertLog(
-      familyId,
-      profileId,
-      dateKey,
-      logToStore
-    );
-
-    if (error) {
-      console.error("upsertLog failed", error);
+  const persistRevision = async () => {
+    // A superseded debounced edit has nothing left to write.
+    if (
+      cacheKey &&
+      logSaveRevisionRef.current.get(cacheKey) !== revision
+    ) {
       return [];
     }
 
-    // 5) Re-fetch THIS exact day back from DB and replace cache with canonical copy
-    const { data: dayData, error: dayError } = await getLog(
-      familyId,
-      profileId,
-      dateKey
-    );
+    logSaveInFlightRef.current += 1;
+    setIsSavingLog(true);
 
-    if (!dayError) {
-      const row = Array.isArray(dayData) ? dayData[0] : dayData;
-      const canonicalLog = row?.log_json || row?.log || logToStore || null;
+    try {
+      const { error } = await upsertLog(
+        familyId,
+        profileId,
+        dateKey,
+        logToStore
+      );
 
-      if (cacheKey) {
-        const prev = lastLogByDateRef.current || {};
-        if (canonicalLog) {
-          lastLogByDateRef.current = { ...prev, [cacheKey]: canonicalLog };
-        } else {
-          const copy = { ...prev };
-          delete copy[cacheKey];
-          lastLogByDateRef.current = copy;
+      if (error) {
+        console.error("upsertLog failed", error);
+        return [];
+      }
+
+      // If the user typed again while this request was in flight, the local
+      // cache is newer. Do not reconcile an older server copy back over it.
+      if (
+        cacheKey &&
+        logSaveRevisionRef.current.get(cacheKey) !== revision
+      ) {
+        return [];
+      }
+
+      const { data: dayData, error: dayError } = await getLog(
+        familyId,
+        profileId,
+        dateKey
+      );
+
+      if (
+        !dayError &&
+        (!cacheKey ||
+          logSaveRevisionRef.current.get(cacheKey) === revision)
+      ) {
+        const row = Array.isArray(dayData) ? dayData[0] : dayData;
+        const canonicalLog = row?.log_json || row?.log || logToStore || null;
+
+        if (cacheKey) {
+          const prev = lastLogByDateRef.current || {};
+          if (canonicalLog) {
+            lastLogByDateRef.current = { ...prev, [cacheKey]: canonicalLog };
+          } else {
+            const copy = { ...prev };
+            delete copy[cacheKey];
+            lastLogByDateRef.current = copy;
+          }
+        }
+
+        if (activeProfileId === profileId && selectedDate === dateKey) {
+          setLogForDay(canonicalLog);
         }
       }
 
-      // Only push back into visible day if the user is still on the same profile/date
-      if (activeProfileId === profileId && selectedDate === dateKey) {
-        setLogForDay(canonicalLog);
+      // A final revision check protects allLogs/XP from stale reconciliation.
+      if (
+        cacheKey &&
+        logSaveRevisionRef.current.get(cacheKey) !== revision
+      ) {
+        return [];
       }
+
+      const { data } = await listLogs(familyId, profileId, 2000);
+      const mapped = (data || [])
+        .map((r) => ({
+          id: r.id || null,
+          date_ymd: r.date_ymd,
+          log: getLogRowPayload(r),
+          created_at: r.created_at || null,
+          updated_at: r.updated_at || null,
+        }))
+        .filter((r) => r.log);
+
+      const merged = mergeMappedLogsWithLocalCache(
+        mapped,
+        familyId,
+        profileId
+      );
+
+      setAllLogs(merged);
+      setXp(computeXpFromLogs(merged, planRef.current));
+      return merged;
+    } finally {
+      logSaveInFlightRef.current = Math.max(
+        0,
+        logSaveInFlightRef.current - 1
+      );
+      setIsSavingLog(logSaveInFlightRef.current > 0);
     }
+  };
 
-    // 6) Refresh all logs for this exact profile
-    const { data } = await listLogs(familyId, profileId, 2000);
-    const mapped = (data || [])
-  .map((r) => ({
-    id: r.id || null,
-    date_ymd: r.date_ymd,
-    log: getLogRowPayload(r),
-    created_at: r.created_at || null,
-    updated_at: r.updated_at || null,
-  }))
-  .filter((r) => r.log);
+  // Text/number entry is intentionally debounced. The optimistic log above is
+  // already authoritative in the UI and cache, while persistence waits for a
+  // short pause in typing. Buttons/toggles continue to save immediately.
+  if (debounceMs > 0 && cacheKey) {
+    const existingTimer = logPersistTimersRef.current.get(cacheKey);
+    if (existingTimer) clearTimeout(existingTimer);
 
-    const merged = mergeMappedLogsWithLocalCache(
-      mapped,
-      familyId,
-      profileId
-    );
+    const timer = setTimeout(() => {
+      logPersistTimersRef.current.delete(cacheKey);
+      persistRevision().catch((error) =>
+        console.error("debounced log save failed", error)
+      );
+    }, debounceMs);
 
-    setAllLogs(merged);
-
-    // 7) Keep XP in sync with the refreshed source of truth
-    setXp(computeXpFromLogs(merged, planRef.current));
-
-    return merged;
-  } finally {
-    setIsSavingLog(false);
+    logPersistTimersRef.current.set(cacheKey, timer);
+    return [];
   }
+
+  if (cacheKey) {
+    const existingTimer = logPersistTimersRef.current.get(cacheKey);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      logPersistTimersRef.current.delete(cacheKey);
+    }
+  }
+
+  return persistRevision();
+}
+
+function latestLogForSelectedDay() {
+  const cacheKey = makeLogCacheKey(
+    family?.id,
+    activeProfileId,
+    selectedDate
+  );
+  const cached = cacheKey
+    ? lastLogByDateRef.current?.[cacheKey]
+    : null;
+
+  if (cached) return { ...cached };
+  if (logForDay) return { ...logForDay };
+  return blankLogForDay();
 }
 
 function blankLogForDay() {
@@ -6727,7 +6828,7 @@ async function claimDailyBonus(e, anchorEl) {
 
   playBuildUpSound();
 
-  const next = logForDay ? { ...logForDay } : blankLogForDay();
+  const next = latestLogForSelectedDay();
   next.meta = { ...(next.meta || {}), challengeClaimed: true };
 
   const refreshedLogs = await saveLog(next);
@@ -6792,7 +6893,7 @@ async function resetDay() {
 
   async function addOrUpdateSet(exId, idx, patch) {
     const ctx = await ensureAudio();
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const entries = { ...(next.entries || {}) };
     const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
     const sets = [0, 1, 2].map((i) => ({ reps: "", weight: "", timeSeconds: "", count: "", notes: "", ...(cur[i] || {}) }));
@@ -6811,7 +6912,7 @@ async function resetDay() {
 
   async function updateCardio(patch) {
     const ctx = await ensureAudio();
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const cardio = { ...(next.cardio || { distanceKm: "", durationMin: "", avgSpeedKmh: "" }), ...patch };
     const dist = safeNumber(cardio.distanceKm);
     const min = safeNumber(cardio.durationMin);
@@ -6824,7 +6925,7 @@ async function resetDay() {
 
   async function updateCustom(patch) {
     const ctx = await ensureAudio();
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     next.custom = { ...(next.custom || { durationMin: "" }), ...patch };
     await saveLog(next);
     if (ctx) playBling(ctx, 1, victoryTheme);
@@ -6837,7 +6938,7 @@ async function resetDay() {
       if (!ok) return;
     }
 
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     next.meta = { ...(next.meta || {}), streakSaved: checked };
     await saveLog(next);
     setLogForDay(next);
@@ -6848,7 +6949,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
 
   // Take a stable snapshot of today’s log (or a fresh blank one)
   const base = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   // Find the existing block so we can merge current cardio values
@@ -6912,7 +7013,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     async function updateDurationForBlock(blockId, durationPatch) {
     const ctx = await ensureAudio();
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
 
     // Patch the specific block's duration
@@ -6941,7 +7042,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     if (!blockId || !family?.id) return;
 
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
     const existingBlock = getBlockLog(base, blockId) || {};
 
@@ -6998,7 +7099,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     if (!blockId || !nextSession || typeof nextSession !== "object") return;
 
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
     const existingBlock = getBlockLog(base, blockId) || {};
     const previousSession =
@@ -7040,7 +7141,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   async function toggleRecoveryForBlock(blockId, recoveryDone) {
     const ctx = await ensureAudio();
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
 
     const next = updateBlockLog(base, blockId, {
@@ -7061,7 +7162,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
         : Math.max(0, Number(minutes) || 0);
     const done = Number(clean) > 0;
     const base = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
     const previous = getBlockLog(base, blockId) || {};
     const wasDone = profileRecoveryBlockComplete(previous);
@@ -7084,7 +7185,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
   }
 
   const base = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const next = updateBlockLog(base, blockId, { cancelled });
@@ -7101,7 +7202,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
 
         // Start from existing log or a fresh blank one
     const baseLog = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
 
     // Current block log (if any)
@@ -7133,7 +7234,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
 
     // Start from the current log or a blank one
     const baseLog = ensureBlocksSnapshot(
-      logForDay ? { ...logForDay } : blankLogForDay()
+      latestLogForSelectedDay()
     );
 
     // --- 1) Update the block-level log (V3 way) ---
@@ -7419,7 +7520,7 @@ useEffect(() => {
     const trimmed = (name || "").trim();
     if (!trimmed) return;
 
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const meta = { ...(next.meta || {}) };
     const current = Array.isArray(meta.oneOffActivities)
       ? meta.oneOffActivities.slice()
@@ -7448,7 +7549,7 @@ async function addExtraMovementForToday(draft) {
 
   // Start from today’s log with a blocks snapshot
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7523,7 +7624,7 @@ const targetText = (draft?.targetText || "").trim();
 const coachNote = (draft?.coachNote || "").trim();
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7568,7 +7669,7 @@ async function addExtraDurationBlockForToday(draft) {
   const coachNote = (draft?.coachNote || "").trim();
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7615,7 +7716,7 @@ async function addExtraRecoveryBlockForToday(draft) {
   ).trim();
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7657,7 +7758,7 @@ async function addExtraSessionBlockForToday(draft) {
   if (!normalised.sessionTemplateId) return false;
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
   const existingBlocks = Array.isArray(baseLog.blocks)
     ? baseLog.blocks.slice()
@@ -7689,7 +7790,7 @@ async function addExtraActivityBlockForToday(draft) {
   const coachNote = (draft?.coachNote || "").trim();
 
   const baseLog = ensureBlocksSnapshot(
-    logForDay ? { ...logForDay } : blankLogForDay()
+    latestLogForSelectedDay()
   );
 
   const existingBlocks = Array.isArray(baseLog.blocks)
@@ -7880,7 +7981,7 @@ setExtraCardioCoachNoteDraft("");
 
   // Remove an extra movement block from today's log
 async function removeExtraMovement(blockId) {
-  const baseLog = logForDay ? { ...logForDay } : blankLogForDay();
+  const baseLog = latestLogForSelectedDay();
 
   const blocks = Array.isArray(baseLog.blocks) ? baseLog.blocks : [];
   const nextBlocks = blocks.filter(
@@ -7903,7 +8004,7 @@ async function removeExtraMovement(blockId) {
 }
 
   async function removeOneOffActivity(id) {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const meta = { ...(next.meta || {}) };
     const list = Array.isArray(meta.oneOffActivities)
       ? meta.oneOffActivities.slice()
@@ -7915,7 +8016,7 @@ async function removeExtraMovement(blockId) {
   }
   
   async function removeOneOffActivity(id) {
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const meta = { ...(next.meta || {}) };
     const list = Array.isArray(meta.oneOffActivities)
       ? meta.oneOffActivities.slice()
@@ -7990,7 +8091,7 @@ async function removeExtraMovement(blockId) {
 
     async function updateTask(taskId, done) {
     const ctx = await ensureAudio();
-    const next = logForDay ? { ...logForDay } : blankLogForDay();
+    const next = latestLogForSelectedDay();
     const tasks = { ...(next.tasks || {}) };
     tasks[taskId] = { ...(tasks[taskId] || {}), done };
     next.tasks = tasks;
