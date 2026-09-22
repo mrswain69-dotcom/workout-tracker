@@ -1255,6 +1255,52 @@ function Input({ value, onChange, placeholder, type = "text", min, step, readOnl
     />
   );
 }
+
+function CommitOnBlurInput({
+  value,
+  onCommit,
+  placeholder,
+  type = "text",
+  min,
+  step,
+}) {
+  const externalValue =
+    value === undefined || value === null ? "" : String(value);
+  const [draft, setDraft] = useState(externalValue);
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (!focusedRef.current) setDraft(externalValue);
+  }, [externalValue]);
+
+  const commit = () => {
+    focusedRef.current = false;
+    if (draft === externalValue) return;
+    onCommit?.(draft);
+  };
+
+  return (
+    <input
+      className="input"
+      value={draft}
+      type={type}
+      min={min}
+      step={step}
+      placeholder={placeholder}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
 function Textarea({ value, onChange, placeholder, rows = 3 }) {
   return (
     <textarea
@@ -12805,18 +12851,24 @@ if (!didClaim) {
 
                     <div className="mt12">
                       <div className="label">Bodyweight (kg) for calorie estimates</div>
-                      <Input
+                      <CommitOnBlurInput
                         type="number"
                         min={0}
                         step={0.1}
                         value={p.body_weight_kg ?? ""}
-                        onChange={async (v) => {
+                        onCommit={async (v) => {
                           if (!(await ensureUnlocked("change bodyweight"))) return;
-                          await setProfileBodyweight(p.id, v === "" ? null : Number(v));
+                          await setProfileBodyweight(
+                            p.id,
+                            v === "" ? null : Number(v)
+                          );
                           await refreshAll();
                         }}
                         placeholder="optional"
                       />
+                      <div className="muted mini mt4">
+                        Saves when you leave the field or press Enter.
+                      </div>
                     <div className="mt12">
                       <div className="label">Age mode (no DOB stored)</div>
                       <Select
