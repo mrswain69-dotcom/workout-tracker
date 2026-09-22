@@ -143,7 +143,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: memberships, error: membershipError } = await adminClient
       .from("group_memberships")
-      .select("id,profile_id,nickname,avatar_id,avatar_frame,avatar_frames_enabled,status,joined_at,left_at")
+      .select("id,profile_id,nickname,avatar_id,avatar_frame,avatar_frames_enabled,status,joined_at,left_at,competition_excluded,competition_exclusion_label")
       .eq("group_id", groupId)
       .eq("status", "active")
       .order("joined_at", { ascending: true });
@@ -179,6 +179,10 @@ Deno.serve(async (req: Request) => {
         avatar_id: member.avatar_id || "",
         avatar_frame: member.avatar_frame || "",
         avatar_frames_enabled: member.avatar_frames_enabled !== false,
+        competition_excluded: member.competition_excluded === true,
+        competition_exclusion_label:
+          member.competition_exclusion_label ||
+          (member.competition_excluded ? "Gamed XP" : ""),
         prCount: summary.prCount,
         latestPrDate: summary.latestPrDate,
         scoreState: summary.state,
