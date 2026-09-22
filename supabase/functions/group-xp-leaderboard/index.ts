@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 import {
   XP_ENGINE_SCORE_VERSION,
+  XP_RULES,
   buildXpDebugRows,
   getCurrentWeekWindow,
   getPreviousCompletedWeekWindows,
@@ -76,6 +77,50 @@ function blockCategory(block: any) {
   if (typeId === "duration") return "Duration";
   if (typeId === "session") return "Session";
   return "Activity";
+}
+
+function verificationEligiblePhysicalXp(block: any) {
+  if (!physicalBlockHasData(block)) return 0;
+  const typeId = String(block?.typeId || "").toLowerCase();
+
+  if (["strength", "hiit", "box"].includes(typeId)) {
+    const completedSets = Object.values(block?.sets || {}).reduce(
+      (sum: number, sets: any) =>
+        sum +
+        (Array.isArray(sets)
+          ? sets.filter(setHasData).length
+          : 0),
+      0
+    );
+    return completedSets > 0
+      ? completedSets * XP_RULES.strengthSet + XP_RULES.blockComplete
+      : 0;
+  }
+
+  if (typeId === "cardio") {
+    const minutes = safeNumber(block?.cardio?.durationMin);
+    const km = safeNumber(block?.cardio?.distanceKm);
+    let xp =
+      (minutes > 0 ? Math.ceil(minutes * XP_RULES.cardioPerMin) : 0) +
+      (km > 0 ? Math.ceil(km * XP_RULES.cardioPerKm) : 0);
+    if (xp > 0) xp += XP_RULES.blockComplete;
+
+    const isWalk = String(block?.cardioType || "").toLowerCase() === "walk";
+    if (isWalk) xp = Math.round(xp * 0.6);
+    return xp;
+  }
+
+  if (typeId === "duration") {
+    const minutes = safeNumber(block?.duration?.minutes);
+    if (minutes <= 0) return 0;
+    return Math.ceil(minutes * XP_RULES.durationPerMin) + XP_RULES.blockComplete;
+  }
+
+  if (typeId === "session") {
+    return block?.session?.completed ? XP_RULES.sessionComplete : 0;
+  }
+
+  return 0;
 }
 
 function rankRows(rows: any[]) {
@@ -177,6 +222,8 @@ function buildVerificationSummary(
   const activities: any[] = [];
   let eligibleCount = 0;
   let verifiedCount = 0;
+  let eligiblePhysicalXp = 0;
+  let verifiedPhysicalXp = 0;
 
   for (const row of logs || []) {
     const date = String(row?.date_ymd || "");
@@ -190,17 +237,23 @@ function buildVerificationSummary(
     for (const block of blocks) {
       if (!physicalBlockHasData(block)) continue;
       eligibleCount += 1;
+      const physicalXp = verificationEligiblePhysicalXp(block);
+      eligiblePhysicalXp += physicalXp;
 
       const exactKey = `${row.id}::${String(block.id || "")}`;
       const verified =
         linkKeys.has(exactKey) || logLevelVerified.has(String(row.id || ""));
-      if (verified) verifiedCount += 1;
+      if (verified) {
+        verifiedCount += 1;
+        verifiedPhysicalXp += physicalXp;
+      }
 
       activities.push({
         date,
         label: String(block.label || block.activityName || blockCategory(block)).slice(0, 80),
         category: blockCategory(block),
         verified,
+        earnedXp: physicalXp,
       });
     }
   }
@@ -208,8 +261,12 @@ function buildVerificationSummary(
   return {
     eligibleActivities: eligibleCount,
     verifiedActivities: verifiedCount,
+    eligiblePhysicalXp,
+    verifiedPhysicalXp,
     verificationPct:
-      eligibleCount > 0 ? Math.round((verifiedCount / eligibleCount) * 100) : null,
+      eligiblePhysicalXp > 0
+        ? Math.round((verifiedPhysicalXp / eligiblePhysicalXp) * 100)
+        : null,
     activities,
   };
 }
@@ -257,6 +314,8 @@ function decorateMemberRow(
     verificationPct: verification.verificationPct,
     verificationEligibleActivities: verification.eligibleActivities,
     verificationVerifiedActivities: verification.verifiedActivities,
+    verificationEligiblePhysicalXp: verification.eligiblePhysicalXp,
+    verificationVerifiedPhysicalXp: verification.verifiedPhysicalXp,
     evidence:
       member.xp_evidence_visible === true
         ? {
