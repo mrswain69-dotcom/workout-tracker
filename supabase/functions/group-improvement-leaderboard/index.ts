@@ -78,6 +78,22 @@ function memberEligibility(member: any, groupStart: string, window: any) {
   };
 }
 
+function rankWithCompetitionIntegrity(rows: any[]) {
+  const included = (rows || []).filter((row) => !row.competition_excluded);
+  const excluded = (rows || []).filter((row) => row.competition_excluded);
+  const ranked = rankImprovementRows(included);
+  return [
+    ...ranked,
+    ...excluded
+      .sort((a, b) =>
+        String(a.nickname || "").localeCompare(String(b.nickname || ""), "en", {
+          sensitivity: "base",
+        })
+      )
+      .map((row) => ({ ...row, rank: null })),
+  ];
+}
+
 function safeLiveRow(member: any, score: any) {
   return {
     membership_id: member.id,
@@ -86,6 +102,10 @@ function safeLiveRow(member: any, score: any) {
     avatar_id: member.avatar_id || "",
     avatar_frame: member.avatar_frame || "",
     avatar_frames_enabled: member.avatar_frames_enabled !== false,
+    competition_excluded: member.competition_excluded === true,
+    competition_exclusion_label:
+      member.competition_exclusion_label ||
+      (member.competition_excluded ? "Gamed XP" : ""),
     improvementPct:
       score?.improvementPct === null || score?.improvementPct === undefined
         ? null
@@ -174,7 +194,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: memberships, error: membershipError } = await adminClient
       .from("group_memberships")
-      .select("id,profile_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,status,joined_at,left_at")
+      .select("id,profile_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,status,joined_at,left_at,competition_excluded,competition_exclusion_label")
       .eq("group_id", groupId)
       .order("joined_at", { ascending: true });
     if (membershipError) throw membershipError;
@@ -314,7 +334,7 @@ Deno.serve(async (req: Request) => {
         baselineEnd: shiftImprovementYmd(currentWindow.startDate, -1),
         state: "live",
         available: groupStart <= currentWindow.endDate,
-        rows: rankImprovementRows(rows),
+        rows: rankWithCompetitionIntegrity(rows),
       };
     }
 
@@ -397,7 +417,20 @@ Deno.serve(async (req: Request) => {
         baselineEnd: shiftImprovementYmd(window.startDate, -1),
         state: "frozen",
         available: true,
-        rows: rankImprovementRows((frozenRows || []).map(safeFrozenRow)),
+        rows: rankWithCompetitionIntegrity(
+          (frozenRows || []).map((row: any) => {
+            const member = allMemberships.find(
+              (item: any) => item.id === row.membership_id
+            );
+            return {
+              ...safeFrozenRow(row),
+              competition_excluded: member?.competition_excluded === true,
+              competition_exclusion_label:
+                member?.competition_exclusion_label ||
+                (member?.competition_excluded ? "Gamed XP" : ""),
+            };
+          })
+        ),
       });
     }
 
