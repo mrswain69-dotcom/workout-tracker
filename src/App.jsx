@@ -54,6 +54,7 @@ import {
 import { buildWorkoutStreakSeries } from "./engine/workoutStreakEngine.js";
 import {
   buildDashboardWeekSummary,
+  buildRewardsRoadmap,
   getNextAvatarReward,
 } from "./engine/dashboardEngine.js";
 import {
@@ -4275,6 +4276,11 @@ if (cached) {
 
   const nextAvatarReward = useMemo(
     () => getNextAvatarReward(xp, AVATAR_PACKS),
+    [xp]
+  );
+
+  const rewardsRoadmap = useMemo(
+    () => buildRewardsRoadmap(xp, AVATAR_PACKS),
     [xp]
   );
 
