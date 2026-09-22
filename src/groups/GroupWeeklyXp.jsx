@@ -6,7 +6,7 @@ import {
 import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import "./GroupWeeklyXp.css";
 
-function errorText(error, fallback = "Could not load Weekly XP.") {
+function errorText(error, fallback = "Could not load Weekly Earned XP.") {
   return error?.message || String(error || fallback);
 }
 
@@ -36,7 +36,7 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
   if (!top.length) return null;
 
   return (
-    <div className="groupXpTopThree" aria-label="Weekly XP Top 3">
+    <div className="groupXpTopThree" aria-label="Weekly Earned XP Top 3">
       {top.map((row) => (
         <div
           key={row.membership_id}
@@ -275,7 +275,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
     const result = await updateGroupXpHistoryScope(group.id, nextScope);
     setBusy(false);
     if (result.error) {
-      setError(errorText(result.error, "Could not change Weekly XP history."));
+      setError(errorText(result.error, "Could not change Weekly Earned XP history."));
       return;
     }
     if (onGroupChanged) await onGroupChanged(group.id);
@@ -290,7 +290,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
           <h4>Weekly Earned XP</h4>
           <p>Group competition uses Earned XP only — training, tasks, completion, progress and consistency. Reward/award Bonus XP never increases the leaderboard score.</p>
         </div>
-        <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading || busy} aria-label="Refresh Weekly XP">
+        <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading || busy} aria-label="Refresh Weekly Earned XP">
           ↻
         </button>
       </div>
@@ -345,7 +345,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
               />
             </>
           ) : (
-            <div className="groupHubEmpty compact">No Weekly XP standings are available for this period.</div>
+            <div className="groupHubEmpty compact">No Weekly Earned XP standings are available for this period.</div>
           )}
         </>
       ) : null}
@@ -365,7 +365,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
       {isAdmin ? (
         <div className="groupXpAdminSetting">
           <div>
-            <strong>Weekly XP history</strong>
+            <strong>Weekly Earned XP history</strong>
             <span>Choose the historical cutoff for everyone in this Group. The Group start date itself does not move.</span>
           </div>
           <div className="groupXpScopeButtons" role="group" aria-label="Weekly XP history setting">
