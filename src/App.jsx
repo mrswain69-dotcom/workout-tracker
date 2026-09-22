@@ -15,6 +15,7 @@ import {
   signIn,
   signUp,
   signOut,
+  resendSignUpConfirmation,
   getOrCreateFamily,
   listProfiles,
   addProfile,
@@ -1313,19 +1314,93 @@ function AuthScreen({ onAuthed }) {
   const [pw, setPw] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState("");
 
   async function handleAuth() {
     if (busy) return;
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !pw) {
+      setMsg("Enter your email address and password.");
+      return;
+    }
+
     setBusy(true);
     setMsg("");
+
     try {
-      const fn = mode === "signup" ? signUp : signIn;
-      const { error } = await fn(email.trim(), pw);
-      if (error) setMsg(error.message);
-      else onAuthed();
+      if (mode === "signup") {
+        const { data, error } = await signUp(cleanEmail, pw);
+        if (error) {
+          setMsg(error.message);
+          return;
+        }
+
+        if (data?.session?.user) {
+          setPendingConfirmationEmail("");
+          onAuthed();
+          return;
+        }
+
+        // Email confirmation is enabled: signup succeeded, but Supabase has
+        // intentionally not authenticated this browser yet.
+        setPendingConfirmationEmail(cleanEmail);
+        setMode("signin");
+        setPw("");
+        setMsg(
+          "Account created. Check your email and confirm your address, then come back here and sign in."
+        );
+        return;
+      }
+
+      const { data, error } = await signIn(cleanEmail, pw);
+      if (error) {
+        if (/email.*not.*confirm/i.test(error.message || "")) {
+          setPendingConfirmationEmail(cleanEmail);
+          setMsg(
+            "Please confirm your email address before signing in. Check your inbox for the confirmation email."
+          );
+        } else {
+          setMsg(error.message);
+        }
+        return;
+      }
+
+      if (!data?.session?.user) {
+        setMsg("Sign-in did not create a valid session. Please try again.");
+        return;
+      }
+
+      setPendingConfirmationEmail("");
+      onAuthed();
     } finally {
       setBusy(false);
     }
+  }
+
+  async function resendConfirmation() {
+    const targetEmail = pendingConfirmationEmail || email.trim();
+    if (!targetEmail || busy) return;
+
+    setBusy(true);
+    setMsg("");
+    try {
+      const { error } = await resendSignUpConfirmation(targetEmail);
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
+      setPendingConfirmationEmail(targetEmail);
+      setMsg("Confirmation email sent again. Check your inbox and spam/junk folder.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function switchMode(nextMode) {
+    setMode(nextMode);
+    setMsg("");
+    if (nextMode === "signup") setPendingConfirmationEmail("");
   }
 
   return (
@@ -1351,49 +1426,56 @@ function AuthScreen({ onAuthed }) {
           ) : (
             <>
               <div className="tabs mt16">
-                <SecondaryButton onClick={() => setMode("signin")}>Sign in</SecondaryButton>
-                <SecondaryButton onClick={() => setMode("signup")}>Sign up</SecondaryButton>
+                <SecondaryButton onClick={() => switchMode("signin")}>Sign in</SecondaryButton>
+                <SecondaryButton onClick={() => switchMode("signup")}>Sign up</SecondaryButton>
               </div>
 
               <div className="stack mt16">
                 <div>
                   <div className="label">Email</div>
-                  <Input value={email}
-  onChange={setEmail}
-  placeholder="you@email.com"
-  type="email"
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAuth();
-    }
-  }}
-/>
+                  <Input
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="you@email.com"
+                    type="email"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAuth();
+                      }
+                    }}
+                  />
                 </div>
                 <div>
                   <div className="label">Password</div>
                   <Input
-  value={pw}
-  onChange={setPw}
-  placeholder="••••••••"
-  type="password"
-  onKeyDown={(e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAuth();
-    }
-  }}
-/>
+                    value={pw}
+                    onChange={setPw}
+                    placeholder="••••••••"
+                    type="password"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAuth();
+                      }
+                    }}
+                  />
                 </div>
-                <PrimaryButton
-  disabled={busy}
-  onClick={handleAuth}
->
-  {mode === "signup" ? "Create account" : "Sign in"}
-</PrimaryButton>
+                <PrimaryButton disabled={busy} onClick={handleAuth}>
+                  {mode === "signup" ? "Create account" : "Sign in"}
+                </PrimaryButton>
+
+                {pendingConfirmationEmail ? (
+                  <SecondaryButton disabled={busy} onClick={resendConfirmation}>
+                    Resend confirmation email
+                  </SecondaryButton>
+                ) : null}
+
                 {msg && <div className="muted">{msg}</div>}
                 <div className="muted">
-                  Sign in to manage your people, plan, logs and rewards.
+                  {mode === "signup"
+                    ? "New accounts must confirm their email address before the first sign-in."
+                    : "Sign in to manage your people, plan, logs and rewards."}
                 </div>
               </div>
             </>
@@ -1401,9 +1483,6 @@ function AuthScreen({ onAuthed }) {
         </Card>
       </div>
       <StyleTag />
-
-
-      
     </div>
   );
 }
@@ -3481,8 +3560,18 @@ const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
 
 
   const doSignOut = async () => {
-    await signOut();
+    const { error } = await signOut();
+    if (error) {
+      console.error("signOut failed", error);
+      return;
+    }
+
     setAuthed(false);
+    setFamily(null);
+    setProfiles([]);
+    setPlan(null);
+    setAllLogs([]);
+    setLogForDay(null);
     setActiveProfileId("");
     try { localStorage.removeItem("wt_activeProfileId"); } catch {}
   };
