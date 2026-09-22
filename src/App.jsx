@@ -24,6 +24,7 @@ import {
   updateAgeGroup,
   listProfileRecoveryPeriods,
   setProfileRecoveryMode,
+  updateProfileRecoveryPeriodTiming,
   archiveProfile,
   getPlan,
   upsertPlan,
@@ -1277,6 +1278,98 @@ function SummaryStat({ label, value }) {
     <div className="stat">
       <div className="stat-label">{label}</div>
       <div className="stat-value">{value}</div>
+    </div>
+  );
+}
+
+function toLocalDateTimeInputValue(iso) {
+  if (!iso) return "";
+  const parsed = new Date(iso);
+  if (!Number.isFinite(parsed.getTime())) return "";
+  const local = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function RecoveryTimingEditor({ period, onSave }) {
+  const [startValue, setStartValue] = useState(() =>
+    toLocalDateTimeInputValue(period?.started_at)
+  );
+  const [endValue, setEndValue] = useState(() =>
+    toLocalDateTimeInputValue(period?.ended_at)
+  );
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setStartValue(toLocalDateTimeInputValue(period?.started_at));
+    setEndValue(toLocalDateTimeInputValue(period?.ended_at));
+  }, [period?.id, period?.started_at, period?.ended_at]);
+
+  if (!period) return null;
+
+  const saveTiming = async () => {
+    if (busy) return;
+    if (!startValue) {
+      window.alert("Choose when recovery started.");
+      return;
+    }
+
+    const startDate = new Date(startValue);
+    const endDate = endValue ? new Date(endValue) : null;
+
+    if (!Number.isFinite(startDate.getTime())) {
+      window.alert("Recovery start time is not valid.");
+      return;
+    }
+    if (endDate && (!Number.isFinite(endDate.getTime()) || endDate < startDate)) {
+      window.alert("Recovery end time must be after the start time.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await onSave?.({
+        startedOn: startValue.slice(0, 10),
+        startedAt: startDate.toISOString(),
+        endedOn: endValue ? endValue.slice(0, 10) : null,
+        endedAt: endDate ? endDate.toISOString() : null,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="panel mt12">
+      <div className="h3">Recovery timing</div>
+      <div className="muted mt4">
+        Correct the actual start and end of this recovery period. Historical log
+        days use this timing rather than today's recovery setting.
+      </div>
+      <div className="grid2 mt12">
+        <label>
+          <div className="label">Started</div>
+          <input
+            className="input"
+            type="datetime-local"
+            value={startValue}
+            onChange={(event) => setStartValue(event.target.value)}
+          />
+        </label>
+        <label>
+          <div className="label">Ended (leave blank if active)</div>
+          <input
+            className="input"
+            type="datetime-local"
+            value={endValue}
+            onChange={(event) => setEndValue(event.target.value)}
+          />
+        </label>
+      </div>
+      <div className="mt8">
+        <SecondaryButton disabled={busy} onClick={saveTiming}>
+          {busy ? "Saving…" : "Save recovery timing"}
+        </SecondaryButton>
+      </div>
     </div>
   );
 }
@@ -12646,6 +12739,45 @@ if (!didClaim) {
                         and replaces it with a recovery confirmation (5 XP).
                         Completing either maintains the streak. Tasks stay active.
                       </div>
+
+                      {(() => {
+                        const latestRecoveryPeriod = (profileRecoveryPeriods || [])
+                          .filter((period) => period?.profile_id === p.id)
+                          .slice()
+                          .sort(
+                            (a, b) =>
+                              new Date(b?.started_at || 0).getTime() -
+                              new Date(a?.started_at || 0).getTime()
+                          )[0];
+
+                        if (!latestRecoveryPeriod) return null;
+
+                        return (
+                          <RecoveryTimingEditor
+                            period={latestRecoveryPeriod}
+                            onSave={async (timing) => {
+                              if (!(await ensureUnlocked("change recovery timing"))) return;
+
+                              const { error } =
+                                await updateProfileRecoveryPeriodTiming(
+                                  latestRecoveryPeriod.id,
+                                  p.id,
+                                  timing
+                                );
+
+                              if (error) {
+                                window.alert(error.message || String(error));
+                                return;
+                              }
+
+                              const { data: periods } =
+                                await listProfileRecoveryPeriods(family.id);
+                              setProfileRecoveryPeriods(periods || []);
+                              setExternalLogRevision((value) => value + 1);
+                            }}
+                          />
+                        );
+                      })()}
                     </div>
                     </div>
                   </div>
