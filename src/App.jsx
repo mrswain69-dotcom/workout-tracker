@@ -12607,9 +12607,6 @@ if (!didClaim) {
                                     className={"btn " + (unlockedNow ? "" : "disabled")}
                                     disabled={!unlockedNow}
                                     onClick={async () => {
-                                      const next = Array.from(
-                                        new Set([...(unlockedAvatarPacksArr || []), pack.key])
-                                      );
                                       await savePlanMetaNoPin((latestMeta) => ({
                                         unlockedAvatarPacks: Array.from(
                                           new Set([
