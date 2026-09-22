@@ -7001,7 +7001,6 @@ async function resetDay() {
 }
 
   async function addOrUpdateSet(exId, idx, patch) {
-    const ctx = await ensureAudio();
     const next = latestLogForSelectedDay();
     const entries = { ...(next.entries || {}) };
     const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
@@ -7012,6 +7011,7 @@ async function resetDay() {
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
 
+    const ctx = await ensureAudio();
     if (ctx) {
       const combo = clamp((next.gamify?.comboMax || 1), 1, 10);
       playWhoosh(ctx, combo, victoryTheme);
@@ -7020,7 +7020,6 @@ async function resetDay() {
   }
 
   async function updateCardio(patch) {
-    const ctx = await ensureAudio();
     const next = latestLogForSelectedDay();
     const cardio = { ...(next.cardio || { distanceKm: "", durationMin: "", avgSpeedKmh: "" }), ...patch };
     const dist = safeNumber(cardio.distanceKm);
@@ -7029,14 +7028,15 @@ async function resetDay() {
     cardio.avgSpeedKmh = avg ? avg.toFixed(2) : "";
     next.cardio = cardio;
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+    const ctx = await ensureAudio();
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
   async function updateCustom(patch) {
-    const ctx = await ensureAudio();
     const next = latestLogForSelectedDay();
     next.custom = { ...(next.custom || { durationMin: "" }), ...patch };
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+    const ctx = await ensureAudio();
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -7054,8 +7054,6 @@ async function resetDay() {
   }
 
 async function updateCardioForBlock(blockId, cardioPatch) {
-  const ctx = await ensureAudio();
-
   // Take a stable snapshot of today’s log (or a fresh blank one)
   const base = ensureBlocksSnapshot(
     latestLogForSelectedDay()
@@ -7115,11 +7113,11 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   }
 
   await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+  const ctx = await ensureAudio();
   if (ctx) playBling(ctx, 1, victoryTheme);
 }
 
     async function updateDurationForBlock(blockId, durationPatch) {
-    const ctx = await ensureAudio();
     const base = ensureBlocksSnapshot(
       latestLogForSelectedDay()
     );
@@ -7141,6 +7139,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     }
 
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+    const ctx = await ensureAudio();
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -7279,7 +7278,6 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   }
 
   async function updateProfileRecoveryMinutes(blockId, minutes) {
-    const ctx = await ensureAudio();
     const clean =
       minutes === "" || minutes == null
         ? ""
@@ -7297,6 +7295,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
 
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
 
+    const ctx = await ensureAudio();
     if (ctx && done && !wasDone) playBling(ctx, 1, victoryTheme);
   }  
   
@@ -7321,8 +7320,6 @@ async function toggleBlockCancelled(blockId, cancelled) {
     movementId,
     nextSetsForMovement
   ) {
-    const ctx = await ensureAudio();
-
         // Start from existing log or a fresh blank one
     const baseLog = ensureBlocksSnapshot(
       latestLogForSelectedDay()
@@ -7348,6 +7345,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
     });
 
     await saveLog(nextLog, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+    const ctx = await ensureAudio();
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
