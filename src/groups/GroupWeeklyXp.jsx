@@ -171,8 +171,8 @@ function XpEvidenceDialog({ row, period, onClose }) {
           <strong>{Number(row.evidence.earnedXp || 0).toLocaleString()} Earned XP</strong>
           <span>
             {row.verificationPct === null || row.verificationPct === undefined
-              ? "No verification-eligible activity"
-              : `${row.verificationPct}% of eligible activity verified`}
+              ? "No verification-eligible physical XP"
+              : `${row.verificationPct}% of physical Earned XP verified`}
           </span>
         </div>
 
@@ -203,6 +203,9 @@ function XpEvidenceDialog({ row, period, onClose }) {
                   </span>
                   <span className={activity.verified ? "verified" : "unverified"}>
                     {activity.verified ? "✓ Verified" : "Manual"}
+                    {Number(activity.earnedXp || 0) > 0
+                      ? ` · ${Number(activity.earnedXp).toLocaleString()} XP`
+                      : ""}
                   </span>
                 </div>
               ))}
@@ -357,8 +360,8 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
       </div>
 
       <div className="groupXpScopeNote">
-        Verification % covers verification-eligible physical activity only. Tasks,
-        consistency XP and rewards do not dilute the percentage. Members choose
+        Verification % is weighted by verification-eligible physical Earned XP only.
+        Tasks, consistency XP and rewards do not dilute the percentage. Members choose
         whether their privacy-safe XP evidence breakdown is visible to the Group.
       </div>
 
