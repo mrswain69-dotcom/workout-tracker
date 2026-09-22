@@ -24,6 +24,9 @@ describe("Stage 8 Group Challenge reward XP integration", () => {
       date: "2026-09-11",
       kind: "group_challenge_reward",
       totalXp: 20,
+      earnedXp: 0,
+      bonusXp: 20,
+      competitionXp: 0,
       challengeRewardXp: 20,
     });
     expect(computeXpFromLogs([], plan)).toBe(20);
@@ -48,6 +51,9 @@ describe("Stage 8 Group Challenge reward XP integration", () => {
 
     expect(sumXpRowsInRange(rows, "2026-09-07", "2026-09-13")).toBe(0);
     expect(sumXpRowsInRange(rows, "2026-09-14", "2026-09-20")).toBe(25);
+    expect(
+      sumXpRowsInRange(rows, "2026-09-14", "2026-09-20", "", "earnedXp")
+    ).toBe(0);
   });
 
   it("does not feed Challenge reward XP back into an XP-rate challenge score", () => {
