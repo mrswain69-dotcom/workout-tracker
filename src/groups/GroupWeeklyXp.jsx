@@ -56,37 +56,167 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
   );
 }
 
-function Standings({ rows = [], selfId, onOpenIdentity }) {
+function VerificationBadge({ row, onOpenEvidence }) {
+  const pct =
+    row?.verificationPct === null || row?.verificationPct === undefined
+      ? null
+      : Number(row.verificationPct);
+
+  const content = pct === null ? "Verification —" : `${pct}% verified`;
+
+  if (row?.evidence && onOpenEvidence) {
+    return (
+      <button
+        type="button"
+        className="groupXpVerificationButton"
+        onClick={() => onOpenEvidence(row)}
+        title="Open XP evidence"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <span className="groupXpVerification">{content}</span>;
+}
+
+function Standings({ rows = [], selfId, onOpenIdentity, onOpenEvidence }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
 
   return (
-    <div className="groupXpStandings" role="table" aria-label="Weekly XP standings">
+    <div className="groupXpStandings" role="table" aria-label="Weekly Earned XP standings">
       <div className="groupXpStandingHeader" role="row">
         <span role="columnheader">Rank</span>
         <span role="columnheader">Athlete</span>
-        <span role="columnheader">XP</span>
+        <span role="columnheader">Earned XP</span>
       </div>
       {rows.map((row, index) => {
         const self = row.membership_id === selfId;
         const neighbour = selfIndex >= 0 && !self && Math.abs(index - selfIndex) === 1;
+        const excluded = row.competition_excluded === true;
         return (
           <div
             key={row.membership_id}
-            className={`groupXpStandingRow ${self ? "self" : ""} ${neighbour ? "neighbour" : ""}`}
+            className={`groupXpStandingRow ${self ? "self" : ""} ${neighbour ? "neighbour" : ""} ${excluded ? "excluded" : ""}`}
             role="row"
           >
-            <span className="groupXpRank" role="cell">#{row.rank}</span>
-            <GroupIdentityTrigger
-              member={row}
-              isSelf={self}
-              onOpen={onOpenIdentity}
-              className="groupXpIdentity"
-              role="cell"
-            />
-            <strong className="groupXpScore" role="cell">{Number(row.xp || 0).toLocaleString()} XP</strong>
+            <span className="groupXpRank" role="cell">
+              {excluded ? "—" : row.rank ? `#${row.rank}` : "—"}
+            </span>
+            <span className="groupXpAthleteCell" role="cell">
+              <GroupIdentityTrigger
+                member={row}
+                isSelf={self}
+                onOpen={onOpenIdentity}
+                className="groupXpIdentity"
+              />
+              {excluded ? (
+                <small className="groupXpIntegrityLabel">
+                  {row.competition_exclusion_label || "Gamed XP"}
+                </small>
+              ) : null}
+              <VerificationBadge row={row} onOpenEvidence={onOpenEvidence} />
+            </span>
+            <span className="groupXpScoreCell" role="cell">
+              {row.evidence ? (
+                <button
+                  type="button"
+                  className="groupXpScoreEvidenceButton"
+                  onClick={() => onOpenEvidence?.(row)}
+                  title="See how this Earned XP was generated"
+                >
+                  {Number(row.xp || 0).toLocaleString()} XP ⓘ
+                </button>
+              ) : (
+                <strong className="groupXpScore">
+                  {Number(row.xp || 0).toLocaleString()} XP
+                </strong>
+              )}
+            </span>
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function XpEvidenceDialog({ row, period, onClose }) {
+  if (!row?.evidence) return null;
+  const categories = Array.isArray(row.evidence.categories)
+    ? row.evidence.categories
+    : [];
+  const activities = Array.isArray(row.evidence.activities)
+    ? row.evidence.activities
+    : [];
+
+  return (
+    <div className="groupXpEvidenceBackdrop" role="presentation" onClick={onClose}>
+      <div
+        className="groupXpEvidenceDialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${row.nickname || "Athlete"} XP evidence`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="groupXpEvidenceHeader">
+          <div>
+            <span>XP EVIDENCE</span>
+            <h4>{row.nickname || "Athlete"}</h4>
+            <small>{formatWeek(period?.startDate, period?.endDate)}</small>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close XP evidence">×</button>
+        </div>
+
+        <div className="groupXpEvidenceHero">
+          <strong>{Number(row.evidence.earnedXp || 0).toLocaleString()} Earned XP</strong>
+          <span>
+            {row.verificationPct === null || row.verificationPct === undefined
+              ? "No verification-eligible activity"
+              : `${row.verificationPct}% of eligible activity verified`}
+          </span>
+        </div>
+
+        <div className="groupXpEvidenceSection">
+          <strong>Plan / XP breakdown</strong>
+          {categories.length ? (
+            <div className="groupXpEvidenceBreakdown">
+              {categories.map((item) => (
+                <div key={item.label}>
+                  <span>{item.label}</span>
+                  <b>{Number(item.xp || 0).toLocaleString()} XP</b>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <small>No Earned XP in this period.</small>
+          )}
+        </div>
+
+        <div className="groupXpEvidenceSection">
+          <strong>Activity evidence</strong>
+          {activities.length ? (
+            <div className="groupXpEvidenceActivities">
+              {activities.map((activity, index) => (
+                <div key={`${activity.date}-${activity.label}-${index}`}>
+                  <span>
+                    <b>{activity.date}</b> · {activity.label}
+                  </span>
+                  <span className={activity.verified ? "verified" : "unverified"}>
+                    {activity.verified ? "✓ Verified" : "Manual"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <small>No verification-eligible physical activity in this period.</small>
+          )}
+        </div>
+
+        <div className="groupXpEvidencePrivacy">
+          This is a privacy-safe score overview. Reps, weights, private notes,
+          medical/recovery detail and raw provider data are not shared.
+        </div>
+      </div>
     </div>
   );
 }
@@ -98,6 +228,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [evidenceRow, setEvidenceRow] = useState(null);
 
   async function refresh() {
     if (!group?.id || !membership?.id) {
@@ -156,15 +287,15 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
       <div className="groupXpHeading">
         <div>
           <span className="groupXpEyebrow">LEADERBOARD</span>
-          <h4>Weekly XP</h4>
-          <p>Earn XP through your normal Workout Tracker training. Scores are calculated securely from the same XP rules as your athlete profile.</p>
+          <h4>Weekly Earned XP</h4>
+          <p>Group competition uses Earned XP only — training, tasks, completion, progress and consistency. Reward/award Bonus XP never increases the leaderboard score.</p>
         </div>
         <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading || busy} aria-label="Refresh Weekly XP">
           ↻
         </button>
       </div>
 
-      <div className="groupXpPeriodToggle" role="group" aria-label="Weekly XP period">
+      <div className="groupXpPeriodToggle" role="group" aria-label="Weekly Earned XP period">
         <button type="button" className={mode === "current" ? "active" : ""} onClick={() => setMode("current")}>This week</button>
         <button type="button" className={mode === "history" ? "active" : ""} onClick={() => setMode("history")}>Last 4 weeks</button>
       </div>
@@ -186,13 +317,19 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
       ) : null}
 
       {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
-      {loading ? <div className="groupHubMuted groupXpLoading">Calculating Weekly XP…</div> : null}
+      {loading ? <div className="groupHubMuted groupXpLoading">Calculating Earned XP…</div> : null}
 
       {!loading && period ? (
         <>
           <div className="groupXpPeriodMeta">
             <strong>{formatWeek(period.startDate, period.endDate)}</strong>
-            <span>{period.state === "frozen" ? "Final standings" : "Live standings"}</span>
+            <span>
+              {period.state === "frozen"
+                ? period.scoreMode === "legacy_total_xp"
+                  ? "Final standings · legacy Total XP"
+                  : "Final standings · Earned XP"
+                : "Live standings · Earned XP"}
+            </span>
           </div>
 
           {!period.available ? (
@@ -200,7 +337,12 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
           ) : rows.length ? (
             <>
               <TopThree rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
-              <Standings rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
+              <Standings
+                rows={rows}
+                selfId={membership.id}
+                onOpenIdentity={onOpenIdentity}
+                onOpenEvidence={setEvidenceRow}
+              />
             </>
           ) : (
             <div className="groupHubEmpty compact">No Weekly XP standings are available for this period.</div>
@@ -212,6 +354,12 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
         {scope === "all_history"
           ? "This Group compares eligible athlete history even from before the Group began."
           : `Only activity dated on or after ${formatStartDate(data?.competitionStartDate || group?.competition_start_date)} counts for this Group.`}
+      </div>
+
+      <div className="groupXpScopeNote">
+        Verification % covers verification-eligible physical activity only. Tasks,
+        consistency XP and rewards do not dilute the percentage. Members choose
+        whether their privacy-safe XP evidence breakdown is visible to the Group.
       </div>
 
       {isAdmin ? (
@@ -239,6 +387,13 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
             </button>
           </div>
         </div>
+      ) : null}
+      {evidenceRow ? (
+        <XpEvidenceDialog
+          row={evidenceRow}
+          period={period}
+          onClose={() => setEvidenceRow(null)}
+        />
       ) : null}
     </section>
   );
