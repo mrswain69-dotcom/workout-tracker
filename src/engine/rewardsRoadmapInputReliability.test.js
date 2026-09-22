@@ -15,7 +15,7 @@ describe("Rewards roadmap and log input reliability", () => {
     expect(app).toContain("const revisionAtLoadStart");
     expect(app).toContain("const liveCached = cacheKey");
     expect(app).toContain("const editedWhileLoading = liveRevision !== revisionAtLoadStart");
-    expect(app).toContain("const rawLatest = liveCached || fromDb || null");
+    expect(app).toContain("const rawLatest = hasPendingLocalEdit");
     expect(app).toContain("Never let the result of an older load overwrite an edit");
   });
 
