@@ -3868,9 +3868,15 @@ useEffect(() => {
   if (!family?.id || !activeProfileId || !selectedDate || !plan) return;
 
   const cacheKey = makeLogCacheKey(family.id, activeProfileId, selectedDate);
-  const cached = cacheKey ? lastLogByDateRef.current[cacheKey] : undefined;
-  if (cached) {
-    setLogForDay(cached);
+  const cachedAtLoadStart = cacheKey
+    ? lastLogByDateRef.current[cacheKey]
+    : undefined;
+  const revisionAtLoadStart = cacheKey
+    ? logSaveRevisionRef.current.get(cacheKey) || 0
+    : 0;
+
+  if (cachedAtLoadStart) {
+    setLogForDay(cachedAtLoadStart);
   }
 
   const reqId = ++loadDayLogReqRef.current;
@@ -3883,9 +3889,24 @@ useEffect(() => {
     );
     if (reqId !== loadDayLogReqRef.current) return;
 
+    // Re-read the live cache after the network request. A user may have typed
+    // while getLog was in flight, and that optimistic edit is newer than the
+    // DB snapshot that this request started with.
+    const liveCached = cacheKey
+      ? lastLogByDateRef.current[cacheKey]
+      : undefined;
+    const liveRevision = cacheKey
+      ? logSaveRevisionRef.current.get(cacheKey) || 0
+      : 0;
+    const editedWhileLoading = liveRevision !== revisionAtLoadStart;
+
     if (error) {
       console.error("getLog failed", error);
-      if (!cached) setLogForDay(null);
+      if (liveCached) {
+        setLogForDay(liveCached);
+      } else if (!editedWhileLoading && !cachedAtLoadStart) {
+        setLogForDay(null);
+      }
       return;
     }
 
@@ -3893,8 +3914,9 @@ useEffect(() => {
     // Prefer the new log_json column, but fall back to legacy log if needed
     const fromDb = row?.log_json || row?.log || null;
 
-    // Prefer our cached latest (from recent saves), fall back to DB, or null.
-    const rawLatest = cached || fromDb || null;
+    // Never let the result of an older load overwrite an edit made while that
+    // request was in flight.
+    const rawLatest = liveCached || fromDb || null;
 
     // Snap the log to the *current* plan structure for this weekday so:
     // - blocks always line up with the active plan
@@ -3911,17 +3933,24 @@ useEffect(() => {
       const prev = lastLogByDateRef.current || {};
       if (snapped) {
         lastLogByDateRef.current = { ...prev, [cacheKey]: snapped };
-      } else {
+      } else if (!editedWhileLoading) {
         const copy = { ...prev };
         delete copy[cacheKey];
-
         lastLogByDateRef.current = copy;
       }
     }
   })().catch((e) => {
     if (reqId !== loadDayLogReqRef.current) return;
     console.error("getLog exception", e);
-    if (!cached) setLogForDay(null);
+
+    const liveCached = cacheKey
+      ? lastLogByDateRef.current[cacheKey]
+      : undefined;
+    if (liveCached) {
+      setLogForDay(liveCached);
+    } else if (!cachedAtLoadStart) {
+      setLogForDay(null);
+    }
   });
 }, [
   family?.id,
