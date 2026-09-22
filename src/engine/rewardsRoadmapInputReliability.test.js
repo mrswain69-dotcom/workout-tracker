@@ -19,6 +19,18 @@ describe("Rewards roadmap and log input reliability", () => {
     expect(app).toContain("Never let the result of an older load overwrite an edit");
   });
 
+  it("confirms a debounced edit from the write response instead of an immediate readback", () => {
+    const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
+    const saveStart = app.indexOf("async function saveLog");
+    const saveEnd = app.indexOf("function latestLogForSelectedDay", saveStart);
+    const saveBody = app.slice(saveStart, saveEnd);
+
+    expect(saveBody).toContain("const { data: savedRow, error } = await upsertLog");
+    expect(saveBody).toContain("getLogRowPayload(savedRow) || logToStore || null");
+    expect(saveBody).not.toContain("const { data: dayData, error: dayError } = await getLog");
+    expect(saveBody).toContain("The UPSERT already returns the row that was written");
+  });
+
   it("applies typed log changes before waiting for audio feedback", () => {
     const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
     const handlers = [
