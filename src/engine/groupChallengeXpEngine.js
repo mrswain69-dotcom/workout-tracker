@@ -64,6 +64,17 @@ function profileRecoveryComplete(block) {
   return !!block?.recoveryDone;
 }
 
+function isOptionalAlternativeBlock(block) {
+  if (!block) return false;
+  if (block.optional === true || block.isOptional === true) return true;
+  const label = String(block.label || "").toLowerCase();
+  const note = String(block.note || "").toLowerCase();
+  return (
+    (label.includes("swap") || note.includes("swap option") || note.includes("optional")) &&
+    (note.includes("replace") || note.includes("instead") || label.includes("swap"))
+  );
+}
+
 function dayGreen(log) {
   if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
   let any = false;
@@ -83,7 +94,10 @@ function dayGreen(log) {
     } else if (typeId === "recovery") {
       complete = profileRecoveryComplete(block);
     }
-    if (!complete) return false;
+    if (!complete) {
+      if (isOptionalAlternativeBlock(block)) continue;
+      return false;
+    }
     any = true;
   }
   return any;
