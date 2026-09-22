@@ -6901,7 +6901,7 @@ async function resetDay() {
     entries[exId] = sets;
     next.entries = entries;
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
-    await saveLog(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
 
     if (ctx) {
       const combo = clamp((next.gamify?.comboMax || 1), 1, 10);
@@ -6919,7 +6919,7 @@ async function resetDay() {
     const avg = min > 0 ? dist / (min / 60) : 0;
     cardio.avgSpeedKmh = avg ? avg.toFixed(2) : "";
     next.cardio = cardio;
-    await saveLog(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -6927,7 +6927,7 @@ async function resetDay() {
     const ctx = await ensureAudio();
     const next = latestLogForSelectedDay();
     next.custom = { ...(next.custom || { durationMin: "" }), ...patch };
-    await saveLog(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -7005,8 +7005,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     }
   }
 
-  await saveLog(next);
-  setLogForDay(next);
+  await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
   if (ctx) playBling(ctx, 1, victoryTheme);
 }
 
@@ -7032,8 +7031,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
       };
     }
 
-    await saveLog(next);
-    setLogForDay(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -7130,7 +7128,17 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     }
 
     const next = updateBlockLog(base, blockId, { session: sessionToSave });
-    await saveLog(next);
+    const shouldDebounce =
+      meta?.source === "movement" &&
+      (meta?.movementMeta?.source === "note" ||
+        meta?.movementMeta?.source === "result");
+
+    await saveLog(
+      next,
+      shouldDebounce
+        ? { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS }
+        : undefined
+    );
 
     if (meta?.source === "session-complete") {
       const ctx = await ensureAudio();
@@ -7171,8 +7179,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
       recoveryDone: done,
     });
 
-    await saveLog(next);
-    setLogForDay(next);
+    await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
 
     if (ctx && done && !wasDone) playBling(ctx, 1, victoryTheme);
   }  
@@ -7224,8 +7231,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
       sets: nextSetsMap,
     });
 
-    await saveLog(nextLog);
-    setLogForDay(nextLog);
+    await saveLog(nextLog, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
