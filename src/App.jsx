@@ -12003,25 +12003,29 @@ the same time tomorrow.
         </button>
 
         {/* Right: XP / Level / XP to next */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
+        <div className="rewardsSummaryColumn">
           <SummaryStat
             label="Earned XP this week"
             value={weeklyXpBreakdown.earned.toLocaleString("en-GB")}
           />
-          <div className="mini muted" style={{ paddingLeft: 2 }}>
-            {lifetimeXpBreakdown.total.toLocaleString("en-GB")} Total XP
-            {" · "}
-            {lifetimeXpBreakdown.earned.toLocaleString("en-GB")} Earned
-            {" · "}
-            {lifetimeXpBreakdown.bonus.toLocaleString("en-GB")} Bonus
+
+          <div className="rewardsXpBreakdown" aria-label="XP breakdown">
+            <div className="rewardsXpTotal">
+              <span>Total XP</span>
+              <strong>{lifetimeXpBreakdown.total.toLocaleString("en-GB")}</strong>
+            </div>
+            <div className="rewardsXpSplit">
+              <div>
+                <span>Earned XP</span>
+                <strong>{lifetimeXpBreakdown.earned.toLocaleString("en-GB")}</strong>
+              </div>
+              <div>
+                <span>Bonus XP</span>
+                <strong>{lifetimeXpBreakdown.bonus.toLocaleString("en-GB")}</strong>
+              </div>
+            </div>
           </div>
+
           <SummaryStat label="Level" value={level} />
           <SummaryStat label="XP to next level" value={xpToNext} />
         </div>
@@ -12047,24 +12051,53 @@ the same time tomorrow.
         </div>
       </div>
 
-      <div className="panel mt12">
-        <div className="h3">Next avatar milestone</div>
-        <div className="mini muted mt4">
-          Avatar rewards unlock at XP milestones. Higher-level reward tiers can use wider gaps.
-        </div>
-        <div className="mini mt8">
-          {nextAvatarReward ? (
-            <>
-              <b>{nextAvatarReward.title}</b> unlocks at{" "}
-              <b>{nextAvatarReward.unlockAtXp.toLocaleString("en-GB")}</b> XP
-              {" "}({nextAvatarReward.remainingXp.toLocaleString("en-GB")} XP to go).
-            </>
-          ) : (
-            <>
-              Current avatar milestones are complete. The next high-XP avatar tiers are the next reward expansion.
-            </>
-          )}
-        </div>
+      <div className="panel mt12 rewardsAvatarMilestonePanel">
+        <div className="h3">Next avatar unlock</div>
+        {rewardsRoadmap.nextAvatar ? (
+          <div className="rewardsAvatarMilestone mt8">
+            <div className="rewardsMilestoneEyebrow">
+              {rewardsRoadmap.nextAvatar.packLabel}
+            </div>
+            <div className="rewardsMilestoneTitle">
+              {rewardsRoadmap.nextAvatar.name}
+            </div>
+            <div className="rewardsMilestoneMeta">
+              Unlocks at{" "}
+              <b>{rewardsRoadmap.nextAvatar.unlockAtXp.toLocaleString("en-GB")} XP</b>
+            </div>
+
+            <div
+              className="rewardsMilestoneProgress"
+              role="progressbar"
+              aria-label="Progress to next avatar unlock"
+              aria-valuemin="0"
+              aria-valuemax={rewardsRoadmap.nextAvatar.unlockAtXp}
+              aria-valuenow={Math.min(
+                rewardsRoadmap.totalXp,
+                rewardsRoadmap.nextAvatar.unlockAtXp
+              )}
+            >
+              <div
+                className="rewardsMilestoneProgressFill"
+                style={{ width: `${rewardsRoadmap.nextAvatar.progressPct}%` }}
+              />
+            </div>
+
+            <div className="rewardsMilestoneProgressText">
+              <span>
+                {rewardsRoadmap.totalXp.toLocaleString("en-GB")} /{" "}
+                {rewardsRoadmap.nextAvatar.unlockAtXp.toLocaleString("en-GB")} XP
+              </span>
+              <strong>
+                {rewardsRoadmap.nextAvatar.remainingXp.toLocaleString("en-GB")} XP to go
+              </strong>
+            </div>
+          </div>
+        ) : (
+          <div className="mini muted mt8">
+            All currently released avatar XP milestones are unlocked.
+          </div>
+        )}
       </div>
     </Card>
 
@@ -12760,23 +12793,66 @@ if (!didClaim) {
 
       {rewardsSubTab === "info" && (
         <div className="mt16">
-          <div className="panel">
-            <div className="h3">Level roadmap</div>
-            <div className="mini muted mt4">
-              Total XP drives levels and avatar milestones. Earned XP comes from training, tasks, consistency and progression; Bonus XP comes from claimed rewards and awards.
+          <div className="panel rewardsRoadmapPanel">
+            <div className="rowBetween">
+              <div>
+                <div className="h3">Your progression</div>
+                <div className="muted mt4">
+                  This roadmap moves with you. Total XP drives levels and avatar milestones.
+                </div>
+              </div>
+              <div className="pill">
+                {rewardsRoadmap.unlockedAvatarCount} avatar pack{rewardsRoadmap.unlockedAvatarCount === 1 ? "" : "s"} unlocked
+              </div>
             </div>
-            <div className="stack mt8 mini">
-              <div>
-                🎚 Current level: <b>{level}</b>
+
+            <div className="rewardsRoadmapGrid mt12">
+              <div className="rewardsRoadmapItem rewardsRoadmapItemCurrent">
+                <span>Current</span>
+                <strong>Level {rewardsRoadmap.currentLevel}</strong>
+                <small>{rewardsRoadmap.totalXp.toLocaleString("en-GB")} Total XP</small>
               </div>
-              <div>
-                🧬 XP avatar packs unlocked: <b>{unlockedAvatarPacksSet.size}</b>
+
+              <div className="rewardsRoadmapItem">
+                <span>Next level</span>
+                <strong>Level {rewardsRoadmap.nextLevel}</strong>
+                <small>
+                  {rewardsRoadmap.nextLevelRemainingXp.toLocaleString("en-GB")} XP to go
+                </small>
               </div>
-              <div className="muted mt8">Milestones to aim for:</div>
-              <div>• Level 3 – Unlock Arcade sounds</div>
-              <div>• Level 5 – Unlock Chill sounds</div>
-              <div>• Level 10 – First avatar pack</div>
-              <div>• More badges + PBs coming soon</div>
+
+              {rewardsRoadmap.nextAvatar ? (
+                <div className="rewardsRoadmapItem rewardsRoadmapItemAvatar">
+                  <span>Next avatar</span>
+                  <strong>{rewardsRoadmap.nextAvatar.name}</strong>
+                  <small>
+                    {rewardsRoadmap.nextAvatar.packLabel} ·{" "}
+                    {rewardsRoadmap.nextAvatar.remainingXp.toLocaleString("en-GB")} XP to go
+                  </small>
+                </div>
+              ) : (
+                <div className="rewardsRoadmapItem rewardsRoadmapItemAvatar">
+                  <span>Avatar journey</span>
+                  <strong>Current packs complete</strong>
+                  <small>Future reward packs will extend the roadmap.</small>
+                </div>
+              )}
+
+              {rewardsRoadmap.followingAvatar ? (
+                <div className="rewardsRoadmapItem">
+                  <span>Then</span>
+                  <strong>{rewardsRoadmap.followingAvatar.name}</strong>
+                  <small>
+                    {rewardsRoadmap.followingAvatar.packLabel} · unlocks at{" "}
+                    {rewardsRoadmap.followingAvatar.unlockAtXp.toLocaleString("en-GB")} XP
+                  </small>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mini muted mt12">
+              Earned XP comes from training, tasks, consistency and progression.
+              Bonus XP comes from claimed rewards and awards. Both contribute to Total XP.
             </div>
           </div>
 
