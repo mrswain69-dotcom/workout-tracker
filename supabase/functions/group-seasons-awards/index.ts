@@ -194,7 +194,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: memberships, error: membershipError } = await adminClient
       .from("group_memberships")
-      .select("id,profile_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,status,joined_at,left_at")
+      .select("id,profile_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,status,joined_at,left_at,competition_excluded,competition_exclusion_label")
       .eq("group_id", groupId)
       .order("joined_at", { ascending: true });
     if (membershipError) throw membershipError;
@@ -331,6 +331,10 @@ Deno.serve(async (req: Request) => {
           avatar_id: member.avatar_id || "",
           avatar_frame: member.avatar_frame || "",
           avatar_frames_enabled: member.avatar_frames_enabled !== false,
+          competition_excluded: member.competition_excluded === true,
+          competition_exclusion_label:
+            member.competition_exclusion_label ||
+            (member.competition_excluded ? "Gamed XP" : ""),
           xp: 0,
           plannedDays: 0,
           completedDays: 0,
@@ -348,7 +352,8 @@ Deno.serve(async (req: Request) => {
         ledgerByMembership.get(member.id) || [],
         bounds.eligibleFrom,
         bounds.eligibleThrough,
-        bounds.eligibleFrom
+        bounds.eligibleFrom,
+        "earnedXp"
       );
 
       const consistency = scoreConsistencyWindow({
@@ -379,6 +384,10 @@ Deno.serve(async (req: Request) => {
         avatar_id: member.avatar_id || "",
         avatar_frame: member.avatar_frame || "",
         avatar_frames_enabled: member.avatar_frames_enabled !== false,
+        competition_excluded: member.competition_excluded === true,
+        competition_exclusion_label:
+          member.competition_exclusion_label ||
+          (member.competition_excluded ? "Gamed XP" : ""),
         xp: Number(xp || 0),
         plannedDays: Number(consistency.plannedDays || 0),
         completedDays: Number(consistency.completedDays || 0),
@@ -466,7 +475,20 @@ Deno.serve(async (req: Request) => {
         .eq("score_version", GROUP_PERIOD_SCORE_VERSION);
       if (frozenError) throw frozenError;
 
-      const rankedRows = addGroupPeriodRanks((frozenRows || []).map(frozenRow));
+      const rankedRows = addGroupPeriodRanks(
+        (frozenRows || []).map((row: any) => {
+          const member = allMemberships.find(
+            (item: any) => item.id === row.membership_id
+          );
+          return {
+            ...frozenRow(row),
+            competition_excluded: member?.competition_excluded === true,
+            competition_exclusion_label:
+              member?.competition_exclusion_label ||
+              (member?.competition_excluded ? "Gamed XP" : ""),
+          };
+        })
+      );
       const awards = buildGroupProgressAwards({
         periodType,
         periodStart: period.startDate,
