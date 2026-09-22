@@ -48,9 +48,14 @@ describe("XP Classification & Group Integrity release contract", () => {
     expect(edge).toContain('score_kind: "earned_xp"');
     expect(edge).toContain("xp_evidence_visible");
     expect(edge).toContain("verificationPct");
-    expect(edge).toContain('verified ? "✓ Verified"');
     expect(edge).not.toContain("provider_payload");
     expect(edge).not.toContain("raw_payload");
+
+    const weekly = fs.readFileSync(
+      new URL("./GroupWeeklyXp.jsx", import.meta.url),
+      "utf8"
+    );
+    expect(weekly).toContain('activity.verified ? "✓ Verified" : "Manual"');
   });
 
   it("keeps competition exclusion reversible and separate from personal XP", () => {
