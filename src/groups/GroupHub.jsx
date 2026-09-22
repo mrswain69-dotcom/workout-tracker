@@ -16,6 +16,8 @@ import {
   rotateGroupJoinCode,
   setGroupJoinMode,
   setGroupMemberRole,
+  setGroupXpEvidenceVisibility,
+  setGroupCompetitionExclusion,
   updateGroupDetails,
   updateGroupNickname,
 } from "./groupDb";
@@ -369,6 +371,50 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
     await refreshSelected(selectedGroup);
   }
 
+  async function handleEvidenceVisibility(nextVisible) {
+    if (!ownMembership?.id || !selectedGroup?.id) return;
+    const updated = await run(
+      () =>
+        setGroupXpEvidenceVisibility(
+          selectedGroup.id,
+          ownMembership.id,
+          nextVisible
+        ),
+      nextVisible
+        ? "XP evidence is now visible to this Group."
+        : "XP evidence is now private."
+    );
+    if (!updated) return;
+    await refreshGroups(selectedGroup.id);
+    await refreshSelected(selectedGroup);
+  }
+
+  async function handleCompetitionExclusion(member) {
+    if (!isAdmin || !member?.membership_id) return;
+    const nextExcluded = !member.competition_excluded;
+    const prompt = nextExcluded
+      ? `Exclude ${member.nickname} from all Group competition tables? Their personal XP is unchanged and they will appear below ranked members as Gamed XP until restored.`
+      : `Restore ${member.nickname} to Group competition?`;
+    if (!window.confirm(prompt)) return;
+
+    const updated = await run(
+      () =>
+        setGroupCompetitionExclusion(
+          selectedGroup.id,
+          member.membership_id,
+          nextExcluded,
+          "Gamed XP"
+        ),
+      nextExcluded
+        ? `${member.nickname} excluded from Group competition.`
+        : `${member.nickname} restored to Group competition.`
+    );
+    if (!updated) return;
+
+    await refreshGroups(selectedGroup.id);
+    await refreshSelected(selectedGroup);
+  }
+
   async function handleRemoveMember(member) {
     if (!window.confirm(`Remove ${member.nickname} from ${selectedGroup.name}?`)) return;
     await run(() => removeGroupMember(selectedGroup.id, member.membership_id), `${member.nickname} removed.`);
@@ -523,6 +569,27 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                     <button className="groupHubSecondary" onClick={handleNicknameSave} disabled={busy}>Edit nickname</button>
                   </div>
 
+                  <div className="groupXpEvidencePrivacySetting">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={ownMembership?.xp_evidence_visible === true}
+                        disabled={busy}
+                        onChange={(event) =>
+                          handleEvidenceVisibility(event.target.checked)
+                        }
+                      />
+                      <span>
+                        <strong>Show XP evidence to this Group</strong>
+                        <small>
+                          Lets Group members open a privacy-safe XP breakdown and
+                          see which eligible activities were verified. Reps,
+                          weights, notes, health data and raw provider data stay private.
+                        </small>
+                      </span>
+                    </label>
+                  </div>
+
                   <GroupWeeklyXp group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} onOpenIdentity={openMemberIdentity} />
                   <GroupConsistency group={selectedGroup} membership={ownMembership} onOpenIdentity={openMemberIdentity} />
                   <GroupChallenges group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} />
@@ -623,13 +690,36 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                       {directory.map((member) => {
                         const self = member.membership_id === ownMembership.id;
                         return (
-                          <div key={member.membership_id} className={`groupMemberRow ${self ? "self" : ""}`}>
+                          <div
+                            key={member.membership_id}
+                            className={`groupMemberRow ${self ? "self" : ""} ${member.competition_excluded ? "competitionExcluded" : ""}`}
+                          >
                             <MemberIdentity member={member} isSelf={self} onOpen={() => openMemberIdentity(member)} />
+                            <div className="groupMemberIntegrityMeta">
+                              {member.xp_evidence_visible ? (
+                                <span className="groupMemberEvidenceOn">XP evidence on</span>
+                              ) : (
+                                <span className="groupMemberEvidenceOff">XP evidence private</span>
+                              )}
+                              {member.competition_excluded ? (
+                                <span className="groupMemberExcludedLabel">
+                                  {member.competition_exclusion_label || "Gamed XP"}
+                                </span>
+                              ) : null}
+                            </div>
                             {isAdmin && !self ? (
                               <details className="groupMemberManage">
                                 <summary>Manage</summary>
                                 <div className="groupMemberActions">
                                   <button onClick={() => handleMemberRole(member)} disabled={busy}>{member.role === "admin" ? "Make member" : "Make admin"}</button>
+                                  <button
+                                    onClick={() => handleCompetitionExclusion(member)}
+                                    disabled={busy}
+                                  >
+                                    {member.competition_excluded
+                                      ? "Restore to competition"
+                                      : "Exclude from competition"}
+                                  </button>
                                   <button onClick={() => handleRemoveMember(member)} disabled={busy}>Remove</button>
                                 </div>
                               </details>
