@@ -90,14 +90,22 @@ function Standings({ rows = [], selfId, onOpenIdentity }) {
       {rows.map((row, index) => {
         const self = row.membership_id === selfId;
         const neighbour = selfIndex >= 0 && !self && Math.abs(index - selfIndex) === 1;
+        const excluded = row.competition_excluded === true;
         return (
           <div
             key={row.membership_id}
-            className={`groupXpStandingRow ${self ? "self" : ""} ${neighbour ? "neighbour" : ""}`}
+            className={`groupXpStandingRow ${self ? "self" : ""} ${neighbour ? "neighbour" : ""} ${excluded ? "excluded" : ""}`}
             role="row"
           >
             <span className="groupXpRank" role="cell">{row.rank ? `#${row.rank}` : "—"}</span>
-            <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" role="cell" />
+            <span className="groupXpAthleteCell" role="cell">
+              <GroupIdentityTrigger member={row} isSelf={self} onOpen={onOpenIdentity} className="groupXpIdentity" />
+              {excluded ? (
+                <small className="groupXpIntegrityLabel">
+                  {row.competition_exclusion_label || "Gamed XP"}
+                </small>
+              ) : null}
+            </span>
             <span className={`groupImprovementScoreCell ${scoreTone(row)}`} role="cell">
               <strong>{scoreLabel(row)}</strong>
               <small>{evidenceLabel(row)}</small>
