@@ -31,6 +31,31 @@ describe("Rewards roadmap and log input reliability", () => {
     expect(saveBody).toContain("The UPSERT already returns the row that was written");
   });
 
+  it("rehydrates logs from the database after navigation once local edits are persisted", () => {
+    const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
+
+    expect(app).toContain("const logPersistedRevisionRef = useRef(new Map())");
+    expect(app).toContain('if (tab !== "log") return;');
+    expect(app).toContain("const hasPendingLocalEdit =");
+    expect(app).toContain("liveRevision > persistedRevision");
+    expect(app).toContain("? (liveCached || fromDb || null)");
+    expect(app).toContain(": (fromDb || liveCached || null)");
+    expect(app).toContain("logPersistedRevisionRef.current.set(cacheKey, revision)");
+  });
+
+  it("serializes reward meta writes and builds every claim from the latest plan", () => {
+    const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
+
+    expect(app).toContain("const planMetaSaveQueueRef = useRef(Promise.resolve())");
+    expect(app).toContain("planRef.current = normalised");
+    expect(app).toContain('typeof metaPatch === "function"');
+    expect(app).toContain("planMetaSaveQueueRef.current.then(");
+    expect(app).toContain("upsertProfilePlan meta save failed");
+    expect(app).toContain("const saved = await savePlanMetaNoPin((latestMeta) =>");
+    expect(app).toContain("const latestClaimed = normaliseClaimedRewards(latestMeta)");
+    expect(app).toContain("return !!saved");
+  });
+
   it("applies typed log changes before waiting for audio feedback", () => {
     const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
     const handlers = [
