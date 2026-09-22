@@ -1,4 +1,4 @@
-export const GROUP_TEAM_PR_SCORE_VERSION = 1;
+export const GROUP_TEAM_PR_SCORE_VERSION = 2;
 
 const STRENGTH_TYPES = new Set(["strength", "hiit", "box"]);
 const CARDIO_TYPES = new Set(["cardio", "run", "swim", "walk", "row", "cycle", "bike"]);
