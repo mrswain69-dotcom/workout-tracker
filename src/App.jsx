@@ -78,7 +78,7 @@ import {
   profileRecoveryBlockComplete,
 } from "./engine/recoveryModeEngine.js";
 import {
-  estimateStrengthMinutes,
+  computeActivityMinutesForDay,
   formatActivityMinutes,
 } from "./engine/activityTimeEngine.js";
 
@@ -1761,109 +1761,7 @@ function countSetsLoggedInLog(log) {
 }
 
 function computeTotalMinutesForDay(log) {
-  if (!log) return null;
-
-  // A deliberate manual day override remains authoritative.
-  const manualDay = safeNumber(log?.meta?.dayManualMin);
-  if (manualDay > 0) return manualDay;
-
-  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
-  let totalMinutes = 0;
-  let hasActivityMinutes = false;
-
-  if (blocks.length) {
-    for (const b of blocks) {
-      if (!b || b.cancelled || b.suspendedByRecoveryMode) continue;
-
-      const typeId = String(b.typeId || "").toLowerCase();
-
-      if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
-        const actualMinutes = safeNumber(b?.duration?.minutes);
-
-        if (actualMinutes > 0) {
-          totalMinutes += actualMinutes;
-          hasActivityMinutes = true;
-          continue;
-        }
-
-        const setCount = countCompletedSetsInBlock(b);
-        if (setCount > 0) {
-          const restSec =
-            safeNumber(b?.restSec) ||
-            safeNumber(log?.meta?.restSec) ||
-            60;
-          totalMinutes += estimateStrengthMinutes(setCount, restSec);
-          hasActivityMinutes = true;
-        }
-        continue;
-      }
-
-      if (
-        typeId === "cardio" ||
-        typeId === "run" ||
-        typeId === "swim" ||
-        typeId === "walk" ||
-        typeId === "row" ||
-        typeId === "cycle" ||
-        typeId === "bike"
-      ) {
-        const minutes = safeNumber(b?.cardio?.durationMin);
-        if (minutes > 0) {
-          totalMinutes += minutes;
-          hasActivityMinutes = true;
-        }
-        continue;
-      }
-
-      if (typeId === "duration") {
-        const minutes = safeNumber(b?.duration?.minutes);
-        if (minutes > 0) {
-          totalMinutes += minutes;
-          hasActivityMinutes = true;
-        }
-        continue;
-      }
-
-      if (typeId === "session") {
-        const minutes = getSessionBlockTrainingMinutes(b);
-        if (minutes > 0) {
-          totalMinutes += minutes;
-          hasActivityMinutes = true;
-        }
-        continue;
-      }
-
-      if (typeId === "recovery") {
-        const minutes = safeNumber(b?.duration?.minutes);
-        if (minutes > 0) {
-          totalMinutes += minutes;
-          hasActivityMinutes = true;
-        }
-      }
-    }
-
-    return hasActivityMinutes
-      ? Math.round(totalMinutes * 60) / 60
-      : null;
-  }
-
-  // Legacy logs without a block snapshot.
-  const cardioMin = safeNumber(log?.cardio?.durationMin);
-  const customMin = safeNumber(log?.custom?.durationMin);
-  const legacyDuration = cardioMin + customMin;
-
-  const setsLogged = countSetsLoggedInLog(log);
-  const legacyStrength = setsLogged > 0
-    ? estimateStrengthMinutes(
-        setsLogged,
-        safeNumber(log?.meta?.restSec) || 60
-      )
-    : 0;
-
-  const legacyTotal = legacyDuration + legacyStrength;
-  return legacyTotal > 0
-    ? Math.round(legacyTotal * 60) / 60
-    : null;
+  return computeActivityMinutesForDay(log);
 }
 
 function isTrainingBlockForRecoveryLogic(block) {
@@ -5318,6 +5216,64 @@ const selectedDayStatus = useMemo(() => {
 const currentPlanStreak = useMemo(() => {
   return workoutStreak.currentDays;
 }, [workoutStreak, activeProfileId]);
+
+const selectedDayXpRows = useMemo(
+  () => (Array.isArray(xpDebugRows) ? xpDebugRows : []).filter(
+    (row) => row?.date === selectedDate
+  ),
+  [xpDebugRows, selectedDate]
+);
+
+const selectedDayBlockXpRow = useMemo(
+  () =>
+    selectedDayXpRows.find((row) => row?.kind === "blocks") ||
+    selectedDayXpRows[0] ||
+    null,
+  [selectedDayXpRows]
+);
+
+const selectedDayXpEarned = useMemo(
+  () =>
+    selectedDayXpRows.reduce(
+      (sum, row) => sum + safeNumber(row?.totalXp),
+      0
+    ),
+  [selectedDayXpRows]
+);
+
+const selectedDayProgressWins = useMemo(() => {
+  const strengthWins = Math.max(
+    0,
+    Math.round(
+      safeNumber(selectedDayBlockXpRow?.strengthProgressXp) /
+        XP_RULES.progression
+    )
+  );
+  const cardioWins =
+    safeNumber(selectedDayBlockXpRow?.cardioProgressXp) > 0 ? 1 : 0;
+  return strengthWins + cardioWins;
+}, [selectedDayBlockXpRow]);
+
+const selectedDayPlanStreak = useMemo(() => {
+  if (selectedDate === todayYmd) return currentPlanStreak;
+  return safeNumber(workoutStreak?.streakByDate?.[selectedDate]);
+}, [selectedDate, todayYmd, currentPlanStreak, workoutStreak]);
+
+const selectedDayDetail = useMemo(() => {
+  const parts = [];
+  const sets = countSetsLoggedInLog(logForDay);
+  const km = computeCardioKmForDay(logForDay);
+  const kcal = estimateCalories({
+    bodyWeightKg: activeProfile?.body_weight_kg,
+    log: logForDay,
+  });
+
+  if (sets > 0) parts.push(`${sets} set${sets === 1 ? "" : "s"} logged`);
+  if (km != null && km > 0) parts.push(`${km.toFixed(2)} km cardio`);
+  if (kcal != null) parts.push(`~${kcal} kcal estimated`);
+
+  return parts.join(" • ");
+}, [logForDay, activeProfile?.body_weight_kg]);
 
 const todayPlanStatus = useMemo(() => {
   // Status for TODAY only: "green" complete, "amber" otherwise.
@@ -10270,44 +10226,42 @@ const targetInfo = buildTargetInfoForMovement({
             <div className="stack">
               <Card className="pad">
                 <div className="rowBetween">
-                  <div className="h3">Today summary</div>
+                  <div className="h3">
+                    {selectedDate === todayYmd ? "Today summary" : "Day summary"}
+                  </div>
                   <Pill>Lvl {level} • XP {xp}</Pill>
                 </div>
 
                 <div className="grid2 mt12">
                   <SummaryStat
-                    label="Total time"
+                    label="Activity time"
                     value={formatActivityMinutes(computeTotalMinutesForDay(logForDay))}
                   />
                   <SummaryStat
-  label="Sets logged"
-  value={countSetsLoggedInLog(logForDay) || 0}
-/>
-                    <SummaryStat
-    label="Cardio km"
-    value={
-      (() => {
-        const km = computeCardioKmForDay(logForDay);
-        return km != null ? km.toFixed(2) : "—";
-      })()
-    }
-  />
+                    label="Consistency"
+                    value={
+                      selectedDayPlanStreak > 0
+                        ? `${selectedDayPlanStreak}-day streak`
+                        : "No streak yet"
+                    }
+                  />
+                  <SummaryStat
+                    label="Progress wins"
+                    value={
+                      selectedDayProgressWins > 0
+                        ? selectedDayProgressWins
+                        : "—"
+                    }
+                  />
+                  <SummaryStat
+                    label="XP earned"
+                    value={selectedDayXpEarned > 0 ? `+${selectedDayXpEarned}` : "—"}
+                  />
                 </div>
 
-                <div className="mini mt12">
-                <div className="label">Estimated calories</div>
-<div className="big">
-  {(() => {
-    const kcal = estimateCalories({
-      bodyWeightKg: activeProfile?.body_weight_kg,
-      log: logForDay,
-    });
-    return kcal === null
-      ? "Record activity or Add bodyweight in Settings"
-      : `${kcal} kcal`;
-  })()}
-</div>
-                  <div className="muted">Estimate only.</div>
+                <div className="muted mini mt12">
+                  {selectedDayDetail ||
+                    "Training detail will appear here as activity is logged."}
                 </div>
               </Card>
               
