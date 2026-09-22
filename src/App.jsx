@@ -1635,6 +1635,23 @@ function AuthScreen({ onAuthed }) {
 
 // -------- Day status helpers (TOP-LEVEL, DO NOT MOVE) --------
 
+function isOptionalAlternativeBlock(block) {
+  if (!block) return false;
+  if (block.optional === true || block.isOptional === true) return true;
+
+  const label = String(block.label || "").toLowerCase();
+  const note = String(block.note || "").toLowerCase();
+
+  return (
+    (label.includes("swap") ||
+      note.includes("swap option") ||
+      note.includes("optional")) &&
+    (note.includes("replace") ||
+      note.includes("instead") ||
+      label.includes("swap"))
+  );
+}
+
 function isDayGreen(log) {
   if (!log || !Array.isArray(log.blocks) || !log.blocks.length) return false;
 
@@ -1672,7 +1689,10 @@ function isDayGreen(log) {
         : !!block?.recoveryDone;
     }
 
-    if (!hasData) return false;
+    if (!hasData) {
+      if (isOptionalAlternativeBlock(block)) continue;
+      return false;
+    }
     any = true;
   }
 
@@ -1732,7 +1752,11 @@ function isEligibleForSameDayDailyBonus(log, targetYmd) {
   const qualifyingBlocks = log.blocks.filter((block) => {
     if (!block || block.cancelled || block.suspendedByRecoveryMode) return false;
     const typeId = String(block.typeId || "").toLowerCase();
-    return typeId !== "tasks";
+    if (typeId === "tasks") return false;
+    if (isOptionalAlternativeBlock(block) && !blockHasSameDayLoggedActivity(block, targetYmd)) {
+      return false;
+    }
+    return true;
   });
 
   if (!qualifyingBlocks.length) return false;
@@ -5232,14 +5256,25 @@ const selectedDayBlockXpRow = useMemo(
   [selectedDayXpRows]
 );
 
-const selectedDayXpEarned = useMemo(
+const selectedDayEarnedXp = useMemo(
   () =>
     selectedDayXpRows.reduce(
-      (sum, row) => sum + safeNumber(row?.totalXp),
+      (sum, row) => sum + safeNumber(row?.earnedXp),
       0
     ),
   [selectedDayXpRows]
 );
+
+const selectedDayBonusXp = useMemo(
+  () =>
+    selectedDayXpRows.reduce(
+      (sum, row) => sum + safeNumber(row?.bonusXp),
+      0
+    ),
+  [selectedDayXpRows]
+);
+
+const selectedDayTotalXp = selectedDayEarnedXp + selectedDayBonusXp;
 
 const selectedDayProgressWins = useMemo(() => {
   const strengthWins = Math.max(
@@ -5254,10 +5289,44 @@ const selectedDayProgressWins = useMemo(() => {
   return strengthWins + cardioWins;
 }, [selectedDayBlockXpRow]);
 
-const selectedDayPlanStreak = useMemo(() => {
-  if (selectedDate === todayYmd) return currentPlanStreak;
-  return safeNumber(workoutStreak?.streakByDate?.[selectedDate]);
-}, [selectedDate, todayYmd, currentPlanStreak, workoutStreak]);
+const selectedDayProgressComparableCount = safeNumber(
+  selectedDayBlockXpRow?.progressComparableCount
+);
+
+const selectedDayPlanStreak = useMemo(
+  () => safeNumber(workoutStreak?.streakByDate?.[selectedDate]),
+  [selectedDate, workoutStreak]
+);
+
+const lifetimeXpBreakdown = useMemo(
+  () =>
+    (Array.isArray(xpDebugRows) ? xpDebugRows : []).reduce(
+      (summary, row) => {
+        summary.earned += safeNumber(row?.earnedXp);
+        summary.bonus += safeNumber(row?.bonusXp);
+        summary.total += safeNumber(row?.totalXp);
+        return summary;
+      },
+      { earned: 0, bonus: 0, total: 0 }
+    ),
+  [xpDebugRows]
+);
+
+const weeklyXpBreakdown = useMemo(() => {
+  const weekStart = getWeekStartYmd(todayYmd);
+  const weekEnd = weekStart ? ymdAddDays(weekStart, 6) : todayYmd;
+  return (Array.isArray(xpDebugRows) ? xpDebugRows : []).reduce(
+    (summary, row) => {
+      const date = String(row?.date || "");
+      if (!date || date < weekStart || date > weekEnd) return summary;
+      summary.earned += safeNumber(row?.earnedXp);
+      summary.bonus += safeNumber(row?.bonusXp);
+      summary.total += safeNumber(row?.totalXp);
+      return summary;
+    },
+    { earned: 0, bonus: 0, total: 0 }
+  );
+}, [xpDebugRows, todayYmd]);
 
 const selectedDayDetail = useMemo(() => {
   const parts = [];
@@ -10255,18 +10324,38 @@ const targetInfo = buildTargetInfoForMovement({
                   <SummaryStat
                     label="Progress wins"
                     value={
-                      selectedDayProgressWins > 0
+                      selectedDayProgressComparableCount > 0
                         ? selectedDayProgressWins
                         : "—"
                     }
                   />
                   <SummaryStat
-                    label="XP earned"
-                    value={selectedDayXpEarned > 0 ? `+${selectedDayXpEarned}` : "—"}
+                    label="Earned XP"
+                    value={selectedDayEarnedXp > 0 ? `+${selectedDayEarnedXp}` : "—"}
                   />
                 </div>
 
                 <div className="muted mini mt12">
+                  {selectedDayProgressComparableCount > 0
+                    ? `Progress checked against ${selectedDayProgressComparableCount} previous comparable ${selectedDayProgressComparableCount === 1 ? "result" : "results"}.`
+                    : "Progress wins appear once there is previous comparable activity."}
+                </div>
+
+                <div className="muted mini mt6">
+                  {selectedDayTotalXp > 0 ? (
+                    <>
+                      Total XP added that day: <b>+${selectedDayTotalXp}</b>
+                      {selectedDayBonusXp > 0
+                        ? ` · includes +${selectedDayBonusXp} Bonus XP from rewards/awards`
+                        : ""}
+                      {" "}ⓘ
+                    </>
+                  ) : (
+                    "No XP has been added for this day yet."
+                  )}
+                </div>
+
+                <div className="muted mini mt6">
                   {selectedDayDetail ||
                     "Training detail will appear here as activity is logged."}
                 </div>
@@ -11869,9 +11958,16 @@ the same time tomorrow.
             gap: 8,
           }}
         >
-          <SummaryStat label="XP this week" value={dashboardWeekSummary.xp} />
+          <SummaryStat
+            label="Earned XP this week"
+            value={weeklyXpBreakdown.earned.toLocaleString("en-GB")}
+          />
           <div className="mini muted" style={{ paddingLeft: 2 }}>
-            {xp.toLocaleString("en-GB")} XP total
+            {lifetimeXpBreakdown.total.toLocaleString("en-GB")} Total XP
+            {" · "}
+            {lifetimeXpBreakdown.earned.toLocaleString("en-GB")} Earned
+            {" · "}
+            {lifetimeXpBreakdown.bonus.toLocaleString("en-GB")} Bonus
           </div>
           <SummaryStat label="Level" value={level} />
           <SummaryStat label="XP to next level" value={xpToNext} />
@@ -12614,14 +12710,14 @@ if (!didClaim) {
           <div className="panel">
             <div className="h3">Level roadmap</div>
             <div className="mini muted mt4">
-              Every 100 XP = 1 level. Avatars unlock every 1000 XP (every 10 levels).
+              Total XP drives levels and avatar milestones. Earned XP comes from training, tasks, consistency and progression; Bonus XP comes from claimed rewards and awards.
             </div>
             <div className="stack mt8 mini">
               <div>
                 🎚 Current level: <b>{level}</b>
               </div>
               <div>
-                🧬 Avatar unlocks reached: <b>{avatarTier}</b>
+                🧬 XP avatar packs unlocked: <b>{unlockedAvatarPacksSet.size}</b>
               </div>
               <div className="muted mt8">Milestones to aim for:</div>
               <div>• Level 3 – Unlock Arcade sounds</div>
@@ -12657,7 +12753,7 @@ if (!didClaim) {
                 <div><b>Progression bonuses:</b> beat your last time/effort (+20 XP for Cardio blocks and +10 XP for Strength movements)</div>
                 <div><b>Streak bonuses:</b> keep days green 🔥 (2→5XP, 3→10XP, 5→20XP, 10→50XP,
                       30→100XP, 60→200XP, 90→300XP, 180→600XP, 365→2000XP)</div>
-                <div><b>Badges:</b> claimable rewards add XP (see Badges tab)</div>
+                <div><b>Badges / reward awards:</b> these add Bonus XP. Bonus XP increases Total XP and progression unlocks, but does not count in Group Earned XP competition.</div>
                 <div><b>Day complete:</b> +10 XP when all workout blocks (not tasks) for that day are logged</div>
               </div>
             )}
@@ -12668,7 +12764,7 @@ if (!didClaim) {
               <div>
                 <div className="h3">XP Ledger</div>
                 <div className="muted mt4">
-                  This is the XP “receipt”. It shows XP earned per day from logs. Badge XP appears on the day you claim it.
+                  This is the XP receipt. Earned XP is behaviour/training XP; Bonus XP is reward/award XP. Total XP is both together.
                 </div>
               </div>
               <button type="button" className="btn" onClick={() => setShowXpLedger(v => !v)}>
@@ -12685,9 +12781,10 @@ if (!didClaim) {
   <thead>
     <tr>
       <th>Date</th>
+      <th style={{ textAlign: "right" }}>Earned</th>
+      <th style={{ textAlign: "right" }}>Bonus</th>
       <th style={{ textAlign: "right" }}>Total</th>
       <th style={{ textAlign: "right" }}>Balance</th>
-      <th style={{ textAlign: "right" }}>Non-bonus</th>
       <th style={{ textAlign: "right" }}>Strength</th>
       <th style={{ textAlign: "right" }}>Cardio</th>
       <th style={{ textAlign: "right" }}>Duration</th>
@@ -12705,12 +12802,13 @@ if (!didClaim) {
       <tr key={r.date}>
         <td>{r.date}</td>
         <td style={{ textAlign: "right" }}>
-          <b>{r.totalXp || 0}</b>
+          <b>{r.earnedXp || 0}</b>
         </td>
+        <td style={{ textAlign: "right" }}>{r.bonusXp || 0}</td>
+        <td style={{ textAlign: "right" }}>{r.totalXp || 0}</td>
         <td style={{ textAlign: "right" }}>
           {r.runningTotalXp ?? ""}
         </td>
-        <td style={{ textAlign: "right" }}>{r.nonBonusXp || 0}</td>
         <td
   style={{
     textAlign: "right",
@@ -12754,7 +12852,7 @@ if (!didClaim) {
   and earned 60% of normal cardio XP.
 </div>
 <div className="mini muted mt4">
-  Tip: “Non-bonus” = Strength + Cardio + Duration + Session + Tasks + Day. Bonuses are Daily, Prog, Streak and Badges.
+  Earned XP includes logged activity, tasks, day completion, progression, streak and normal daily challenge XP. Bonus XP contains claimed badges, mastery/avatar reward XP and Group award rewards.
 </div>
           </div>
 
