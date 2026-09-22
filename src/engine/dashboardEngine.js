@@ -133,6 +133,72 @@ export function getNextAvatarReward(totalXp = 0, packs = []) {
   };
 }
 
+function avatarMilestoneLabel(pack = {}, index = -1) {
+  const title = cleanText(pack?.title, "Avatar reward");
+  const match = title.match(/^Avatar Pack\s+(\d+)\s*[–-]\s*(.+)$/i);
+
+  if (match) {
+    return {
+      packLabel: `Pack ${match[1]}`,
+      name: cleanText(match[2], title),
+      title,
+    };
+  }
+
+  return {
+    packLabel: index >= 0 ? `Pack ${index + 1}` : "Avatar reward",
+    name: title,
+    title,
+  };
+}
+
+export function buildRewardsRoadmap(totalXp = 0, packs = []) {
+  const xp = Math.max(0, safeNumber(totalXp));
+  const currentLevel = 1 + Math.floor(xp / 100);
+  const nextLevel = currentLevel + 1;
+  const nextLevelAtXp = currentLevel * 100;
+  const nextLevelRemainingXp = Math.max(0, nextLevelAtXp - xp);
+
+  const ordered = (Array.isArray(packs) ? packs : [])
+    .filter((pack) => safeNumber(pack?.unlockAtXp) > 0)
+    .slice()
+    .sort((a, b) => safeNumber(a.unlockAtXp) - safeNumber(b.unlockAtXp));
+
+  const future = ordered
+    .map((pack, index) => ({ pack, index }))
+    .filter(({ pack }) => safeNumber(pack.unlockAtXp) > xp);
+
+  const normalise = (entry) => {
+    if (!entry) return null;
+    const unlockAtXp = safeNumber(entry.pack.unlockAtXp);
+    const label = avatarMilestoneLabel(entry.pack, entry.index);
+    return {
+      key: cleanText(entry.pack.key),
+      ...label,
+      unlockAtXp,
+      remainingXp: Math.max(0, unlockAtXp - xp),
+      progressPct:
+        unlockAtXp > 0
+          ? Math.max(0, Math.min(100, Math.round((xp / unlockAtXp) * 1000) / 10))
+          : 0,
+    };
+  };
+
+  return {
+    totalXp: xp,
+    currentLevel,
+    nextLevel,
+    nextLevelAtXp,
+    nextLevelRemainingXp,
+    nextAvatar: normalise(future[0]),
+    followingAvatar: normalise(future[1]),
+    unlockedAvatarCount: ordered.filter(
+      (pack) => safeNumber(pack.unlockAtXp) <= xp
+    ).length,
+    allAvatarMilestonesComplete: future.length === 0,
+  };
+}
+
 export function buildDashboardCoachInsight({
   recoveryMode = "",
   todayStatus = "amber",

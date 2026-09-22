@@ -102,6 +102,7 @@ describe("XP Classification & Group Integrity release contract", () => {
     expect(app).toContain("selectedDayProgressComparableCount");
     expect(app).toContain("previous comparable activity");
     expect(app).not.toContain("avatarTier");
-    expect(app).toContain("XP avatar packs unlocked");
+    expect(app).toContain("Your progression");
+    expect(app).toContain("rewardsRoadmap.unlockedAvatarCount");
   });
 });

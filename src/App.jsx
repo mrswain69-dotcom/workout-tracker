@@ -54,6 +54,7 @@ import {
 import { buildWorkoutStreakSeries } from "./engine/workoutStreakEngine.js";
 import {
   buildDashboardWeekSummary,
+  buildRewardsRoadmap,
   getNextAvatarReward,
 } from "./engine/dashboardEngine.js";
 import {
@@ -3867,9 +3868,15 @@ useEffect(() => {
   if (!family?.id || !activeProfileId || !selectedDate || !plan) return;
 
   const cacheKey = makeLogCacheKey(family.id, activeProfileId, selectedDate);
-  const cached = cacheKey ? lastLogByDateRef.current[cacheKey] : undefined;
-  if (cached) {
-    setLogForDay(cached);
+  const cachedAtLoadStart = cacheKey
+    ? lastLogByDateRef.current[cacheKey]
+    : undefined;
+  const revisionAtLoadStart = cacheKey
+    ? logSaveRevisionRef.current.get(cacheKey) || 0
+    : 0;
+
+  if (cachedAtLoadStart) {
+    setLogForDay(cachedAtLoadStart);
   }
 
   const reqId = ++loadDayLogReqRef.current;
@@ -3882,9 +3889,24 @@ useEffect(() => {
     );
     if (reqId !== loadDayLogReqRef.current) return;
 
+    // Re-read the live cache after the network request. A user may have typed
+    // while getLog was in flight, and that optimistic edit is newer than the
+    // DB snapshot that this request started with.
+    const liveCached = cacheKey
+      ? lastLogByDateRef.current[cacheKey]
+      : undefined;
+    const liveRevision = cacheKey
+      ? logSaveRevisionRef.current.get(cacheKey) || 0
+      : 0;
+    const editedWhileLoading = liveRevision !== revisionAtLoadStart;
+
     if (error) {
       console.error("getLog failed", error);
-      if (!cached) setLogForDay(null);
+      if (liveCached) {
+        setLogForDay(liveCached);
+      } else if (!editedWhileLoading && !cachedAtLoadStart) {
+        setLogForDay(null);
+      }
       return;
     }
 
@@ -3892,8 +3914,9 @@ useEffect(() => {
     // Prefer the new log_json column, but fall back to legacy log if needed
     const fromDb = row?.log_json || row?.log || null;
 
-    // Prefer our cached latest (from recent saves), fall back to DB, or null.
-    const rawLatest = cached || fromDb || null;
+    // Never let the result of an older load overwrite an edit made while that
+    // request was in flight.
+    const rawLatest = liveCached || fromDb || null;
 
     // Snap the log to the *current* plan structure for this weekday so:
     // - blocks always line up with the active plan
@@ -3910,17 +3933,24 @@ useEffect(() => {
       const prev = lastLogByDateRef.current || {};
       if (snapped) {
         lastLogByDateRef.current = { ...prev, [cacheKey]: snapped };
-      } else {
+      } else if (!editedWhileLoading) {
         const copy = { ...prev };
         delete copy[cacheKey];
-
         lastLogByDateRef.current = copy;
       }
     }
   })().catch((e) => {
     if (reqId !== loadDayLogReqRef.current) return;
     console.error("getLog exception", e);
-    if (!cached) setLogForDay(null);
+
+    const liveCached = cacheKey
+      ? lastLogByDateRef.current[cacheKey]
+      : undefined;
+    if (liveCached) {
+      setLogForDay(liveCached);
+    } else if (!cachedAtLoadStart) {
+      setLogForDay(null);
+    }
   });
 }, [
   family?.id,
@@ -4275,6 +4305,11 @@ if (cached) {
 
   const nextAvatarReward = useMemo(
     () => getNextAvatarReward(xp, AVATAR_PACKS),
+    [xp]
+  );
+
+  const rewardsRoadmap = useMemo(
+    () => buildRewardsRoadmap(xp, AVATAR_PACKS),
     [xp]
   );
 
@@ -6966,7 +7001,6 @@ async function resetDay() {
 }
 
   async function addOrUpdateSet(exId, idx, patch) {
-    const ctx = await ensureAudio();
     const next = latestLogForSelectedDay();
     const entries = { ...(next.entries || {}) };
     const cur = Array.isArray(entries[exId]) ? entries[exId] : [{}, {}, {}];
@@ -6977,6 +7011,7 @@ async function resetDay() {
     next.gamify = { ...(next.gamify || {}), comboMax: calcComboMax(next) };
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
 
+    const ctx = await ensureAudio();
     if (ctx) {
       const combo = clamp((next.gamify?.comboMax || 1), 1, 10);
       playWhoosh(ctx, combo, victoryTheme);
@@ -6985,7 +7020,6 @@ async function resetDay() {
   }
 
   async function updateCardio(patch) {
-    const ctx = await ensureAudio();
     const next = latestLogForSelectedDay();
     const cardio = { ...(next.cardio || { distanceKm: "", durationMin: "", avgSpeedKmh: "" }), ...patch };
     const dist = safeNumber(cardio.distanceKm);
@@ -6994,14 +7028,15 @@ async function resetDay() {
     cardio.avgSpeedKmh = avg ? avg.toFixed(2) : "";
     next.cardio = cardio;
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+    const ctx = await ensureAudio();
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
   async function updateCustom(patch) {
-    const ctx = await ensureAudio();
     const next = latestLogForSelectedDay();
     next.custom = { ...(next.custom || { durationMin: "" }), ...patch };
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+    const ctx = await ensureAudio();
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -7019,8 +7054,6 @@ async function resetDay() {
   }
 
 async function updateCardioForBlock(blockId, cardioPatch) {
-  const ctx = await ensureAudio();
-
   // Take a stable snapshot of today’s log (or a fresh blank one)
   const base = ensureBlocksSnapshot(
     latestLogForSelectedDay()
@@ -7080,11 +7113,11 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   }
 
   await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+  const ctx = await ensureAudio();
   if (ctx) playBling(ctx, 1, victoryTheme);
 }
 
     async function updateDurationForBlock(blockId, durationPatch) {
-    const ctx = await ensureAudio();
     const base = ensureBlocksSnapshot(
       latestLogForSelectedDay()
     );
@@ -7106,6 +7139,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     }
 
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+    const ctx = await ensureAudio();
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -7244,7 +7278,6 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   }
 
   async function updateProfileRecoveryMinutes(blockId, minutes) {
-    const ctx = await ensureAudio();
     const clean =
       minutes === "" || minutes == null
         ? ""
@@ -7262,6 +7295,7 @@ async function updateCardioForBlock(blockId, cardioPatch) {
 
     await saveLog(next, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
 
+    const ctx = await ensureAudio();
     if (ctx && done && !wasDone) playBling(ctx, 1, victoryTheme);
   }  
   
@@ -7286,8 +7320,6 @@ async function toggleBlockCancelled(blockId, cancelled) {
     movementId,
     nextSetsForMovement
   ) {
-    const ctx = await ensureAudio();
-
         // Start from existing log or a fresh blank one
     const baseLog = ensureBlocksSnapshot(
       latestLogForSelectedDay()
@@ -7313,6 +7345,7 @@ async function toggleBlockCancelled(blockId, cancelled) {
     });
 
     await saveLog(nextLog, { debounceMs: LOG_INPUT_SAVE_DEBOUNCE_MS });
+    const ctx = await ensureAudio();
     if (ctx) playBling(ctx, 1, victoryTheme);
   }
 
@@ -11970,25 +12003,29 @@ the same time tomorrow.
         </button>
 
         {/* Right: XP / Level / XP to next */}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
+        <div className="rewardsSummaryColumn">
           <SummaryStat
             label="Earned XP this week"
             value={weeklyXpBreakdown.earned.toLocaleString("en-GB")}
           />
-          <div className="mini muted" style={{ paddingLeft: 2 }}>
-            {lifetimeXpBreakdown.total.toLocaleString("en-GB")} Total XP
-            {" · "}
-            {lifetimeXpBreakdown.earned.toLocaleString("en-GB")} Earned
-            {" · "}
-            {lifetimeXpBreakdown.bonus.toLocaleString("en-GB")} Bonus
+
+          <div className="rewardsXpBreakdown" aria-label="XP breakdown">
+            <div className="rewardsXpTotal">
+              <span>Total XP</span>
+              <strong>{lifetimeXpBreakdown.total.toLocaleString("en-GB")}</strong>
+            </div>
+            <div className="rewardsXpSplit">
+              <div>
+                <span>Earned XP</span>
+                <strong>{lifetimeXpBreakdown.earned.toLocaleString("en-GB")}</strong>
+              </div>
+              <div>
+                <span>Bonus XP</span>
+                <strong>{lifetimeXpBreakdown.bonus.toLocaleString("en-GB")}</strong>
+              </div>
+            </div>
           </div>
+
           <SummaryStat label="Level" value={level} />
           <SummaryStat label="XP to next level" value={xpToNext} />
         </div>
@@ -12014,24 +12051,53 @@ the same time tomorrow.
         </div>
       </div>
 
-      <div className="panel mt12">
-        <div className="h3">Next avatar milestone</div>
-        <div className="mini muted mt4">
-          Avatar rewards unlock at XP milestones. Higher-level reward tiers can use wider gaps.
-        </div>
-        <div className="mini mt8">
-          {nextAvatarReward ? (
-            <>
-              <b>{nextAvatarReward.title}</b> unlocks at{" "}
-              <b>{nextAvatarReward.unlockAtXp.toLocaleString("en-GB")}</b> XP
-              {" "}({nextAvatarReward.remainingXp.toLocaleString("en-GB")} XP to go).
-            </>
-          ) : (
-            <>
-              Current avatar milestones are complete. The next high-XP avatar tiers are the next reward expansion.
-            </>
-          )}
-        </div>
+      <div className="panel mt12 rewardsAvatarMilestonePanel">
+        <div className="h3">Next avatar unlock</div>
+        {rewardsRoadmap.nextAvatar ? (
+          <div className="rewardsAvatarMilestone mt8">
+            <div className="rewardsMilestoneEyebrow">
+              {rewardsRoadmap.nextAvatar.packLabel}
+            </div>
+            <div className="rewardsMilestoneTitle">
+              {rewardsRoadmap.nextAvatar.name}
+            </div>
+            <div className="rewardsMilestoneMeta">
+              Unlocks at{" "}
+              <b>{rewardsRoadmap.nextAvatar.unlockAtXp.toLocaleString("en-GB")} XP</b>
+            </div>
+
+            <div
+              className="rewardsMilestoneProgress"
+              role="progressbar"
+              aria-label="Progress to next avatar unlock"
+              aria-valuemin="0"
+              aria-valuemax={rewardsRoadmap.nextAvatar.unlockAtXp}
+              aria-valuenow={Math.min(
+                rewardsRoadmap.totalXp,
+                rewardsRoadmap.nextAvatar.unlockAtXp
+              )}
+            >
+              <div
+                className="rewardsMilestoneProgressFill"
+                style={{ width: `${rewardsRoadmap.nextAvatar.progressPct}%` }}
+              />
+            </div>
+
+            <div className="rewardsMilestoneProgressText">
+              <span>
+                {rewardsRoadmap.totalXp.toLocaleString("en-GB")} /{" "}
+                {rewardsRoadmap.nextAvatar.unlockAtXp.toLocaleString("en-GB")} XP
+              </span>
+              <strong>
+                {rewardsRoadmap.nextAvatar.remainingXp.toLocaleString("en-GB")} XP to go
+              </strong>
+            </div>
+          </div>
+        ) : (
+          <div className="mini muted mt8">
+            All currently released avatar XP milestones are unlocked.
+          </div>
+        )}
       </div>
     </Card>
 
@@ -12727,23 +12793,66 @@ if (!didClaim) {
 
       {rewardsSubTab === "info" && (
         <div className="mt16">
-          <div className="panel">
-            <div className="h3">Level roadmap</div>
-            <div className="mini muted mt4">
-              Total XP drives levels and avatar milestones. Earned XP comes from training, tasks, consistency and progression; Bonus XP comes from claimed rewards and awards.
+          <div className="panel rewardsRoadmapPanel">
+            <div className="rowBetween">
+              <div>
+                <div className="h3">Your progression</div>
+                <div className="muted mt4">
+                  This roadmap moves with you. Total XP drives levels and avatar milestones.
+                </div>
+              </div>
+              <div className="pill">
+                {rewardsRoadmap.unlockedAvatarCount} avatar pack{rewardsRoadmap.unlockedAvatarCount === 1 ? "" : "s"} unlocked
+              </div>
             </div>
-            <div className="stack mt8 mini">
-              <div>
-                🎚 Current level: <b>{level}</b>
+
+            <div className="rewardsRoadmapGrid mt12">
+              <div className="rewardsRoadmapItem rewardsRoadmapItemCurrent">
+                <span>Current</span>
+                <strong>Level {rewardsRoadmap.currentLevel}</strong>
+                <small>{rewardsRoadmap.totalXp.toLocaleString("en-GB")} Total XP</small>
               </div>
-              <div>
-                🧬 XP avatar packs unlocked: <b>{unlockedAvatarPacksSet.size}</b>
+
+              <div className="rewardsRoadmapItem">
+                <span>Next level</span>
+                <strong>Level {rewardsRoadmap.nextLevel}</strong>
+                <small>
+                  {rewardsRoadmap.nextLevelRemainingXp.toLocaleString("en-GB")} XP to go
+                </small>
               </div>
-              <div className="muted mt8">Milestones to aim for:</div>
-              <div>• Level 3 – Unlock Arcade sounds</div>
-              <div>• Level 5 – Unlock Chill sounds</div>
-              <div>• Level 10 – First avatar pack</div>
-              <div>• More badges + PBs coming soon</div>
+
+              {rewardsRoadmap.nextAvatar ? (
+                <div className="rewardsRoadmapItem rewardsRoadmapItemAvatar">
+                  <span>Next avatar</span>
+                  <strong>{rewardsRoadmap.nextAvatar.name}</strong>
+                  <small>
+                    {rewardsRoadmap.nextAvatar.packLabel} ·{" "}
+                    {rewardsRoadmap.nextAvatar.remainingXp.toLocaleString("en-GB")} XP to go
+                  </small>
+                </div>
+              ) : (
+                <div className="rewardsRoadmapItem rewardsRoadmapItemAvatar">
+                  <span>Avatar journey</span>
+                  <strong>Current packs complete</strong>
+                  <small>Future reward packs will extend the roadmap.</small>
+                </div>
+              )}
+
+              {rewardsRoadmap.followingAvatar ? (
+                <div className="rewardsRoadmapItem">
+                  <span>Then</span>
+                  <strong>{rewardsRoadmap.followingAvatar.name}</strong>
+                  <small>
+                    {rewardsRoadmap.followingAvatar.packLabel} · unlocks at{" "}
+                    {rewardsRoadmap.followingAvatar.unlockAtXp.toLocaleString("en-GB")} XP
+                  </small>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mini muted mt12">
+              Earned XP comes from training, tasks, consistency and progression.
+              Bonus XP comes from claimed rewards and awards. Both contribute to Total XP.
             </div>
           </div>
 
@@ -13789,6 +13898,201 @@ function StyleTag() {
 }
 /* Rewards: header avatar + badge grid */
 .titleRow{display:flex;align-items:center;gap:10px}
+
+.rewardsSummaryColumn{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-width:0;
+}
+
+.rewardsXpBreakdown{
+  border:1px solid #dbe4ee;
+  background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:0 1px 0 rgba(15,23,42,.03);
+}
+
+.rewardsXpTotal{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px 10px;
+  border-bottom:1px solid #e2e8f0;
+}
+
+.rewardsXpTotal span,
+.rewardsXpSplit span{
+  display:block;
+  font-size:11px;
+  font-weight:900;
+  color:#64748b;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+}
+
+.rewardsXpTotal strong{
+  font-size:24px;
+  line-height:1;
+  color:#0f172a;
+}
+
+.rewardsXpSplit{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+}
+
+.rewardsXpSplit > div{
+  padding:10px 14px 12px;
+  min-width:0;
+}
+
+.rewardsXpSplit > div + div{
+  border-left:1px solid #e2e8f0;
+}
+
+.rewardsXpSplit strong{
+  display:block;
+  margin-top:4px;
+  font-size:16px;
+  color:#0f172a;
+}
+
+.rewardsAvatarMilestonePanel{
+  overflow:hidden;
+}
+
+.rewardsAvatarMilestone{
+  border:1px solid #dbe4ee;
+  background:
+    radial-gradient(circle at 92% 10%,rgba(249,115,22,.10),transparent 34%),
+    linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+  border-radius:16px;
+  padding:14px;
+}
+
+.rewardsMilestoneEyebrow{
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.08em;
+  color:#f97316;
+  text-transform:uppercase;
+}
+
+.rewardsMilestoneTitle{
+  margin-top:3px;
+  font-size:20px;
+  line-height:1.15;
+  font-weight:950;
+  color:#0f172a;
+}
+
+.rewardsMilestoneMeta{
+  margin-top:5px;
+  font-size:12px;
+  color:#64748b;
+}
+
+.rewardsMilestoneProgress{
+  height:10px;
+  margin-top:14px;
+  border-radius:999px;
+  background:#e2e8f0;
+  overflow:hidden;
+}
+
+.rewardsMilestoneProgressFill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#fb923c,#f97316);
+  transition:width .25s ease;
+}
+
+.rewardsMilestoneProgressText{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-top:7px;
+  font-size:11px;
+  color:#64748b;
+}
+
+.rewardsMilestoneProgressText strong{
+  color:#0f172a;
+  text-align:right;
+}
+
+.rewardsRoadmapGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.rewardsRoadmapItem{
+  min-width:0;
+  padding:12px;
+  border:1px solid #e2e8f0;
+  border-radius:15px;
+  background:#fff;
+}
+
+.rewardsRoadmapItem span{
+  display:block;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:#64748b;
+}
+
+.rewardsRoadmapItem strong{
+  display:block;
+  margin-top:4px;
+  font-size:16px;
+  line-height:1.2;
+  color:#0f172a;
+}
+
+.rewardsRoadmapItem small{
+  display:block;
+  margin-top:4px;
+  color:#64748b;
+  line-height:1.3;
+}
+
+.rewardsRoadmapItemCurrent{
+  border-color:rgba(249,115,22,.35);
+  background:rgba(249,115,22,.055);
+}
+
+.rewardsRoadmapItemAvatar{
+  border-color:rgba(14,165,233,.26);
+  background:rgba(14,165,233,.045);
+}
+
+@media(max-width:720px){
+  .rewardsXpTotal{
+    align-items:center;
+  }
+  .rewardsXpTotal strong{
+    font-size:21px;
+  }
+  .rewardsRoadmapGrid{
+    grid-template-columns:1fr;
+  }
+  .rewardsMilestoneProgressText{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:3px;
+  }
+  .rewardsMilestoneProgressText strong{
+    text-align:left;
+  }
+}
 .avatarChip{
   width:28px;
   height:28px;
