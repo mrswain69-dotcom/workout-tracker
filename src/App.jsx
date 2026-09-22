@@ -13898,6 +13898,201 @@ function StyleTag() {
 }
 /* Rewards: header avatar + badge grid */
 .titleRow{display:flex;align-items:center;gap:10px}
+
+.rewardsSummaryColumn{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-width:0;
+}
+
+.rewardsXpBreakdown{
+  border:1px solid #dbe4ee;
+  background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+  border-radius:18px;
+  overflow:hidden;
+  box-shadow:0 1px 0 rgba(15,23,42,.03);
+}
+
+.rewardsXpTotal{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px 10px;
+  border-bottom:1px solid #e2e8f0;
+}
+
+.rewardsXpTotal span,
+.rewardsXpSplit span{
+  display:block;
+  font-size:11px;
+  font-weight:900;
+  color:#64748b;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+}
+
+.rewardsXpTotal strong{
+  font-size:24px;
+  line-height:1;
+  color:#0f172a;
+}
+
+.rewardsXpSplit{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+}
+
+.rewardsXpSplit > div{
+  padding:10px 14px 12px;
+  min-width:0;
+}
+
+.rewardsXpSplit > div + div{
+  border-left:1px solid #e2e8f0;
+}
+
+.rewardsXpSplit strong{
+  display:block;
+  margin-top:4px;
+  font-size:16px;
+  color:#0f172a;
+}
+
+.rewardsAvatarMilestonePanel{
+  overflow:hidden;
+}
+
+.rewardsAvatarMilestone{
+  border:1px solid #dbe4ee;
+  background:
+    radial-gradient(circle at 92% 10%,rgba(249,115,22,.10),transparent 34%),
+    linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+  border-radius:16px;
+  padding:14px;
+}
+
+.rewardsMilestoneEyebrow{
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.08em;
+  color:#f97316;
+  text-transform:uppercase;
+}
+
+.rewardsMilestoneTitle{
+  margin-top:3px;
+  font-size:20px;
+  line-height:1.15;
+  font-weight:950;
+  color:#0f172a;
+}
+
+.rewardsMilestoneMeta{
+  margin-top:5px;
+  font-size:12px;
+  color:#64748b;
+}
+
+.rewardsMilestoneProgress{
+  height:10px;
+  margin-top:14px;
+  border-radius:999px;
+  background:#e2e8f0;
+  overflow:hidden;
+}
+
+.rewardsMilestoneProgressFill{
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#fb923c,#f97316);
+  transition:width .25s ease;
+}
+
+.rewardsMilestoneProgressText{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-top:7px;
+  font-size:11px;
+  color:#64748b;
+}
+
+.rewardsMilestoneProgressText strong{
+  color:#0f172a;
+  text-align:right;
+}
+
+.rewardsRoadmapGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.rewardsRoadmapItem{
+  min-width:0;
+  padding:12px;
+  border:1px solid #e2e8f0;
+  border-radius:15px;
+  background:#fff;
+}
+
+.rewardsRoadmapItem span{
+  display:block;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:#64748b;
+}
+
+.rewardsRoadmapItem strong{
+  display:block;
+  margin-top:4px;
+  font-size:16px;
+  line-height:1.2;
+  color:#0f172a;
+}
+
+.rewardsRoadmapItem small{
+  display:block;
+  margin-top:4px;
+  color:#64748b;
+  line-height:1.3;
+}
+
+.rewardsRoadmapItemCurrent{
+  border-color:rgba(249,115,22,.35);
+  background:rgba(249,115,22,.055);
+}
+
+.rewardsRoadmapItemAvatar{
+  border-color:rgba(14,165,233,.26);
+  background:rgba(14,165,233,.045);
+}
+
+@media(max-width:720px){
+  .rewardsXpTotal{
+    align-items:center;
+  }
+  .rewardsXpTotal strong{
+    font-size:21px;
+  }
+  .rewardsRoadmapGrid{
+    grid-template-columns:1fr;
+  }
+  .rewardsMilestoneProgressText{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:3px;
+  }
+  .rewardsMilestoneProgressText strong{
+    text-align:left;
+  }
+}
 .avatarChip{
   width:28px;
   height:28px;
