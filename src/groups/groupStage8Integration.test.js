@@ -50,8 +50,13 @@ describe("Group Stage 8 Private Challenges integration contract", () => {
     const source = fs.readFileSync(new URL("../engine/xpEngine.js", import.meta.url), "utf8");
     const weekly = fs.readFileSync(new URL("../../supabase/functions/group-xp-leaderboard/xpEngine.js", import.meta.url), "utf8");
     const seasons = fs.readFileSync(new URL("../../supabase/functions/group-seasons-awards/xpEngine.js", import.meta.url), "utf8");
+    const streak = fs.readFileSync(new URL("../engine/workoutStreakEngine.js", import.meta.url), "utf8");
+    const weeklyStreak = fs.readFileSync(new URL("../../supabase/functions/group-xp-leaderboard/workoutStreakEngine.js", import.meta.url), "utf8");
+    const seasonsStreak = fs.readFileSync(new URL("../../supabase/functions/group-seasons-awards/workoutStreakEngine.js", import.meta.url), "utf8");
     expect(weekly).toBe(source);
     expect(seasons).toBe(source);
+    expect(weeklyStreak).toBe(streak);
+    expect(seasonsStreak).toBe(streak);
   });
 
   it("keeps challenge-progress XP separate from reward/badge XP to prevent feedback loops", () => {

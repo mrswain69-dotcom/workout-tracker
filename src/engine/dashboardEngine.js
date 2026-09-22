@@ -105,6 +105,7 @@ export function buildDashboardCoachInsight({
   weekXp = 0,
   completedDays = 0,
   todayActionCount = 0,
+  planIsBlank = false,
 } = {}) {
   const mode = cleanText(recoveryMode).toLowerCase();
   const streak = Math.max(0, safeNumber(currentStreak));
@@ -144,6 +145,24 @@ export function buildDashboardCoachInsight({
     };
   }
 
+  if (planIsBlank) {
+    return {
+      kicker: "GET STARTED",
+      title: "Build your first training week.",
+      body: "Your schedule is blank by design. Add activities in Plan when you are ready — nothing has been chosen for you.",
+      tone: "focus",
+    };
+  }
+
+  if (actions === 0) {
+    return {
+      kicker: "REST DAY",
+      title: "Nothing is planned today.",
+      body: "Rest days do not increase or break your streak. Recover well, or log an extra activity if you choose to do one.",
+      tone: "recovery",
+    };
+  }
+
   if (streak >= 5) {
     return {
       kicker: "PERFORMANCE COACH",
@@ -165,22 +184,10 @@ export function buildDashboardCoachInsight({
     };
   }
 
-  if (actions > 0) {
-    return {
-      kicker: "PERFORMANCE COACH",
-      title: "Today’s opportunity is clear.",
-      body: `${actions} active plan block${actions === 1 ? "" : "s"} are scheduled. Focus on completing what is planned before adding more.`,
-      tone: "focus",
-    };
-  }
-
   return {
     kicker: "PERFORMANCE COACH",
-    title: "Build the next result.",
-    body:
-      xp > 0
-        ? `You have earned ${xp} XP this week. Use today to recover well or prepare for the next planned session.`
-        : "Use today well: train when training is planned, recover when recovery is planned, and keep the habit deliberate.",
+    title: "Today’s opportunity is clear.",
+    body: `${actions} active plan block${actions === 1 ? "" : "s"} are scheduled. Focus on completing what is planned before adding more.`,
     tone: "neutral",
   };
 }

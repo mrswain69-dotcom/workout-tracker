@@ -28,6 +28,7 @@ import {
   upsertPlan,
   getProfilePlan,
   upsertProfilePlan,
+  listProfileStreakScheduleSnapshots,
   getLog,
   upsertLog,
   listLogs,
@@ -38,6 +39,7 @@ import {
   loadSessionLibrary,
   setFamilyPinHash,
   clearFamilyPin,
+  updateFamilyOnboardingState,
 } from "./db";
 
 import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS } from "./config/badges";
@@ -46,6 +48,7 @@ import {
   buildXpDebugRows as buildXpDebugRowsEngine,
   computeXpFromLogs as computeXpFromLogsEngine,
 } from "./engine/xpEngine.js";
+import { buildWorkoutStreakSeries } from "./engine/workoutStreakEngine.js";
 import {
   buildDashboardWeekSummary,
   getNextAvatarReward,
@@ -94,6 +97,9 @@ import ProgressDashboard from "./components/progress/ProgressDashboard.jsx";
 import PerformanceDashboard from "./components/dashboard/PerformanceDashboard.jsx";
 import ConnectionsSettings from "./components/settings/ConnectionsSettings.jsx";
 import LogVerificationSummary from "./components/verification/LogVerificationSummary.jsx";
+import FirstRunTutorial, {
+  FIRST_RUN_TUTORIAL_VERSION,
+} from "./components/onboarding/FirstRunTutorial.jsx";
 const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
 
 // -------- Utilities ----------
@@ -117,69 +123,6 @@ function getTodayYMD() {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-}
-
-// Counts consecutive *green* days up to today (inclusive), using block-based day status.
-function getCurrentPlanStreak(records, todayYmd) {
-  if (!Array.isArray(records) || !records.length) return 0;
-
-  // Build date -> log map
-  const map = new Map();
-  for (const r of records) {
-    const date = r?.date_ymd || r?.date;
-    const log = r?.log;
-    if (!date || !log) continue;
-    map.set(date, log);
-  }
-
-    // Collect all streak-counting dates:
-  // - normal plan-complete days (green)
-  // - days explicitly marked as streakSaved
-  const completeDates = [];
-  for (const [date, log] of map.entries()) {
-    if (date > todayYmd) continue;
-    const streakDay =
-      isDayGreen(log) || (log.meta && log.meta.streakSaved);
-    if (streakDay) {
-      completeDates.push(date);
-    }
-  }
-
-  if (!completeDates.length) return 0;
-
-  // Sort and find the latest completed date
-  completeDates.sort((a, b) => (a < b ? -1 : 1));
-  const latest = completeDates[completeDates.length - 1];
-
-  const todayDate = new Date(todayYmd + "T00:00:00");
-  const latestDate = new Date(latest + "T00:00:00");
-  const diffFromToday = Math.round((todayDate - latestDate) / 86400000);
-
-  // If the latest complete day is more than 1 day ago, streak is broken
-  if (diffFromToday > 1) return 0;
-
-  // Walk backwards from the latest completed day
-  let cursor = latest;
-  let streak = 0;
-
-  while (true) {
-    const log = map.get(cursor);
-    if (!log) break;
-
-    const streakDay =
-      isDayGreen(log) || (log.meta && log.meta.streakSaved);
-    if (!streakDay) break;
-
-    streak += 1;
-
-    const d = new Date(cursor + "T00:00:00");
-    d.setDate(d.getDate() - 1);
-    const prev = ymd(d);
-    if (!map.has(prev)) break;
-    cursor = prev;
-  }
-
-  return streak;
 }
 
 // -------- Utilities ----------
@@ -573,6 +516,24 @@ function defaultPlanForFamily() {
   };
 }
 
+function blankPlanForNewProfile() {
+  const plan = defaultPlanForFamily();
+  return {
+    ...plan,
+    meta: {
+      ...(plan.meta || {}),
+      planSetupPrompt: true,
+    },
+  };
+}
+
+function planHasBlocks(plan) {
+  return weekdays.some((weekday) =>
+    Array.isArray(plan?.blocksByWeekday?.[weekday]) &&
+    plan.blocksByWeekday[weekday].length > 0
+  );
+}
+
 // -------- Day activities (primary + extras) ----------
 // Primary activity still comes from dayTypeByWeekday / movementsByWeekday / cardioTargetByWeekday
 // Extras are stored in plan.dayActivitiesByWeekday[weekday] as an array of blocks.
@@ -584,7 +545,7 @@ function getDayActivitiesForWeekday(plan, weekday) {
     plan.blocksByWeekday &&
     Array.isArray(plan.blocksByWeekday[weekday]);
 
-  if (hasBlocks && plan.blocksByWeekday[weekday].length > 0) {
+  if (hasBlocks) {
     const blocksForDay = plan.blocksByWeekday[weekday];
 
     // IMPORTANT: keep the full block object (cardioType, plannedMinutes, etc.)
@@ -3084,6 +3045,7 @@ useEffect(() => {
 
   const [family, setFamily] = useState(null);
   const [profiles, setProfiles] = useState([]);
+  const [tutorialStep, setTutorialStep] = useState(null);
   const [profileRecoveryPeriods, setProfileRecoveryPeriods] = useState([]);
   const [activeProfileId, setActiveProfileId] = useState(() => {
   try {
@@ -3196,6 +3158,7 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const [logForDay, setLogForDay] = useState(null);
   const [isSavingLog, setIsSavingLog] = useState(false);
   const [allLogs, setAllLogs] = useState([]); // for stats
+  const [streakScheduleSnapshots, setStreakScheduleSnapshots] = useState([]);
   const [logsReady, setLogsReady] = useState(false);
   const [externalLogRevision, setExternalLogRevision] = useState(0);
 
@@ -3526,7 +3489,7 @@ const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
 
   // --- After auth: family + profiles + plan ---
   async function refreshAll() {
-    const { family: fam, error } = await getOrCreateFamily("Swain Family");
+    const { family: fam, error } = await getOrCreateFamily("My Family");
     if (error) throw error;
     setFamily(fam);
 
@@ -3537,9 +3500,9 @@ const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
     let profList = profs || [];
 
     if (profList.length === 0) {
-      // auto-create Wilf + Xander
-      await addProfile(fam.id, "Wilf");
-      await addProfile(fam.id, "Xander");
+      // New accounts begin with one neutral, fully blank profile. The name can
+      // be changed in People without forcing a family-specific default.
+      await addProfile(fam.id, "Athlete", blankPlanForNewProfile());
       const again = await listProfiles(fam.id);
       profList = again.data || [];
     }
@@ -3574,6 +3537,41 @@ const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
     if (!authed) return;
     refreshAll().catch(() => {});
   }, [authed]);
+
+  async function persistTutorialState(status, step = 0) {
+    if (!family?.id) return;
+    const nextState = {
+      version: FIRST_RUN_TUTORIAL_VERSION,
+      status,
+      step,
+      updatedAt: new Date().toISOString(),
+      ...(status === "complete" ? { completedAt: new Date().toISOString() } : {}),
+      ...(status === "dismissed" ? { dismissedAt: new Date().toISOString() } : {}),
+    };
+
+    setFamily((current) => current ? { ...current, onboarding_state: nextState } : current);
+    const { data, error } = await updateFamilyOnboardingState(family.id, nextState);
+    if (error) {
+      console.error("updateFamilyOnboardingState failed", error);
+      return;
+    }
+    if (data) setFamily(data);
+  }
+
+  useEffect(() => {
+    if (!activeProfileId || !family?.onboarding_state) return;
+    const state = family.onboarding_state;
+    if (state.version !== FIRST_RUN_TUTORIAL_VERSION) return;
+    if (state.status !== "not_started" && state.status !== "in_progress") return;
+
+    const nextStep = Math.max(0, Number(state.step) || 0);
+    setTutorialStep(nextStep);
+    if (state.status === "not_started") {
+      persistTutorialState("in_progress", nextStep);
+    }
+    // The state update above changes family, so status intentionally gates reruns.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProfileId, family?.id, family?.onboarding_state?.status]);
 
   // When entering the Plan tab, default the plan editor to the same weekday
   // as the currently selected log date (nice UX, but then independent).
@@ -3620,6 +3618,33 @@ const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
     setLogsReady(true);
   });
 }, [family?.id, activeProfileId, externalLogRevision]);
+
+useEffect(() => {
+  if (!activeProfileId) {
+    setStreakScheduleSnapshots([]);
+    return;
+  }
+
+  let cancelled = false;
+  listProfileStreakScheduleSnapshots(activeProfileId)
+    .then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("listProfileStreakScheduleSnapshots failed", error);
+        setStreakScheduleSnapshots([]);
+        return;
+      }
+      setStreakScheduleSnapshots(data || []);
+    })
+    .catch((error) => {
+      if (!cancelled) {
+        console.error("listProfileStreakScheduleSnapshots failed", error);
+        setStreakScheduleSnapshots([]);
+      }
+    });
+
+  return () => { cancelled = true; };
+}, [activeProfileId, externalLogRevision, plan]);
 
 
 // --- Load day log ---
@@ -3701,6 +3726,14 @@ const selectedLogRowId = useMemo(() => {
 
 const todayYmd = useMemo(() => getTodayYMD(), [readinessNowTick]);
 
+const workoutStreak = useMemo(() => buildWorkoutStreakSeries({
+  records: allLogs,
+  todayYmd,
+  scheduleSnapshots: streakScheduleSnapshots,
+  fallbackPlan: plan || {},
+  isDayComplete: isDayGreen,
+}), [allLogs, todayYmd, streakScheduleSnapshots, plan]);
+
 const isAdult = activeProfile?.age_group === "adult";
 
 const sanitiseLogTree = (value) => {
@@ -3745,12 +3778,19 @@ const badgeStats = useMemo(() => {
 
     console.log("BADGE_STATS_V2", result);
 
-    return result;
+    return {
+      ...result,
+      streak: {
+        ...(result?.streak || {}),
+        currentDays: workoutStreak.currentDays,
+        longestDays: workoutStreak.longestDays,
+      },
+    };
   } catch (e) {
     console.error("BADGE_STATS_V2 failed after sanitise", e);
     return {};
   }
-}, [sanitisedAllLogsForBadges, todayYmd, isAdult]);
+}, [sanitisedAllLogsForBadges, todayYmd, isAdult, workoutStreak]);
 
   function updateProfilePlanInState(profileId, nextPlan) {
     setProfiles((prev) =>
@@ -4899,13 +4939,19 @@ const computeXpFromLogs = (records, plan) => {
 };
 
 useEffect(() => {
-  setXp(computeXpFromLogsEngine(allLogs, plan));
-}, [allLogs, plan]);
+  setXp(computeXpFromLogsEngine(allLogs, plan, {
+    todayYmd,
+    scheduleSnapshots: streakScheduleSnapshots,
+  }));
+}, [allLogs, plan, todayYmd, streakScheduleSnapshots]);
 
 // XP breakdown per day (for cross-checking / XP log)
 const xpDebugRows = useMemo(
-  () => buildXpDebugRowsEngine(allLogs, plan),
-  [allLogs, plan]
+  () => buildXpDebugRowsEngine(allLogs, plan, {
+    todayYmd,
+    scheduleSnapshots: streakScheduleSnapshots,
+  }),
+  [allLogs, plan, todayYmd, streakScheduleSnapshots]
 );
 
   const records = useMemo(() => {
@@ -4979,8 +5025,8 @@ const selectedDayStatus = useMemo(() => {
 }, [selectedDate, allLogs, todayYmd]);
 
 const currentPlanStreak = useMemo(() => {
-  return getCurrentPlanStreak(allLogs, todayYmd);
-}, [allLogs, todayYmd, activeProfileId]);
+  return workoutStreak.currentDays;
+}, [workoutStreak, activeProfileId]);
 
 const todayPlanStatus = useMemo(() => {
   // Status for TODAY only: "green" complete, "amber" otherwise.
@@ -5042,6 +5088,8 @@ const dashboardTodayBlocks = useMemo(() => {
     mode: dashboardRecoveryMode,
   });
 }, [plan, todayYmd, activeProfileId, dashboardRecoveryMode]);
+
+const activePlanIsBlank = !!plan && !planHasBlocks(plan);
 
   
 const recoveryEligibilityForSelectedDate = useMemo(() => {
@@ -5194,9 +5242,17 @@ const selectedDayHasHeavyTrainingBlocks =
     if (!(await ensureUnlocked("apply changes"))) return;
     setUndoPlan(plan || null);
     setUndoLabel(label);
-    setAndCachePlan(activeProfileId, nextPlan);
+    const mergedPlan = {
+      ...nextPlan,
+      meta: {
+        ...(plan?.meta || {}),
+        ...(nextPlan?.meta || {}),
+        ...(planHasBlocks(nextPlan) ? { planSetupPrompt: false } : {}),
+      },
+    };
+    setAndCachePlan(activeProfileId, mergedPlan);
     if (!family?.id || !activeProfileId) return;
-    await upsertProfilePlan(family.id, activeProfileId, nextPlan);
+    await upsertProfilePlan(family.id, activeProfileId, mergedPlan);
   }
 
   async function undoLastPlan() {
@@ -5214,7 +5270,14 @@ const selectedDayHasHeavyTrainingBlocks =
     if (!(await ensureUnlocked("save changes"))) return;
 
     // Normalise once so DB + cache both store the same canonical shape
-    const normalised = normalisePlanForRuntime(nextPlan);
+    const normalised = normalisePlanForRuntime({
+      ...nextPlan,
+      meta: {
+        ...(plan?.meta || {}),
+        ...(nextPlan?.meta || {}),
+        ...(planHasBlocks(nextPlan) ? { planSetupPrompt: false } : {}),
+      },
+    });
 
     // Update in-memory state + localStorage cache
     setAndCachePlan(activeProfileId, normalised);
@@ -7915,7 +7978,7 @@ async function removeExtraMovement(blockId) {
     lastVol > 0 ? Math.round(((thisVol - lastVol) / lastVol) * 100) : null;
 
   // Plan-based streak (same as the Plan Streak tile, includes streak saver)
-  const streak = getCurrentPlanStreak(allLogs, todayYmd);
+  const streak = workoutStreak.currentDays;
 
   return {
     totalMinutes: "",
@@ -7925,14 +7988,14 @@ async function removeExtraMovement(blockId) {
     bestCardioDistance,
     weeklyChart,
     streak,
-    longestActivityStreak,
+    longestActivityStreak: workoutStreak.longestDays,
     improved,
     // fields we’ll adjust in the next section
     mostActiveDayMinutes,
     mostActiveWeekMinutes,
     bestByExercise,
   };
-}, [allLogs, todayYmd]);
+}, [allLogs, todayYmd, workoutStreak]);
 
   const exerciseOptions = useMemo(() => {
     // collect movement ids + names from plan movements
@@ -8246,6 +8309,26 @@ const cardioProgress = useMemo(() => {
   />
 ) : null}
 
+{tutorialStep !== null ? (
+  <FirstRunTutorial
+    step={tutorialStep}
+    onStepChange={(nextStep, nextTab) => {
+      setTutorialStep(nextStep);
+      if (nextTab) setTab(nextTab);
+      persistTutorialState("in_progress", nextStep);
+    }}
+    onExit={() => {
+      setTutorialStep(null);
+      persistTutorialState("dismissed", tutorialStep || 0);
+    }}
+    onFinish={() => {
+      setTutorialStep(null);
+      setTab("dashboard");
+      persistTutorialState("complete", tutorialStep || 0);
+    }}
+  />
+) : null}
+
 {["settings", "plan", "assessments", "connections", "appsettings"].includes(tab) && (
   <div className="manageTabsRow">
     <nav className="manageTabs" aria-label="Workout Tracker settings">
@@ -8282,10 +8365,16 @@ const cardioProgress = useMemo(() => {
             totalXp={xp}
             nextAvatarReward={nextAvatarReward}
             todayBlocks={dashboardTodayBlocks}
+            planIsBlank={activePlanIsBlank}
             recoveryMode={dashboardRecoveryMode}
             motivationLine={motivationLine}
             healthTip={healthTip}
             onOpenLog={() => {
+              setSelectedDate(todayYmd);
+              setTab("log");
+            }}
+            onOpenPlan={() => setTab("plan")}
+            onLogExtra={() => {
               setSelectedDate(todayYmd);
               setTab("log");
             }}
@@ -12481,7 +12570,7 @@ if (!didClaim) {
                     const name = prompt("Profile name?");
                     if (!name) return;
                     if (!(await ensureUnlocked("add a profile"))) return;
-                    await addProfile(family.id, name.trim());
+                    await addProfile(family.id, name.trim(), blankPlanForNewProfile());
                     await refreshAll();
                   }}
                 >
@@ -12626,6 +12715,24 @@ if (!didClaim) {
     </div>
   )}
 </div>
+
+              <div className="panel mt16">
+                <div className="h3">Tutorial</div>
+                <div className="muted mt8">
+                  Replay the short guide to weekly planning, rest days and logging activities.
+                </div>
+                <div className="row mt12">
+                  <SecondaryButton
+                    onClick={() => {
+                      setTutorialStep(0);
+                      setTab("dashboard");
+                      persistTutorialState("in_progress", 0);
+                    }}
+                  >
+                    Restart tutorial
+                  </SecondaryButton>
+                </div>
+              </div>
 
               <div className="panel mt16">
                 <div className="h3">Sign out</div>
@@ -14840,6 +14947,13 @@ const boxRounds = (names) =>
   });
 
   return [
+    {
+      id: "blank_week",
+      name: "Blank week",
+      note: "Clear every planned block and rebuild the week from scratch. Existing activity history is not deleted.",
+      desc: "Clear every planned block and rebuild the week from scratch.",
+      plan: defaultPlanForFamily(),
+    },
     {
       id: "football_engine",
       name: "Football Speed & Engine (5 days)",

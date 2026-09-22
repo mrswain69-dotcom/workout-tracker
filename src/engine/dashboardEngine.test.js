@@ -56,4 +56,15 @@ describe("dashboard engine", () => {
       tone: "recovery",
     });
   });
+
+  it("treats a blank schedule and an unplanned day without guilt", () => {
+    expect(buildDashboardCoachInsight({ planIsBlank: true })).toMatchObject({
+      title: "Build your first training week.",
+      tone: "focus",
+    });
+    expect(buildDashboardCoachInsight({ todayActionCount: 0 })).toMatchObject({
+      title: "Nothing is planned today.",
+      tone: "recovery",
+    });
+  });
 });

@@ -62,10 +62,13 @@ export default function PerformanceDashboard({
   totalXp = 0,
   nextAvatarReward = null,
   todayBlocks = [],
+  planIsBlank = false,
   recoveryMode = "normal",
   motivationLine = "",
   healthTip = "",
   onOpenLog,
+  onOpenPlan,
+  onLogExtra,
   onOpenProgress,
   onOpenRewards,
   onOpenGroups,
@@ -142,6 +145,7 @@ export default function PerformanceDashboard({
     weekXp: weekSummary?.xp || 0,
     completedDays: weekSummary?.completedDays || 0,
     todayActionCount: activeTodayBlocks.length,
+    planIsBlank,
   });
 
   const verifiedSummary = useMemo(() => {
@@ -232,8 +236,8 @@ export default function PerformanceDashboard({
       <section className="dashboardMetricGrid" aria-label="Current performance summary">
         <Metric
           label="Today"
-          value={todayComplete ? "Complete" : activeTodayBlocks.length ? "In progress" : "Clear"}
-          note={todayComplete ? "Plan completed" : `${activeTodayBlocks.length} active block${activeTodayBlocks.length === 1 ? "" : "s"}`}
+          value={todayComplete ? "Complete" : activeTodayBlocks.length ? "In progress" : "Rest day"}
+          note={todayComplete ? "Plan completed" : activeTodayBlocks.length ? `${activeTodayBlocks.length} active block${activeTodayBlocks.length === 1 ? "" : "s"}` : "Nothing planned"}
         />
         <Metric
           label="Plan streak"
@@ -279,13 +283,21 @@ export default function PerformanceDashboard({
               ) : null}
             </div>
           ) : (
-            <div className="dashboardEmpty">No active training blocks are planned today.</div>
+            <div className="dashboardEmpty">
+              <strong>Nothing planned today.</strong>
+              <span>{planIsBlank ? "Build your weekly schedule when you are ready." : "This is a rest day. It will not increase or break your streak."}</span>
+            </div>
           )}
 
           <div className="dashboardCard__actions">
-            <ActionButton onClick={onOpenLog} primary>
-              Open Today’s Log
-            </ActionButton>
+            {activeTodayBlocks.length ? (
+              <ActionButton onClick={onOpenLog} primary>Open Today’s Log</ActionButton>
+            ) : (
+              <>
+                <ActionButton onClick={onOpenPlan} primary>Build my weekly plan</ActionButton>
+                <ActionButton onClick={onLogExtra}>Log an extra activity</ActionButton>
+              </>
+            )}
           </div>
         </article>
 

@@ -1662,6 +1662,57 @@ button.btn.primary:hover{
   color:#166534;
 }
 
+/* === First-run planning tutorial === */
+.firstRunTutorial{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:24px;
+  background:rgba(15,23,42,.38);
+  backdrop-filter:blur(2px);
+}
+.firstRunTutorial__card{
+  width:min(620px,100%);
+  padding:22px;
+  border:1px solid rgba(255,255,255,.72);
+  border-radius:22px;
+  background:rgba(255,255,255,.98);
+  box-shadow:0 24px 70px rgba(15,23,42,.28);
+}
+.firstRunTutorial__top,.firstRunTutorial__actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.firstRunTutorial__kicker{
+  color:#0f766e;
+  font-size:.72rem;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+.firstRunTutorial__exit{
+  border:0;
+  background:transparent;
+  color:#64748b;
+  cursor:pointer;
+  font-weight:800;
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+.firstRunTutorial__progress{display:flex;gap:6px;margin:16px 0 18px}
+.firstRunTutorial__progress span{height:5px;flex:1;border-radius:999px;background:#e2e8f0}
+.firstRunTutorial__progress span.active{background:linear-gradient(90deg,#ff7a18,#0f766e)}
+.firstRunTutorial h2{margin:0;color:#0f172a;font-size:clamp(1.35rem,4vw,1.8rem)}
+.firstRunTutorial p{margin:10px 0 20px;color:#475569;line-height:1.55}
+@media(max-width:600px){
+  .firstRunTutorial{padding:12px;align-items:flex-end}
+  .firstRunTutorial__card{padding:18px;border-radius:18px}
+}
+
 
 /* === Post-10k Avatar Rewards scaling === */
 .avatarEraStack{

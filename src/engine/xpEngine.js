@@ -1,4 +1,5 @@
 import { BADGE_XP_BY_KEY } from "./xpRewardMap.generated.js";
+import { buildWorkoutStreakSeries } from "./workoutStreakEngine.js";
 
 export const XP_ENGINE_SCORE_VERSION = 2;
 export const SESSION_COMPLETION_XP = 10;
@@ -344,37 +345,31 @@ function computeGroupChallengeRewardsXpByDate(plan) {
   return map;
 }
 
-function computeStreakBonusMap(records) {
-  const completeDates = records
-    .filter((row) => isDayGreenForXp(row.log) || !!row.log?.meta?.streakSaved)
-    .map((row) => row.date_ymd)
-    .sort();
-  if (!completeDates.length) return {};
-
+function computeStreakBonusMap(records, plan, options = {}) {
   const bonusByDate = {};
-  let streak = 0;
-  let prevDate = "";
-  for (const date of completeDates) {
-    if (!prevDate) streak = 1;
-    else {
-      const prev = new Date(`${prevDate}T00:00:00Z`);
-      const cur = new Date(`${date}T00:00:00Z`);
-      streak = Math.round((cur - prev) / 86400000) === 1 ? streak + 1 : 1;
-    }
+  const latestRecordDate = records.map((row) => row.date_ymd).sort().at(-1) || "";
+  const series = buildWorkoutStreakSeries({
+    records,
+    todayYmd: options.todayYmd || latestRecordDate,
+    scheduleSnapshots: options.scheduleSnapshots || [],
+    fallbackPlan: plan || {},
+    isDayComplete: isDayGreenForXp,
+  });
+
+  for (const [date, streak] of Object.entries(series.streakByDate)) {
     const bonus = XP_RULES.streak[streak] || 0;
     if (bonus > 0) bonusByDate[date] = bonus;
-    prevDate = date;
   }
   return bonusByDate;
 }
 
-export function buildXpDebugRows(inputRecords, plan) {
+export function buildXpDebugRows(inputRecords, plan, options = {}) {
   const records = normaliseXpRecords(inputRecords);
   const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(plan);
   const groupChallengeXpByDate = computeGroupChallengeRewardsXpByDate(plan);
   if (!records.length && !Object.keys(claimedBadgeXpByDate).length && !Object.keys(groupChallengeXpByDate).length) return [];
 
-  const streakXpByDate = computeStreakBonusMap(records);
+  const streakXpByDate = computeStreakBonusMap(records, plan, options);
   const rows = [];
 
   for (const row of records) {
@@ -623,8 +618,8 @@ export function buildXpDebugRows(inputRecords, plan) {
   return rows;
 }
 
-export function computeXpFromLogs(records, plan) {
-  return buildXpDebugRows(records, plan).reduce((sum, row) => sum + safeNumber(row.totalXp), 0);
+export function computeXpFromLogs(records, plan, options = {}) {
+  return buildXpDebugRows(records, plan, options).reduce((sum, row) => sum + safeNumber(row.totalXp), 0);
 }
 
 function parseYmd(ymd) {

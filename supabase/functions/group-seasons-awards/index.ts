@@ -282,7 +282,11 @@ Deno.serve(async (req: Request) => {
     for (const member of allMemberships) {
       ledgerByMembership.set(
         member.id,
-        buildXpDebugRows(logsByProfile.get(member.profile_id) || [], planByProfile.get(member.profile_id) || {})
+        buildXpDebugRows(
+          logsByProfile.get(member.profile_id) || [],
+          planByProfile.get(member.profile_id) || {},
+          { todayYmd: referenceDate, scheduleSnapshots: schedulesByProfile.get(member.profile_id) || [] }
+        )
       );
     }
 

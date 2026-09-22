@@ -17,8 +17,9 @@ describe("Stage 3 XP integration", () => {
     expect(app.split(importPath)).toHaveLength(2);
     expect(app).toContain("computeXpFromLogs as computeXpFromLogsEngine");
     expect(app).toContain("buildXpDebugRows as buildXpDebugRowsEngine");
-    expect(app).toContain("setXp(computeXpFromLogsEngine(allLogs, plan))");
-    expect(app).toContain("() => buildXpDebugRowsEngine(allLogs, plan)");
+    expect(app).toContain("setXp(computeXpFromLogsEngine(allLogs, plan, {");
+    expect(app).toContain("() => buildXpDebugRowsEngine(allLogs, plan, {");
+    expect(app).toContain("scheduleSnapshots: streakScheduleSnapshots");
   });
 
   it("deploys the exact shared engine files with the Edge Function", () => {
@@ -26,7 +27,10 @@ describe("Stage 3 XP integration", () => {
     const edgeEngine = fs.readFileSync(new URL("../../supabase/functions/group-xp-leaderboard/xpEngine.js", import.meta.url), "utf8");
     const sourceRewards = fs.readFileSync(new URL("./xpRewardMap.generated.js", import.meta.url), "utf8");
     const edgeRewards = fs.readFileSync(new URL("../../supabase/functions/group-xp-leaderboard/xpRewardMap.generated.js", import.meta.url), "utf8");
+    const sourceStreak = fs.readFileSync(new URL("./workoutStreakEngine.js", import.meta.url), "utf8");
+    const edgeStreak = fs.readFileSync(new URL("../../supabase/functions/group-xp-leaderboard/workoutStreakEngine.js", import.meta.url), "utf8");
     expect(edgeEngine).toBe(sourceEngine);
     expect(edgeRewards).toBe(sourceRewards);
+    expect(edgeStreak).toBe(sourceStreak);
   });
 });
