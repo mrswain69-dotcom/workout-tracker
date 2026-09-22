@@ -28,6 +28,14 @@ export async function clearLocalAuthSession() {
   return { error };
 }
 
+function getBrowserAuthRedirectUrl() {
+  if (typeof window === "undefined") return undefined;
+  const origin = String(window.location?.origin || "").trim();
+  if (!origin || origin === "null") return undefined;
+  if (!/^https?:\/\//i.test(origin)) return undefined;
+  return origin.endsWith("/") ? origin : `${origin}/`;
+}
+
 export async function signUp(email, password) {
   // A signup with email confirmation enabled returns a user but no new session.
   // Clear any session left in this browser first so the app can never fall
@@ -35,14 +43,21 @@ export async function signUp(email, password) {
   const { error: clearError } = await clearLocalAuthSession();
   if (clearError) return { data: null, error: clearError };
 
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const emailRedirectTo = getBrowserAuthRedirectUrl();
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
+  });
   return { data, error };
 }
 
 export async function resendSignUpConfirmation(email) {
+  const emailRedirectTo = getBrowserAuthRedirectUrl();
   const { data, error } = await supabase.auth.resend({
     type: "signup",
     email,
+    ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
   });
   return { data, error };
 }
