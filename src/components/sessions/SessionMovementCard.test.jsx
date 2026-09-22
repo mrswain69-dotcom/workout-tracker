@@ -7,7 +7,10 @@ import SessionMovementCard, {
   formatSessionMovementDuration,
 } from "./SessionMovementCard.jsx";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const baseMovement = {
   templateMovementId: "tm-sole-rolls",
@@ -97,6 +100,52 @@ describe("SessionMovementCard", () => {
       expect.objectContaining({ completed: true, skipped: false, result: null }),
       expect.objectContaining({ source: "status", status: "completed" })
     );
+  });
+
+  it("can undo an accidentally completed movement after confirmation", () => {
+    const onMovement = vi.fn();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(
+      <MovementHarness
+        initialMovement={{
+          ...baseMovement,
+          completed: true,
+          result: { overall: { count: 12 } },
+        }}
+        onMovement={onMovement}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(confirm).toHaveBeenCalledWith("Undo completion for this movement?");
+    expect(onMovement).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        completed: false,
+        skipped: false,
+        result: { overall: { count: 12 } },
+      }),
+      expect.objectContaining({ source: "status", status: "uncompleted" })
+    );
+  });
+
+  it("keeps a completed movement done when undo is cancelled", () => {
+    const onMovement = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+
+    render(
+      <MovementHarness
+        initialMovement={{ ...baseMovement, completed: true }}
+        onMovement={onMovement}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(onMovement).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Done" }).getAttribute("aria-pressed")
+    ).toBe("true");
   });
 
   it("makes skipped and completed mutually exclusive while preserving prior result data", () => {
