@@ -17,13 +17,39 @@ export async function signIn(email, password) {
   return { data, error };
 }
 
+export async function clearLocalAuthSession() {
+  if (!supabase) return { error: new Error("Supabase not configured") };
+
+  const { data, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) return { error: sessionError };
+  if (!data?.session) return { error: null };
+
+  const { error } = await supabase.auth.signOut({ scope: "local" });
+  return { error };
+}
+
 export async function signUp(email, password) {
+  // A signup with email confirmation enabled returns a user but no new session.
+  // Clear any session left in this browser first so the app can never fall
+  // through into a previously signed-in family's data after signup.
+  const { error: clearError } = await clearLocalAuthSession();
+  if (clearError) return { data: null, error: clearError };
+
   const { data, error } = await supabase.auth.signUp({ email, password });
   return { data, error };
 }
 
+export async function resendSignUpConfirmation(email) {
+  const { data, error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+  });
+  return { data, error };
+}
+
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
+  // Sign out this browser only. Other family devices remain signed in.
+  const { error } = await supabase.auth.signOut({ scope: "local" });
   return { error };
 }
 
