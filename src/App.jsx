@@ -3260,7 +3260,9 @@ useEffect(() => {
 
   const [plan, setPlan] = useState(null);
   
-  // Keep a ref to the latest plan (used by async reward/XP recompute callbacks)
+  // Keep a ref to the latest plan (used by async reward/XP recompute callbacks).
+  // setAndCachePlan also updates this synchronously so back-to-back reward claims
+  // never build from a one-render-old plan.
 useEffect(() => { planRef.current = plan; }, [plan]);
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
@@ -3517,8 +3519,10 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
   const lastLogByDateRef = useRef({}); // latest optimistic log per profile/date
   const logPersistTimersRef = useRef(new Map());
   const logSaveRevisionRef = useRef(new Map());
+  const logPersistedRevisionRef = useRef(new Map());
   const logSaveInFlightRef = useRef(0);
   const rewardClaimLockRef = useRef(new Set());
+  const planMetaSaveQueueRef = useRef(Promise.resolve());
 
   useEffect(() => {
     return () => {
@@ -3864,7 +3868,9 @@ useEffect(() => {
 
 // --- Load day log ---
 useEffect(() => {
-  // Wait until we actually have a plan for this profile/day
+  // Rehydrate from authoritative storage whenever the Log page is entered.
+  // Other tabs do not need to churn the selected-day controlled inputs.
+  if (tab !== "log") return;
   if (!family?.id || !activeProfileId || !selectedDate || !plan) return;
 
   const cacheKey = makeLogCacheKey(family.id, activeProfileId, selectedDate);
@@ -3898,7 +3904,13 @@ useEffect(() => {
     const liveRevision = cacheKey
       ? logSaveRevisionRef.current.get(cacheKey) || 0
       : 0;
+    const persistedRevision = cacheKey
+      ? logPersistedRevisionRef.current.get(cacheKey) || 0
+      : 0;
     const editedWhileLoading = liveRevision !== revisionAtLoadStart;
+    const hasPendingLocalEdit =
+      liveRevision > persistedRevision ||
+      (cacheKey && logPersistTimersRef.current.has(cacheKey));
 
     if (error) {
       console.error("getLog failed", error);
@@ -3916,7 +3928,12 @@ useEffect(() => {
 
     // Never let the result of an older load overwrite an edit made while that
     // request was in flight.
-    const rawLatest = liveCached || fromDb || null;
+    // A cached value only outranks the database while it represents a genuinely
+    // unsaved/in-flight local edit. Once that revision has been persisted, a
+    // fresh page entry should be allowed to repair stale in-memory cache state.
+    const rawLatest = hasPendingLocalEdit
+      ? (liveCached || fromDb || null)
+      : (fromDb || liveCached || null);
 
     // Snap the log to the *current* plan structure for this weekday so:
     // - blocks always line up with the active plan
@@ -3953,6 +3970,7 @@ useEffect(() => {
     }
   });
 }, [
+  tab,
   family?.id,
   activeProfileId,
   selectedDate,
@@ -4213,6 +4231,9 @@ const badgeStats = useMemo(() => {
 
   function setAndCachePlan(profileId, nextPlan) {
     const normalised = normalisePlanForRuntime(nextPlan);
+    // Keep async callbacks on the same version immediately; waiting for the
+    // plan useEffect here allows rapid reward/meta writes to overwrite each other.
+    planRef.current = normalised;
     setPlan(normalised);
     updateProfilePlanInState(profileId, normalised);
     cachePlanLocally(profileId, normalised);
@@ -5642,18 +5663,61 @@ const selectedDayHasHeavyTrainingBlocks =
   // Save ONLY meta fields to the profile plan without requiring the PIN unlock.
   // We store rewards/avatars in plan.meta so it syncs across devices.
   async function savePlanMetaNoPin(metaPatch) {
-    if (!family?.id || !activeProfileId) return;
-    const current = plan || buildDefaultPlan();
-    const next = normalisePlanForRuntime({
-      ...current,
-      meta: { ...(current.meta || {}), ...(metaPatch || {}) },
-    });
+    if (!family?.id || !activeProfileId) return false;
 
-    // Update state + cache
-    setAndCachePlan(activeProfileId, next);
+    const familyId = family.id;
+    const profileId = activeProfileId;
 
-    // Persist
-    await upsertProfilePlan(family.id, activeProfileId, next);
+    const persistMetaPatch = async () => {
+      const current = planRef.current || plan || buildDefaultPlan();
+      const resolvedPatch =
+        typeof metaPatch === "function"
+          ? metaPatch(current.meta || {})
+          : (metaPatch || {});
+      const next = normalisePlanForRuntime({
+        ...current,
+        meta: { ...(current.meta || {}), ...resolvedPatch },
+      });
+
+      // Optimistic UI + synchronous ref update.
+      setAndCachePlan(profileId, next);
+
+      const { data, error } = await upsertProfilePlan(
+        familyId,
+        profileId,
+        next
+      );
+
+      if (error) {
+        console.error("upsertProfilePlan meta save failed", error);
+        // Re-read the authoritative profile plan rather than leaving a failed
+        // optimistic claim visible.
+        const { data: refreshed } = await getProfilePlan(familyId, profileId);
+        if (refreshed?.plan_json) {
+          setAndCachePlan(profileId, refreshed.plan_json);
+        }
+        return false;
+      }
+
+      // Confirm from the write response when available.
+      if (data?.plan_json) {
+        setAndCachePlan(profileId, data.plan_json);
+      }
+
+      return true;
+    };
+
+    // Whole-plan JSON writes must never overlap. Queue them so claim A is in the
+    // base state before claim B is constructed and persisted.
+    const queued = planMetaSaveQueueRef.current.then(
+      persistMetaPatch,
+      persistMetaPatch
+    );
+    planMetaSaveQueueRef.current = queued.then(
+      () => undefined,
+      () => undefined
+    );
+    return queued;
   }
 
   async function selectAvatar(avatarId) {
@@ -5730,19 +5794,24 @@ const selectedDayHasHeavyTrainingBlocks =
   rewardClaimLockRef.current.add(rewardKey);
 
   try {
-    const nextClaimed = [
-      ...claimed,
-      {
-        key: rewardKey,
-        claimedAtYmd,
-      },
-    ];
+    const saved = await savePlanMetaNoPin((latestMeta) => {
+      const latestClaimed = normaliseClaimedRewards(latestMeta);
+      if (latestClaimed.some((c) => c && c.key === rewardKey)) {
+        return {};
+      }
 
-    await savePlanMetaNoPin({
-      claimedRewards: nextClaimed,
+      return {
+        claimedRewards: [
+          ...latestClaimed,
+          {
+            key: rewardKey,
+            claimedAtYmd,
+          },
+        ],
+      };
     });
 
-    return true;
+    return !!saved;
   } finally {
     rewardClaimLockRef.current.delete(rewardKey);
   }
@@ -6441,6 +6510,7 @@ function stampLogTiming(prevLog, nextLog) {
         getLogRowPayload(savedRow) || logToStore || null;
 
       if (cacheKey) {
+        logPersistedRevisionRef.current.set(cacheKey, revision);
         const prev = lastLogByDateRef.current || {};
         if (canonicalLog) {
           lastLogByDateRef.current = { ...prev, [cacheKey]: canonicalLog };
@@ -12537,16 +12607,22 @@ if (!didClaim) {
                                     className={"btn " + (unlockedNow ? "" : "disabled")}
                                     disabled={!unlockedNow}
                                     onClick={async () => {
-                                      const next = Array.from(
-                                        new Set([...(unlockedAvatarPacksArr || []), pack.key])
-                                      );
-                                      await savePlanMetaNoPin({
-                                        unlockedAvatarPacks: next,
+                                      await savePlanMetaNoPin((latestMeta) => ({
+                                        unlockedAvatarPacks: Array.from(
+                                          new Set([
+                                            ...(
+                                              Array.isArray(latestMeta?.unlockedAvatarPacks)
+                                                ? latestMeta.unlockedAvatarPacks
+                                                : []
+                                            ),
+                                            pack.key,
+                                          ])
+                                        ),
                                         avatarPackUnlocks: {
-                                          ...(plan?.meta?.avatarPackUnlocks || {}),
+                                          ...(latestMeta?.avatarPackUnlocks || {}),
                                           [pack.key]: new Date().toISOString(),
                                         },
-                                      });
+                                      }));
                                       setClaimModal({
                                         title: "Avatar pack unlocked!",
                                         desc: `${pack.title} is now available.`,
