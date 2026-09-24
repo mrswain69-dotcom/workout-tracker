@@ -12,6 +12,7 @@ function emptyData(profileId = "") {
     verifiedActivities: [],
     observationLinks: [],
     manualLinks: [],
+    preferences: [],
   };
 }
 
@@ -61,6 +62,14 @@ export function undoVerifiedAutoPopulation(profileId, verifiedActivityId) {
   return runVerificationAutoPopulationAction(profileId, "undo", { verifiedActivityId });
 }
 
+export function addUnmatchedVerifiedActivity(profileId, verifiedActivityId) {
+  return runVerificationAutoPopulationAction(profileId, "add_unmatched", { verifiedActivityId });
+}
+
+export function declineUnmatchedVerifiedActivity(profileId, verifiedActivityId) {
+  return runVerificationAutoPopulationAction(profileId, "decline_unmatched", { verifiedActivityId });
+}
+
 export function ensureConnectedSourceAutoSync(profileId, provider = "strava") {
   return runVerificationAction(profileId, "ensure_auto_sync", { provider });
 }
@@ -107,7 +116,7 @@ export async function loadVerifiedActivityData(profileId) {
   if (!supabase) return unavailable();
   if (!profileId) return { data: emptyData(""), error: null };
 
-  const [connections, observations, verifiedActivities, observationLinks, manualLinks] =
+  const [connections, observations, verifiedActivities, observationLinks, manualLinks, preferences] =
     await Promise.all([
       supabase
         .from("external_connections")
@@ -142,9 +151,13 @@ export async function loadVerifiedActivityData(profileId) {
         )
         .eq("profile_id", profileId)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("external_connection_preferences")
+        .select("provider,activity_data_enabled,auto_log_window_days,unmatched_activity_action")
+        .eq("profile_id", profileId),
     ]);
 
-  const results = [connections, observations, verifiedActivities, observationLinks, manualLinks];
+  const results = [connections, observations, verifiedActivities, observationLinks, manualLinks, preferences];
   const failed = results.find((result) => result?.error);
   if (failed?.error) return { data: null, error: failed.error };
 
@@ -156,6 +169,7 @@ export async function loadVerifiedActivityData(profileId) {
       verifiedActivities: verifiedActivities.data || [],
       observationLinks: observationLinks.data || [],
       manualLinks: manualLinks.data || [],
+      preferences: preferences.data || [],
     },
     error: null,
   };

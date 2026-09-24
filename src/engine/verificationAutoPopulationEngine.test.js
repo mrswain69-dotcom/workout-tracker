@@ -92,7 +92,7 @@ describe("verification auto population", () => {
     expect(result.logJson.blocks[0].cardio.durationMin).toBe("");
   });
 
-  it("does not auto-populate strength evidence or silently create a structured Session", () => {
+  it("creates strength only as a duration block and never invents a structured Session", () => {
     const plan = [
       { id: "session-1", typeId: "session", label: "Gym Session", sessionTemplateId: "template-1" },
       cardioBlock(),
@@ -103,10 +103,58 @@ describe("verification auto population", () => {
       evidence: evidence({ verifiedActivityId: "strength-1", activityType: "WeightTraining", distanceM: null, durationSec: 1800 }),
     });
 
-    expect(result.changed).toBe(false);
-    expect(result.skippedReason).toBe("unsupported");
+    expect(result.changed).toBe(true);
+    expect(result.extraBlocksCreated).toBe(1);
     expect(result.logJson.blocks.filter((block) => block.typeId === "session")).toHaveLength(1);
-    expect(result.logJson.blocks).toHaveLength(2);
+    expect(result.logJson.blocks).toHaveLength(3);
+    expect(result.logJson.blocks.find((block) => block.id === "verified_strength-1")).toMatchObject({
+      typeId: "duration",
+      label: "Weight Training",
+      activityName: "Weight Training",
+      duration: { minutes: "30" },
+    });
+    expect(result.logJson.blocks.some((block) => block.id === "verified_strength-1" && block.sets)).toBe(false);
+  });
+
+  it("preserves tennis identity in a no-distance sport block for Sport Mastery", () => {
+    const result = applyVerifiedActivityPopulation({
+      logJson: buildSafePlanLogShell([]),
+      evidence: evidence({
+        verifiedActivityId: "tennis-1",
+        activityType: "Tennis",
+        activityName: "Evening Tennis",
+        distanceM: 2100,
+        durationSec: 4440,
+      }),
+    });
+
+    expect(result.logJson.blocks[0]).toMatchObject({
+      id: "verified_tennis-1",
+      typeId: "cardio",
+      cardioType: "no_distance",
+      activityName: "Tennis",
+      label: "Tennis · Evening Tennis",
+      cardio: { distanceKm: "2.1", durationMin: "74" },
+    });
+  });
+
+  it("can leave an unmatched activity awaiting confirmation without blocking a safe planned match", () => {
+    const unmatched = applyVerifiedActivityPopulation({
+      logJson: buildSafePlanLogShell([]),
+      evidence: evidence(),
+      allowExtraBlock: false,
+    });
+    expect(unmatched.changed).toBe(false);
+    expect(unmatched.skippedReason).toBe("awaiting_user_confirmation");
+
+    const matched = applyVerifiedActivityPopulation({
+      logJson: buildSafePlanLogShell([cardioBlock()]),
+      evidence: evidence(),
+      allowExtraBlock: false,
+    });
+    expect(matched.changed).toBe(true);
+    expect(matched.targetBlockId).toBe("run-block");
+    expect(matched.extraBlocksCreated).toBe(0);
   });
 
   it("creates one deterministic reversible extra cardio block when no compatible planned block exists", () => {

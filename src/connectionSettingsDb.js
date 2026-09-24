@@ -9,6 +9,7 @@ export const DEFAULT_CONNECTION_PREFERENCES = Object.freeze({
   include_private_activities: false,
   initial_import_days: 90,
   auto_log_window_days: 2,
+  unmatched_activity_action: "ask",
 });
 
 function unavailable() {
@@ -28,7 +29,7 @@ export async function loadConnectionSettingsData(profileIds = []) {
       .order("provider", { ascending: true }),
     supabase
       .from("external_connection_preferences")
-      .select("id,family_id,profile_id,provider,activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities,initial_import_days,auto_log_window_days,updated_at")
+      .select("id,family_id,profile_id,provider,activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities,initial_import_days,auto_log_window_days,unmatched_activity_action,updated_at")
       .in("profile_id", ids)
       .order("provider", { ascending: true }),
   ]);

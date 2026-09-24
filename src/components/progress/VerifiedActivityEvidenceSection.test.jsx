@@ -19,6 +19,8 @@ function emptyApi(overrides = {}) {
     })),
     loadManualMatchCandidates: vi.fn(async () => ({ data: { candidates: [] }, error: null })),
     confirmManualVerifiedMatch: vi.fn(async () => ({ data: { matched: true }, error: null })),
+    addUnmatchedVerifiedActivity: vi.fn(async () => ({ data: { requestedOutcome: "created" }, error: null })),
+    declineUnmatchedVerifiedActivity: vi.fn(async () => ({ data: { suppressed: true }, error: null })),
     detachVerifiedMatch: vi.fn(async () => ({ data: { detached: true }, error: null })),
     resetVerifiedAutomaticMatching: vi.fn(async () => ({ data: {}, error: null })),
     setVerifiedActivityIgnored: vi.fn(async () => ({ data: {}, error: null })),
@@ -26,24 +28,34 @@ function emptyApi(overrides = {}) {
   };
 }
 
-function evidenceData({ linked = false, matchMethod = "automatic", ignored = false } = {}) {
+function evidenceData({
+  linked = false,
+  matchMethod = "automatic",
+  ignored = false,
+  manual = false,
+  activityType = "run",
+  activityName = "",
+  date = "2026-09-15",
+  unmatchedActivityAction = "ask",
+} = {}) {
   return {
     connections: [{ provider: "strava", status: "active" }],
     observations: [{
       id: "obs-1",
       provider: "strava",
-      started_at: "2026-09-15T17:00:00Z",
-      local_date_ymd: "2026-09-15",
-      activity_type: "run",
+      started_at: `${date}T17:00:00Z`,
+      local_date_ymd: date,
+      activity_type: activityType,
+      activity_name: activityName,
       distance_m: 5000,
       moving_duration_sec: 1500,
-      source_manual_entry: false,
+      source_manual_entry: manual,
       source_device_name: "Garmin",
     }],
     verifiedActivities: [{
       id: "verified-1",
-      activity_type: "run",
-      started_at: "2026-09-15T17:00:00Z",
+      activity_type: activityType,
+      started_at: `${date}T17:00:00Z`,
       status: ignored ? "ignored" : "active",
       auto_match_suppressed: matchMethod === "manual",
       identity_method: "single_source",
@@ -57,6 +69,7 @@ function evidenceData({ linked = false, matchMethod = "automatic", ignored = fal
       match_confidence: 0.92,
       date_offset_days: -1,
     }] : [],
+    preferences: [{ provider: "strava", auto_log_window_days: 2, unmatched_activity_action: unmatchedActivityAction }],
   };
 }
 
@@ -131,6 +144,33 @@ describe("VerifiedActivityEvidenceSection", () => {
     fireEvent.click(summary);
     fireEvent.click(screen.getByRole("button", { name: "Restore" }));
     await waitFor(() => expect(restore).toHaveBeenCalledWith("paul", "verified-1", false));
+  });
+
+  it("offers a recent live-recorded unmatched sport as a dated Log block", async () => {
+    const add = vi.fn(async () => ({ data: { requestedOutcome: "created" }, error: null }));
+    const today = new Date().toISOString().slice(0, 10);
+    const api = emptyApi({
+      loadVerifiedActivityData: vi.fn(async () => ({
+        data: evidenceData({ activityType: "Tennis", activityName: "Evening Tennis", date: today }),
+        error: null,
+      })),
+      addUnmatchedVerifiedActivity: add,
+    });
+    render(<VerifiedActivityEvidenceSection profileId="paul" profileName="Paul" api={api} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Not linked/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Add to Log on recorded date" }));
+    await waitFor(() => expect(add).toHaveBeenCalledWith("paul", "verified-1"));
+  });
+
+  it("explains that a manual Strava entry cannot verify or create a Log activity", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const api = emptyApi({
+      loadVerifiedActivityData: vi.fn(async () => ({ data: evidenceData({ manual: true, date: today }), error: null })),
+    });
+    render(<VerifiedActivityEvidenceSection profileId="paul" profileName="Paul" api={api} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Not linked/i }));
+    expect(screen.getByText(/Manual Strava entries cannot verify or create Workout Tracker activities/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add to Log on recorded date" })).toBeNull();
   });
 
   it("offers overlapping Workout Tracker strength blocks as one physical strength session", () => {
