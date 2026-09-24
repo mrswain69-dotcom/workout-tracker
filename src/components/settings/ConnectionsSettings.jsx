@@ -14,6 +14,7 @@ import {
   manualSyncCooldown,
   VERIFICATION_AUTO_LOG_WINDOW_OPTIONS,
   VERIFICATION_HISTORY_OPTIONS,
+  VERIFICATION_UNMATCHED_ACTIVITY_OPTIONS,
 } from "../../engine/verificationInteractionEngine.js";
 import "./ConnectionsSettings.css";
 
@@ -138,7 +139,14 @@ function PreferenceSelect({ label, detail, value, options, disabled = false, onC
         <strong>{label}</strong>
         <small>{detail}</small>
       </span>
-      <select value={String(value)} disabled={disabled} onChange={(event) => onChange?.(Number(event.target.value))}>
+      <select
+        value={String(value)}
+        disabled={disabled}
+        onChange={(event) => {
+          const selected = options.find((option) => String(option.value) === event.target.value);
+          onChange?.(selected ? selected.value : event.target.value);
+        }}
+      >
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </label>
@@ -320,6 +328,8 @@ export default function ConnectionsSettings({
         setNotice("History import window saved. It applies the next time this provider is connected or reconnected.");
       } else if (key === "auto_log_window_days") {
         setNotice("Recent automatic log-update window saved. Older imported evidence will remain evidence-only.");
+      } else if (key === "unmatched_activity_action") {
+        setNotice("Unmatched activity handling saved. Manual Strava entries remain evidence-only and can never create or verify a Log block.");
       } else if (value === true) {
         setNotice("Data stream enabled. Newly synced provider activity can include this stream.");
       } else if (value === false) {
@@ -474,9 +484,17 @@ export default function ConnectionsSettings({
             disabled={busy.startsWith("preference:")}
             onChange={(value) => changePreference("strava", "auto_log_window_days", value)}
           />
+          <PreferenceSelect
+            label="Unmatched recorded activities"
+            detail="Choose whether a live-recorded Strava activity with no safe Log match should be offered, added automatically on its recorded date, or left as evidence only. Manual Strava entries never qualify."
+            value={stravaPreferences.unmatched_activity_action}
+            options={VERIFICATION_UNMATCHED_ACTIVITY_OPTIONS}
+            disabled={busy.startsWith("preference:")}
+            onChange={(value) => changePreference("strava", "unmatched_activity_action", value)}
+          />
           <StreamToggle
             label="Activity verification"
-            detail="Activity type, date/time, duration, distance and recording provenance. Required while Strava is connected."
+            detail="Activity type, date/time, duration, distance and recording provenance. Only live recordings from an app, watch, wearable or compatible device can verify or create Log activity."
             checked
             disabled
           />

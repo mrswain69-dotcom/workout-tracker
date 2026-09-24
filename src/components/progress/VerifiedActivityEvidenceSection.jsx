@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  addUnmatchedVerifiedActivity,
   checkConnectedSources,
   confirmManualVerifiedMatch,
+  declineUnmatchedVerifiedActivity,
   detachVerifiedMatch,
   ensureConnectedSourceAutoSync,
   loadManualMatchCandidates,
@@ -10,6 +12,10 @@ import {
   setVerifiedActivityIgnored,
 } from "../../verifiedActivityDb.js";
 import {
+  isDateInsideAutoPopulationWindow,
+  isSupportedAutoPopulationActivity,
+} from "../../engine/verificationAutoPopulationEngine.js";
+import {
   buildVerifiedCardioEvidence,
   summariseVerifiedCardioEvidence,
 } from "../../engine/verifiedCardioEvidenceEngine.js";
@@ -17,8 +23,10 @@ import { manualSyncCooldown } from "../../engine/verificationInteractionEngine.j
 import "./VerifiedActivitySection.css";
 
 const DEFAULT_API = Object.freeze({
+  addUnmatchedVerifiedActivity,
   checkConnectedSources,
   confirmManualVerifiedMatch,
+  declineUnmatchedVerifiedActivity,
   detachVerifiedMatch,
   ensureConnectedSourceAutoSync,
   loadManualMatchCandidates,
@@ -34,7 +42,10 @@ function text(value, fallback = "") {
 }
 
 function titleCase(value) {
-  return text(value, "Activity").replace(/[_-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return text(value, "Activity")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function firstPositive(rows, key) {
@@ -191,6 +202,14 @@ function buildRows(data) {
     observationIdsByActivity.get(link.verified_activity_id).push(link.observation_id);
   }
   const manualLinks = new Map((data?.manualLinks || []).map((row) => [row.verified_activity_id, row]));
+  const stravaPreference = (data?.preferences || []).find((row) => row.provider === "strava") || {};
+  const unmatchedActivityAction = ["ask", "automatic", "never"].includes(stravaPreference.unmatched_activity_action)
+    ? stravaPreference.unmatched_activity_action
+    : "ask";
+  const autoLogWindowDays = Number.isInteger(Number(stravaPreference.auto_log_window_days))
+    ? Number(stravaPreference.auto_log_window_days)
+    : 2;
+  const todayYmd = new Date().toISOString().slice(0, 10);
 
   return (data?.verifiedActivities || []).map((activity) => {
     const observations = (observationIdsByActivity.get(activity.id) || [])
@@ -199,6 +218,11 @@ function buildRows(data) {
     const eligible = observations.filter((row) => row.source_manual_entry !== true);
     const devices = [...new Set(eligible.map((row) => text(row.source_device_name)).filter(Boolean))].sort();
     const hasDevice = eligible.some((row) => text(row.source_device_name) || text(row.source_external_id) || text(row.source_upload_id));
+    const localDateYmd = observations[0]?.local_date_ymd || text(activity.started_at).slice(0, 10);
+    const providerActivityName = text(observations.find((row) => text(row.activity_name))?.activity_name);
+    const activityClassifier = `${text(activity.activity_type)} ${providerActivityName}`.trim();
+    const supportsLogBlock = isSupportedAutoPopulationActivity(activityClassifier);
+    const insideLogWindow = isDateInsideAutoPopulationWindow(localDateYmd, todayYmd, autoLogWindowDays);
     return {
       ...activity,
       observations,
@@ -206,11 +230,19 @@ function buildRows(data) {
       verificationEligible: eligible.length > 0,
       verificationLabel: eligible.length ? (hasDevice ? "Device/file evidence" : "Provider-recorded evidence") : "Manual provider entry · not verification eligible",
       devices,
-      localDateYmd: observations[0]?.local_date_ymd || "",
+      localDateYmd,
+      providerActivityName,
+      displayTitle: providerActivityName && providerActivityName.toLowerCase() !== text(activity.activity_type).toLowerCase()
+        ? `${titleCase(activity.activity_type)} · ${providerActivityName}`
+        : titleCase(activity.activity_type),
       distanceM: firstPositive(observations, "distance_m"),
       durationSec: firstPositive(observations, "moving_duration_sec") || firstPositive(observations, "elapsed_duration_sec"),
       averageHeartRate: firstPositive(observations, "average_heart_rate_bpm"),
       manualLink: manualLinks.get(activity.id) || null,
+      unmatchedActivityAction,
+      supportsLogBlock,
+      insideLogWindow,
+      canAddToLog: eligible.length > 0 && supportsLogBlock && insideLogWindow && unmatchedActivityAction !== "never" && activity.auto_match_suppressed !== true,
     };
   }).filter((row) => row.observations.length).sort((a, b) => text(b.started_at).localeCompare(text(a.started_at)));
 }
@@ -331,8 +363,10 @@ export default function VerifiedActivityEvidenceSection({
     }
   }
 
-  async function runAction(activityId, action) {
-    setBusy(`${action}:${activityId}`);
+  async function runAction(activityId, actionNameOrHandler, maybeHandler = null) {
+    const action = maybeHandler || actionNameOrHandler;
+    const actionName = maybeHandler ? actionNameOrHandler : "activity";
+    setBusy(`${actionName}:${activityId}`);
     setActionError("");
     try {
       await action();
@@ -375,7 +409,7 @@ export default function VerifiedActivityEvidenceSection({
       <article key={activity.id} className="verified-activity-card">
         <div className="verified-activity-card__top">
           <div>
-            <div className="verified-activity-card__type">{titleCase(activity.activity_type)}</div>
+            <div className="verified-activity-card__type">{activity.displayTitle}</div>
             <div className="verified-activity-card__date">{activity.localDateYmd || text(activity.started_at).slice(0, 10)}</div>
           </div>
           <button
@@ -426,6 +460,38 @@ export default function VerifiedActivityEvidenceSection({
               </div>
             ) : activity.verificationEligible ? (
               <div className="verified-match-finder">
+                {activity.canAddToLog ? (
+                  <div className="verified-detail-actions">
+                    <button
+                      type="button"
+                      disabled={!!busy}
+                      onClick={() => runAction(activity.id, "add", async () => {
+                        const result = await api.addUnmatchedVerifiedActivity(profileId, activity.id);
+                        if (result?.error) throw result.error;
+                      })}
+                    >
+                      {busy === `add:${activity.id}` ? "Adding…" : "Add to Log on recorded date"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!!busy}
+                      onClick={() => runAction(activity.id, "decline", async () => {
+                        const result = await api.declineUnmatchedVerifiedActivity(profileId, activity.id);
+                        if (result?.error) throw result.error;
+                      })}
+                    >
+                      Don't add this activity
+                    </button>
+                  </div>
+                ) : activity.auto_match_suppressed ? (
+                  <div className="verified-no-candidates">This activity is set not to create a Workout Tracker Log block.</div>
+                ) : activity.unmatchedActivityAction === "never" ? (
+                  <div className="verified-no-candidates">Your Strava setting keeps unmatched activities as evidence only.</div>
+                ) : !activity.insideLogWindow ? (
+                  <div className="verified-no-candidates">This activity is outside your recent Log update window, so it remains evidence only.</div>
+                ) : !activity.supportsLogBlock ? (
+                  <div className="verified-no-candidates">This activity type cannot yet create a Workout Tracker block.</div>
+                ) : null}
                 <button type="button" disabled={!!busy} onClick={() => findCandidates(activity)}>
                   {busy === `candidates:${activity.id}` ? "Finding…" : "Find matching Workout Tracker activity"}
                 </button>
@@ -453,7 +519,11 @@ export default function VerifiedActivityEvidenceSection({
                   ) : <div className="verified-no-candidates">No compatible unclaimed Workout Tracker activity was found within ±2 days.</div>
                 ) : null}
               </div>
-            ) : null}
+            ) : (
+              <div className="verified-no-candidates">
+                Manual Strava entries cannot verify or create Workout Tracker activities. Record the activity live with the Strava app, a watch, wearable or compatible device.
+              </div>
+            )}
 
             <details className="verified-detail-more">
               <summary>More options</summary>
@@ -468,6 +538,15 @@ export default function VerifiedActivityEvidenceSection({
               >
                 Ignore this external activity
               </button>
+              {!linked && activity.auto_match_suppressed ? (
+                <button
+                  type="button"
+                  disabled={!!busy}
+                  onClick={() => runAction(activity.id, () => api.resetVerifiedAutomaticMatching(profileId, activity.id).then((result) => { if (result?.error) throw result.error; }))}
+                >
+                  Allow Log matching and adding again
+                </button>
+              ) : null}
             </details>
           </div>
         ) : null}

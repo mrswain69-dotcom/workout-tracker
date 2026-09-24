@@ -407,6 +407,11 @@ Deno.serve(async (req: Request) => {
       }
       const update = await adminClient.from("verified_activities").update({ auto_match_suppressed: false }).eq("id", verifiedActivityId);
       if (update.error) throw update.error;
+      const populationControl = await adminClient.from("external_activity_population_controls")
+        .delete()
+        .eq("profile_id", profileId)
+        .eq("verified_activity_id", verifiedActivityId);
+      if (populationControl.error) throw populationControl.error;
       const reconciliation = await reconcileVerifiedActivitiesForProfile(adminClient, profileId);
       await audit(adminClient, authData.user.id, profile, "reset_automatic_matching", { verifiedActivityId });
       return json({ autoMatchSuppressed: false, reconciliation }, 200, corsHeaders);

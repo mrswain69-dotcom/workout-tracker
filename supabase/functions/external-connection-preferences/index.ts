@@ -30,11 +30,12 @@ const DEFAULTS = Object.freeze({
   include_private_activities: false,
   initial_import_days: 90,
   auto_log_window_days: 2,
+  unmatched_activity_action: "ask",
 });
 
 function sanitisePatch(value: unknown) {
   const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
-  const result: Record<string, boolean | number> = {};
+  const result: Record<string, boolean | number | string> = {};
   for (const key of BOOLEAN_KEYS) {
     if (typeof source[key] === "boolean") result[key] = source[key] as boolean;
   }
@@ -45,6 +46,10 @@ function sanitisePatch(value: unknown) {
   if (source.auto_log_window_days !== undefined) {
     const days = Number(source.auto_log_window_days);
     if (Number.isInteger(days) && days >= 0 && days <= 3) result.auto_log_window_days = days;
+  }
+  if (source.unmatched_activity_action !== undefined) {
+    const action = String(source.unmatched_activity_action || "").trim().toLowerCase();
+    if (["ask", "automatic", "never"].includes(action)) result.unmatched_activity_action = action;
   }
   return result;
 }
@@ -83,7 +88,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: existing, error: existingError } = await adminClient
       .from("external_connection_preferences")
-      .select("activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities,initial_import_days,auto_log_window_days")
+      .select("activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities,initial_import_days,auto_log_window_days,unmatched_activity_action")
       .eq("profile_id", profileId)
       .eq("provider", provider)
       .maybeSingle();
@@ -98,7 +103,7 @@ Deno.serve(async (req: Request) => {
         provider,
         ...next,
       }, { onConflict: "profile_id,provider" })
-      .select("id,family_id,profile_id,provider,activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities,initial_import_days,auto_log_window_days,created_at,updated_at")
+      .select("id,family_id,profile_id,provider,activity_data_enabled,performance_metrics_enabled,heart_rate_enabled,route_location_enabled,health_recovery_enabled,include_private_activities,initial_import_days,auto_log_window_days,unmatched_activity_action,created_at,updated_at")
       .single();
     if (preferenceError) throw preferenceError;
 

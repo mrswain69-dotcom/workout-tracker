@@ -22,6 +22,7 @@ function api(overrides = {}) {
           include_private_activities: false,
           initial_import_days: 90,
           auto_log_window_days: 2,
+          unmatched_activity_action: "ask",
           ...patch,
         },
       },
@@ -117,6 +118,9 @@ describe("ConnectionsSettings", () => {
 
     fireEvent.change(screen.getByLabelText(/History to import when connecting/i), { target: { value: "30" } });
     await waitFor(() => expect(mockApi.updateConnectionPreferences).toHaveBeenCalledWith("paul", "strava", { initial_import_days: 30 }));
+
+    fireEvent.change(screen.getByLabelText(/Unmatched recorded activities/i), { target: { value: "automatic" } });
+    await waitFor(() => expect(mockApi.updateConnectionPreferences).toHaveBeenCalledWith("paul", "strava", { unmatched_activity_action: "automatic" }));
   });
 
   it("keeps manual source check and destructive removal behind explicit connection controls", async () => {

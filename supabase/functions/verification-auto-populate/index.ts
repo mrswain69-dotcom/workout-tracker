@@ -1,7 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createAdminClient, createUserClient, json } from "../_shared/stravaProvider.ts";
 import {
+  addVerifiedUnmatchedActivityForProfile,
   applyRecentVerifiedAutoPopulationForProfile,
+  suppressVerifiedAutoPopulationForProfile,
   undoVerifiedAutoPopulationForProfile,
 } from "../_shared/verificationAutoPopulate.ts";
 
@@ -52,6 +54,50 @@ Deno.serve(async (req: Request) => {
       const verifiedActivityId = text(body?.verifiedActivityId);
       if (!verifiedActivityId) return json({ error: "Verified activity is required" }, 400, corsHeaders);
       const result = await undoVerifiedAutoPopulationForProfile(
+        adminClient,
+        profileId,
+        verifiedActivityId,
+        authData.user.id
+      );
+      return json(result, 200, corsHeaders);
+    }
+
+    if (action === "add_unmatched") {
+      const verifiedActivityId = text(body?.verifiedActivityId);
+      if (!verifiedActivityId) return json({ error: "Verified activity is required" }, 400, corsHeaders);
+      const result = await addVerifiedUnmatchedActivityForProfile(
+        adminClient,
+        profileId,
+        verifiedActivityId,
+        authData.user.id
+      );
+      if (result.requestedOutcome === "manual_entry") {
+        return json({
+          error: "Manual Strava entries cannot verify or create Workout Tracker activities. Record the activity live with the Strava app, a watch, wearable or compatible device.",
+          code: "manual_provider_entry",
+        }, 409, corsHeaders);
+      }
+      if (!["created", "already_linked"].includes(String(result.requestedOutcome || ""))) {
+        const messages: Record<string, string> = {
+          suppressed: "This external activity is set not to be added to the Log.",
+          recovery_mode: "This activity cannot create a training block while Recovery Mode covers that date.",
+          unsupported: "This external activity type cannot yet create a Workout Tracker block.",
+          no_objective_metrics: "This external activity does not include a usable duration or distance.",
+          not_eligible: "This activity is outside the recent Log update window or has no eligible live recording evidence.",
+          not_found: "The verified activity is no longer available.",
+        };
+        return json({
+          error: messages[String(result.requestedOutcome || "")] || "This external activity could not be added to the Log.",
+          code: String(result.requestedOutcome || "not_added"),
+        }, 409, corsHeaders);
+      }
+      return json(result, 200, corsHeaders);
+    }
+
+    if (action === "decline_unmatched") {
+      const verifiedActivityId = text(body?.verifiedActivityId);
+      if (!verifiedActivityId) return json({ error: "Verified activity is required" }, 400, corsHeaders);
+      const result = await suppressVerifiedAutoPopulationForProfile(
         adminClient,
         profileId,
         verifiedActivityId,

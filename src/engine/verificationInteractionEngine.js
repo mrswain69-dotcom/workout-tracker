@@ -85,3 +85,9 @@ export const VERIFICATION_AUTO_LOG_WINDOW_OPTIONS = Object.freeze([
   { value: 2, label: "Today + previous 2 days" },
   { value: 3, label: "Today + previous 3 days" },
 ]);
+
+export const VERIFICATION_UNMATCHED_ACTIVITY_OPTIONS = Object.freeze([
+  { value: "ask", label: "Ask me before adding" },
+  { value: "automatic", label: "Add automatically" },
+  { value: "never", label: "Never add new blocks" },
+]);

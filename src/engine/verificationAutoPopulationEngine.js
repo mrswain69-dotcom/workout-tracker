@@ -1,4 +1,4 @@
-export const VERIFICATION_AUTO_POPULATION_VERSION = "verification_auto_population_v1";
+export const VERIFICATION_AUTO_POPULATION_VERSION = "verification_auto_population_v2";
 
 const SUPPORTED_FAMILIES = new Set([
   "run",
@@ -7,6 +7,9 @@ const SUPPORTED_FAMILIES = new Set([
   "walk_hike",
   "row",
   "team_sport",
+  "sport_activity",
+  "strength",
+  "mobility",
 ]);
 
 function clone(value) {
@@ -78,6 +81,7 @@ export function canonicalVerificationActivityFamily(value) {
   if (/swim/.test(token)) return "swim";
   if (/(walk|hike|hiking)/.test(token)) return "walk_hike";
   if (/(soccer|football|rugby|basketball|netball|hockey|lacrosse)/.test(token)) return "team_sport";
+  if (/(tennis|badminton|squash|pickleball|padel|racquet|table_?tennis|cricket|fencing|martial|karate|judo|taekwondo|boxing|kickboxing)/.test(token)) return "sport_activity";
   if (/(row|rowing|kayak|canoe|paddle)/.test(token)) return "row";
   if (/(strength|weight_?training|weights|weightlifting|resistance)/.test(token)) return "strength";
   if (/(yoga|pilates|mobility|stretch)/.test(token)) return "mobility";
@@ -151,8 +155,15 @@ function ensureProvenance(log) {
 function blockFamily(block) {
   const typeId = text(block?.typeId).toLowerCase();
   if (typeId === "session" || typeId === "strength" || typeId === "recovery" || typeId === "tasks") return "unsupported";
+  if (typeId === "duration") {
+    return canonicalVerificationActivityFamily(block?.activityName || block?.label || "unknown");
+  }
   if (typeId === "cardio" || typeId === "dynamic-cardio" || block?.cardioType) {
-    const family = canonicalVerificationActivityFamily(block?.cardioType || block?.activityName || block?.label || "cardio");
+    const cardioType = text(block?.cardioType).toLowerCase();
+    const identity = ["team_sport", "no_distance", "other"].includes(cardioType)
+      ? block?.activityName || block?.cardioTypeOtherLabel || block?.label || cardioType
+      : block?.cardioType || block?.activityName || block?.label || "cardio";
+    const family = canonicalVerificationActivityFamily(identity);
     return family === "unknown" ? "cardio" : family;
   }
   return canonicalVerificationActivityFamily(block?.label || typeId);
@@ -176,9 +187,14 @@ function metricsCompatible(block, evidence) {
 }
 
 function importedMetricValues(evidence) {
+  const family = canonicalVerificationActivityFamily(evidence.activityType);
   const values = {};
   const distanceM = positive(evidence.distanceM);
   const durationSec = positive(evidence.durationSec);
+  if (["strength", "mobility"].includes(family)) {
+    if (durationSec !== null) values["duration.minutes"] = String(Math.round((durationSec / 60) * 10) / 10);
+    return values;
+  }
   if (distanceM !== null) values["cardio.distanceKm"] = String(Math.round((distanceM / 1000) * 1000) / 1000);
   if (durationSec !== null) values["cardio.durationMin"] = String(Math.round((durationSec / 60) * 10) / 10);
   return values;
@@ -192,6 +208,9 @@ function humanFamilyLabel(family) {
     walk_hike: "Walk / Hike",
     row: "Row",
     team_sport: "Team Sport",
+    sport_activity: "Sport Activity",
+    strength: "Strength Workout",
+    mobility: "Mobility Session",
   };
   return labels[family] || "Cardio";
 }
@@ -199,7 +218,26 @@ function humanFamilyLabel(family) {
 function cardioTypeForFamily(family) {
   if (family === "walk_hike") return "walk";
   if (family === "team_sport") return "team_sport";
+  if (family === "sport_activity") return "no_distance";
   return family;
+}
+
+function titleCase(value) {
+  return text(value)
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function activityIdentity(evidence, family) {
+  const providerType = titleCase(evidence.sourceActivityType || evidence.activityType || humanFamilyLabel(family));
+  const providerName = text(evidence.activityName);
+  const activityName = providerType || humanFamilyLabel(family);
+  const duplicateName = providerName.toLowerCase() === activityName.toLowerCase();
+  return {
+    activityName,
+    label: providerName && !duplicateName ? `${activityName} · ${providerName}` : activityName,
+  };
 }
 
 function deterministicExtraBlockId(verifiedActivityId) {
@@ -244,6 +282,8 @@ export function applyVerifiedActivityPopulation({
   planBlocks = [],
   evidence,
   nowIso = "",
+  allowExtraBlock = true,
+  forceExtraBlock = false,
 } = {}) {
   const activity = evidence && typeof evidence === "object" ? evidence : {};
   const verifiedActivityId = text(activity.verifiedActivityId);
@@ -281,12 +321,12 @@ export function applyVerifiedActivityPopulation({
     return { changed, logJson: log, fieldsFilled: 0, extraBlocksCreated: 0, manualOverridesPreserved: 1, targetBlockId: null, skippedReason: "manual_override" };
   }
 
-  const candidates = log.blocks
+  const candidates = forceExtraBlock ? [] : log.blocks
     .filter((block) => block && !block.cancelled && familiesCompatible(block, family) && metricsCompatible(block, activity))
     .map((block, index) => {
       let emptyCount = 0;
       for (const path of Object.keys(metricValues)) if (empty(getPath(block, path))) emptyCount += 1;
-      const manualMetricCount = ["cardio.distanceKm", "cardio.durationMin"]
+      const manualMetricCount = Object.keys(metricValues)
         .filter((path) => !empty(getPath(block, path))).length;
       return { block, index, emptyCount, manualMetricCount, exact: blockFamily(block) === family };
     })
@@ -332,19 +372,44 @@ export function applyVerifiedActivityPopulation({
     };
   }
 
+  if (!allowExtraBlock) {
+    return {
+      changed,
+      logJson: log,
+      fieldsFilled: 0,
+      extraBlocksCreated: 0,
+      manualOverridesPreserved: 0,
+      targetBlockId: null,
+      skippedReason: "awaiting_user_confirmation",
+    };
+  }
+
   const id = deterministicExtraBlockId(verifiedActivityId);
   if (log.blocks.some((block) => text(block?.id) === id)) {
     return { changed, logJson: log, fieldsFilled: 0, extraBlocksCreated: 0, manualOverridesPreserved: 0, targetBlockId: id, skippedReason: "already_populated" };
   }
-  const generated = {
+  const identity = activityIdentity(activity, family);
+  const durationOnly = ["strength", "mobility"].includes(family);
+  const generated = durationOnly ? {
+    id,
+    typeId: "duration",
+    isExtra: true,
+    label: identity.label,
+    note: "Recorded live by a connected activity source. Exercise, set, rep and weight details were not imported.",
+    activityName: identity.activityName,
+    plannedMinutes: "",
+    cancelled: false,
+    cardio: { distanceKm: "", durationMin: "", avgSpeedKmh: "" },
+    duration: { minutes: metricValues["duration.minutes"] || "" },
+  } : {
     id,
     typeId: "cardio",
     isExtra: true,
-    label: humanFamilyLabel(family),
-    note: "Auto-filled from connected activity evidence.",
+    label: identity.label,
+    note: "Recorded live by a connected activity source.",
     cardioType: cardioTypeForFamily(family),
     cardioTypeOtherLabel: "",
-    activityName: "",
+    activityName: identity.activityName,
     targetText: "",
     cancelled: false,
     cardio: {

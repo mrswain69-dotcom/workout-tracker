@@ -8,6 +8,7 @@ import { buildSessionLogBlockSnapshot } from "../../../src/engine/sessionEngine.
 import { getProfileRecoveryModeForDate } from "../../../src/engine/recoveryModeEngine.js";
 
 const DEFAULT_AUTO_LOG_WINDOW_DAYS = 2;
+const DEFAULT_UNMATCHED_ACTIVITY_ACTION = "ask";
 
 function text(value: unknown, fallback = "") {
   if (value === null || value === undefined) return fallback;
@@ -46,6 +47,11 @@ function safeWindow(value: unknown) {
   return Number.isInteger(days) && days >= 0 && days <= 3 ? days : DEFAULT_AUTO_LOG_WINDOW_DAYS;
 }
 
+function safeUnmatchedActivityAction(value: unknown) {
+  const action = text(value).toLowerCase();
+  return ["ask", "automatic", "never"].includes(action) ? action : DEFAULT_UNMATCHED_ACTIVITY_ACTION;
+}
+
 function providerKey(provider: unknown) {
   return text(provider).toLowerCase();
 }
@@ -70,6 +76,7 @@ function activePreferenceMap(connections: any[], preferences: any[]) {
     map.set(provider, {
       activity_data_enabled: row?.activity_data_enabled !== false,
       auto_log_window_days: safeWindow(row?.auto_log_window_days),
+      unmatched_activity_action: safeUnmatchedActivityAction(row?.unmatched_activity_action),
     });
   }
   return map;
@@ -91,14 +98,25 @@ function aggregateEvidence(activity: any, observations: any[], preferenceMap: Ma
   const dates = [...new Set(eligible.map((row) => text(row?.local_date_ymd) || text(row?.started_at).slice(0, 10)).filter(Boolean))];
   if (dates.length !== 1) return null;
   const localDateYmd = dates[0];
+  const providerActivityName = text(eligible.find((row) => text(row?.activity_name))?.activity_name);
+  const sourceActivityType = text(activity.activity_type);
+  const providerActions = eligible.map((row) => safeUnmatchedActivityAction(preferenceMap.get(providerKey(row?.provider))?.unmatched_activity_action));
+  const unmatchedActivityAction = providerActions.every((value) => value === "automatic")
+    ? "automatic"
+    : providerActions.every((value) => value === "never")
+      ? "never"
+      : "ask";
   return {
     verifiedActivityId: activity.id,
-    activityType: activity.activity_type,
+    activityType: `${sourceActivityType} ${providerActivityName}`.trim(),
+    sourceActivityType,
+    activityName: providerActivityName,
     localDateYmd,
     providers: [...new Set(eligible.map((row) => providerKey(row.provider)).filter(Boolean))].sort(),
     observationIds: eligible.map((row) => text(row.id)).filter(Boolean).sort(),
     distanceM: median(eligible.map((row) => positive(row.distance_m))),
     durationSec: median(eligible.map((row) => positive(row.moving_duration_sec) ?? positive(row.elapsed_duration_sec))),
+    unmatchedActivityAction,
   };
 }
 
@@ -117,7 +135,12 @@ async function audit(adminClient: any, profile: any, eventType: string, actorUse
 export async function applyRecentVerifiedAutoPopulationForProfile(
   adminClient: any,
   profileId: string,
-  options: { actorUserId?: string | null; now?: Date } = {}
+  options: {
+    actorUserId?: string | null;
+    now?: Date;
+    onlyVerifiedActivityId?: string | null;
+    forceExtraBlock?: boolean;
+  } = {}
 ) {
   const now = options.now || new Date();
   const nowIso = now.toISOString();
@@ -135,9 +158,9 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
 
   const [connectionsResult, preferencesResult, activitiesResult, observationsResult, observationLinksResult, manualLinksResult, controlsResult, logsResult, recoveryPeriodsResult] = await Promise.all([
     adminClient.from("external_connections").select("id,provider,status").eq("profile_id", profileId),
-    adminClient.from("external_connection_preferences").select("provider,activity_data_enabled,auto_log_window_days").eq("profile_id", profileId),
+    adminClient.from("external_connection_preferences").select("provider,activity_data_enabled,auto_log_window_days,unmatched_activity_action").eq("profile_id", profileId),
     adminClient.from("verified_activities").select("id,activity_type,started_at,status,auto_match_suppressed").eq("profile_id", profileId).eq("status", "active"),
-    adminClient.from("external_activity_observations").select("id,provider,started_at,local_date_ymd,distance_m,moving_duration_sec,elapsed_duration_sec,source_deleted_at,source_manual_entry").eq("profile_id", profileId),
+    adminClient.from("external_activity_observations").select("id,provider,activity_type,activity_name,started_at,local_date_ymd,distance_m,moving_duration_sec,elapsed_duration_sec,source_deleted_at,source_manual_entry").eq("profile_id", profileId),
     adminClient.from("verified_activity_observations").select("verified_activity_id,observation_id").eq("profile_id", profileId),
     adminClient.from("external_activity_links").select("verified_activity_id,manual_log_id,manual_block_id,match_method").eq("profile_id", profileId),
     adminClient.from("external_activity_population_controls").select("verified_activity_id,suppressed_at,suppress_reason").eq("profile_id", profileId),
@@ -150,7 +173,20 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
 
   const preferenceMap = activePreferenceMap(connectionsResult.data || [], preferencesResult.data || []);
   if (!preferenceMap.size) {
-    return { profileId, logsChanged: 0, fieldsFilled: 0, extraBlocksCreated: 0, manualOverridesPreserved: 0, skippedSuppressed: 0, skippedLinked: 0, skippedRecoveryMode: 0, consideredActivities: 0 };
+    return {
+      profileId,
+      logsChanged: 0,
+      fieldsFilled: 0,
+      extraBlocksCreated: 0,
+      manualOverridesPreserved: 0,
+      skippedSuppressed: 0,
+      skippedLinked: 0,
+      skippedRecoveryMode: 0,
+      consideredActivities: 0,
+      awaitingUserConfirmation: 0,
+      skippedByPreference: 0,
+      requestedOutcome: text(options.onlyVerifiedActivityId) ? "not_eligible" : null,
+    };
   }
 
   const observationById = new Map((observationsResult.data || []).map((row: any) => [row.id, row]));
@@ -173,7 +209,11 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
 
   const plan = profile.plan_json && typeof profile.plan_json === "object" ? profile.plan_json : {};
   const blocksByWeekday = plan.blocksByWeekday && typeof plan.blocksByWeekday === "object" ? plan.blocksByWeekday : {};
-  const activities = (activitiesResult.data || []).slice().sort((a: any, b: any) => text(a.started_at).localeCompare(text(b.started_at)) || text(a.id).localeCompare(text(b.id)));
+  const requestedActivityId = text(options.onlyVerifiedActivityId);
+  const activities = (activitiesResult.data || [])
+    .filter((row: any) => !requestedActivityId || row.id === requestedActivityId)
+    .slice()
+    .sort((a: any, b: any) => text(a.started_at).localeCompare(text(b.started_at)) || text(a.id).localeCompare(text(b.id)));
 
   const summary = {
     profileId,
@@ -185,21 +225,37 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
     skippedLinked: 0,
     skippedRecoveryMode: 0,
     consideredActivities: 0,
+    awaitingUserConfirmation: 0,
+    skippedByPreference: 0,
+    requestedOutcome: requestedActivityId && !activities.length ? "not_found" : null,
   };
   const changedDates = new Set<string>();
 
   for (const activity of activities) {
-    if (activity.auto_match_suppressed === true) continue;
+    if (activity.auto_match_suppressed === true) {
+      if (activity.id === requestedActivityId) summary.requestedOutcome = "suppressed";
+      continue;
+    }
     if (suppressed.has(activity.id)) {
       summary.skippedSuppressed += 1;
+      if (activity.id === requestedActivityId) summary.requestedOutcome = "suppressed";
       continue;
     }
     if (linkedActivities.has(activity.id)) {
       summary.skippedLinked += 1;
+      if (activity.id === requestedActivityId) summary.requestedOutcome = "already_linked";
       continue;
     }
     const evidence = aggregateEvidence(activity, observationsByActivity.get(activity.id) || [], preferenceMap, todayYmd);
-    if (!evidence) continue;
+    if (!evidence) {
+      if (activity.id === requestedActivityId) {
+        const activeObservations = (observationsByActivity.get(activity.id) || []).filter((row: any) => !row?.source_deleted_at);
+        summary.requestedOutcome = activeObservations.length && activeObservations.every((row: any) => row?.source_manual_entry === true)
+          ? "manual_entry"
+          : "not_eligible";
+      }
+      continue;
+    }
     summary.consideredActivities += 1;
 
     const dateYmd = evidence.localDateYmd;
@@ -211,6 +267,7 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
     );
     if (recoveryPeriod) {
       summary.skippedRecoveryMode += 1;
+      if (activity.id === requestedActivityId) summary.requestedOutcome = "recovery_mode";
       continue;
     }
 
@@ -230,8 +287,24 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
       block.cancelled = true;
     }
 
-    const population = applyVerifiedActivityPopulation({ logJson: transient, planBlocks, evidence, nowIso });
-    if (!population.changed) continue;
+    const forceExtraBlock = options.forceExtraBlock === true && activity.id === requestedActivityId;
+    const allowExtraBlock = forceExtraBlock || evidence.unmatchedActivityAction === "automatic";
+    const population = applyVerifiedActivityPopulation({
+      logJson: transient,
+      planBlocks,
+      evidence,
+      nowIso,
+      allowExtraBlock,
+      forceExtraBlock,
+    });
+    if (!population.changed) {
+      if (population.skippedReason === "awaiting_user_confirmation") {
+        if (evidence.unmatchedActivityAction === "never") summary.skippedByPreference += 1;
+        else summary.awaitingUserConfirmation += 1;
+      }
+      if (activity.id === requestedActivityId) summary.requestedOutcome = population.skippedReason || "not_changed";
+      continue;
+    }
 
     if (!population.targetBlockId) {
       const savedState = await adminClient.from("logs").upsert({
@@ -282,6 +355,9 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
     }
 
     linkedActivities.add(activity.id);
+    if (activity.id === requestedActivityId) {
+      summary.requestedOutcome = population.extraBlocksCreated ? "created" : "matched";
+    }
     if (!claimedByLog.has(logRow.id)) claimedByLog.set(logRow.id, new Set());
     claimedByLog.get(logRow.id)!.add(population.targetBlockId);
     summary.fieldsFilled += population.fieldsFilled || 0;
@@ -302,6 +378,56 @@ export async function applyRecentVerifiedAutoPopulationForProfile(
       rewardMultiplier: 1,
     });
   }
+  return summary;
+}
+
+export async function addVerifiedUnmatchedActivityForProfile(
+  adminClient: any,
+  profileId: string,
+  verifiedActivityId: string,
+  actorUserId: string | null = null
+) {
+  return applyRecentVerifiedAutoPopulationForProfile(adminClient, profileId, {
+    actorUserId,
+    onlyVerifiedActivityId: verifiedActivityId,
+    forceExtraBlock: true,
+  });
+}
+
+export async function suppressVerifiedAutoPopulationForProfile(
+  adminClient: any,
+  profileId: string,
+  verifiedActivityId: string,
+  actorUserId: string | null = null
+) {
+  const profileResult = await adminClient.from("profiles").select("id,family_id,archived").eq("id", profileId).maybeSingle();
+  if (profileResult.error || !profileResult.data || profileResult.data.archived) throw profileResult.error || new Error("Profile not found");
+  const profile = profileResult.data;
+  const activityResult = await adminClient.from("verified_activities").select("id,family_id,profile_id").eq("id", verifiedActivityId).maybeSingle();
+  if (activityResult.error || !activityResult.data || activityResult.data.profile_id !== profileId || activityResult.data.family_id !== profile.family_id) {
+    throw activityResult.error || new Error("Verified activity not found");
+  }
+  const existingLink = await adminClient.from("external_activity_links").select("id").eq("verified_activity_id", verifiedActivityId).maybeSingle();
+  if (existingLink.error) throw existingLink.error;
+  if (existingLink.data) throw new Error("A linked activity must be undone or detached before it can be excluded from Log creation");
+
+  const nowIso = new Date().toISOString();
+  const [suppressed, activityUpdate] = await Promise.all([
+    adminClient.from("external_activity_population_controls").upsert({
+      family_id: profile.family_id,
+      profile_id: profile.id,
+      verified_activity_id: verifiedActivityId,
+      suppressed_at: nowIso,
+      suppress_reason: "user_declined",
+      actor_user_id: actorUserId || null,
+      updated_at: nowIso,
+    }, { onConflict: "profile_id,verified_activity_id" }),
+    adminClient.from("verified_activities").update({ auto_match_suppressed: true }).eq("id", verifiedActivityId),
+  ]);
+  if (suppressed.error || activityUpdate.error) throw suppressed.error || activityUpdate.error;
+
+  const summary = { verifiedActivityId, suppressed: true, suppressReason: "user_declined" };
+  await audit(adminClient, profile, "auto_population_declined", actorUserId, summary, verifiedActivityId);
   return summary;
 }
 
@@ -353,6 +479,9 @@ export async function undoVerifiedAutoPopulationForProfile(
     updated_at: nowIso,
   }, { onConflict: "profile_id,verified_activity_id" });
   if (suppressed.error) throw suppressed.error;
+
+  const activityUpdate = await adminClient.from("verified_activities").update({ auto_match_suppressed: true }).eq("id", verifiedActivityId);
+  if (activityUpdate.error) throw activityUpdate.error;
 
   const summary = { verifiedActivityId, logsChanged, fieldsRestored, extraBlocksRemoved, manualOverridesPreserved, suppressed: true };
   await audit(adminClient, profile, "auto_population_undo", actorUserId, summary, verifiedActivityId);
