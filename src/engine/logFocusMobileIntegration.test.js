@@ -55,6 +55,8 @@ describe("focused Log and dashboard readiness integration", () => {
     expect(app).toContain("Reset this day?");
     expect(app).toContain('ensureUnlocked("reset this day")');
     expect(app).toContain("resetDayButton");
+    expect(app).toContain("logFocusCancelIcon");
+    expect(app).toContain("onCancel={() => toggleBlockCancelled(block.id, !isCancelled)}");
     expect(app).toContain('content:"C"');
     expect(app).toContain(".todaySummaryCard{display:none}");
   });
