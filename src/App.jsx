@@ -9855,17 +9855,36 @@ const cardioProgress = useMemo(() => {
         cardioTarget?.targetSpeedKmh
           ? getPaceFromSpeedKmh(cardioTarget.targetSpeedKmh)
           : null;
+      const focusState = getLogBlockFocusState(block);
+      const blockOpen = isLogBlockOpen(block.id);
+      const distanceHidden = isDistanceHiddenCardioType(block.cardioType || "run");
+      const loggedSummary = [
+        !distanceHidden && distKm > 0 ? `${distKm.toFixed(2)} km` : null,
+        timeMin > 0 ? `${timeMin} min` : null,
+      ].filter(Boolean).join(" · ");
+      const blockSummary = isCancelled
+        ? "Cancelled"
+        : isSuspended
+        ? "Paused by recovery mode"
+        : focusState.complete
+        ? loggedSummary || "Complete"
+        : block.targetText?.trim() || (distanceHidden ? "Time to log" : "Distance + time to log");
 
       return (
-        <div
-          key={block.id}
-          className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""}`}
+        <FocusedLogBlock
+          label={label}
+          summary={blockSummary}
+          open={blockOpen}
+          complete={focusState.complete}
+          cancelled={isCancelled}
+          suspended={isSuspended}
+          onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
-          <div className="rowBetween">
-  <div className="logUserBlockTitle">{label}</div>
+          <div className="rowBetween focusedLogBlockControls">
+  <span className="muted mini">Cardio controls</span>
 
   {historyIndex?.cardioHas?.[block.id] && (
     <button
@@ -9992,7 +10011,7 @@ const cardioProgress = useMemo(() => {
   </div>
 )}
 </div>
-          </div>
+          </FocusedLogBlock>
         );
       })}
   </div>
