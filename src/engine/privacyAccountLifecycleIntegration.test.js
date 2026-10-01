@@ -24,6 +24,7 @@ describe("public site, privacy and account lifecycle integration", () => {
 
   it("requires legal acknowledgement before new account creation", () => {
     const app = read("../App.jsx");
+    const publicSite = read("../components/public/PublicSite.jsx");
     expect(app).toContain("termsAccepted");
     expect(app).toContain("Please agree to the Terms of Use");
     expect(app).toContain("If I am creating a profile for a child under 13");
