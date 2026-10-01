@@ -190,13 +190,27 @@ export default function PublicSite({ children }) {
             <h2>From today’s session to a long-term record of growth.</h2>
           </div>
           <div className="screenShowcase">
-            <div className="showcaseCard">
-              <div className="showcasePhone"><ProductScreen variant="log" /></div>
-              <div><span>LOG</span><h3>Focus on what to do next.</h3><p>Targets, history and completion sit close to the work instead of at the bottom of the page.</p></div>
+            <div className="showcaseCard showcaseCard--real">
+              <div className="showcaseActual">
+                <div className="actualAppLabel">ACTUAL APP VIEW · DETAILS ANONYMISED</div>
+                <img
+                  src="/screenshots/workout-log-mobile.webp"
+                  alt="Workout Tracker mobile training log showing planned cardio and session blocks"
+                  loading="lazy"
+                />
+              </div>
+              <div><span>LOG</span><h3>Focus on what to do next.</h3><p>Real product view: planned work, logging controls and performance context stay together. Athlete-specific names have been anonymised for the public site.</p></div>
             </div>
-            <div className="showcaseCard">
-              <div className="showcasePhone"><ProductScreen variant="dashboard" /></div>
-              <div><span>DASHBOARD</span><h3>See readiness, plan and momentum quickly.</h3><p>The dashboard gives today’s training context without turning into an endless feed.</p></div>
+            <div className="showcaseCard showcaseCard--real">
+              <div className="showcaseActual showcaseActual--readiness">
+                <div className="actualAppLabel">ACTUAL BODY INTELLIGENCE VIEW</div>
+                <img
+                  src="/screenshots/body-readiness-mobile.webp"
+                  alt="Workout Tracker Body Readiness Status card with score, readiness scale and recommendation"
+                  loading="lazy"
+                />
+              </div>
+              <div><span>BODY INTELLIGENCE</span><h3>Put readiness in context.</h3><p>Readiness gives the athlete a compact training-quality signal and recommendation rather than replacing judgement or coaching.</p></div>
             </div>
             <div className="showcaseCard">
               <div className="showcasePhone"><ProductScreen variant="progress" /></div>
