@@ -33,6 +33,7 @@ describe("public site, privacy and account lifecycle integration", () => {
   });
 
   it("keeps destructive account deletion behind server authority and password confirmation", () => {
+    const app = read("../App.jsx");
     const adapter = read("../accountLifecycleDb.js");
     const edge = read("../../supabase/functions/account-lifecycle/index.ts");
     const settings = read("../components/settings/AccountPrivacyPanel.jsx");
