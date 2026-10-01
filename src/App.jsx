@@ -3745,6 +3745,95 @@ const allSessionBlocksForDay = sessionBlocksFromLog.length
   : sessionPlannedBlocks;
 
 const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
+
+function getLogBlockFocusState(block) {
+  if (!block) return { resolved: true, complete: false, cancelled: false, suspended: false };
+
+  const logged = getBlockLog(logForDay, block.id) || block || {};
+  const cancelled = !!logged.cancelled;
+  const suspended = !!logged.suspendedByRecoveryMode || !!block.suspendedByRecoveryMode;
+  if (cancelled || suspended) {
+    return { resolved: true, complete: false, cancelled, suspended };
+  }
+
+  const typeId = String(block.typeId || logged.typeId || "").toLowerCase();
+  let complete = false;
+
+  if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+    const movements = Array.isArray(block.movements)
+      ? block.movements
+      : Array.isArray(logged.movements)
+      ? logged.movements
+      : [];
+    const setsByMovement =
+      logged.sets && typeof logged.sets === "object" ? logged.sets : {};
+    complete =
+      movements.length > 0 &&
+      movements.every((movement) => {
+        const plannedSets = block.isExtra ? 1 : Math.max(1, Number(movement?.sets) || 3);
+        const sets = Array.isArray(setsByMovement[movement?.id])
+          ? setsByMovement[movement.id]
+          : [];
+        return sets.slice(0, plannedSets).filter(setDidSomething).length >= plannedSets;
+      });
+  } else if (
+    typeId === "cardio" ||
+    typeId === "run" ||
+    typeId === "swim" ||
+    typeId === "walk" ||
+    typeId === "row" ||
+    typeId === "cycle" ||
+    typeId === "bike"
+  ) {
+    const cardio = logged.cardio || {};
+    complete = safeNumber(cardio.distanceKm) > 0 || safeNumber(cardio.durationMin) > 0;
+  } else if (typeId === "duration") {
+    complete = safeNumber(logged?.duration?.minutes) > 0;
+  } else if (typeId === "session") {
+    complete = sessionBlockIsComplete(logged);
+  } else if (typeId === "recovery") {
+    complete = isProfileRecoveryLogBlock(logged)
+      ? profileRecoveryBlockComplete(logged)
+      : !!logged.recoveryDone;
+  } else if (Array.isArray(block.tasks) && block.tasks.length) {
+    const tasksDone =
+      logged.tasksDone && typeof logged.tasksDone === "object"
+        ? logged.tasksDone
+        : {};
+    complete = block.tasks.every((task) => !!tasksDone?.[task?.id]);
+  }
+
+  return { resolved: complete, complete, cancelled: false, suspended: false };
+}
+
+const focusBlockSequence = (() => {
+  const planned = (plannedBlocksForSelectedDay || []).filter(Boolean);
+  const seen = new Set(planned.map((block) => block?.id).filter(Boolean));
+  const extras = (Array.isArray(logForDay?.blocks) ? logForDay.blocks : []).filter(
+    (block) => block?.isExtra && block?.id && !seen.has(block.id)
+  );
+  return [...planned, ...extras];
+})();
+
+const firstIncompleteFocusBlockId =
+  focusBlockSequence.find((block) => !getLogBlockFocusState(block).resolved)?.id || "";
+
+function isLogBlockOpen(blockId) {
+  if (!blockId) return false;
+  if (focusedLogBlockId === "__none__") return false;
+  if (focusedLogBlockId) return focusedLogBlockId === blockId;
+  return firstIncompleteFocusBlockId === blockId;
+}
+
+function toggleLogBlockFocus(blockId) {
+  if (!blockId) return;
+  setFocusedLogBlockId((current) => {
+    if (current === blockId) return "__none__";
+    if (!current && firstIncompleteFocusBlockId === blockId) return "__none__";
+    if (current === "__none__" && firstIncompleteFocusBlockId === blockId) return "";
+    return blockId;
+  });
+}
   
   function pickRandom(arr) {
   if (!Array.isArray(arr) || arr.length === 0) return "";
