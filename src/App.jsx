@@ -10207,17 +10207,34 @@ const cardioProgress = useMemo(() => {
           minutes: "",
         };
       const label = block.label || "Duration block";
+      const focusState = getLogBlockFocusState(block);
+      const blockOpen = isLogBlockOpen(block.id);
+      const loggedMinutes = safeNumber(duration.minutes);
+      const blockSummary = isCancelled
+        ? "Cancelled"
+        : isSuspended
+        ? "Paused by recovery mode"
+        : focusState.complete
+        ? `${loggedMinutes} min complete`
+        : block.plannedMinutes
+        ? `${block.plannedMinutes} min planned`
+        : "Minutes to log";
 
       return (
-          <div
-            key={block.id}
-            className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""}`}
+          <FocusedLogBlock
+            label={label}
+            summary={blockSummary}
+            open={blockOpen}
+            complete={focusState.complete}
+            cancelled={isCancelled}
+            suspended={isSuspended}
+            onToggle={() => toggleLogBlockFocus(block.id)}
           >
             {isSuspended && (
               <div className="recoveryModePausedLabel">Paused by recovery mode</div>
             )}
-            <div className="rowBetween">
-  <div className="logUserBlockTitle">{label}</div>
+            <div className="rowBetween focusedLogBlockControls">
+  <span className="muted mini">Duration controls</span>
 
   {historyIndex?.durationHas?.[block.id] && (
     <button
@@ -10291,7 +10308,7 @@ const cardioProgress = useMemo(() => {
 />
   </div>
 </div>
-          </div>
+          </FocusedLogBlock>
         );
       })}
 
