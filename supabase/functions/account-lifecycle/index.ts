@@ -88,6 +88,12 @@ function welcomeHtml() {
       ${visual("4","Review progress and rewards","Progress shows the record you are building. Rewards reinforce effort, improvement and consistency.","#00ff88")}
     </div>
     <p><strong style="color:#f4f8fb">The core idea:</strong> while you train, see what you did last time, what the target is today and whether you are improving.</p>
+    <div style="margin:20px 0 6px;padding:14px;border:1px solid #263441;border-radius:16px;background:#0f131a">
+      <div style="color:#00e5ff;font-size:10px;font-weight:900;letter-spacing:.08em;margin-bottom:10px">A QUICK LOOK INSIDE</div>
+      <img src="${APP_URL}/screenshots/workout-log-mobile.webp" alt="Workout Tracker training log" width="260" style="display:block;width:100%;max-width:260px;height:auto;margin:0 auto 12px;border-radius:12px;border:0">
+      <img src="${APP_URL}/screenshots/body-readiness-mobile.webp" alt="Workout Tracker Body Readiness" width="322" style="display:block;width:100%;max-width:322px;height:auto;margin:0 auto;border-radius:12px;border:0">
+      <div style="margin-top:10px;color:#77889a;font-size:11px;line-height:1.45;text-align:center">Example screens use anonymised training details.</div>
+    </div>
     <p style="margin:22px 0 4px"><a href="${APP_URL}" style="display:inline-block;background:#00e5ff;color:#071216;text-decoration:none;font-weight:900;border-radius:12px;padding:12px 18px">Open Workout Tracker</a></p>
     <p style="font-size:12px;color:#7f8fa0">You can replay the in-app tutorial at any time from Settings.</p>`
   );
@@ -142,8 +148,46 @@ async function revokeFamilyStrava(admin: ReturnType<typeof adminClient>, familyI
     await Promise.all([
       admin.from("external_connection_access_tokens").delete().eq("connection_id", connection.id),
       admin.from("external_connection_refresh_tokens").delete().eq("connection_id", connection.id),
+      // Webhook events contain provider owner/activity identifiers and use SET NULL
+      // on connection deletion, so remove them explicitly for full account erasure.
+      admin.from("strava_webhook_events").delete().eq("connection_id", connection.id),
     ]);
   }
+}
+
+async function deleteFamilyGroupArtifacts(
+  admin: ReturnType<typeof adminClient>,
+  familyId: string,
+) {
+  if (!admin) return;
+
+  const { data: memberships, error: membershipError } = await admin
+    .from("group_memberships")
+    .select("id")
+    .eq("family_id", familyId);
+  if (membershipError) throw membershipError;
+
+  const membershipIds = (memberships || [])
+    .map((membership) => String(membership?.id || "").trim())
+    .filter(Boolean);
+  if (!membershipIds.length) return;
+
+  // Rewards directly reference memberships with RESTRICT, so remove the
+  // deleting family's reward rows before its memberships disappear.
+  const { error: rewardError } = await admin
+    .from("group_challenge_rewards")
+    .delete()
+    .in("membership_id", membershipIds);
+  if (rewardError) throw rewardError;
+
+  // Challenges authored inside somebody else's Group also use a required
+  // RESTRICT creator membership. They are account-authored objects, so remove
+  // them (and their cascading result/baseline rows) during account erasure.
+  const { error: challengeError } = await admin
+    .from("group_challenges")
+    .delete()
+    .in("created_by_membership_id", membershipIds);
+  if (challengeError) throw challengeError;
 }
 
 Deno.serve(async (req: Request) => {
@@ -173,15 +217,26 @@ Deno.serve(async (req: Request) => {
 
     if (action === "summary") {
       if (!family?.id) return json({ profileCount: 0, createdGroupCount: 0, connectedSourceCount: 0 });
-      const [{ count: profileCount }, { count: createdGroupCount }, { count: connectedSourceCount }] = await Promise.all([
+      const [{ count: profileCount }, { count: createdGroupCount }, { count: connectedSourceCount }, { data: memberships }] = await Promise.all([
         admin.from("profiles").select("id", { count: "exact", head: true }).eq("family_id", family.id),
         admin.from("groups").select("id", { count: "exact", head: true }).eq("created_by_family_id", family.id),
         admin.from("external_connections").select("id", { count: "exact", head: true }).eq("family_id", family.id).eq("status", "active"),
+        admin.from("group_memberships").select("id").eq("family_id", family.id),
       ]);
+      const membershipIds = (memberships || []).map((membership) => membership.id).filter(Boolean);
+      let createdChallengeCount = 0;
+      if (membershipIds.length) {
+        const { count } = await admin
+          .from("group_challenges")
+          .select("id", { count: "exact", head: true })
+          .in("created_by_membership_id", membershipIds);
+        createdChallengeCount = count || 0;
+      }
       return json({
         profileCount: profileCount || 0,
         createdGroupCount: createdGroupCount || 0,
         connectedSourceCount: connectedSourceCount || 0,
+        createdChallengeCount,
       });
     }
 
@@ -215,6 +270,7 @@ Deno.serve(async (req: Request) => {
 
     if (family?.id) {
       await revokeFamilyStrava(admin, family.id);
+      await deleteFamilyGroupArtifacts(admin, family.id);
       const { error: familyDeleteError } = await admin.from("families").delete().eq("id", family.id);
       if (familyDeleteError) throw familyDeleteError;
     }
