@@ -9713,17 +9713,38 @@ const cardioProgress = useMemo(() => {
           : typeof block.note === "string"
           ? block.note
           : "";
+      const focusState = getLogBlockFocusState(block);
+      const blockOpen = isLogBlockOpen(block.id);
+      const movementCount = Array.isArray(frozenSession?.movements)
+        ? frozenSession.movements.length
+        : Array.isArray(block?.session?.movements)
+        ? block.session.movements.length
+        : 0;
+      const blockSummary = isCancelled
+        ? "Cancelled"
+        : isSuspended
+        ? "Paused by recovery mode"
+        : focusState.complete
+        ? "Session complete"
+        : frozenSession
+        ? `In progress${movementCount ? ` · ${movementCount} movement${movementCount === 1 ? "" : "s"}` : ""}`
+        : "Ready to start";
 
       return (
-        <div
-          key={block.id}
-          className={`mt12 session-log-block ${isSuspended ? "recoveryModeSuspended" : ""}`}
+        <FocusedLogBlock
+          label={label}
+          summary={blockSummary}
+          open={blockOpen}
+          complete={focusState.complete}
+          cancelled={isCancelled}
+          suspended={isSuspended}
+          onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
-          <div className="row between session-log-block__top">
-            <div className="logUserBlockTitle">{label}</div>
+          <div className="row between session-log-block__top focusedLogBlockControls">
+            <span className="muted mini">Session controls</span>
             <label
               className="mini"
               style={{ opacity: isCancelled ? 1 : 0.55 }}
@@ -9784,7 +9805,7 @@ const cardioProgress = useMemo(() => {
               />
             </div>
           )}
-        </div>
+        </FocusedLogBlock>
       );
     })}
   </div>
