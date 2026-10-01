@@ -18,10 +18,17 @@ export function sendWelcomeTutorialEmail() {
   return invoke({ action: "send_welcome" });
 }
 
-export function permanentlyDeleteAccount({ password, confirmation }) {
-  return invoke({
+export async function permanentlyDeleteAccount({ password, confirmation }) {
+  const result = await invoke({
     action: "delete_account",
     password: String(password || ""),
     confirmation: String(confirmation || ""),
   });
+
+  if (result?.data?.deleted && supabase) {
+    // The server account no longer exists; clear this browser's auth session too.
+    await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  }
+
+  return result;
 }
