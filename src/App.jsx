@@ -15958,6 +15958,9 @@ function StyleTag() {
 .logFocusShellBody{
   padding:0 12px 12px;
 }
+.logFocusShell:not(.isOpen) .logFocusShellBody{
+  display:none;
+}
 .logFocusInnerActions{
   min-height:28px;
 }
