@@ -108,6 +108,9 @@ import LogVerificationSummary from "./components/verification/LogVerificationSum
 import FirstRunTutorial, {
   FIRST_RUN_TUTORIAL_VERSION,
 } from "./components/onboarding/FirstRunTutorial.jsx";
+import PublicSite from "./components/public/PublicSite.jsx";
+import AccountPrivacyPanel from "./components/settings/AccountPrivacyPanel.jsx";
+import { sendWelcomeTutorialEmail } from "./accountLifecycleDb.js";
 import {
   addProgramAssessment,
   addProgramPhase,
@@ -1479,6 +1482,18 @@ function AuthScreen({ onAuthed }) {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
+  useEffect(() => {
+    const onPublicAuthMode = (event) => {
+      const nextMode = event?.detail === "signup" ? "signup" : "signin";
+      setMode(nextMode);
+      setMsg("");
+      if (nextMode === "signup") setPendingConfirmationEmail("");
+    };
+    window.addEventListener("wt-public-auth-mode", onPublicAuthMode);
+    return () => window.removeEventListener("wt-public-auth-mode", onPublicAuthMode);
+  }, []);
 
   async function handleAuth() {
     if (busy) return;
@@ -1494,6 +1509,10 @@ function AuthScreen({ onAuthed }) {
 
     try {
       if (mode === "signup") {
+        if (!termsAccepted) {
+          setMsg("Please agree to the Terms of Use and acknowledge the Privacy Notice before creating an account.");
+          return;
+        }
         const { data, error } = await signUp(cleanEmail, pw);
         if (error) {
           setMsg(error.message);
@@ -1568,9 +1587,8 @@ function AuthScreen({ onAuthed }) {
   }
 
   return (
-    <div className="page">
-      <div className="wrap">
-
+    <>
+      <PublicSite>
         <Card className="pad authCard">
           <div className="brandLockup authBrand">
             <img className="brandMark" src="/icons/icon-192.png" alt="Workout Tracker" />
@@ -1625,6 +1643,22 @@ function AuthScreen({ onAuthed }) {
                     }}
                   />
                 </div>
+                {mode === "signup" ? (
+                  <label className="check authConsent">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(event) => setTermsAccepted(event.target.checked)}
+                    />
+                    <div>
+                      <div>I agree to the Terms of Use and acknowledge the Privacy Notice.</div>
+                      <div className="mini muted mt4">
+                        If I am creating a profile for a child under 13, I confirm I am their parent/guardian or have authority to do so.
+                        Privacy, Cookies and Terms are available in the website footer.
+                      </div>
+                    </div>
+                  </label>
+                ) : null}
                 <PrimaryButton disabled={busy} onClick={handleAuth}>
                   {mode === "signup" ? "Create account" : "Sign in"}
                 </PrimaryButton>
@@ -1645,9 +1679,9 @@ function AuthScreen({ onAuthed }) {
             </>
           )}
         </Card>
-      </div>
+      </PublicSite>
       <StyleTag />
-    </div>
+    </>
   );
 }
 
@@ -3749,6 +3783,12 @@ const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
     const { family: fam, error } = await getOrCreateFamily("My Family");
     if (error) throw error;
     setFamily(fam);
+
+    // Transactional welcome/tutorial email is idempotent server-side. It is
+    // requested after the verified account has successfully initialised.
+    if (!fam?.welcome_email_sent_at) {
+      sendWelcomeTutorialEmail().catch(() => {});
+    }
 
     const { data: templs } = await listPlanTemplates(fam.id);
     setPlanTemplates(templs || []);
@@ -13737,6 +13777,21 @@ if (!didClaim) {
                   </SecondaryButton>
                 </div>
               </div>
+
+              <AccountPrivacyPanel
+                ensureUnlocked={ensureUnlocked}
+                onDeleted={() => {
+                  setAuthed(false);
+                  setFamily(null);
+                  setProfiles([]);
+                  setPlan(null);
+                  setAllLogs([]);
+                  setLogForDay(null);
+                  setActiveProfileId("");
+                  try { localStorage.removeItem("wt_activeProfileId"); } catch {}
+                  window.location.assign("/");
+                }}
+              />
 
               <div className="panel mt16">
                 <div className="h3">Sign out</div>
