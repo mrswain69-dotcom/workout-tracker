@@ -54,6 +54,8 @@ describe("public site, privacy and account lifecycle integration", () => {
     expect(migration).toContain("welcome_email_sent_at");
     expect(edge).toContain("family.welcome_email_sent_at");
     expect(edge).toContain("Welcome to Workout Tracker");
+    expect(edge).toContain("/screenshots/workout-log-mobile.webp");
+    expect(edge).toContain("/screenshots/body-readiness-mobile.webp");
     expect(edge).toContain("Your Workout Tracker account has been deleted");
     expect(edge).toMatch(/admin\.auth\.admin\.deleteUser[\s\S]*await sendEmail/);
   });
