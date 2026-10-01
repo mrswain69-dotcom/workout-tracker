@@ -10042,18 +10042,39 @@ const cardioProgress = useMemo(() => {
         !!blockLog.suspendedByRecoveryMode ||
         !!block.suspendedByRecoveryMode;
       const label = block.label || "Recovery block";
+      const focusState = getLogBlockFocusState(block);
+      const blockOpen = isLogBlockOpen(block.id);
+      const physioMinutes = safeNumber(blockLog?.duration?.minutes);
+      const blockSummary = isCancelled
+        ? "Cancelled"
+        : isSuspended
+        ? "Paused by recovery mode"
+        : recoveryDone
+        ? isInjuryRecovery && physioMinutes > 0
+          ? `${physioMinutes} min physio complete`
+          : "Recovery complete"
+        : isInjuryRecovery
+        ? "Physio to complete"
+        : isIllnessRecovery
+        ? "Recovery to confirm"
+        : "Recovery to complete";
 
       return (
-        <div
-          key={block.id}
-          className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""} ${isProfileRecovery ? "profileRecoveryLogCard" : ""}`}
+        <FocusedLogBlock
+          label={label}
+          summary={blockSummary}
+          open={blockOpen}
+          complete={focusState.complete}
+          cancelled={isCancelled}
+          suspended={isSuspended}
+          onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
 
-          <div className="rowBetween">
-            <div className="logUserBlockTitle">{label}</div>
+          <div className="rowBetween focusedLogBlockControls">
+            <span className="muted mini">{isProfileRecovery ? "Recovery controls" : "Recovery block"}</span>
 
             {block.isExtra && !isProfileRecovery && (
               <div className="row space">
@@ -10164,7 +10185,7 @@ const cardioProgress = useMemo(() => {
               )}
             </>
           )}
-        </div>
+        </FocusedLogBlock>
       );
     })}
   </div>
