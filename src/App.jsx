@@ -1651,10 +1651,32 @@ function AuthScreen({ onAuthed }) {
                       onChange={(event) => setTermsAccepted(event.target.checked)}
                     />
                     <div>
-                      <div>I agree to the Terms of Use and acknowledge the Privacy Notice.</div>
+                      <div>
+                        I agree to the{" "}
+                        <button
+                          type="button"
+                          className="authLegalInline"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            window.dispatchEvent(new CustomEvent("wt-open-legal", { detail: "terms" }));
+                          }}
+                        >
+                          Terms of Use
+                        </button>
+                        {" "}and acknowledge the{" "}
+                        <button
+                          type="button"
+                          className="authLegalInline"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            window.dispatchEvent(new CustomEvent("wt-open-legal", { detail: "privacy" }));
+                          }}
+                        >
+                          Privacy Notice
+                        </button>.
+                      </div>
                       <div className="mini muted mt4">
                         If I am creating a profile for a child under 13, I confirm I am their parent/guardian or have authority to do so.
-                        Privacy, Cookies and Terms are available in the website footer.
                       </div>
                     </div>
                   </label>
@@ -15980,6 +16002,18 @@ function StyleTag() {
   .focusedMovementBody{padding:0 10px 10px}
 }
 
+      .authLegalInline{
+        border:0;
+        padding:0;
+        background:transparent;
+        color:#00a9c0;
+        font:inherit;
+        font-weight:900;
+        text-decoration:underline;
+        text-underline-offset:2px;
+        cursor:pointer;
+      }
+      .authLegalInline:hover{color:#00899d}
       .authCard{max-width:520px;margin:60px auto}
       .footer{margin:18px 0 30px;text-align:center;color:#94a3b8;font-size:12px}
       .motivator{margin-bottom:12px;background:linear-gradient(135deg,#ffffff 0%,#f1f5f9 100%)}
