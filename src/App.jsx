@@ -3442,11 +3442,13 @@ const [historyRange, setHistoryRange] = useState("8w"); // "4w" | "8w" | "12w" |
 const [historySeries, setHistorySeries] = useState([]); // [{ x:"YYYY-MM-DD", y:number }]
 
 const [focusedMovementByBlock, setFocusedMovementByBlock] = useState({});
+const [focusedLogBlockId, setFocusedLogBlockId] = useState("");
 
 useEffect(() => {
-  // A date/profile change should begin from the natural "next movement" focus,
+  // A date/profile change should begin from the natural "next" focus,
   // not preserve an accordion choice from another session.
   setFocusedMovementByBlock({});
+  setFocusedLogBlockId("");
 }, [activeProfileId, selectedDate]);
 
   // Strength chart toggles (multi-line)
