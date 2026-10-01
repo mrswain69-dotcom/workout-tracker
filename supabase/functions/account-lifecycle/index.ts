@@ -155,6 +155,50 @@ async function revokeFamilyStrava(admin: ReturnType<typeof adminClient>, familyI
   }
 }
 
+async function deleteFamilyProgramArtifacts(
+  admin: ReturnType<typeof adminClient>,
+  familyId: string,
+) {
+  if (!admin) return;
+
+  // Program versions created by the deleting family can be referenced by
+  // assignments/entitlements using RESTRICT. Remove those dependent access
+  // rows first so permanent account deletion remains complete as the Program
+  // library grows. This is dormant for accounts with no Programs.
+  const [{ data: ownedPrograms, error: programsError }, { data: createdVersions, error: versionsError }] =
+    await Promise.all([
+      admin.from("training_programs").select("id").eq("owner_family_id", familyId),
+      admin.from("training_program_versions").select("id").eq("created_by_family_id", familyId),
+    ]);
+  if (programsError) throw programsError;
+  if (versionsError) throw versionsError;
+
+  const programIds = (ownedPrograms || [])
+    .map((program) => String(program?.id || "").trim())
+    .filter(Boolean);
+  const versionIds = (createdVersions || [])
+    .map((version) => String(version?.id || "").trim())
+    .filter(Boolean);
+
+  if (programIds.length) {
+    const [{ error: assignmentProgramError }, { error: entitlementProgramError }] = await Promise.all([
+      admin.from("training_program_assignments").delete().in("program_id", programIds),
+      admin.from("training_program_entitlements").delete().in("program_id", programIds),
+    ]);
+    if (assignmentProgramError) throw assignmentProgramError;
+    if (entitlementProgramError) throw entitlementProgramError;
+  }
+
+  if (versionIds.length) {
+    const [{ error: assignmentVersionError }, { error: entitlementVersionError }] = await Promise.all([
+      admin.from("training_program_assignments").delete().in("version_id", versionIds),
+      admin.from("training_program_entitlements").delete().in("version_id", versionIds),
+    ]);
+    if (assignmentVersionError) throw assignmentVersionError;
+    if (entitlementVersionError) throw entitlementVersionError;
+  }
+}
+
 async function deleteFamilyGroupArtifacts(
   admin: ReturnType<typeof adminClient>,
   familyId: string,
@@ -217,10 +261,17 @@ Deno.serve(async (req: Request) => {
 
     if (action === "summary") {
       if (!family?.id) return json({ profileCount: 0, createdGroupCount: 0, connectedSourceCount: 0 });
-      const [{ count: profileCount }, { count: createdGroupCount }, { count: connectedSourceCount }, { data: memberships }] = await Promise.all([
+      const [
+        { count: profileCount },
+        { count: createdGroupCount },
+        { count: connectedSourceCount },
+        { count: ownedProgramCount },
+        { data: memberships },
+      ] = await Promise.all([
         admin.from("profiles").select("id", { count: "exact", head: true }).eq("family_id", family.id),
         admin.from("groups").select("id", { count: "exact", head: true }).eq("created_by_family_id", family.id),
         admin.from("external_connections").select("id", { count: "exact", head: true }).eq("family_id", family.id).eq("status", "active"),
+        admin.from("training_programs").select("id", { count: "exact", head: true }).eq("owner_family_id", family.id),
         admin.from("group_memberships").select("id").eq("family_id", family.id),
       ]);
       const membershipIds = (memberships || []).map((membership) => membership.id).filter(Boolean);
@@ -237,6 +288,7 @@ Deno.serve(async (req: Request) => {
         createdGroupCount: createdGroupCount || 0,
         connectedSourceCount: connectedSourceCount || 0,
         createdChallengeCount,
+        ownedProgramCount: ownedProgramCount || 0,
       });
     }
 
@@ -271,6 +323,7 @@ Deno.serve(async (req: Request) => {
     if (family?.id) {
       await revokeFamilyStrava(admin, family.id);
       await deleteFamilyGroupArtifacts(admin, family.id);
+      await deleteFamilyProgramArtifacts(admin, family.id);
       const { error: familyDeleteError } = await admin.from("families").delete().eq("id", family.id);
       if (familyDeleteError) throw familyDeleteError;
     }
