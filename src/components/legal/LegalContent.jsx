@@ -47,7 +47,7 @@ export function PrivacyNotice() {
         <p>
           We use account and training information to provide the service you ask for: saving plans and logs, calculating progress,
           showing history, running rewards and Group features, protecting accounts, supporting connected activity verification
-          and responding to support requests. We do not sell personal information or use workout data for advertising.
+          and responding to support requests. Workout Tracker does not sell personal information or use workout data for advertising.
         </p>
       </Section>
 
