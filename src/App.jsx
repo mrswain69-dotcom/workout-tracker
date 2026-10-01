@@ -10328,10 +10328,23 @@ const cardioProgress = useMemo(() => {
       const tasksDone = blockLog.tasksDone || {};
       const label = block.label || "Tasks block";
       const tasks = Array.isArray(block.tasks) ? block.tasks : [];
+      const focusState = getLogBlockFocusState(block);
+      const blockOpen = isLogBlockOpen(block.id);
+      const doneCount = tasks.filter((task) => !!tasksDone?.[task?.id]).length;
+      const blockSummary = tasks.length
+        ? `${doneCount}/${tasks.length} complete`
+        : "No tasks configured";
 
       return (
-        <div key={block.id} className="mt12">
-          <div className="logUserBlockTitle">{label}</div>
+        <FocusedLogBlock
+          label={label}
+          summary={blockSummary}
+          open={blockOpen}
+          complete={focusState.complete}
+          cancelled={false}
+          suspended={false}
+          onToggle={() => toggleLogBlockFocus(block.id)}
+        >
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
@@ -10432,7 +10445,7 @@ const cardioProgress = useMemo(() => {
               })}
             </div>
           )}
-        </div>
+        </FocusedLogBlock>
       );
     })}
   </div>
