@@ -43,6 +43,9 @@ describe("public site, privacy and account lifecycle integration", () => {
     expect(edge).toContain('.from("families").delete()');
     expect(edge).toContain("admin.auth.admin.deleteUser");
     expect(edge).toContain("revokeFamilyStrava");
+    expect(edge).toContain("strava_webhook_events");
+    expect(edge).toContain("deleteFamilyGroupArtifacts");
+    expect(edge).toContain("created_by_membership_id");
   });
 
   it("sends the welcome tutorial once and keeps deletion independent of email delivery", () => {
