@@ -9342,27 +9342,37 @@ const cardioProgress = useMemo(() => {
                           ? blockLog.duration.minutes
                           : "";
 
+                      const plannedSetCount = movements.reduce(
+                        (sum, movement) =>
+                          sum + (block.isExtra ? 1 : Math.max(1, Number(movement?.sets) || 3)),
+                        0
+                      );
+                      const focusState = getLogBlockFocusState(block);
+                      const blockOpen = isLogBlockOpen(block.id);
+                      const blockLabel = block.label?.trim() || "Untitled strength block";
+                      const blockSummary = isCancelled
+                        ? "Cancelled"
+                        : isSuspended
+                        ? "Paused by recovery mode"
+                        : focusState.complete
+                        ? `${totalCompletedSets}/${plannedSetCount} sets complete`
+                        : `${movements.length} movement${movements.length === 1 ? "" : "s"} · ${totalCompletedSets}/${plannedSetCount} sets logged`;
+
                       return (
-  <div
-    key={block.id}
-    className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""}`}
+  <FocusedLogBlock
+    label={blockLabel}
+    summary={blockSummary}
+    open={blockOpen}
+    complete={focusState.complete}
+    cancelled={isCancelled}
+    suspended={isSuspended}
+    onToggle={() => toggleLogBlockFocus(block.id)}
   >
     {isSuspended && (
       <div className="recoveryModePausedLabel">Paused by recovery mode</div>
     )}
-    <div className="row between" style={{ alignItems: "center" }}>
-      {block.label ? (
-        <div
-          className="logUserBlockTitle"
-          style={{ opacity: isCancelled ? 1 : 0.7 }}
-        >
-          {block.label}
-        </div>
-      ) : (
-        <div className="logUserBlockTitle muted" style={{ opacity: isCancelled ? 1 : 0.7 }}>
-          Untitled block
-        </div>
-      )}
+    <div className="row between focusedLogBlockControls" style={{ alignItems: "center" }}>
+      <span className="muted mini">Block controls</span>
 
       <label
         className="mini"
@@ -9670,7 +9680,7 @@ const cardioProgress = useMemo(() => {
                             />
                           </div>
     
-                        </div>
+  </FocusedLogBlock>
                       );
                     })}
                   </div>
