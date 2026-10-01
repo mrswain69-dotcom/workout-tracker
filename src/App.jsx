@@ -3402,6 +3402,14 @@ const [historyModal, setHistoryModal] = useState(null);
 const [historyRange, setHistoryRange] = useState("8w"); // "4w" | "8w" | "12w" | "6m"
 const [historySeries, setHistorySeries] = useState([]); // [{ x:"YYYY-MM-DD", y:number }]
 
+const [focusedMovementByBlock, setFocusedMovementByBlock] = useState({});
+
+useEffect(() => {
+  // A date/profile change should begin from the natural "next movement" focus,
+  // not preserve an accordion choice from another session.
+  setFocusedMovementByBlock({});
+}, [activeProfileId, selectedDate]);
+
   // Strength chart toggles (multi-line)
 const [historyStrengthShow, setHistoryStrengthShow] = useState({
   weight: true,
@@ -7525,8 +7533,13 @@ async function updateCardioForBlock(blockId, cardioPatch) {
   }  
   
 async function toggleBlockCancelled(blockId, cancelled) {
-  // Turning ON requires the parent PIN; turning OFF is free.
+  // Cancelling is deliberately a two-step action: confirm intent, then Parent Lock.
+  // Turning a cancelled block back on remains immediate.
   if (cancelled) {
+    const confirmed = window.confirm(
+      "Cancel this block? It will be marked as cancelled and handled by the normal streak rules."
+    );
+    if (!confirmed) return;
     const ok = await ensureUnlocked("mark this block as cancelled");
     if (!ok) return;
   }
@@ -9045,6 +9058,7 @@ const cardioProgress = useMemo(() => {
             recoveryMode={dashboardRecoveryMode}
             motivationLine={motivationLine}
             healthTip={healthTip}
+            bodyReadiness={bodyReadiness}
             onOpenLog={() => {
               setSelectedDate(todayYmd);
               setTab("log");
@@ -9101,7 +9115,13 @@ const cardioProgress = useMemo(() => {
       </div>
     )}
     <SecondaryButton
-      onClick={resetDay}
+      className="resetDayButton"
+      onClick={() => {
+        const confirmed = window.confirm(
+          "Reset this day? This clears the logged activity for this date. You will still need to confirm with the Parent Lock PIN."
+        );
+        if (confirmed) resetDay();
+      }}
       disabled={isSavingLog}
     >
       Reset day
@@ -9152,7 +9172,7 @@ const cardioProgress = useMemo(() => {
                 {/* Strength / HIIT / Box blocks log */}
                 {hasAnyStrengthBlocks && (
                   <div className="panel mt16">
-                    <div className="h2">Strength / HIIT log</div>
+                    <div className="logBlockTypeTitle">Strength / HIIT</div>
 
                     {allStrengthBlocksForDay.map((block) => {
                       const blockLog = getBlockLog(logForDay, block.id) || {};
@@ -9203,13 +9223,13 @@ const cardioProgress = useMemo(() => {
     <div className="row between" style={{ alignItems: "center" }}>
       {block.label ? (
         <div
-          className="h3"
+          className="logUserBlockTitle"
           style={{ opacity: isCancelled ? 1 : 0.7 }}
         >
           {block.label}
         </div>
       ) : (
-        <div className="h3 muted" style={{ opacity: isCancelled ? 1 : 0.7 }}>
+        <div className="logUserBlockTitle muted" style={{ opacity: isCancelled ? 1 : 0.7 }}>
           Untitled block
         </div>
       )}
@@ -9249,7 +9269,7 @@ const cardioProgress = useMemo(() => {
                           )}
 
                           {/* Movements grid */}
-                          {block.movements.map((planMov) => {
+                          {block.movements.map((planMov, movementIndex) => {
                             const mov = planMov;
                             const movementSets = Array.isArray(
                               setsByMovement[mov.id]
@@ -9257,31 +9277,59 @@ const cardioProgress = useMemo(() => {
                               ? setsByMovement[mov.id]
                               : [];
 
-                            // Number of rows:
-// - planned sets for normal blocks
-// - minimum 1 row for extra one-off blocks
-// - plus any user-added sets
-const basePlannedSets = block.isExtra ? 1 : (mov.sets || 3);
-const rowCount = Math.max(
-  basePlannedSets,
-  movementSets.length || 0
-);
+                            const basePlannedSets = block.isExtra ? 1 : (mov.sets || 3);
+                            const rowCount = Math.max(
+                              basePlannedSets,
+                              movementSets.length || 0
+                            );
+
+                            const lastSets = findLastMovementSets(
+                              allLogs,
+                              mov.id,
+                              ymd(selectedDate)
+                            );
+
+                            const targetInfo = buildTargetInfoForMovement({
+                              movement: mov,
+                              lastSets,
+                              plannedRepsText: mov.initialTarget || mov.reps || "",
+                            });
+
+                            const completedPlannedSets = movementSets
+                              .slice(0, basePlannedSets)
+                              .filter(setDidSomething).length;
+                            const movementComplete =
+                              basePlannedSets > 0 &&
+                              completedPlannedSets >= basePlannedSets;
+
+                            const firstIncompleteMovementId =
+                              movements.find((candidate) => {
+                                const candidateSets = Array.isArray(setsByMovement[candidate.id])
+                                  ? setsByMovement[candidate.id]
+                                  : [];
+                                const candidatePlanned = block.isExtra ? 1 : (candidate.sets || 3);
+                                return candidateSets
+                                  .slice(0, candidatePlanned)
+                                  .filter(setDidSomething).length < candidatePlanned;
+                              })?.id || "";
+
+                            const explicitFocus = focusedMovementByBlock[block.id];
+                            const movementOpen = explicitFocus
+                              ? explicitFocus === mov.id
+                              : firstIncompleteMovementId
+                              ? firstIncompleteMovementId === mov.id
+                              : movementIndex === 0;
+
+                            const plannedTarget =
+                              String(mov.initialTarget || mov.reps || "").trim();
+                            const planSummary = [
+                              `${basePlannedSets} set${basePlannedSets === 1 ? "" : "s"}`,
+                              plannedTarget || null,
+                              mov.trackWeight ? "weight" : null,
+                              mov.trackDuration ? "time" : null,
+                            ].filter(Boolean).join(" · ");
 
                             const rows = [];
-
-// --- Target logic for this movement ---
-const lastSets = findLastMovementSets(
-  allLogs,
-  mov.id,
-  ymd(selectedDate)
-);
-
-const targetInfo = buildTargetInfoForMovement({
-  movement: mov,
-  lastSets,
-  plannedRepsText: mov.initialTarget || mov.reps || "",
-});
-
                             for (let i = 0; i < rowCount; i++) {
                               const set = movementSets[i] || {};
                               const baseSet = {
@@ -9302,62 +9350,33 @@ const targetInfo = buildTargetInfoForMovement({
 
                               rows.push(
                                 <div key={i} className={rowClass}>
-                                  {/* Set title – OUTSIDE any input box */}
-                                  <div className="setLabel">
-                                    Set {i + 1}
-                                  </div>
-
-                                  {/* Inputs grid */}
+                                  <div className="setLabel">Set {i + 1}</div>
                                   <div className="grid3 mt4">
                                     <div>
                                       <div className="label">Reps</div>
                                       <Input
                                         type="number"
                                         min={0}
-                                        value={
-                                          baseSet.reps != null
-                                            ? baseSet.reps
-                                            : ""
-                                        }
+                                        value={baseSet.reps != null ? baseSet.reps : ""}
                                         onChange={(v) => {
                                           const nextSets = [...movementSets];
-                                          nextSets[i] = {
-                                            ...baseSet,
-                                            reps: v,
-                                          };
-                                          updateStrengthSetsForMovement(
-                                            block.id,
-                                            mov.id,
-                                            nextSets
-                                          );
+                                          nextSets[i] = { ...baseSet, reps: v };
+                                          updateStrengthSetsForMovement(block.id, mov.id, nextSets);
                                         }}
                                       />
                                     </div>
 
                                     {mov.trackWeight && (
                                       <div>
-                                        <div className="label">
-                                          Weight (kg)
-                                        </div>
+                                        <div className="label">Weight (kg)</div>
                                         <Input
                                           type="number"
                                           min={0}
-                                          value={
-                                            baseSet.weight != null
-                                              ? baseSet.weight
-                                              : ""
-                                          }
+                                          value={baseSet.weight != null ? baseSet.weight : ""}
                                           onChange={(v) => {
                                             const nextSets = [...movementSets];
-                                            nextSets[i] = {
-                                              ...baseSet,
-                                              weight: v,
-                                            };
-                                            updateStrengthSetsForMovement(
-                                              block.id,
-                                              mov.id,
-                                              nextSets
-                                            );
+                                            nextSets[i] = { ...baseSet, weight: v };
+                                            updateStrengthSetsForMovement(block.id, mov.id, nextSets);
                                           }}
                                         />
                                       </div>
@@ -9365,28 +9384,15 @@ const targetInfo = buildTargetInfoForMovement({
 
                                     {mov.trackDuration && (
                                       <div>
-                                        <div className="label">
-                                          Time (sec)
-                                        </div>
+                                        <div className="label">Time (sec)</div>
                                         <Input
                                           type="number"
                                           min={0}
-                                          value={
-                                            baseSet.timeSeconds != null
-                                              ? baseSet.timeSeconds
-                                              : ""
-                                          }
+                                          value={baseSet.timeSeconds != null ? baseSet.timeSeconds : ""}
                                           onChange={(v) => {
                                             const nextSets = [...movementSets];
-                                            nextSets[i] = {
-                                              ...baseSet,
-                                              timeSeconds: v,
-                                            };
-                                            updateStrengthSetsForMovement(
-                                              block.id,
-                                              mov.id,
-                                              nextSets
-                                            );
+                                            nextSets[i] = { ...baseSet, timeSeconds: v };
+                                            updateStrengthSetsForMovement(block.id, mov.id, nextSets);
                                           }}
                                         />
                                       </div>
@@ -9397,102 +9403,110 @@ const targetInfo = buildTargetInfoForMovement({
                             }
 
                             return (
-                              <div key={mov.id} className="mt12">
-                               <div className="movementHeader">
-  <div className="movementHeaderTop">
-    <div className="movementName">{mov.name}</div>
-
-    {historyIndex?.movementHas?.[mov.id] && (
-      <button
-        type="button"
-        className="historyPill"
-        onClick={() => {
-          setHistoryRange("8w");
-          setHistoryModal({ kind: "movement", id: mov.id, title: mov.name });
-        }}
-      >
-        History
-      </button>
-    )}
-  </div>
-                                  {mov.coachNote ? (
-                                    <div className="movementCoachNote">
-                                      {mov.coachNote}
+                              <div
+                                key={mov.id}
+                                className={[
+                                  "focusedMovement",
+                                  movementOpen ? "isOpen" : "",
+                                  movementComplete ? "isComplete" : "",
+                                ].join(" ")}
+                              >
+                                <button
+                                  type="button"
+                                  className="focusedMovementSummary"
+                                  aria-expanded={movementOpen}
+                                  onClick={() =>
+                                    setFocusedMovementByBlock((current) => ({
+                                      ...current,
+                                      [block.id]:
+                                        current[block.id] === mov.id ? "" : mov.id,
+                                    }))
+                                  }
+                                >
+                                  <div className="focusedMovementSummary__copy">
+                                    <div className="movementName">{mov.name}</div>
+                                    <div className="focusedMovementPlan">{planSummary}</div>
+                                    <div className="movementTarget">
+                                      {targetInfo?.text || "Log once to generate targets."}
                                     </div>
-                                  ) : null}
-                                  <div className="movementTarget">
-                                    {targetInfo?.text ||
-                                      "Log once to generate targets."}
                                   </div>
-                                </div>
+                                  <span
+                                    className="focusedMovementStatus"
+                                    aria-label={movementComplete ? "Complete" : movementOpen ? "Collapse" : "Open"}
+                                  >
+                                    {movementComplete ? "✓" : movementOpen ? "−" : "+"}
+                                  </span>
+                                </button>
 
-                                {rows}
+                                {movementOpen && (
+                                  <div className="focusedMovementBody">
+                                    <div className="movementHeaderTop">
+                                      {mov.coachNote ? (
+                                        <div className="movementCoachNote">{mov.coachNote}</div>
+                                      ) : <span />}
+                                      {historyIndex?.movementHas?.[mov.id] && (
+                                        <button
+                                          type="button"
+                                          className="historyPill"
+                                          onClick={() => {
+                                            setHistoryRange("8w");
+                                            setHistoryModal({ kind: "movement", id: mov.id, title: mov.name });
+                                          }}
+                                        >
+                                          History
+                                        </button>
+                                      )}
+                                    </div>
 
-<div className="mt8 row gap8">
-  <SecondaryButton
-    onClick={() => {
-      const existing = Array.isArray(setsByMovement[mov.id])
-        ? setsByMovement[mov.id]
-        : [];
-      let nextSets;
-      // For extra one-day strength blocks, if no sets are stored yet,
-      // create two rows at once so the first tap visibly adds a new row.
-      if (block.isExtra && existing.length === 0) {
-        nextSets = [
-          {
-            reps: "",
-            weight: "",
-            timeSeconds: "",
-          },
-          {
-            reps: "",
-            weight: "",
-            timeSeconds: "",
-          },
-        ];
-      } else {
-        nextSets = [
-          ...existing,
-          {
-            reps: "",
-            weight: "",
-            timeSeconds: "",
-          },
-        ];
-      }
-      updateStrengthSetsForMovement(
-        block.id,
-        mov.id,
-        nextSets
-      );
-    }}
-  >
-    + Add set
-  </SecondaryButton>
-  {Array.isArray(setsByMovement[mov.id]) &&
-  setsByMovement[mov.id].length > basePlannedSets && (
-    <SecondaryButton
-      className="btnSmall"
-      onClick={() => {
-        const existing = Array.isArray(setsByMovement[mov.id])
-          ? setsByMovement[mov.id]
-          : [];
-        if (!existing.length) return;
-        const nextSets = existing.slice(0, existing.length - 1);
-        updateStrengthSetsForMovement(
-          block.id,
-          mov.id,
-          nextSets
-        );
-      }}
-    >
-      Remove last set
-    </SecondaryButton>
-  )}
-</div>
-                                <div className="movementDivider" />
+                                    {rows}
+
+                                    <div className="mt8 row gap8">
+                                      <SecondaryButton
+                                        onClick={() => {
+                                          const existing = Array.isArray(setsByMovement[mov.id])
+                                            ? setsByMovement[mov.id]
+                                            : [];
+                                          let nextSets;
+                                          if (block.isExtra && existing.length === 0) {
+                                            nextSets = [
+                                              { reps: "", weight: "", timeSeconds: "" },
+                                              { reps: "", weight: "", timeSeconds: "" },
+                                            ];
+                                          } else {
+                                            nextSets = [
+                                              ...existing,
+                                              { reps: "", weight: "", timeSeconds: "" },
+                                            ];
+                                          }
+                                          updateStrengthSetsForMovement(block.id, mov.id, nextSets);
+                                        }}
+                                      >
+                                        + Add set
+                                      </SecondaryButton>
+                                      {Array.isArray(setsByMovement[mov.id]) &&
+                                      setsByMovement[mov.id].length > basePlannedSets && (
+                                        <SecondaryButton
+                                          className="btnSmall"
+                                          onClick={() => {
+                                            const existing = Array.isArray(setsByMovement[mov.id])
+                                              ? setsByMovement[mov.id]
+                                              : [];
+                                            if (!existing.length) return;
+                                            updateStrengthSetsForMovement(
+                                              block.id,
+                                              mov.id,
+                                              existing.slice(0, existing.length - 1)
+                                            );
+                                          }}
+                                        >
+                                          Remove last set
+                                        </SecondaryButton>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            );    
+                            );
                           })}
 
 {/* estimated and actual time block for strength */}
@@ -9535,7 +9549,7 @@ const targetInfo = buildTargetInfoForMovement({
 {/* Structured Session blocks log */}
 {hasAnySessionBlocks && (
   <div className="panel mt16 session-log-panel">
-    <div className="h2">Session log</div>
+    <div className="logBlockTypeTitle">Session</div>
 
     {allSessionBlocksForDay.map((block) => {
       const blockLog = getBlockLog(logForDay, block.id) || block || {};
@@ -9569,7 +9583,7 @@ const targetInfo = buildTargetInfoForMovement({
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
           <div className="row between session-log-block__top">
-            <div className="h3">{label}</div>
+            <div className="logUserBlockTitle">{label}</div>
             <label
               className="mini"
               style={{ opacity: isCancelled ? 1 : 0.55 }}
@@ -9639,7 +9653,7 @@ const targetInfo = buildTargetInfoForMovement({
 {/* Cardio blocks log */}
 {hasAnyCardioBlocks && (
   <div className="panel mt16">
-    <div className="h2">Cardio log</div>
+    <div className="logBlockTypeTitle">Cardio</div>
 
     {allCardioBlocksForDay.map((block) => {
       const blockLog = getBlockLog(logForDay, block.id) || {};
@@ -9674,6 +9688,12 @@ const targetInfo = buildTargetInfoForMovement({
       }
 
       const paceFromSpeed = getPaceFromSpeedKmh(avgSpeedKmh);
+      const previousCardio = findLastCardio(allLogs, ymd(selectedDate));
+      const cardioTarget = suggestCardioTarget({ lastCardio: previousCardio });
+      const cardioTargetPace =
+        cardioTarget?.targetSpeedKmh
+          ? getPaceFromSpeedKmh(cardioTarget.targetSpeedKmh)
+          : null;
 
       return (
         <div
@@ -9684,7 +9704,7 @@ const targetInfo = buildTargetInfoForMovement({
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
           <div className="rowBetween">
-  <div className="h3">{label}</div>
+  <div className="logUserBlockTitle">{label}</div>
 
   {historyIndex?.cardioHas?.[block.id] && (
     <button
@@ -9702,6 +9722,17 @@ const targetInfo = buildTargetInfoForMovement({
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
+
+          <div className="inMomentTarget mt8">
+            <b>Today’s target</b>
+            <span>{cardioTarget?.text || block.targetText || "Log once to generate a cardio target."}</span>
+            {cardioTargetPace ? (
+              <small>Smartwatch: ~{cardioTargetPace.perKm} /km · {cardioTargetPace.perMile} /mile</small>
+            ) : null}
+            {block.targetText && cardioTarget?.text !== block.targetText ? (
+              <small>{block.targetText}</small>
+            ) : null}
+          </div>
 
           {/* Cancelled toggle */}
     <div className="row between mt4">
@@ -9809,8 +9840,8 @@ const targetInfo = buildTargetInfoForMovement({
 {/* Recovery blocks log */}
 {hasAnyRecoveryBlocks && (
   <div className="panel mt16">
-    <div className="h2">
-      {profileRecoveryModeActive ? "Recovery mode" : "Recovery log"}
+    <div className="logBlockTypeTitle">
+      {profileRecoveryModeActive ? "Recovery mode" : "Recovery"}
     </div>
 
     {allRecoveryBlocksForDay.map((block) => {
@@ -9842,7 +9873,7 @@ const targetInfo = buildTargetInfoForMovement({
           )}
 
           <div className="rowBetween">
-            <div className="h3">{label}</div>
+            <div className="logUserBlockTitle">{label}</div>
 
             {block.isExtra && !isProfileRecovery && (
               <div className="row space">
@@ -9962,7 +9993,7 @@ const targetInfo = buildTargetInfoForMovement({
 {/* Duration blocks log */}
 {hasAnyDurationBlocks && (
   <div className="panel mt16">
-    <div className="h2">Duration log</div>
+    <div className="logBlockTypeTitle">Duration</div>
 
     {allDurationBlocksForDay.map((block) => {
       const blockLog = getBlockLog(logForDay, block.id) || {};
@@ -9985,7 +10016,7 @@ const targetInfo = buildTargetInfoForMovement({
               <div className="recoveryModePausedLabel">Paused by recovery mode</div>
             )}
             <div className="rowBetween">
-  <div className="h3">{label}</div>
+  <div className="logUserBlockTitle">{label}</div>
 
   {historyIndex?.durationHas?.[block.id] && (
     <button
@@ -10003,6 +10034,10 @@ const targetInfo = buildTargetInfoForMovement({
             {block.note ? (
               <div className="muted mt4">{block.note}</div>
             ) : null}
+            <div className="inMomentTarget mt8">
+              <b>Today’s target</b>
+              <span>{block.plannedMinutes || "0"} min</span>
+            </div>
 
             {/* Cancelled toggle */}
     <div className="row between mt4">
@@ -10068,7 +10103,7 @@ const targetInfo = buildTargetInfoForMovement({
 {/* Tasks blocks log */}
 {hasAnyTasksBlocks && (
   <div className="panel mt16">
-    <div className="h2">Tasks log</div>
+    <div className="logBlockTypeTitle">Tasks</div>
 
     {allTasksBlocksForDay.map((block) => {
       const blockLog = getBlockLog(logForDay, block.id) || {};
@@ -10078,7 +10113,7 @@ const targetInfo = buildTargetInfoForMovement({
 
       return (
         <div key={block.id} className="mt12">
-          <div className="h3">{label}</div>
+          <div className="logUserBlockTitle">{label}</div>
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
@@ -10559,7 +10594,7 @@ const targetInfo = buildTargetInfoForMovement({
             </Card>
 
             <div className="stack">
-              <Card className="pad">
+              <Card className="pad todaySummaryCard">
                 <div className="rowBetween">
                   <div className="h3">
                     {selectedDate === todayYmd ? "Today summary" : "Day summary"}
@@ -10639,334 +10674,7 @@ const targetInfo = buildTargetInfoForMovement({
                 </div>
               </Card>
               
-  <Card className="pad bodyReadinessCard">
-  <div className="rowBetween">
-    <div className="h3">Body Readiness Status</div>
-    <Pill>{bodyReadiness.band.label}</Pill>
-  </div>
-
-  <div className={`readinessHero readiness-${bodyReadiness.band.tone} mt12`}>
-    <div className="readinessScoreSolo">
-      {bodyReadiness.trainingReadinessScore}
-    </div>
-
-    <div className="readinessScaleWrap mt12">
-      <div className="readinessScaleLegend">
-        <span>Low</span>
-        <span>Reduced</span>
-        <span>Moderate</span>
-        <span>High</span>
-        <span>Prime</span>
-      </div>
-
-      <div className="readinessScaleBand">
-        <div
-  className="readinessMarker"
-  style={{ left: `${bodyReadiness.trainingReadinessScalePercent}%` }}
-  title={`Current: ${bodyReadiness.trainingReadinessScore}`}
-/>
-<div
-  className="readinessMarker readinessMarkerForecast"
-  style={{ left: `${bodyReadiness.projectedTrainingReadinessScalePercent}%` }}
-  title={`Forecast: ${bodyReadiness.projectedTrainingReadinessScore}`}
-/>
-      </div>
-    </div>
-
-    <div className="muted mt12">
-  {bodyReadiness.recommendationText}
-</div>
-
-<div className="muted mt8">
-  Forecast by next session (rest + normal sleep):{" "}
-  <b>
-    {bodyReadiness.projectedTrainingReadinessScore}/100 —{" "}
-    {bodyReadiness.projectedBand.label}
-  </b>
-  {" "}in ~{bodyReadiness.expectedNextSessionHoursAhead}h (expected next session).
-</div>
-
-<div className="readinessTimelineWrap mt8">
-  <div className="readinessTimelineBars">
-    {(bodyReadiness.readinessTimeline48h || []).map((point) => (
-      <div
-        key={point.hour}
-        className={[
-          "readinessTimelineBar",
-          `readinessTimelineBar-${point.band.tone}`,
-          point.sleeping ? "isSleep" : "",
-          point.isExpectedNextSession ? "isNextSession" : "",
-        ].join(" ")}
-        style={{ height: `${Math.max(10, point.score)}px` }}
-        title={`+${point.hour}h • ${point.score}/100 • ${point.band.label}${point.sleeping ? " • Sleep" : ""}${point.isExpectedNextSession ? " • Next expected session" : ""}`}
-      />
-    ))}
-  </div>
-
-  <div className="readinessTimelineAxis">
-    <span>Now</span>
-    <span>24h</span>
-    <span>48h</span>
-  </div>
-</div>
-
-<div className="muted mt8">
-  Forecast uses recent load, projected recovery by hour, assumed sleep, and the expected time of the next session.
-</div>
-  </div>
-
-  <div className="readinessMetricsGrid mt16">
-    <div className="readinessMetricCard">
-      <div className="readinessMetricTitle">Muscle Readiness</div>
-      <div className="readinessGauge">
-        <svg viewBox="0 0 120 70" className="readinessGaugeSvg">
-          <path
-            d="M 15 55 A 45 45 0 0 1 105 55"
-            className="readinessGaugeTrack"
-          />
-          <path
-            d="M 15 55 A 45 45 0 0 1 105 55"
-            className="readinessGaugeFill"
-            style={{
-              strokeDasharray: `${bodyReadiness.muscleReadiness * 1.42} 999`,
-            }}
-          />
-        </svg>
-        <div className="readinessGaugeValue">{bodyReadiness.muscleReadiness}%</div>
-      </div>
-    </div>
-
-    <div className="readinessMetricCard">
-      <div className="readinessMetricTitle">Nervous System Readiness</div>
-      <div className="readinessGauge">
-        <svg viewBox="0 0 120 70" className="readinessGaugeSvg">
-          <path
-            d="M 15 55 A 45 45 0 0 1 105 55"
-            className="readinessGaugeTrack"
-          />
-          <path
-            d="M 15 55 A 45 45 0 0 1 105 55"
-            className="readinessGaugeFill"
-            style={{
-              strokeDasharray: `${bodyReadiness.nervousSystemReadiness * 1.42} 999`,
-            }}
-          />
-        </svg>
-        <div className="readinessGaugeValue">
-          {bodyReadiness.nervousSystemReadiness}%
-        </div>
-      </div>
-    </div>
-
-    <div className="readinessMetricCard">
-      <div className="readinessMetricTitle">Body Energy</div>
-      <div className="readinessGauge">
-        <svg viewBox="0 0 120 70" className="readinessGaugeSvg">
-          <path
-            d="M 15 55 A 45 45 0 0 1 105 55"
-            className="readinessGaugeTrack"
-          />
-          <path
-            d="M 15 55 A 45 45 0 0 1 105 55"
-            className="readinessGaugeFill"
-            style={{
-              strokeDasharray: `${bodyReadiness.bodyEnergy * 1.42} 999`,
-            }}
-          />
-        </svg>
-        <div className="readinessGaugeValue">{bodyReadiness.bodyEnergy}%</div>
-      </div>
-    </div>
-  </div>
-
-  <div className="mt16">
-    <SecondaryButton
-      onClick={() => setShowBodyReadinessExplain((v) => !v)}
-    >
-      {showBodyReadinessExplain ? "Hide explanation" : "What do these mean?"}
-    </SecondaryButton>
-  </div>
-
-  {showBodyReadinessExplain && (
-    <div className="panel mt12">
-      <div className="h3">How Body Readiness works</div>
-
-      <div className="mt8">
-        <b>Training Readiness Score</b>
-        <div className="muted mt4">
-          A combined estimate of how ready the body looks for productive
-training right now. The system also forecasts likely next-session
-readiness if the user now rests and gets normal sleep until around
-the same time tomorrow.
-        </div>
-      </div>
-
-      <div className="mt8">
-        <b>Muscle Readiness</b>
-        <div className="muted mt4">
-          Estimated from recent strength, HIIT and other muscular load.
-          Low suggests the muscles may still be carrying fatigue.
-        </div>
-      </div>
-
-      <div className="mt8">
-        <b>Nervous System Readiness</b>
-        <div className="muted mt4">
-          Estimated from hard-session clustering and repeated intensity.
-          Low suggests sharpness and output quality may be suppressed.
-        </div>
-      </div>
-
-      <div className="mt8">
-        <b>Body Energy</b>
-        <div className="muted mt4">
-          Estimated from recent cardio, total workload and general recovery.
-          Low suggests the body may benefit from reduced load or recovery.
-        </div>
-      </div>
-
-      <div className="mt8">
-        <b>Score guide</b>
-        <div className="muted mt4">
-          Low = red, Reduced = amber, Moderate = green, High = blue, Prime = purple.
-        </div>
-      </div>
-    </div>
-  )}
-</Card>
-                            <Card className="pad">
-                <div className="h3">Today’s mission</div>
-                <div className="stack mt12">
-  {plannedBlocksForSelectedDay.length > 0 ? (
-    plannedBlocksForSelectedDay.map((block, blockIdx) => {
-      if (!block) return null;
-
-      if (
-        (block.typeId === "strength" ||
-          block.typeId === "hiit" ||
-          block.typeId === "box") &&
-        Array.isArray(block.movements) &&
-        block.movements.length
-      ) {
-        return (
-          <div key={block.id || `mission_strength_${blockIdx}`} className="mini">
-            <div className="label">
-              {block.label?.trim()
-                ? block.label
-                : blockIdx === 0
-                ? "Main strength block"
-                : `Strength block ${blockIdx + 1}`}
-            </div>
-
-            {(block.movements || []).map((mov) => {
-              const lastSets = findLastMovementSets(
-                allLogs,
-                mov.id,
-                ymd(selectedDate)
-              );
-
-              const targetInfo = buildTargetInfoForMovement({
-                movement: mov,
-                lastSets,
-                plannedRepsText: mov.initialTarget || mov.reps || "",
-              });
-
-              return (
-                <div key={mov.id} className="mt8">
-                  <div className="label">{mov.name || "Movement"}</div>
-                  <div className="muted">
-                    {targetInfo.text || "Log once to generate targets."}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-      }
-
-      if (block.typeId === "cardio") {
-        const last = findLastCardio(allLogs, ymd(selectedDate));
-        const t = suggestCardioTarget({ lastCardio: last });
-        const pace =
-          t && t.targetSpeedKmh ? getPaceFromSpeedKmh(t.targetSpeedKmh) : null;
-
-        return (
-          <div key={block.id || `mission_cardio_${blockIdx}`} className="mini">
-            <div className="label">
-              {block.label?.trim()
-                ? block.label
-                : block.activityName?.trim()
-                ? block.activityName
-                : "Cardio"}
-            </div>
-            <div className="muted">
-              <b>Target:</b> {t.text}
-            </div>
-            {pace ? (
-              <div className="muted mt4">
-                Smartwatch target: ~{pace.perKm} /km or {pace.perMile} /mile
-              </div>
-            ) : null}
-            {block.targetText ? (
-              <div className="muted mt4">{block.targetText}</div>
-            ) : null}
-          </div>
-        );
-      }
-
-      if (block.typeId === "duration") {
-        return (
-          <div key={block.id || `mission_duration_${blockIdx}`} className="mini">
-            <div className="label">
-              {block.label?.trim() ? block.label : "Duration block"}
-            </div>
-            <div className="muted">
-              Target: {block.plannedMinutes || "0"} min
-            </div>
-          </div>
-        );
-      }
-
-      if (block.typeId === "recovery") {
-        return (
-          <div key={block.id || `mission_recovery_${blockIdx}`} className="mini">
-            <div className="label">
-              {block.label?.trim() ? block.label : "Recovery"}
-            </div>
-            <div className="muted">
-              {block.note ||
-                "Recovery is where adaptation happens. Smart athletes recover well so they can push harder next session."}
-            </div>
-          </div>
-        );
-      }
-
-      return null;
-    })
-  ) : (
-    <div className="muted">Log your session and keep your streak alive.</div>
-  )}
-
-  {plannedBlocksForSelectedDay.length > 0 && (
-    <div className="muted">
-      <b>Planned blocks:</b>{" "}
-      {plannedBlocksForSelectedDay
-        .map((b, idx) => {
-          const allTypes = plan?.activityTypes || builtInTypes();
-          const typeName =
-            allTypes.find((t) => t.id === b.typeId)?.name || "Activity";
-
-          if (b.label && b.label.trim()) return b.label.trim();
-          if (idx === 0) return typeName;
-          return `${typeName} ${idx + 1}`;
-        })
-        .join(" · ")}
-    </div>
-  )}
-</div>
-              </Card>
-
-<Card className="pad">
+  <Card className="pad">
                 <div className="h3">Mini challenges</div>
                 <div className="stack mt12">
                   <div className="challenge">
@@ -15999,6 +15707,224 @@ function StyleTag() {
       .box{border:1px solid #e2e8f0;background:#fff;border-radius:18px;padding:12px}
       .check{display:flex;align-items:center;gap:10px;font-weight:900}
       .dashed{border:2px dashed #cbd5e1;border-radius:18px;padding:16px;text-align:center;color:#475569;background:#fff}
+
+
+/* Focused mobile Log */
+.logBlockTypeTitle{
+  margin-bottom:8px;
+  color:#64748b;
+  font-size:11px;
+  line-height:1.2;
+  font-weight:950;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.logUserBlockTitle{
+  color:#0f172a;
+  font-size:18px;
+  line-height:1.2;
+  font-weight:950;
+  letter-spacing:-.02em;
+}
+.inMomentTarget{
+  display:grid;
+  gap:2px;
+  padding:9px 11px;
+  border:1px solid rgba(0,229,255,.23);
+  border-radius:12px;
+  background:linear-gradient(135deg,rgba(0,229,255,.055),rgba(0,255,136,.035));
+}
+.inMomentTarget b{
+  color:#0f6673;
+  font-size:10px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.inMomentTarget span{color:#263645;font-size:12px;font-weight:750}
+.inMomentTarget small{color:#64748b;font-size:10px}
+
+.focusedMovement{
+  margin-top:9px;
+  overflow:hidden;
+  border:1px solid #dbe4ed;
+  border-radius:14px;
+  background:#fff;
+  transition:border-color .18s ease,background .18s ease;
+}
+.focusedMovement.isOpen{border-color:rgba(0,174,196,.42)}
+.focusedMovement.isComplete{
+  border-color:rgba(0,172,91,.32);
+  background:#f0fff7;
+}
+.focusedMovementSummary{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border:0;
+  padding:11px 12px;
+  text-align:left;
+  background:transparent;
+  color:inherit;
+  cursor:pointer;
+}
+.focusedMovementSummary__copy{min-width:0;flex:1}
+.focusedMovement .movementName{margin:0;color:#0f172a;font-size:16px;font-weight:900}
+.focusedMovementPlan{margin-top:2px;color:#526477;font-size:10px;font-weight:800}
+.focusedMovement .movementTarget{margin:4px 0 0;font-size:11px;line-height:1.35}
+.focusedMovementStatus{
+  flex:0 0 28px;
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:#edf3f7;
+  color:#304253;
+  font-size:16px;
+  font-weight:950;
+}
+.focusedMovement.isComplete .focusedMovementStatus{
+  background:#00b767;
+  color:#fff;
+}
+.focusedMovementBody{padding:0 12px 12px}
+.focusedMovementBody .movementHeaderTop{min-height:26px}
+
+.historyPill{
+  border-color:rgba(0,229,255,.45);
+  background:#0f1117;
+  color:#00e5ff;
+}
+.historyPill:hover{
+  border-color:#00ff88;
+  background:#171b23;
+  color:#00ff88;
+}
+.historyOverlay{background:rgba(3,7,12,.72);backdrop-filter:blur(5px)}
+.historyModal{
+  border-color:rgba(0,229,255,.23);
+  background:#0f1117;
+  color:#edf7fb;
+  box-shadow:0 24px 70px rgba(0,0,0,.46);
+}
+.historyTitle{color:#f6fbff}
+.historyModal .muted{color:#91a2b4}
+.historyModal .pillToggleBtn{
+  border-color:#2a3946;
+  background:#171b23;
+  color:#aebdca;
+}
+.historyModal .pillToggleBtn.active{
+  border-color:#00e5ff;
+  background:#062b31;
+  color:#00e5ff;
+}
+.historyModal .chart{
+  border-radius:14px;
+  padding:6px;
+  background:#f8fafc;
+}
+.historyModal .iconBtn{
+  border-color:#2b3945;
+  background:#171b23;
+  color:#00e5ff;
+}
+
+@media(max-width:720px){
+  .todaySummaryCard{display:none}
+
+  .logTopRow{
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    gap:7px;
+  }
+  .logTopRow .rowLeft{
+    flex:1 1 auto;
+    width:auto;
+    min-width:0;
+  }
+  .logTopRow .rowLeft .field{
+    min-width:0;
+    width:100%;
+  }
+  .logTopRow .rowLeft .field > .label{display:none}
+  .logTopRow .rowLeft .input{
+    width:100%;
+    min-width:0;
+    height:38px;
+    padding:7px 9px;
+  }
+  .logTopRow .logTopActions{
+    width:auto;
+    flex:0 0 auto;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:flex-end;
+    flex-wrap:nowrap;
+    gap:6px;
+  }
+  .logTopActions .dayStatusDot{flex:0 0 auto}
+  .logTopActions .syncStatus{display:none}
+  .resetDayButton{
+    min-width:0 !important;
+    min-height:34px;
+    padding:6px 9px !important;
+    border-radius:10px !important;
+    font-size:11px !important;
+    white-space:nowrap;
+  }
+
+  label[title^="Mark this block as cancelled"],
+  label[title^="Mark this Session as cancelled"]{
+    position:relative;
+    width:30px;
+    height:30px;
+    min-width:30px;
+    display:grid !important;
+    place-items:center;
+    border:1px solid #cbd5df !important;
+    border-radius:10px !important;
+    padding:0 !important;
+    margin:0 !important;
+    background:#eef2f5 !important;
+    color:#64748b !important;
+    opacity:1 !important;
+    overflow:hidden;
+    cursor:pointer;
+  }
+  label[title^="Mark this block as cancelled"] input,
+  label[title^="Mark this Session as cancelled"] input{
+    position:absolute;
+    width:1px;
+    height:1px;
+    opacity:0;
+    pointer-events:none;
+  }
+  label[title^="Mark this block as cancelled"] span,
+  label[title^="Mark this Session as cancelled"] span{display:none}
+  label[title^="Mark this block as cancelled"]::before,
+  label[title^="Mark this Session as cancelled"]::before{
+    content:"C";
+    font-size:12px;
+    font-weight:950;
+  }
+  label[title^="Mark this block as cancelled"]:has(input:checked),
+  label[title^="Mark this Session as cancelled"]:has(input:checked){
+    border-color:#ff4d4d !important;
+    background:#ffebeb !important;
+    color:#c62828 !important;
+  }
+
+  .logUserBlockTitle{font-size:17px}
+  .panel .logBlockTypeTitle{margin-bottom:4px}
+  .focusedMovementSummary{padding:10px}
+  .focusedMovementBody{padding:0 10px 10px}
+}
+
       .authCard{max-width:520px;margin:60px auto}
       .footer{margin:18px 0 30px;text-align:center;color:#94a3b8;font-size:12px}
       .motivator{margin-bottom:12px;background:linear-gradient(135deg,#ffffff 0%,#f1f5f9 100%)}
