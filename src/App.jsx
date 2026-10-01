@@ -1351,6 +1351,45 @@ function SummaryStat({ label, value }) {
   );
 }
 
+function FocusedLogBlock({
+  label,
+  summary = "",
+  open = false,
+  complete = false,
+  cancelled = false,
+  suspended = false,
+  onToggle,
+  children,
+}) {
+  const stateClass = cancelled
+    ? "isCancelled"
+    : complete
+    ? "isComplete"
+    : suspended
+    ? "isSuspended"
+    : "";
+
+  return (
+    <div className={`focusedLogBlock ${open ? "isOpen" : "isCollapsed"} ${stateClass}`}>
+      <button
+        type="button"
+        className="focusedLogBlockSummary"
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <div className="focusedLogBlockSummary__copy">
+          <div className="focusedLogBlockTitle">{label || "Activity"}</div>
+          {summary ? <div className="focusedLogBlockMeta">{summary}</div> : null}
+        </div>
+        <span className="focusedLogBlockState" aria-hidden="true">
+          {cancelled ? "C" : complete ? "✓" : suspended ? "Ⅱ" : open ? "−" : "+"}
+        </span>
+      </button>
+      {open ? <div className="focusedLogBlockBody">{children}</div> : null}
+    </div>
+  );
+}
+
 function toLocalDateTimeInputValue(iso) {
   if (!iso) return "";
   const parsed = new Date(iso);
