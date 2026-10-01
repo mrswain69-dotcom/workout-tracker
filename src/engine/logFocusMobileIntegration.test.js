@@ -40,6 +40,20 @@ describe("focused Log and dashboard readiness integration", () => {
     expect(app).toContain('movementComplete ? "✓"');
   });
 
+  it("focuses the day on the next incomplete block while keeping every block manually accessible", () => {
+    const app = read("../App.jsx");
+
+    expect(app).toContain("function FocusedLogBlock");
+    expect(app).toContain("focusedLogBlockId");
+    expect(app).toContain("getLogBlockFocusState");
+    expect(app).toContain("firstIncompleteFocusBlockId");
+    expect(app).toContain("toggleLogBlockFocus");
+    expect(app).toContain("<FocusedLogBlock");
+    expect(app).toContain("doneCount");
+    expect(app).toContain(".focusedLogBlock.isComplete");
+    expect(app).toContain(".focusedLogBlock.isCancelled");
+  });
+
   it("protects cancel and reset actions while condensing mobile controls", () => {
     const app = read("../App.jsx");
 
