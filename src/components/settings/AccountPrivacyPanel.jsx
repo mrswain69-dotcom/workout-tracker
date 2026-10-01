@@ -121,6 +121,9 @@ export default function AccountPrivacyPanel({ ensureUnlocked, onDeleted }) {
                   {summary.createdGroupCount > 0 ? (
                     <> and created <b>{summary.createdGroupCount}</b> Group{summary.createdGroupCount === 1 ? "" : "s"}. Groups created by this account will also be removed for their members.</>
                   ) : "."}
+                  {summary.createdChallengeCount > 0 ? (
+                    <> It also authored <b>{summary.createdChallengeCount}</b> private Group challenge{summary.createdChallengeCount === 1 ? "" : "s"}; those challenge records will be removed.</>
+                  ) : null}
                 </span>
               ) : null}
             </div>
