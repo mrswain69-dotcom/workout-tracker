@@ -46,3 +46,16 @@ Transactional email domain: workouttrackerapp.io
 Provider: Resend
 Tracking: disabled
 TLS: enforced
+
+
+## Account lifecycle emails
+Two additional transactional emails are source-controlled here:
+- `welcome.html` — one-time welcome/tutorial after the verified account first initialises.
+- `account_deleted.html` — courtesy confirmation after permanent account deletion.
+
+These are sent by the authenticated `account-lifecycle` Edge Function rather than Supabase Auth. Production needs:
+- `RESEND_API_KEY` available to the Edge Function runtime.
+- optional `APP_PUBLIC_URL` when the canonical public URL moves away from the immediate Vercel URL.
+
+The Edge Function records `families.welcome_email_sent_at` only after a successful welcome delivery, so refreshes cannot create a repeated welcome sequence.
+Account deletion never depends on the courtesy deletion email succeeding.

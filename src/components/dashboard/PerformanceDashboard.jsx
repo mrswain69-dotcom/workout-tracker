@@ -5,6 +5,7 @@ import { listAssessmentSchedules } from "../../assessmentScheduleDb.js";
 import { listAssessmentRuns } from "../../assessmentRunDb.js";
 import { buildAssessmentScheduleStatuses } from "../../engine/assessmentScheduleEngine.js";
 import { buildDashboardCoachInsight } from "../../engine/dashboardEngine.js";
+import BodyReadinessSummary from "./BodyReadinessSummary.jsx";
 import "./PerformanceDashboard.css";
 
 function formatDateTime(value) {
@@ -66,6 +67,7 @@ export default function PerformanceDashboard({
   recoveryMode = "normal",
   motivationLine = "",
   healthTip = "",
+  bodyReadiness = null,
   onOpenLog,
   onOpenPlan,
   onLogExtra,
@@ -255,6 +257,8 @@ export default function PerformanceDashboard({
           note={nextRewardNote}
         />
       </section>
+
+      <BodyReadinessSummary readiness={bodyReadiness} />
 
       <section className="dashboardGrid">
         <article className="dashboardCard dashboardCard--today">

@@ -1,0 +1,167 @@
+.accountPrivacyPanel,
+.accountDeletePanel {
+  position: relative;
+}
+
+.accountLegalLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.accountLegalLink {
+  border: 1px solid rgba(0, 188, 212, 0.28);
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: #101820;
+  color: #00dff7;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.accountLegalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(4, 7, 10, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.accountLegalDialog {
+  position: relative;
+  width: min(820px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 24px;
+  padding: 30px;
+  color: #edf6fc;
+  background: #11161e;
+  box-shadow: 0 30px 90px rgba(0,0,0,.45);
+}
+
+.accountLegalClose {
+  position: sticky;
+  top: 0;
+  float: right;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  background: #202833;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.accountLegalDialog .legalCopy h2 {
+  margin: 0 50px 6px 0;
+  font-size: 30px;
+}
+
+.accountLegalDialog .legalLead {
+  color: #c1cdd9;
+  line-height: 1.55;
+}
+
+.accountLegalDialog .legalMeta {
+  color: #77889a;
+  font-size: 11px;
+}
+
+.accountLegalDialog .legalSection {
+  padding: 17px 0;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.accountLegalDialog .legalSection h3 {
+  margin: 0 0 7px;
+  color: #00e5ff;
+}
+
+.accountLegalDialog .legalSection p {
+  margin: 6px 0;
+  color: #afbcc9;
+  line-height: 1.6;
+}
+
+.accountLegalDialog .legalSection a {
+  color: #00e5ff;
+}
+
+.accountDeletePanel {
+  border-color: rgba(255, 77, 77, 0.24);
+}
+
+.accountDeleteStart,
+.accountDeleteConfirm {
+  border-radius: 12px;
+  font-weight: 850;
+}
+
+.accountDeleteStart {
+  border: 1px solid rgba(255, 77, 77, 0.42);
+  background: rgba(255, 77, 77, 0.06);
+  color: #c83232;
+}
+
+.accountDeleteConfirm {
+  border: 1px solid #b72424;
+  background: #c92f2f;
+  color: #fff;
+}
+
+.accountDeleteConfirm:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.accountDeleteFlow {
+  display: grid;
+  gap: 12px;
+}
+
+.accountDeleteWarning {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(255,77,77,.24);
+  border-radius: 14px;
+  padding: 13px;
+  background: rgba(255,77,77,.055);
+  color: #6d2323;
+  line-height: 1.45;
+}
+
+.accountDeleteWarning b {
+  color: #ad2020;
+}
+
+.accountDeleteField {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.accountDeleteError {
+  border-radius: 10px;
+  padding: 9px 11px;
+  color: #a41f1f;
+  background: rgba(255,77,77,.08);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .accountLegalDialog {
+    padding: 22px 16px;
+  }
+  .accountDeleteFlow .row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
