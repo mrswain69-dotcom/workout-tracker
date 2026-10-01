@@ -1475,6 +1475,50 @@ function RewardItem({ title, desc, active, locked, onPick }) {
 }
 
 // -------- Auth screen ----------
+function LogFocusShell({
+  title,
+  summary = "",
+  complete = false,
+  cancelled = false,
+  defaultOpen = false,
+  className = "",
+  children,
+}) {
+  const [open, setOpen] = useState(defaultOpen && !complete && !cancelled);
+
+  useEffect(() => {
+    if (complete || cancelled) setOpen(false);
+  }, [complete, cancelled]);
+
+  return (
+    <div
+      className={[
+        "logFocusShell",
+        open ? "isOpen" : "",
+        complete ? "isComplete" : "",
+        cancelled ? "isCancelled" : "",
+        className,
+      ].filter(Boolean).join(" ")}
+    >
+      <button
+        type="button"
+        className="logFocusShellSummary"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="logFocusShellSummary__copy">
+          <span className="logUserBlockTitle">{title}</span>
+          {summary ? <span className="logFocusShellSummary__meta">{summary}</span> : null}
+        </span>
+        <span className="logFocusShellStatus" aria-hidden="true">
+          {cancelled ? "C" : complete ? "✓" : open ? "−" : "+"}
+        </span>
+      </button>
+      <div className="logFocusShellBody">{children}</div>
+    </div>
+  );
+}
+
 function AuthScreen({ onAuthed }) {
   const [mode, setMode] = useState("signin"); // signin | signup
   const [email, setEmail] = useState("");
@@ -9613,7 +9657,7 @@ const cardioProgress = useMemo(() => {
   <div className="panel mt16 session-log-panel">
     <div className="logBlockTypeTitle">Session</div>
 
-    {allSessionBlocksForDay.map((block) => {
+    {allSessionBlocksForDay.map((block, blockIndex) => {
       const blockLog = getBlockLog(logForDay, block.id) || block || {};
       const isCancelled = !!blockLog.cancelled;
       const isSuspended =
@@ -9635,17 +9679,30 @@ const cardioProgress = useMemo(() => {
           : typeof block.note === "string"
           ? block.note
           : "";
+      const sessionComplete = isCancelled || sessionBlockIsComplete(blockLog);
+      const sessionSummary = isCancelled
+        ? "Cancelled"
+        : sessionComplete
+        ? "Complete"
+        : frozenSession
+        ? "Session in progress"
+        : "Ready to start";
 
       return (
-        <div
+        <LogFocusShell
           key={block.id}
-          className={`mt12 session-log-block ${isSuspended ? "recoveryModeSuspended" : ""}`}
+          title={label}
+          summary={sessionSummary}
+          complete={sessionComplete}
+          cancelled={isCancelled}
+          defaultOpen={blockIndex === 0}
+          className={`session-log-block ${isSuspended ? "recoveryModeSuspended" : ""}`}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
-          <div className="row between session-log-block__top">
-            <div className="logUserBlockTitle">{label}</div>
+          <div className="row between session-log-block__top logFocusInnerActions">
+            <span />
             <label
               className="mini"
               style={{ opacity: isCancelled ? 1 : 0.55 }}
@@ -9706,7 +9763,7 @@ const cardioProgress = useMemo(() => {
               />
             </div>
           )}
-        </div>
+        </LogFocusShell>
       );
     })}
   </div>
@@ -9717,7 +9774,7 @@ const cardioProgress = useMemo(() => {
   <div className="panel mt16">
     <div className="logBlockTypeTitle">Cardio</div>
 
-    {allCardioBlocksForDay.map((block) => {
+    {allCardioBlocksForDay.map((block, blockIndex) => {
       const blockLog = getBlockLog(logForDay, block.id) || {};
       const isCancelled = !!blockLog.cancelled;
       const isSuspended =
@@ -9756,17 +9813,31 @@ const cardioProgress = useMemo(() => {
         cardioTarget?.targetSpeedKmh
           ? getPaceFromSpeedKmh(cardioTarget.targetSpeedKmh)
           : null;
+      const cardioComplete = isCancelled || distKm > 0 || timeMin > 0;
+      const cardioSummary = isCancelled
+        ? "Cancelled"
+        : cardioComplete
+        ? [
+            distKm > 0 ? `${distKm.toFixed(2)} km` : null,
+            timeMin > 0 ? `${timeMin} min` : null,
+          ].filter(Boolean).join(" · ") + " complete"
+        : block.targetText || cardioTarget?.text || "Ready to log";
 
       return (
-        <div
+        <LogFocusShell
           key={block.id}
-          className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""}`}
+          title={label}
+          summary={cardioSummary}
+          complete={cardioComplete}
+          cancelled={isCancelled}
+          defaultOpen={blockIndex === 0}
+          className={isSuspended ? "recoveryModeSuspended" : ""}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
-          <div className="rowBetween">
-  <div className="logUserBlockTitle">{label}</div>
+          <div className="rowBetween logFocusInnerActions">
+  <span />
 
   {historyIndex?.cardioHas?.[block.id] && (
     <button
@@ -9893,7 +9964,7 @@ const cardioProgress = useMemo(() => {
   </div>
 )}
 </div>
-          </div>
+          </LogFocusShell>
         );
       })}
   </div>
@@ -9906,7 +9977,7 @@ const cardioProgress = useMemo(() => {
       {profileRecoveryModeActive ? "Recovery mode" : "Recovery"}
     </div>
 
-    {allRecoveryBlocksForDay.map((block) => {
+    {allRecoveryBlocksForDay.map((block, blockIndex) => {
       const blockLog = getBlockLog(logForDay, block.id) || block || {};
       const isCancelled = !!blockLog.cancelled;
       const isProfileRecovery = isProfileRecoveryLogBlock(blockLog);
@@ -9924,18 +9995,33 @@ const cardioProgress = useMemo(() => {
         !!blockLog.suspendedByRecoveryMode ||
         !!block.suspendedByRecoveryMode;
       const label = block.label || "Recovery block";
+      const recoveryComplete = isCancelled || recoveryDone;
+      const recoverySummary = isCancelled
+        ? "Cancelled"
+        : recoveryDone
+        ? isInjuryRecovery
+          ? `${safeNumber(blockLog?.duration?.minutes)} min physio complete`
+          : "Recovery complete"
+        : isInjuryRecovery
+        ? "Physio to complete"
+        : "Recovery to complete";
 
       return (
-        <div
+        <LogFocusShell
           key={block.id}
-          className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""} ${isProfileRecovery ? "profileRecoveryLogCard" : ""}`}
+          title={label}
+          summary={recoverySummary}
+          complete={recoveryComplete}
+          cancelled={isCancelled}
+          defaultOpen={blockIndex === 0}
+          className={`${isSuspended ? "recoveryModeSuspended" : ""} ${isProfileRecovery ? "profileRecoveryLogCard" : ""}`}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
 
-          <div className="rowBetween">
-            <div className="logUserBlockTitle">{label}</div>
+          <div className="rowBetween logFocusInnerActions">
+            <span />
 
             {block.isExtra && !isProfileRecovery && (
               <div className="row space">
@@ -10046,7 +10132,7 @@ const cardioProgress = useMemo(() => {
               )}
             </>
           )}
-        </div>
+        </LogFocusShell>
       );
     })}
   </div>
@@ -10057,7 +10143,7 @@ const cardioProgress = useMemo(() => {
   <div className="panel mt16">
     <div className="logBlockTypeTitle">Duration</div>
 
-    {allDurationBlocksForDay.map((block) => {
+    {allDurationBlocksForDay.map((block, blockIndex) => {
       const blockLog = getBlockLog(logForDay, block.id) || {};
       const isCancelled = !!blockLog.cancelled;
       const isSuspended =
@@ -10068,17 +10154,29 @@ const cardioProgress = useMemo(() => {
           minutes: "",
         };
       const label = block.label || "Duration block";
+      const durationMinutes = safeNumber(duration.minutes);
+      const durationComplete = isCancelled || durationMinutes > 0;
+      const durationSummary = isCancelled
+        ? "Cancelled"
+        : durationMinutes > 0
+        ? `${durationMinutes} min complete`
+        : `${block.plannedMinutes || "0"} min planned`;
 
       return (
-          <div
+          <LogFocusShell
             key={block.id}
-            className={`mt12 ${isSuspended ? "recoveryModeSuspended" : ""}`}
+            title={label}
+            summary={durationSummary}
+            complete={durationComplete}
+            cancelled={isCancelled}
+            defaultOpen={blockIndex === 0}
+            className={isSuspended ? "recoveryModeSuspended" : ""}
           >
             {isSuspended && (
               <div className="recoveryModePausedLabel">Paused by recovery mode</div>
             )}
-            <div className="rowBetween">
-  <div className="logUserBlockTitle">{label}</div>
+            <div className="rowBetween logFocusInnerActions">
+  <span />
 
   {historyIndex?.durationHas?.[block.id] && (
     <button
@@ -10152,7 +10250,7 @@ const cardioProgress = useMemo(() => {
 />
   </div>
 </div>
-          </div>
+          </LogFocusShell>
         );
       })}
 
@@ -10167,15 +10265,25 @@ const cardioProgress = useMemo(() => {
   <div className="panel mt16">
     <div className="logBlockTypeTitle">Tasks</div>
 
-    {allTasksBlocksForDay.map((block) => {
+    {allTasksBlocksForDay.map((block, blockIndex) => {
       const blockLog = getBlockLog(logForDay, block.id) || {};
       const tasksDone = blockLog.tasksDone || {};
       const label = block.label || "Tasks block";
       const tasks = Array.isArray(block.tasks) ? block.tasks : [];
+      const taskDoneCount = tasks.filter((task) => !!tasksDone[task.id]).length;
+      const tasksComplete = tasks.length > 0 && taskDoneCount === tasks.length;
+      const tasksSummary = tasks.length
+        ? `${taskDoneCount}/${tasks.length} complete`
+        : "No tasks configured";
 
       return (
-        <div key={block.id} className="mt12">
-          <div className="logUserBlockTitle">{label}</div>
+        <LogFocusShell
+          key={block.id}
+          title={label}
+          summary={tasksSummary}
+          complete={tasksComplete}
+          defaultOpen={blockIndex === 0}
+        >
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
@@ -10276,7 +10384,7 @@ const cardioProgress = useMemo(() => {
               })}
             </div>
           )}
-        </div>
+        </LogFocusShell>
       );
     })}
   </div>
@@ -15787,6 +15895,72 @@ function StyleTag() {
 
 
 /* Focused mobile Log */
+.logFocusShell{
+  margin-top:9px;
+  overflow:hidden;
+  border:1px solid #dbe4ed;
+  border-radius:14px;
+  background:#fff;
+  transition:border-color .18s ease,background .18s ease;
+}
+.logFocusShell.isComplete{
+  border-color:rgba(0,172,91,.32);
+  background:#f0fff7;
+}
+.logFocusShell.isCancelled{
+  border-color:rgba(255,77,77,.24);
+  background:#fff7f7;
+}
+.logFocusShellSummary{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border:0;
+  padding:11px 12px;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.logFocusShellSummary__copy{
+  display:grid;
+  min-width:0;
+  gap:3px;
+}
+.logFocusShellSummary__meta{
+  color:#637486;
+  font-size:11px;
+  line-height:1.35;
+  font-weight:750;
+}
+.logFocusShellStatus{
+  flex:0 0 28px;
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:#edf3f7;
+  color:#304253;
+  font-size:15px;
+  font-weight:950;
+}
+.logFocusShell.isComplete .logFocusShellStatus{
+  background:#00b767;
+  color:#fff;
+}
+.logFocusShell.isCancelled .logFocusShellStatus{
+  background:#ffebeb;
+  color:#c62828;
+}
+.logFocusShellBody{
+  padding:0 12px 12px;
+}
+.logFocusInnerActions{
+  min-height:28px;
+}
 .logBlockTypeTitle{
   margin-bottom:8px;
   color:#64748b;
@@ -15910,6 +16084,10 @@ function StyleTag() {
 }
 
 @media(max-width:720px){
+  .logFocusShell:not(.isOpen) .logFocusShellBody{display:none}
+  .logFocusShell.isOpen{border-color:rgba(0,174,196,.42)}
+  .logFocusShellSummary{padding:10px}
+  .logFocusShellBody{padding:0 10px 10px}
   .todaySummaryCard{display:none}
 
   .logTopRow{
