@@ -111,6 +111,15 @@ function LegalDialog({ type, onClose }) {
 export default function PublicSite({ children }) {
   const [legal, setLegal] = useState("");
 
+  React.useEffect(() => {
+    const openLegal = (event) => {
+      const type = event?.detail;
+      if (type === "privacy" || type === "cookies" || type === "terms") setLegal(type);
+    };
+    window.addEventListener("wt-open-legal", openLegal);
+    return () => window.removeEventListener("wt-open-legal", openLegal);
+  }, []);
+
   const openAuth = (mode) => {
     const node = document.getElementById("account");
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
