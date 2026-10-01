@@ -118,6 +118,26 @@ function schedulePayload(row) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : null;
 }
 
+function emptyConsistencySchedule() {
+  return Object.fromEntries(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => [day, []]));
+}
+
+function resolveDateAwareSchedule(schedule, targetYmd) {
+  if (schedule?.__format !== "program_v1" || !Array.isArray(schedule.weeks) || !schedule.weeks.length) {
+    return schedule;
+  }
+  const target = parseYmd(targetYmd);
+  const start = parseYmd(schedule.startDate);
+  if (!target || !start) return schedule.weeks[0] || emptyConsistencySchedule();
+  const dayOffset = Math.floor((target.getTime() - start.getTime()) / 86400000);
+  if (dayOffset < 0) return emptyConsistencySchedule();
+  const absoluteWeek = Math.floor(dayOffset / 7);
+  if (absoluteWeek < schedule.weeks.length) return schedule.weeks[absoluteWeek];
+  if (schedule.completionMode === "hold") return schedule.weeks.at(-1);
+  if (schedule.completionMode === "once") return emptyConsistencySchedule();
+  return schedule.weeks[absoluteWeek % schedule.weeks.length];
+}
+
 export function selectConsistencyScheduleSnapshot(snapshots = [], targetYmd = "") {
   if (!parseYmd(targetYmd)) return null;
   let selected = null;
@@ -128,7 +148,7 @@ export function selectConsistencyScheduleSnapshot(snapshots = [], targetYmd = ""
     const schedule = schedulePayload(row);
     if (!schedule || !parseYmd(effectiveDate) || effectiveDate > targetYmd) continue;
     if (!selected || effectiveDate > selectedDate) {
-      selected = schedule;
+      selected = resolveDateAwareSchedule(schedule, targetYmd);
       selectedDate = effectiveDate;
     }
   }
