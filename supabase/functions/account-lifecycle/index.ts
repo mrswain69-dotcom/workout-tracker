@@ -88,6 +88,12 @@ function welcomeHtml() {
       ${visual("4","Review progress and rewards","Progress shows the record you are building. Rewards reinforce effort, improvement and consistency.","#00ff88")}
     </div>
     <p><strong style="color:#f4f8fb">The core idea:</strong> while you train, see what you did last time, what the target is today and whether you are improving.</p>
+    <div style="margin:20px 0 6px;padding:14px;border:1px solid #263441;border-radius:16px;background:#0f131a">
+      <div style="color:#00e5ff;font-size:10px;font-weight:900;letter-spacing:.08em;margin-bottom:10px">A QUICK LOOK INSIDE</div>
+      <img src="${APP_URL}/screenshots/workout-log-mobile.webp" alt="Workout Tracker training log" width="260" style="display:block;width:100%;max-width:260px;height:auto;margin:0 auto 12px;border-radius:12px;border:0">
+      <img src="${APP_URL}/screenshots/body-readiness-mobile.webp" alt="Workout Tracker Body Readiness" width="322" style="display:block;width:100%;max-width:322px;height:auto;margin:0 auto;border-radius:12px;border:0">
+      <div style="margin-top:10px;color:#77889a;font-size:11px;line-height:1.45;text-align:center">Example screens use anonymised training details.</div>
+    </div>
     <p style="margin:22px 0 4px"><a href="${APP_URL}" style="display:inline-block;background:#00e5ff;color:#071216;text-decoration:none;font-weight:900;border-radius:12px;padding:12px 18px">Open Workout Tracker</a></p>
     <p style="font-size:12px;color:#7f8fa0">You can replay the in-app tutorial at any time from Settings.</p>`
   );
