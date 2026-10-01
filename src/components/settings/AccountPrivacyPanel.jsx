@@ -121,6 +121,12 @@ export default function AccountPrivacyPanel({ ensureUnlocked, onDeleted }) {
                   {summary.createdGroupCount > 0 ? (
                     <> and created <b>{summary.createdGroupCount}</b> Group{summary.createdGroupCount === 1 ? "" : "s"}. Groups created by this account will also be removed for their members.</>
                   ) : "."}
+                  {summary.createdChallengeCount > 0 ? (
+                    <> This account also authored <b>{summary.createdChallengeCount}</b> Group challenge{summary.createdChallengeCount === 1 ? "" : "s"}; those authored challenges will be removed.</>
+                  ) : null}
+                  {summary.ownedProgramCount > 0 ? (
+                    <> It owns <b>{summary.ownedProgramCount}</b> Program{summary.ownedProgramCount === 1 ? "" : "s"}; owned Programs and their current access records will be removed.</>
+                  ) : null}
                 </span>
               ) : null}
             </div>
