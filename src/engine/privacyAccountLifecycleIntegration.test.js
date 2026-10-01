@@ -52,6 +52,21 @@ describe("public site, privacy and account lifecycle integration", () => {
     expect(settings).toContain("ownedProgramCount");
   });
 
+  it("keeps authentication emails in the same Workout Tracker brand system", () => {
+    const confirmation = read("../../supabase/email-templates/confirmation.html");
+    const recovery = read("../../supabase/email-templates/recovery.html");
+    const emailChange = read("../../supabase/email-templates/email_change.html");
+    const invite = read("../../supabase/email-templates/invite.html");
+
+    for (const template of [confirmation, recovery, emailChange, invite]) {
+      expect(template).toContain("Build Strength. Build Habits.");
+      expect(template).toContain("#0f1117");
+      expect(template).toContain("#00e5ff");
+      expect(template).toContain("support@workouttrackerapp.io");
+      expect(template).toContain("{{ .ConfirmationURL }}");
+    }
+  });
+
   it("sends the welcome tutorial once and keeps deletion independent of email delivery", () => {
     const app = read("../App.jsx");
     const edge = read("../../supabase/functions/account-lifecycle/index.ts");
