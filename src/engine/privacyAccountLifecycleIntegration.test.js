@@ -27,6 +27,8 @@ describe("public site, privacy and account lifecycle integration", () => {
     expect(app).toContain("termsAccepted");
     expect(app).toContain("Please agree to the Terms of Use");
     expect(app).toContain("If I am creating a profile for a child under 13");
+    expect(app).toContain("wt-open-legal");
+    expect(publicSite).toContain("wt-open-legal");
   });
 
   it("keeps destructive account deletion behind server authority and password confirmation", () => {
