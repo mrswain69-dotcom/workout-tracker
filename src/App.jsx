@@ -1481,6 +1481,7 @@ function LogFocusShell({
   complete = false,
   cancelled = false,
   defaultOpen = false,
+  onCancel = null,
   className = "",
   children,
 }) {
@@ -1500,20 +1501,33 @@ function LogFocusShell({
         className,
       ].filter(Boolean).join(" ")}
     >
-      <button
-        type="button"
-        className="logFocusShellSummary"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-      >
-        <span className="logFocusShellSummary__copy">
-          <span className="logUserBlockTitle">{title}</span>
-          {summary ? <span className="logFocusShellSummary__meta">{summary}</span> : null}
-        </span>
-        <span className="logFocusShellStatus" aria-hidden="true">
-          {cancelled ? "C" : complete ? "✓" : open ? "−" : "+"}
-        </span>
-      </button>
+      <div className="logFocusShellHead">
+        <button
+          type="button"
+          className="logFocusShellSummary"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <span className="logFocusShellSummary__copy">
+            <span className="logUserBlockTitle">{title}</span>
+            {summary ? <span className="logFocusShellSummary__meta">{summary}</span> : null}
+          </span>
+          <span className="logFocusShellStatus" aria-hidden="true">
+            {cancelled ? (open ? "−" : "+") : complete ? "✓" : open ? "−" : "+"}
+          </span>
+        </button>
+        {onCancel ? (
+          <button
+            type="button"
+            className={`logFocusCancelIcon ${cancelled ? "isCancelled" : ""}`}
+            aria-label={cancelled ? `Restore ${title}` : `Cancel ${title}`}
+            title={cancelled ? "Restore this block" : "Cancel this block"}
+            onClick={onCancel}
+          >
+            C
+          </button>
+        ) : null}
+      </div>
       <div className="logFocusShellBody">{children}</div>
     </div>
   );
@@ -9695,30 +9709,13 @@ const cardioProgress = useMemo(() => {
           summary={sessionSummary}
           complete={sessionComplete}
           cancelled={isCancelled}
+          onCancel={() => toggleBlockCancelled(block.id, !isCancelled)}
           defaultOpen={blockIndex === 0}
           className={`session-log-block ${isSuspended ? "recoveryModeSuspended" : ""}`}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
-          <div className="row between session-log-block__top logFocusInnerActions">
-            <span />
-            <label
-              className="mini"
-              style={{ opacity: isCancelled ? 1 : 0.55 }}
-              title="Mark this Session as cancelled when it was impossible to do. It will be handled by the normal cancellation rules."
-            >
-              <input
-                type="checkbox"
-                checked={isCancelled}
-                onChange={(e) =>
-                  toggleBlockCancelled(block.id, e.target.checked)
-                }
-              />
-              <span>Cancelled</span>
-            </label>
-          </div>
-
           {note ? <div className="muted mt4">{note}</div> : null}
 
           {block.isExtra ? (
@@ -9830,6 +9827,7 @@ const cardioProgress = useMemo(() => {
           summary={cardioSummary}
           complete={cardioComplete}
           cancelled={isCancelled}
+          onCancel={() => toggleBlockCancelled(block.id, !isCancelled)}
           defaultOpen={blockIndex === 0}
           className={isSuspended ? "recoveryModeSuspended" : ""}
         >
@@ -9866,27 +9864,6 @@ const cardioProgress = useMemo(() => {
               <small>{block.targetText}</small>
             ) : null}
           </div>
-
-          {/* Cancelled toggle */}
-    <div className="row between mt4">
-      <div className="muted small">
-        {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
-      </div>
-      <label
-        className="mini"
-        style={{
-          opacity: isCancelled ? 1 : 0.5,
-        }}
-        title="Mark this block as cancelled when it was impossible to do (e.g. weather, cancelled match). It won’t block your streak."
-      >
-        <input
-          type="checkbox"
-          checked={isCancelled}
-          onChange={(e) => toggleBlockCancelled(block.id, e.target.checked)}
-        />
-        <span>Cancelled</span>
-      </label>
-    </div>
 
           {block.isExtra && (
             <div className="row space mt4">
@@ -10169,6 +10146,7 @@ const cardioProgress = useMemo(() => {
             summary={durationSummary}
             complete={durationComplete}
             cancelled={isCancelled}
+            onCancel={() => toggleBlockCancelled(block.id, !isCancelled)}
             defaultOpen={blockIndex === 0}
             className={isSuspended ? "recoveryModeSuspended" : ""}
           >
@@ -10199,28 +10177,7 @@ const cardioProgress = useMemo(() => {
               <span>{block.plannedMinutes || "0"} min</span>
             </div>
 
-            {/* Cancelled toggle */}
-    <div className="row between mt4">
-      <div className="muted small">
-        {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
-      </div>
-      <label
-        className="mini"
-        style={{
-          opacity: isCancelled ? 1 : 0.5,
-        }}
-        title="Mark this block as cancelled when it was impossible to do (e.g. weather, cancelled match). It won’t block your streak."
-      >
-        <input
-          type="checkbox"
-          checked={isCancelled}
-          onChange={(e) => toggleBlockCancelled(block.id, e.target.checked)}
-        />
-        <span>Cancelled</span>
-      </label>
-    </div>
-
-            {block.isExtra && (
+              {block.isExtra && (
               <div className="row space mt4">
                 <div className="muted mini">One-day extra duration</div>
                 <SecondaryButton
@@ -15914,7 +15871,15 @@ function StyleTag() {
   border-color:rgba(255,77,77,.24);
   background:#fff7f7;
 }
+.logFocusShellHead{
+  display:flex;
+  align-items:stretch;
+  gap:6px;
+  padding:6px;
+}
 .logFocusShellSummary{
+  flex:1 1 auto;
+  min-width:0;
   width:100%;
   display:flex;
   align-items:center;
@@ -15937,6 +15902,26 @@ function StyleTag() {
   font-size:11px;
   line-height:1.35;
   font-weight:750;
+}
+.logFocusCancelIcon{
+  flex:0 0 34px;
+  width:34px;
+  min-height:34px;
+  align-self:center;
+  display:grid;
+  place-items:center;
+  border:1px solid #cbd5df;
+  border-radius:10px;
+  background:#eef2f5;
+  color:#64748b;
+  font-size:12px;
+  font-weight:950;
+  cursor:pointer;
+}
+.logFocusCancelIcon.isCancelled{
+  border-color:#ff4d4d;
+  background:#ffebeb;
+  color:#c62828;
 }
 .logFocusShellStatus{
   flex:0 0 28px;
