@@ -38,6 +38,13 @@ describe("focused Log and dashboard readiness integration", () => {
     expect(app).toContain("aria-expanded={movementOpen}");
     expect(app).toContain("setFocusedMovementByBlock");
     expect(app).toContain('movementComplete ? "✓"');
+    expect(app).toContain("function LogFocusShell");
+    expect(app).toContain("cardioSummary");
+    expect(app).toContain("durationSummary");
+    expect(app).toContain("tasksSummary");
+    expect(app).toContain("recoverySummary");
+    expect(app).toContain("sessionSummary");
+    expect(app).toContain(".logFocusShell:not(.isOpen) .logFocusShellBody{display:none}");
   });
 
   it("protects cancel and reset actions while condensing mobile controls", () => {
