@@ -148,8 +148,46 @@ async function revokeFamilyStrava(admin: ReturnType<typeof adminClient>, familyI
     await Promise.all([
       admin.from("external_connection_access_tokens").delete().eq("connection_id", connection.id),
       admin.from("external_connection_refresh_tokens").delete().eq("connection_id", connection.id),
+      // Webhook events contain provider owner/activity identifiers and use SET NULL
+      // on connection deletion, so remove them explicitly for full account erasure.
+      admin.from("strava_webhook_events").delete().eq("connection_id", connection.id),
     ]);
   }
+}
+
+async function deleteFamilyGroupArtifacts(
+  admin: ReturnType<typeof adminClient>,
+  familyId: string,
+) {
+  if (!admin) return;
+
+  const { data: memberships, error: membershipError } = await admin
+    .from("group_memberships")
+    .select("id")
+    .eq("family_id", familyId);
+  if (membershipError) throw membershipError;
+
+  const membershipIds = (memberships || [])
+    .map((membership) => String(membership?.id || "").trim())
+    .filter(Boolean);
+  if (!membershipIds.length) return;
+
+  // Rewards directly reference memberships with RESTRICT, so remove the
+  // deleting family's reward rows before its memberships disappear.
+  const { error: rewardError } = await admin
+    .from("group_challenge_rewards")
+    .delete()
+    .in("membership_id", membershipIds);
+  if (rewardError) throw rewardError;
+
+  // Challenges authored inside somebody else's Group also use a required
+  // RESTRICT creator membership. They are account-authored objects, so remove
+  // them (and their cascading result/baseline rows) during account erasure.
+  const { error: challengeError } = await admin
+    .from("group_challenges")
+    .delete()
+    .in("created_by_membership_id", membershipIds);
+  if (challengeError) throw challengeError;
 }
 
 Deno.serve(async (req: Request) => {
@@ -179,15 +217,26 @@ Deno.serve(async (req: Request) => {
 
     if (action === "summary") {
       if (!family?.id) return json({ profileCount: 0, createdGroupCount: 0, connectedSourceCount: 0 });
-      const [{ count: profileCount }, { count: createdGroupCount }, { count: connectedSourceCount }] = await Promise.all([
+      const [{ count: profileCount }, { count: createdGroupCount }, { count: connectedSourceCount }, { data: memberships }] = await Promise.all([
         admin.from("profiles").select("id", { count: "exact", head: true }).eq("family_id", family.id),
         admin.from("groups").select("id", { count: "exact", head: true }).eq("created_by_family_id", family.id),
         admin.from("external_connections").select("id", { count: "exact", head: true }).eq("family_id", family.id).eq("status", "active"),
+        admin.from("group_memberships").select("id").eq("family_id", family.id),
       ]);
+      const membershipIds = (memberships || []).map((membership) => membership.id).filter(Boolean);
+      let createdChallengeCount = 0;
+      if (membershipIds.length) {
+        const { count } = await admin
+          .from("group_challenges")
+          .select("id", { count: "exact", head: true })
+          .in("created_by_membership_id", membershipIds);
+        createdChallengeCount = count || 0;
+      }
       return json({
         profileCount: profileCount || 0,
         createdGroupCount: createdGroupCount || 0,
         connectedSourceCount: connectedSourceCount || 0,
+        createdChallengeCount,
       });
     }
 
@@ -221,6 +270,7 @@ Deno.serve(async (req: Request) => {
 
     if (family?.id) {
       await revokeFamilyStrava(admin, family.id);
+      await deleteFamilyGroupArtifacts(admin, family.id);
       const { error: familyDeleteError } = await admin.from("families").delete().eq("id", family.id);
       if (familyDeleteError) throw familyDeleteError;
     }
