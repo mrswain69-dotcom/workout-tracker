@@ -3765,10 +3765,12 @@ function getLogBlockFocusState(block) {
       : Array.isArray(logged.movements)
       ? logged.movements
       : [];
+    if (!movements.length) {
+      return { resolved: true, complete: false, cancelled: false, suspended: false };
+    }
     const setsByMovement =
       logged.sets && typeof logged.sets === "object" ? logged.sets : {};
     complete =
-      movements.length > 0 &&
       movements.every((movement) => {
         const plannedSets = block.isExtra ? 1 : Math.max(1, Number(movement?.sets) || 3);
         const sets = Array.isArray(setsByMovement[movement?.id])
@@ -3795,12 +3797,20 @@ function getLogBlockFocusState(block) {
     complete = isProfileRecoveryLogBlock(logged)
       ? profileRecoveryBlockComplete(logged)
       : !!logged.recoveryDone;
-  } else if (Array.isArray(block.tasks) && block.tasks.length) {
+  } else if (typeId === "tasks" || Array.isArray(block.tasks)) {
+    const tasks = Array.isArray(block.tasks) ? block.tasks : [];
+    if (!tasks.length) {
+      return { resolved: true, complete: false, cancelled: false, suspended: false };
+    }
     const tasksDone =
       logged.tasksDone && typeof logged.tasksDone === "object"
         ? logged.tasksDone
         : {};
-    complete = block.tasks.every((task) => !!tasksDone?.[task?.id]);
+    complete = tasks.every((task) => !!tasksDone?.[task?.id]);
+  } else {
+    // Unsupported/non-loggable plan metadata should never trap the next-action
+    // focus ahead of real work the athlete can actually complete here.
+    return { resolved: true, complete: false, cancelled: false, suspended: false };
   }
 
   return { resolved: complete, complete, cancelled: false, suspended: false };
