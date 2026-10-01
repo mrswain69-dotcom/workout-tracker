@@ -108,7 +108,26 @@ import LogVerificationSummary from "./components/verification/LogVerificationSum
 import FirstRunTutorial, {
   FIRST_RUN_TUTORIAL_VERSION,
 } from "./components/onboarding/FirstRunTutorial.jsx";
+import {
+  addProgramAssessment,
+  addProgramPhase,
+  duplicateProgramWeek,
+  ensurePlanProgram,
+  flattenProgramWeeks,
+  getPlanEditorWeek,
+  getProgramWeekPosition,
+  planHasAnyCycleBlocks,
+  prepareImportedPlanContent,
+  removeProgramAssessment,
+  removeProgramPhase,
+  removeProgramWeek,
+  resolvePlanForDate,
+  setPlanProgramWeek,
+  updatePlanProgramSettings,
+  updateProgramPhase,
+} from "./engine/planCycleEngine.js";
 const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
+const TrainingProgramLibrary = React.lazy(() => import("./programs/TrainingProgramLibrary.jsx"));
 
 // -------- Utilities ----------
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -537,10 +556,7 @@ function blankPlanForNewProfile() {
 }
 
 function planHasBlocks(plan) {
-  return weekdays.some((weekday) =>
-    Array.isArray(plan?.blocksByWeekday?.[weekday]) &&
-    plan.blocksByWeekday[weekday].length > 0
-  );
+  return planHasAnyCycleBlocks(plan || defaultPlanForFamily());
 }
 
 // -------- Day activities (primary + extras) ----------
@@ -3267,6 +3283,10 @@ useEffect(() => { planRef.current = plan; }, [plan]);
 
   const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
   const selectedWeekday = weekdayFromYMD(selectedDate);
+  const selectedDatePlan = useMemo(
+    () => (plan ? resolvePlanForDate(plan, selectedDate) : null),
+    [plan, selectedDate]
+  );
 
   const selectedProfileRecovery = useMemo(
     () =>
@@ -3286,49 +3306,49 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   
     // Tick-box tasks (from weekly plan) for the currently selected log date
   const tasksActivityForSelectedDay = useMemo(() => {
-    if (!plan) return null;
+    if (!selectedDatePlan) return null;
 
     // All extra activity blocks for this weekday (from weekly plan)
-    const extras = getDayActivitiesForWeekday(plan, selectedWeekday) || [];
+    const extras = getDayActivitiesForWeekday(selectedDatePlan, selectedWeekday) || [];
 
     // Activity types that are "task" style
     const taskTypeIds = new Set(
-      (plan.activityTypes || [])
+      (selectedDatePlan.activityTypes || [])
         .filter((t) => t?.kind === "task" || t?.id === "tasks")
         .map((t) => t.id)
     );
 
     // Return the first block whose type is a task-type
     return extras.find((b) => taskTypeIds.has(b.typeId)) || null;
-  }, [plan, selectedWeekday]);
+  }, [selectedDatePlan, selectedWeekday]);
 
     // Cardio-style extra activities (from weekly plan) for the selected log date
   const cardioExtrasForSelectedDay = useMemo(() => {
-    if (!plan) return [];
+    if (!selectedDatePlan) return [];
 
-    const extras = getDayActivitiesForWeekday(plan, selectedWeekday) || [];
+    const extras = getDayActivitiesForWeekday(selectedDatePlan, selectedWeekday) || [];
 
     // Activity types that are "cardio" (Run, Swim, anything custom you flag as cardio)
     const cardioTypeIds = new Set(
-      (plan.activityTypes || [])
+      (selectedDatePlan.activityTypes || [])
         .filter((t) => t?.kind === "cardio")
         .map((t) => t.id)
     );
 
     return extras.filter((b) => cardioTypeIds.has(b.typeId));
-  }, [plan, selectedWeekday]);
+  }, [selectedDatePlan, selectedWeekday]);
 
   // All planned blocks (primary + extras) for the selected log weekday
   const plannedBlocksForSelectedDay = useMemo(() => {
-    if (!plan) return [];
-    const baseBlocks = getDayActivitiesForWeekday(plan, selectedWeekday) || [];
+    if (!selectedDatePlan) return [];
+    const baseBlocks = getDayActivitiesForWeekday(selectedDatePlan, selectedWeekday) || [];
     return applyProfileRecoveryModeToPlannedBlocks(baseBlocks, {
       profileId: activeProfileId,
       dateYmd: selectedDate,
       mode: selectedProfileRecoveryMode,
     });
   }, [
-    plan,
+    selectedDatePlan,
     selectedWeekday,
     activeProfileId,
     selectedDate,
@@ -3337,13 +3357,31 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   
   // Plan editing should NOT depend on log date.
   const [planWeekday, setPlanWeekday] = useState("Mon");
+  const [planCycleWeekIndex, setPlanCycleWeekIndex] = useState(0);
   const [planViewMode, setPlanViewMode] = useState("edit"); // "edit" | "clean"
+  const planEditorPlan = useMemo(
+    () => (plan ? getPlanEditorWeek(plan, planCycleWeekIndex) : null),
+    [plan, planCycleWeekIndex]
+  );
+  const planProgram = useMemo(
+    () => ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() }),
+    [plan]
+  );
+  const planProgramWeeks = useMemo(() => flattenProgramWeeks(planProgram), [planProgram]);
+  const selectedProgramWeek = planProgramWeeks[
+    Math.max(0, Math.min(planProgramWeeks.length - 1, planCycleWeekIndex))
+  ];
+
+  useEffect(() => {
+    const weekCount = plan ? flattenProgramWeeks(plan).length : 1;
+    if (planCycleWeekIndex >= weekCount) setPlanCycleWeekIndex(Math.max(0, weekCount - 1));
+  }, [plan?.program?.phases, planCycleWeekIndex]);
 
     // V3: blocks for the currently selected day on the PLAN tab
   const blocksForSelectedPlanDay = useMemo(() => {
-    if (!plan) return [];
-    return getBlocksForPlanWeekday(plan, planWeekday) || [];
-  }, [plan, planWeekday]);
+    if (!planEditorPlan) return [];
+    return getBlocksForPlanWeekday(planEditorPlan, planWeekday) || [];
+  }, [planEditorPlan, planWeekday]);
 
   function makeLogCacheKey(familyId, profileId, date) {
   if (!familyId || !profileId || !date) return null;
@@ -4103,9 +4141,10 @@ const badgeStats = useMemo(() => {
 
     const activityTypes = Object.values(byId);
 
-    // 2) Ensure blocksByWeekday exists and normalise each block
+    // 2) Normalise every week in the Program, not only its compatibility mirror.
+    function normaliseBlocksMap(source) {
     const outBlocksByWeekday = {};
-    const src = plan.blocksByWeekday || {};
+    const src = source || {};
 
     for (const w of weekdays) {
       const raw = Array.isArray(src[w]) ? src[w] : [];
@@ -4222,10 +4261,25 @@ const badgeStats = useMemo(() => {
       });
     }
 
-    return {
+    return outBlocksByWeekday;
+    }
+
+    const programReady = ensurePlanProgram({
       ...plan,
       activityTypes,
-      blocksByWeekday: outBlocksByWeekday,
+      blocksByWeekday: normaliseBlocksMap(plan.blocksByWeekday),
+    }, { todayYmd: getTodayYMD() });
+    const phases = programReady.program.phases.map((phase) => ({
+      ...phase,
+      weeks: phase.weeks.map((week) => ({
+        ...week,
+        blocksByWeekday: normaliseBlocksMap(week.blocksByWeekday),
+      })),
+    }));
+    return {
+      ...programReady,
+      program: { ...programReady.program, phases },
+      blocksByWeekday: phases[0].weeks[0].blocksByWeekday,
     };
   }
 
@@ -4533,22 +4587,22 @@ const headerAvatarFrameClass = headerAvatarIsPrestige
     (t === "arcade" && unlocked.arcade) ||
     (t === "chill" && unlocked.chill);
 
-  const dayTypeId = plan?.dayTypeByWeekday?.[selectedWeekday] || "strength";
-  const activityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === dayTypeId) || builtInTypes()[0];
-  const movements = plan?.movementsByWeekday?.[selectedWeekday] || [];
+  const dayTypeId = selectedDatePlan?.dayTypeByWeekday?.[selectedWeekday] || "strength";
+  const activityType = (selectedDatePlan?.activityTypes || builtInTypes()).find((t) => t.id === dayTypeId) || builtInTypes()[0];
+  const movements = selectedDatePlan?.movementsByWeekday?.[selectedWeekday] || [];
 
   const planDay = { ...activityType, movements };
 
   // Plan editor uses its own weekday selector.
-  const planDayTypeId = plan?.dayTypeByWeekday?.[planWeekday] || "strength";
-  const planActivityType = (plan?.activityTypes || builtInTypes()).find((t) => t.id === planDayTypeId) || builtInTypes()[0];
-  const planMovements = plan?.movementsByWeekday?.[planWeekday] || [];
+  const planDayTypeId = planEditorPlan?.dayTypeByWeekday?.[planWeekday] || "strength";
+  const planActivityType = (planEditorPlan?.activityTypes || builtInTypes()).find((t) => t.id === planDayTypeId) || builtInTypes()[0];
+  const planMovements = planEditorPlan?.movementsByWeekday?.[planWeekday] || [];
   const planDayEditor = { ...planActivityType, movements: planMovements };
-  const activityTypesForPlan = (plan?.activityTypes || builtInTypes());
-  const dayActivitiesForPlanWeekday = getDayActivitiesForWeekday(plan || defaultPlanForFamily(), planWeekday);
+  const activityTypesForPlan = (planEditorPlan?.activityTypes || builtInTypes());
+  const dayActivitiesForPlanWeekday = getDayActivitiesForWeekday(planEditorPlan || defaultPlanForFamily(), planWeekday);
   const extraActivitiesForPlanWeekday = dayActivitiesForPlanWeekday.slice(1);
   const blocksForPlanWeekday = getBlocksForPlanWeekday(
-  plan || defaultPlanForFamily(),
+  planEditorPlan || defaultPlanForFamily(),
   planWeekday
 );
   const taskBlocksForPlanWeekday = extraActivitiesForPlanWeekday.filter((block) => {
@@ -4558,12 +4612,12 @@ const headerAvatarFrameClass = headerAvatarIsPrestige
   const tasksActivityForPlanWeekday = taskBlocksForPlanWeekday[0] || null;
 
 const planDayForWeekday = (weekday) => {
-  const typeId = plan?.dayTypeByWeekday?.[weekday] || "strength";
+  const typeId = planEditorPlan?.dayTypeByWeekday?.[weekday] || "strength";
 
   const t =
-    (plan?.activityTypes || builtInTypes()).find((x) => x.id === typeId) ||
+    (planEditorPlan?.activityTypes || builtInTypes()).find((x) => x.id === typeId) ||
     builtInTypes()[0];
-  const movs = plan?.movementsByWeekday?.[weekday] || [];
+  const movs = planEditorPlan?.movementsByWeekday?.[weekday] || [];
   return { ...t, movements: movs };
 };
 
@@ -4748,11 +4802,14 @@ function xpForRecoveryBlock(block) {
 }
 
 function findPlanBlockForLogBlock(plan, logBlockId) {
-  if (!plan || !plan.blocksByWeekday) return null;
-  for (const weekday of Object.keys(plan.blocksByWeekday)) {
-    const arr = plan.blocksByWeekday[weekday] || [];
-    for (const b of arr) {
-      if (b && b.id === logBlockId) return b;
+  if (!plan) return null;
+  const weekMaps = flattenProgramWeeks(plan).map(({ week }) => week?.blocksByWeekday || {});
+  for (const blocksByWeekday of weekMaps) {
+    for (const weekday of Object.keys(blocksByWeekday)) {
+      const arr = blocksByWeekday[weekday] || [];
+      for (const b of arr) {
+        if (b && b.id === logBlockId) return b;
+      }
     }
   }
   return null;
@@ -5451,16 +5508,21 @@ const dashboardRecoveryPeriod = useMemo(
 const dashboardRecoveryMode =
   normaliseProfileRecoveryMode(dashboardRecoveryPeriod?.mode) || "normal";
 
+const todayPlan = useMemo(
+  () => (plan ? resolvePlanForDate(plan, todayYmd) : null),
+  [plan, todayYmd]
+);
+
 const dashboardTodayBlocks = useMemo(() => {
-  if (!plan) return [];
+  if (!todayPlan) return [];
   const weekday = weekdayFromYMD(todayYmd);
-  const blocks = getDayActivitiesForWeekday(plan, weekday) || [];
+  const blocks = getDayActivitiesForWeekday(todayPlan, weekday) || [];
   return applyProfileRecoveryModeToPlannedBlocks(blocks, {
     profileId: activeProfileId,
     dateYmd: todayYmd,
     mode: dashboardRecoveryMode,
   });
-}, [plan, todayYmd, activeProfileId, dashboardRecoveryMode]);
+}, [todayPlan, todayYmd, activeProfileId, dashboardRecoveryMode]);
 
 const activePlanIsBlank = !!plan && !planHasBlocks(plan);
 
@@ -5626,6 +5688,24 @@ const selectedDayHasHeavyTrainingBlocks =
     setAndCachePlan(activeProfileId, mergedPlan);
     if (!family?.id || !activeProfileId) return;
     await upsertProfilePlan(family.id, activeProfileId, mergedPlan);
+  }
+
+  async function applyTrainingPlanContent(content, options = {}) {
+    const imported = prepareImportedPlanContent(content, {
+      startDate: options.startDate || getTodayYMD(),
+      repeatMode: options.repeatMode || "repeat",
+      existingMeta: plan?.meta || {},
+      source: options.source || null,
+    });
+    await applyPlan(imported, options.label || "Training plan applied");
+    setPlanCycleWeekIndex(0);
+  }
+
+  function acceptRemotelyAppliedTrainingPlan(nextPlan, label = "Training plan applied") {
+    setUndoPlan(plan || null);
+    setUndoLabel(label);
+    setAndCachePlan(activeProfileId, nextPlan);
+    setPlanCycleWeekIndex(0);
   }
 
   async function undoLastPlan() {
@@ -5942,9 +6022,92 @@ if (!didClaim) {
 
     // ---------- V3 PLAN BLOCK EDIT HELPERS ----------
 
+  async function changePlanCycleSettings(patch) {
+    const nextPlan = updatePlanProgramSettings(
+      ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() }),
+      patch
+    );
+    await savePlan(nextPlan);
+  }
+
+  async function updatePlanCycleWeekDetails(patch) {
+    const base = ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
+    const currentWeek = getProgramWeekPosition(base, planCycleWeekIndex).week;
+    const nextPlan = setPlanProgramWeek(base, planCycleWeekIndex, {
+      ...currentWeek,
+      ...patch,
+    });
+    await savePlan(nextPlan);
+  }
+
+  async function duplicateCurrentPlanWeek() {
+    const base = ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
+    if (flattenProgramWeeks(base).length >= 52) {
+      window.alert("A programme can contain up to 52 weeks.");
+      return;
+    }
+    const nextPlan = duplicateProgramWeek(base, planCycleWeekIndex);
+    await savePlan(nextPlan);
+    setPlanCycleWeekIndex(Math.min(planCycleWeekIndex + 1, flattenProgramWeeks(nextPlan).length - 1));
+  }
+
+  async function removeCurrentPlanWeek() {
+    const base = ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
+    const weeks = flattenProgramWeeks(base);
+    if (weeks.length <= 1) return;
+    const currentWeek = weeks[planCycleWeekIndex]?.week;
+    if (!window.confirm(`Remove “${currentWeek?.name || `Week ${planCycleWeekIndex + 1}`}” from this programme? Logged activity is not deleted.`)) return;
+    const nextPlan = removeProgramWeek(base, planCycleWeekIndex);
+    await savePlan(nextPlan);
+    setPlanCycleWeekIndex(Math.min(planCycleWeekIndex, flattenProgramWeeks(nextPlan).length - 1));
+  }
+
+  async function updateCurrentProgramPhase(patch) {
+    if (!selectedProgramWeek) return;
+    await savePlan(updateProgramPhase(planProgram, selectedProgramWeek.phaseIndex, patch));
+  }
+
+  async function addPlanPhase() {
+    const nextPlan = addProgramPhase(planProgram);
+    if (nextPlan === planProgram) return;
+    const nextWeeks = flattenProgramWeeks(nextPlan);
+    await savePlan(nextPlan);
+    setPlanCycleWeekIndex(nextWeeks.length - 1);
+  }
+
+  async function removeCurrentPlanPhase() {
+    if (!selectedProgramWeek || planProgram.program.phases.length <= 1) return;
+    const phase = selectedProgramWeek.phase;
+    if (!window.confirm(`Remove “${phase.name}” and all its planned weeks? Logged activity is not deleted.`)) return;
+    const firstGlobalIndex = planProgramWeeks.findIndex((item) => item.phaseIndex === selectedProgramWeek.phaseIndex);
+    const nextPlan = removeProgramPhase(planProgram, selectedProgramWeek.phaseIndex);
+    await savePlan(nextPlan);
+    setPlanCycleWeekIndex(Math.max(0, Math.min(firstGlobalIndex, flattenProgramWeeks(nextPlan).length - 1)));
+  }
+
+  async function addAssessmentCheckpoint(timing) {
+    if (!selectedProgramWeek) return;
+    const title = window.prompt(`${timing === "after" ? "End" : "Start"}-of-phase assessment name:`);
+    if (!title?.trim()) return;
+    await savePlan(addProgramAssessment(planProgram, selectedProgramWeek.phaseIndex, { title, timing }));
+  }
+
+  async function deleteAssessmentCheckpoint(assessmentId) {
+    if (!selectedProgramWeek) return;
+    await savePlan(removeProgramAssessment(planProgram, selectedProgramWeek.phaseIndex, assessmentId));
+  }
+
   // Always work on a plan that has blocksByWeekday initialised
   function getPlanWithBlocks() {
-    return ensureBlocksByWeekday(plan || defaultPlanForFamily());
+    return ensureBlocksByWeekday(planEditorPlan || getPlanEditorWeek(plan || defaultPlanForFamily(), planCycleWeekIndex));
+  }
+
+  async function savePlanEditorWeek(nextEditorPlan) {
+    const base = ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
+    const nextPlan = setPlanProgramWeek(base, planCycleWeekIndex, {
+      blocksByWeekday: nextEditorPlan?.blocksByWeekday || {},
+    });
+    await savePlan(nextPlan);
   }
 
   // Generic helper: update blocks for the currently selected plan weekday
@@ -5961,7 +6124,7 @@ if (!didClaim) {
     );
 
     // Persist + normalise via existing save function (PIN-protected etc.)
-    await savePlan(nextPlan);
+    await savePlanEditorWeek(nextPlan);
   }
 
   function addBlockToDay(typeId) {
@@ -6085,7 +6248,7 @@ function cloneBlockForPlanPreserveIds(block) {
       blocksByWeekday: nextBlocksByWeekday,
     };
 
-    await savePlan(nextPlan, "Copy block to other days");
+    await savePlanEditorWeek(nextPlan);
   }
 
   function toggleCopyDialogDay(day) {
@@ -11028,10 +11191,138 @@ the same time tomorrow.
         )}
 
 {tab === "plan" && (
+  <>
   <div className="gridPlan">
+    <Card className="pad" style={{ gridColumn: "1 / -1" }}>
+      <div className="rowBetween" style={{ gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <div className="h2">Training programme</div>
+          <div className="muted mt4">
+            Build phases and changing weeks once. The right week appears automatically from the start date.
+          </div>
+        </div>
+        <span className="pill">
+          {planProgramWeeks.length} week{planProgramWeeks.length === 1 ? "" : "s"} · {planProgram.program.phases.length} phase{planProgram.program.phases.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      <div className="planCycleSettings mt12">
+        <div className="field">
+          <div className="label">Programme name</div>
+          <Input
+            value={planProgram.program.name}
+            onChange={(value) => changePlanCycleSettings({ name: value })}
+            placeholder="e.g. Four-week pre-season"
+          />
+        </div>
+        <div className="field">
+          <div className="label">Starts Monday</div>
+          <Input
+            type="date"
+            value={planProgram.program.startDate || ""}
+            onChange={(value) => changePlanCycleSettings({ startDate: value })}
+          />
+        </div>
+        <div className="field">
+          <div className="label">At the end</div>
+          <Select
+            value={planProgram.program.completionMode || "repeat"}
+            onChange={(value) => changePlanCycleSettings({ completionMode: value })}
+            options={[
+              { value: "repeat", label: "Repeat the programme" },
+              { value: "once", label: "Finish the programme" },
+              { value: "hold", label: "Keep the final week" },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div className="planCycleWeekDetails mt16">
+        <div className="field">
+          <div className="label">Current phase</div>
+          <Input
+            value={selectedProgramWeek?.phase?.name || "Phase 1"}
+            onChange={(value) => updateCurrentProgramPhase({ name: value })}
+          />
+        </div>
+        <div className="field flex1">
+          <div className="label">Phase focus (optional)</div>
+          <Input
+            value={selectedProgramWeek?.phase?.focus || ""}
+            onChange={(value) => updateCurrentProgramPhase({ focus: value })}
+            placeholder="e.g. Foundation, build, return to play"
+          />
+        </div>
+        <SecondaryButton onClick={addPlanPhase}>Add phase</SecondaryButton>
+        {planProgram.program.phases.length > 1 ? (
+          <SecondaryButton onClick={removeCurrentPlanPhase}>Remove phase</SecondaryButton>
+        ) : null}
+      </div>
+
+      <div className="planCycleWeekTabs mt16">
+        {planProgramWeeks.map(({ week, phase, phaseIndex, globalWeekIndex }, index) => (
+          <button
+            type="button"
+            key={week.id || index}
+            className={planCycleWeekIndex === index ? "active" : ""}
+            onClick={() => setPlanCycleWeekIndex(index)}
+          >
+            <span>{week.name || `Week ${index + 1}`}</span>
+            <small>{phaseIndex + 1}. {phase.name} · {globalWeekIndex + 1}</small>
+          </button>
+        ))}
+        <button type="button" className="add" onClick={duplicateCurrentPlanWeek}>
+          <span>Duplicate week</span><small>＋</small>
+        </button>
+      </div>
+
+      <div className="planCycleWeekDetails mt12">
+        <div className="field">
+          <div className="label">Week name</div>
+          <Input
+            value={selectedProgramWeek?.week?.name || `Week ${planCycleWeekIndex + 1}`}
+            onChange={(value) => updatePlanCycleWeekDetails({ name: value })}
+          />
+        </div>
+        <div className="field flex1">
+          <div className="label">Focus (optional)</div>
+          <Input
+            value={selectedProgramWeek?.week?.focus || ""}
+            onChange={(value) => updatePlanCycleWeekDetails({ focus: value })}
+            placeholder="e.g. Build, peak, recovery"
+          />
+        </div>
+        {planProgramWeeks.length > 1 ? (
+          <SecondaryButton onClick={removeCurrentPlanWeek}>Remove week</SecondaryButton>
+        ) : null}
+      </div>
+
+      <div className="panel mt12">
+        <div className="rowBetween" style={{ gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div className="h3">Assessment checkpoints</div>
+            <div className="muted mt4">Optional before/after measures for this phase.</div>
+          </div>
+          <div className="row" style={{ gap: 8 }}>
+            <SecondaryButton onClick={() => addAssessmentCheckpoint("before")}>Add before</SecondaryButton>
+            <SecondaryButton onClick={() => addAssessmentCheckpoint("after")}>Add after</SecondaryButton>
+          </div>
+        </div>
+        {selectedProgramWeek?.phase?.assessments?.length ? (
+          <div className="stack mt8">
+            {selectedProgramWeek.phase.assessments.map((assessment) => (
+              <div className="rowBetween" key={assessment.id}>
+                <span><span className="pill">{assessment.timing}</span> {assessment.title}</span>
+                <SecondaryButton onClick={() => deleteAssessmentCheckpoint(assessment.id)}>Remove</SecondaryButton>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </Card>
     {/* LEFT COLUMN: Day selector + inline blocks */}
     <Card className="pad planSide" ref={planRef}>
-      <div className="h2">Edit day blocks</div>
+      <div className="h2">Edit {selectedProgramWeek?.week?.name || `Week ${planCycleWeekIndex + 1}`}</div>
       <div className="muted mt8">
         Select a weekday, then add or edit blocks. A day has no type — it’s
         just an ordered list of blocks.
@@ -12001,6 +12292,19 @@ the same time tomorrow.
       </div>
     </Card>
   </div>
+  <React.Suspense fallback={<div className="panel mt16">Loading programme library…</div>}>
+    <TrainingProgramLibrary
+      familyId={family?.id || ""}
+      activeProfileId={activeProfileId}
+      activePlan={planProgram}
+      authorizeMutation={(reason) => ensureUnlocked(reason)}
+      onProgramApplied={(nextPlan) => {
+        if (nextPlan && activeProfileId) setAndCachePlan(activeProfileId, nextPlan);
+        setPlanCycleWeekIndex(0);
+      }}
+    />
+  </React.Suspense>
+  </>
 )}
 
         

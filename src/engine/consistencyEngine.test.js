@@ -98,6 +98,22 @@ describe("consistencyEngine", () => {
     });
   });
 
+  it("resolves a frozen multi-week Program schedule for the target date", () => {
+    const programSchedule = {
+      __format: "program_v1",
+      startDate: "2026-09-07",
+      completionMode: "repeat",
+      weeks: [
+        { Mon: [{ id: "base", typeId: "strength" }] },
+        { Mon: [{ id: "build", typeId: "strength" }] },
+      ],
+    };
+    const snapshots = [snapshot("2026-09-01", programSchedule)];
+    expect(selectConsistencyScheduleSnapshot(snapshots, "2026-09-07").schedule.Mon[0].id).toBe("base");
+    expect(selectConsistencyScheduleSnapshot(snapshots, "2026-09-14").schedule.Mon[0].id).toBe("build");
+    expect(selectConsistencyScheduleSnapshot(snapshots, "2026-09-21").schedule.Mon[0].id).toBe("base");
+  });
+
   it("requires real same-day block evidence and ignores a Streak Saver", () => {
     expect(consistencyLogBlockCompletedOnDay(strength("s", "2026-09-07"), "2026-09-07")).toBe(true);
     expect(consistencyLogBlockCompletedOnDay(strength("s", "2026-09-08"), "2026-09-07")).toBe(false);
