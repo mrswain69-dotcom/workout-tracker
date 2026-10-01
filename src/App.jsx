@@ -13626,7 +13626,10 @@ if (!didClaim) {
                   setAllLogs([]);
                   setLogForDay(null);
                   setActiveProfileId("");
-                  try { localStorage.removeItem("wt_activeProfileId"); } catch {}
+                  // This is a dedicated app origin: remove browser-held Workout Tracker
+                  // state as well as the server account so a shared device keeps no stale profile data.
+                  try { localStorage.clear(); } catch {}
+                  try { sessionStorage.clear(); } catch {}
                   window.location.assign("/");
                 }}
               />
