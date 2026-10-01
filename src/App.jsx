@@ -15974,6 +15974,86 @@ function StyleTag() {
 .inMomentTarget span{color:#263645;font-size:12px;font-weight:750}
 .inMomentTarget small{color:#64748b;font-size:10px}
 
+.focusedLogBlock{
+  margin-top:9px;
+  overflow:hidden;
+  border:1px solid #dbe4ed;
+  border-radius:15px;
+  background:#fff;
+  transition:border-color .18s ease,background .18s ease,opacity .18s ease;
+}
+.focusedLogBlock.isOpen{border-color:rgba(0,174,196,.42)}
+.focusedLogBlock.isComplete{
+  border-color:rgba(0,172,91,.34);
+  background:#effff6;
+}
+.focusedLogBlock.isCancelled{
+  border-color:rgba(255,77,77,.34);
+  background:#fff5f5;
+}
+.focusedLogBlock.isSuspended{
+  border-color:#d4dce5;
+  background:#f5f7f9;
+  opacity:.82;
+}
+.focusedLogBlockSummary{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border:0;
+  padding:11px 12px;
+  text-align:left;
+  background:transparent;
+  color:inherit;
+  cursor:pointer;
+}
+.focusedLogBlockSummary__copy{min-width:0;flex:1}
+.focusedLogBlockTitle{
+  color:#0f172a;
+  font-size:17px;
+  line-height:1.2;
+  font-weight:950;
+  letter-spacing:-.02em;
+}
+.focusedLogBlockMeta{
+  margin-top:3px;
+  color:#5f7082;
+  font-size:10px;
+  line-height:1.35;
+  font-weight:800;
+}
+.focusedLogBlockState{
+  flex:0 0 28px;
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:#edf3f7;
+  color:#304253;
+  font-size:15px;
+  font-weight:950;
+}
+.focusedLogBlock.isComplete .focusedLogBlockState{
+  background:#00b767;
+  color:#fff;
+}
+.focusedLogBlock.isCancelled .focusedLogBlockState{
+  background:#ff4d4d;
+  color:#fff;
+}
+.focusedLogBlock.isSuspended .focusedLogBlockState{
+  background:#dbe3ea;
+  color:#687789;
+}
+.focusedLogBlockBody{padding:0 12px 12px}
+.focusedLogBlockControls{
+  min-height:30px;
+  margin-top:3px;
+}
+
 .focusedMovement{
   margin-top:9px;
   overflow:hidden;
@@ -16152,6 +16232,9 @@ function StyleTag() {
 
   .logUserBlockTitle{font-size:17px}
   .panel .logBlockTypeTitle{margin-bottom:4px}
+  .focusedLogBlockSummary{padding:10px}
+  .focusedLogBlockBody{padding:0 10px 10px}
+  .focusedLogBlockTitle{font-size:16px}
   .focusedMovementSummary{padding:10px}
   .focusedMovementBody{padding:0 10px 10px}
 }
