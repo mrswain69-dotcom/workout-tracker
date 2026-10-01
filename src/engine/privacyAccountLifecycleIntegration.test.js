@@ -43,17 +43,29 @@ describe("public site, privacy and account lifecycle integration", () => {
     expect(edge).toContain('.from("families").delete()');
     expect(edge).toContain("admin.auth.admin.deleteUser");
     expect(edge).toContain("revokeFamilyStrava");
+    expect(edge).toContain("deleteFamilyGroupArtifacts");
+    expect(edge).toContain("strava_webhook_events");
+    expect(edge).toContain("deleteFamilyProgramArtifacts");
+    expect(edge).toContain("training_program_assignments");
+    expect(edge).toContain("training_program_entitlements");
+    expect(settings).toContain("createdChallengeCount");
+    expect(settings).toContain("ownedProgramCount");
   });
 
   it("sends the welcome tutorial once and keeps deletion independent of email delivery", () => {
     const app = read("../App.jsx");
     const edge = read("../../supabase/functions/account-lifecycle/index.ts");
     const migration = read("../../supabase/migrations/20261001150000_account_lifecycle_privacy.sql");
+    const welcomeTemplate = read("../../supabase/email-templates/welcome.html");
 
     expect(app).toContain("sendWelcomeTutorialEmail");
     expect(migration).toContain("welcome_email_sent_at");
     expect(edge).toContain("family.welcome_email_sent_at");
     expect(edge).toContain("Welcome to Workout Tracker");
+    expect(edge).toContain("workout-log-mobile.webp");
+    expect(edge).toContain("body-readiness-mobile.webp");
+    expect(welcomeTemplate).toContain("workout-log-mobile.webp");
+    expect(welcomeTemplate).toContain("body-readiness-mobile.webp");
     expect(edge).toContain("Your Workout Tracker account has been deleted");
     expect(edge).toMatch(/admin\.auth\.admin\.deleteUser[\s\S]*await sendEmail/);
   });
