@@ -17,7 +17,7 @@ describe("public site, privacy and account lifecycle integration", () => {
     expect(publicSite).toContain("PrivacyNotice");
     expect(publicSite).toContain("CookiesNotice");
     expect(publicSite).toContain("TermsOfUse");
-    expect(legal).toContain("does not sell personal information");
+    expect(legal).toContain("do not sell personal information");
     expect(legal).toContain("under 13");
     expect(legal).toContain("not medical measurements");
   });
