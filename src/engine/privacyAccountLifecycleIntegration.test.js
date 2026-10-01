@@ -38,6 +38,7 @@ describe("public site, privacy and account lifecycle integration", () => {
     const settings = read("../components/settings/AccountPrivacyPanel.jsx");
 
     expect(adapter).toContain('supabase.functions.invoke("account-lifecycle"');
+    expect(adapter).toContain('supabase.auth.signOut({ scope: "local" })');
     expect(settings).toContain("Type DELETE to confirm");
     expect(settings).toContain('ensureUnlocked("permanently delete this Workout Tracker account")');
     expect(edge).toContain('action !== "delete_account"');
@@ -49,6 +50,8 @@ describe("public site, privacy and account lifecycle integration", () => {
     expect(edge).toContain("strava_webhook_events");
     expect(edge).toContain("deleteFamilyGroupArtifacts");
     expect(edge).toContain("created_by_membership_id");
+    expect(app).toContain("localStorage.clear()");
+    expect(app).toContain("sessionStorage.clear()");
   });
 
   it("sends the welcome tutorial once and keeps deletion independent of email delivery", () => {
