@@ -94,3 +94,114 @@
   .dashboardPlanList,.dashboardSummaryRows{grid-template-columns:1fr}
   .dashboardCoach__secondary{flex-direction:column}
 }
+
+
+/* Compact Body Readiness — dashboard context only */
+.dashboardReadiness {
+  margin: 14px 0;
+  border: 1px solid rgba(112, 126, 144, .24);
+  border-radius: 18px;
+  padding: 14px 16px 15px;
+  background: #fff;
+}
+
+.dashboardReadiness__top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.dashboardReadiness__top h3 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.dashboardReadiness__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border: 1px solid #d7e0e8;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #f4f7fa;
+  color: #425166;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.dashboardReadiness__body {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.dashboardReadiness__score {
+  margin: 0 auto 6px;
+  text-align: center;
+  color: #4a9f58;
+  font-size: 38px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -.04em;
+}
+
+.dashboardReadiness__legend {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin: 0 0 3px;
+  color: #6b7787;
+  font-size: 8px;
+  text-align: center;
+}
+
+.dashboardReadiness__band {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #cf4141 0 20%,
+    #dc8a2e 20% 40%,
+    #5aa36b 40% 60%,
+    #4b89d7 60% 80%,
+    #8a50db 80% 100%
+  );
+}
+
+.dashboardReadiness__band i {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #28313c;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px rgba(0,0,0,.18);
+}
+
+.dashboardReadiness p {
+  margin: 9px 0 0;
+  color: #66758a;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .dashboardReadiness {
+    padding: 11px 12px 12px;
+  }
+  .dashboardReadiness__top {
+    justify-content: flex-start;
+    margin-bottom: 3px;
+  }
+  .dashboardReadiness__score {
+    font-size: 34px;
+    margin-bottom: 5px;
+  }
+  .dashboardReadiness p {
+    margin-top: 8px;
+  }
+}
