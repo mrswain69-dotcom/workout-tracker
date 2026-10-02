@@ -702,6 +702,11 @@ export default function ProgressDashboard({
     [logs]
   );
 
+  const hasSessionHistory =
+    trainingProgress.lifetime.completedSessions > 0 ||
+    trainingProgress.lifetime.partialSessions > 0 ||
+    trainingProgress.recent28.activeSessionDays > 0;
+
   return (
     <section className="progress-dashboard" aria-label="Progress dashboard">
       <div className="progress-hero">
@@ -709,17 +714,11 @@ export default function ProgressDashboard({
           <div className="progress-hero__eyebrow">PERFORMANCE PROGRESS</div>
           <h2>{model.profileName} · Progress</h2>
           <p>
-            Training, benchmark history and development direction in one place.
+            Activity, benchmark history and development direction in one place.
             Every number comes from genuine recorded activity.
           </p>
         </div>
         <div className="progress-hero__date">Through {resolvedReferenceDate}</div>
-      </div>
-
-      <div className="progress-state-grid" aria-label="Progress data readiness">
-        <ProgressStateChip label="Training" state={model.states.training} />
-        <ProgressStateChip label="Assessments" state={model.states.assessment} />
-        <ProgressStateChip label="Development" state={model.states.development} />
       </div>
 
       <nav className="progress-subnav" aria-label="Progress sections">
@@ -763,10 +762,24 @@ export default function ProgressDashboard({
             </p>
 
             <div className="progress-metric-grid progress-overview-grid">
-              <MetricCard label="Sessions · this month" value={model.training.sessionsThisMonth} note="Completion ticks count even when numeric drill counts are left blank" />
-              <MetricCard label="Training days · 4 weeks" value={trainingProgress.recent28.activeSessionDays} note="Structured Session activity" />
               <MetricCard label="Current streak" value={`${model.training.currentStreak}d`} />
               <MetricCard label="XP" value={model.training.currentXp.toLocaleString("en-GB")} />
+
+              {hasSessionHistory ? (
+                <>
+                  <MetricCard
+                    label="Sessions · this month"
+                    value={model.training.sessionsThisMonth}
+                    note="Completion ticks count even when numeric drill counts are left blank"
+                  />
+                  <MetricCard
+                    label="Skills training days · 4 weeks"
+                    value={trainingProgress.recent28.activeSessionDays}
+                    note="Structured Session activity"
+                  />
+                </>
+              ) : null}
+
               <MetricCard
                 label="Most active day"
                 value={summaryStats?.mostActiveDayMinutes ? formatMinutes(summaryStats.mostActiveDayMinutes) : "—"}
@@ -784,6 +797,21 @@ export default function ProgressDashboard({
                 label="Best cardio speed"
                 value={summaryStats?.bestCardioSpeed ? `${Number(summaryStats.bestCardioSpeed).toFixed(2)} km/h` : "—"}
               />
+
+              {!hasSessionHistory ? (
+                <>
+                  <MetricCard
+                    label="Sessions · this month"
+                    value={model.training.sessionsThisMonth}
+                    note="Appears higher once Session history is recorded"
+                  />
+                  <MetricCard
+                    label="Skills training days · 4 weeks"
+                    value={trainingProgress.recent28.activeSessionDays}
+                    note="Structured Session activity"
+                  />
+                </>
+              ) : null}
             </div>
 
             <div className="progress-highlight-strip">
@@ -835,14 +863,26 @@ export default function ProgressDashboard({
               <div className="progress-empty-block">Activity charts will appear as genuine block history is logged.</div>
             ) : null}
           </div>
+
+          <div className="progress-section progress-readiness-section">
+            <SectionHeading kicker="DEEPER PROGRESS" title="Recorded progress areas" />
+            <p className="progress-section-copy">
+              These become more useful as Skills Sessions, Assessments and comparable development history build over time.
+            </p>
+            <div className="progress-state-grid" aria-label="Progress data readiness">
+              <ProgressStateChip label="Sessions" state={model.states.training} />
+              <ProgressStateChip label="Assessments" state={model.states.assessment} />
+              <ProgressStateChip label="Development" state={model.states.development} />
+            </div>
+          </div>
         </div>
       ) : null}
 
       {progressView === "sessions" ? (
         <div className="progress-view-stack">
           <ProgressDisclosure
-            kicker="TRAINING"
-            title="Training progress & benchmarks"
+            kicker="SKILLS TRAINING"
+            title="Skills training progress & benchmarks"
             summary={`${model.training.sessionsThisMonth} Sessions this month · ${trainingProgress.recent28.activeSessionDays} active Session days in 4 weeks`}
           >
             <p className="progress-section-copy">{model.training.message}</p>
@@ -867,7 +907,7 @@ export default function ProgressDashboard({
                 note={trainingDetail.partialSessions ? `${trainingDetail.partialSessions} partial kept separate` : "Completed structured Sessions"}
               />
               <MetricCard
-                label={`Active days · ${trainingDetail.label}`}
+                label={`Skills training days · ${trainingDetail.label}`}
                 value={trainingDetail.activeSessionDays}
                 note="A day counts once even with multiple Sessions"
               />
