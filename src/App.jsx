@@ -9485,8 +9485,13 @@ const cardioProgress = useMemo(() => {
                                   .filter(setDidSomething).length < candidatePlanned;
                               })?.id || "";
 
+                            const hasExplicitMovementFocus =
+                              Object.prototype.hasOwnProperty.call(
+                                focusedMovementByBlock,
+                                block.id
+                              );
                             const explicitFocus = focusedMovementByBlock[block.id];
-                            const movementOpen = explicitFocus
+                            const movementOpen = hasExplicitMovementFocus
                               ? explicitFocus === mov.id
                               : firstIncompleteMovementId
                               ? firstIncompleteMovementId === mov.id
@@ -9591,7 +9596,7 @@ const cardioProgress = useMemo(() => {
                                     setFocusedMovementByBlock((current) => ({
                                       ...current,
                                       [block.id]:
-                                        current[block.id] === mov.id ? "" : mov.id,
+                                        movementOpen ? null : mov.id,
                                     }))
                                   }
                                 >
