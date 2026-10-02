@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   buildVerifiedCardioEvidence,
   summariseVerifiedCardioEvidence,
@@ -38,6 +38,17 @@ function formatSpeed(value) {
   return `${speed.toLocaleString("en-GB", { maximumFractionDigits: 2 })} km/h`;
 }
 
+function isYmd(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
+}
+
+function shiftYmd(value, days) {
+  if (!isYmd(value)) return "";
+  const date = new Date(`${value}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + Number(days || 0));
+  return date.toISOString().slice(0, 10);
+}
+
 function providerLabel(value) {
   if (value === "strava") return "Strava";
   if (value === "garmin") return "Garmin";
@@ -73,6 +84,47 @@ export default function VerifiedCardioAutobiographyEvidence({
     () => summariseVerifiedCardioEvidence(rows, range),
     [rows, range?.startDate, range?.endDate]
   );
+  const [timeWindow, setTimeWindow] = useState("12w");
+  const [query, setQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(12);
+
+  const filterReferenceDate = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (isYmd(range?.endDate) && range.endDate < today) return range.endDate;
+    return today;
+  }, [range?.endDate]);
+
+  const filteredRows = useMemo(() => {
+    const daysByWindow = {
+      "4w": 27,
+      "12w": 83,
+      "1y": 364,
+    };
+    const cutoff =
+      timeWindow === "all"
+        ? ""
+        : shiftYmd(filterReferenceDate, -(daysByWindow[timeWindow] || 83));
+    const needle = String(query || "").trim().toLowerCase();
+
+    return (summary.rows || []).filter((row) => {
+      if (cutoff && row.date && row.date < cutoff) return false;
+      if (!needle) return true;
+      const haystack = [
+        activityLabel(row),
+        row.date,
+        ...(row.providers || []).map(providerLabel),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [summary.rows, timeWindow, query, filterReferenceDate]);
+
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [timeWindow, query, range?.startDate, range?.endDate]);
+
+  const visibleRows = filteredRows.slice(0, visibleCount);
 
   return (
     <section className="autobiography-verified-cardio" aria-label="Verified cardio evidence">
@@ -98,37 +150,86 @@ export default function VerifiedCardioAutobiographyEvidence({
       </div>
 
       {summary.rows.length ? (
-        <div className="autobiography-verified-cardio__list">
-          {summary.rows.slice(0, 4).map((row) => {
-            const performanceMetric = formatPace(row.paceMinPerKm) || formatSpeed(row.averageSpeedKmh);
-            const metrics = [
-              row.distanceKm ? formatDistance(row.distanceKm) : "",
-              row.durationMin ? formatDuration(row.durationMin) : "",
-              performanceMetric,
-              row.averageHeartRateBpm ? `${Math.round(row.averageHeartRateBpm)} bpm avg` : "",
-            ].filter(Boolean);
-            return (
-              <article key={row.id}>
-                <div className="autobiography-verified-cardio__rowtop">
-                  <div>
-                    <strong>{activityLabel(row)}</strong>
-                    <span>{row.date || "Date unavailable"}</span>
-                  </div>
-                  <span className={row.matchedManual ? "is-matched" : ""}>
-                    {row.matchedManual ? "Matched to manual log" : "Provider evidence"}
-                  </span>
-                </div>
-                {metrics.length ? <div className="autobiography-verified-cardio__rowmetrics">{metrics.join(" · ")}</div> : null}
-                <div className="autobiography-verified-cardio__providers">
-                  {(row.providers || []).map((provider) => (
-                    <span key={provider}>{providerLabel(provider)}</span>
-                  ))}
-                  {row.multiSource ? <span>One activity · multiple sources</span> : null}
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        <details className="autobiography-verified-cardio__browser">
+          <summary>
+            <span>Browse verified cardio</span>
+            <strong>{filteredRows.length} in selected view</strong>
+          </summary>
+
+          <div className="autobiography-verified-cardio__filters">
+            <label>
+              <span>Date range</span>
+              <select
+                aria-label="Verified cardio date range"
+                value={timeWindow}
+                onChange={(event) => setTimeWindow(event.target.value)}
+              >
+                <option value="4w">Last 4 weeks</option>
+                <option value="12w">Last 12 weeks</option>
+                <option value="1y">Last 12 months</option>
+                <option value="all">All chapter history</option>
+              </select>
+            </label>
+            <label>
+              <span>Search</span>
+              <input
+                aria-label="Search verified cardio"
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Run, date, Strava…"
+              />
+            </label>
+          </div>
+
+          {visibleRows.length ? (
+            <div className="autobiography-verified-cardio__list">
+              {visibleRows.map((row) => {
+                const performanceMetric = formatPace(row.paceMinPerKm) || formatSpeed(row.averageSpeedKmh);
+                const metrics = [
+                  row.distanceKm ? formatDistance(row.distanceKm) : "",
+                  row.durationMin ? formatDuration(row.durationMin) : "",
+                  performanceMetric,
+                  row.averageHeartRateBpm ? `${Math.round(row.averageHeartRateBpm)} bpm avg` : "",
+                ].filter(Boolean);
+                return (
+                  <article key={row.id}>
+                    <div className="autobiography-verified-cardio__rowtop">
+                      <div>
+                        <strong>{activityLabel(row)}</strong>
+                        <span>{row.date || "Date unavailable"}</span>
+                      </div>
+                      <span className={row.matchedManual ? "is-matched" : ""}>
+                        {row.matchedManual ? "Matched to manual log" : "Provider evidence"}
+                      </span>
+                    </div>
+                    {metrics.length ? <div className="autobiography-verified-cardio__rowmetrics">{metrics.join(" · ")}</div> : null}
+                    <div className="autobiography-verified-cardio__providers">
+                      {(row.providers || []).map((provider) => (
+                        <span key={provider}>{providerLabel(provider)}</span>
+                      ))}
+                      {row.multiSource ? <span>One activity · multiple sources</span> : null}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="autobiography-verified-cardio__empty">
+              No verified cardio matches this date range or search.
+            </div>
+          )}
+
+          {filteredRows.length > visibleCount ? (
+            <button
+              type="button"
+              className="autobiography-verified-cardio__more"
+              onClick={() => setVisibleCount((value) => value + 12)}
+            >
+              Show 12 more · {filteredRows.length - visibleCount} remaining
+            </button>
+          ) : null}
+        </details>
       ) : (
         <div className="autobiography-verified-cardio__empty">
           No verified cardio evidence is recorded for this view yet.
