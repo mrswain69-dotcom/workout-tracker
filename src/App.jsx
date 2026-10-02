@@ -189,63 +189,42 @@ function softFloor(value, floor, max = 100, softness = 12, hardMin = 0) {
 function buildTargetInfoForMovement({ movement, lastSets, plannedRepsText }) {
   const baseText = (plannedRepsText || "").trim();
 
-  // If there is no history yet, just show the plan text (if any)
   if (!lastSets || !Array.isArray(lastSets) || lastSets.length === 0) {
     return {
-      text: baseText || "",
+      text: baseText ? `Today: ${baseText}` : "",
     };
   }
 
-  // Take the last non-empty values we can find
   let lastReps = null;
   let lastWeight = null;
   let lastTime = null;
 
-  for (const s of lastSets) {
-    if (!s) continue;
-    if (s.reps !== undefined && s.reps !== null && s.reps !== "") {
-      lastReps = s.reps;
-    }
-    if (s.weight !== undefined && s.weight !== null && s.weight !== "") {
-      lastWeight = s.weight;
-    }
-    if (
-      s.timeSeconds !== undefined &&
-      s.timeSeconds !== null &&
-      s.timeSeconds !== ""
-    ) {
-      lastTime = s.timeSeconds;
-    }
+  for (const set of lastSets) {
+    if (!set) continue;
+    const reps = safeNumber(set.reps);
+    const weight = safeNumber(set.weight);
+    const time = safeNumber(set.timeSeconds);
+    if (reps > 0) lastReps = reps;
+    if (weight > 0) lastWeight = weight;
+    if (time > 0) lastTime = time;
   }
 
-  // Build a human-readable "last time" summary
-  let historyBits = [];
-
-  if (movement.trackDuration && lastTime != null) {
-    historyBits.push(`${lastTime}s`);
-  }
-  if (lastReps != null) {
-    historyBits.push(`${lastReps} reps`);
-  }
-  if (movement.trackWeight && lastWeight != null) {
-    historyBits.push(`${lastWeight} kg`);
+  let progression = "";
+  if (movement?.trackDuration && lastTime != null) {
+    progression = `Aim for ${Math.round(lastTime + 5)}s with the same clean form`;
+  } else if (lastReps != null && movement?.trackWeight && lastWeight != null) {
+    progression = `Aim for ${Math.round(lastReps + 1)} clean reps at ${lastWeight} kg`;
+  } else if (lastReps != null) {
+    progression = `Aim for ${Math.round(lastReps + 1)} clean reps`;
+  } else if (movement?.trackWeight && lastWeight != null) {
+    progression = `Match ${lastWeight} kg with clean form; only progress if technique stays strong`;
   }
 
-  const historyText = historyBits.length
-    ? `Last: ${historyBits.join(" @ ")}`
-    : "";
-
-  // Combine plan text with history, if both exist
-  if (baseText && historyText) {
-    return { text: `${baseText} — ${historyText}` };
+  if (baseText && progression) {
+    return { text: `Today: ${baseText} · Progression: ${progression}` };
   }
-  if (baseText) {
-    return { text: baseText };
-  }
-  if (historyText) {
-    return { text: historyText };
-  }
-
+  if (progression) return { text: `Today: ${progression}` };
+  if (baseText) return { text: `Today: ${baseText}` };
   return { text: "" };
 }
 // ----- V3 BLOCK MODEL HELPERS -----
@@ -862,55 +841,59 @@ function suggestStrengthTarget({ ex, lastSets, initialTarget, ageGroup }) {
   const nextReps = minReps ? minReps + 1 : repFloor;
   return { text: `${nextReps} reps` };
 }
-function findLastCardio(allLogs, beforeYmd) {
+function findLastCardio(allLogs, beforeYmd, currentBlock = null) {
   if (!Array.isArray(allLogs)) return null;
+
+  const currentId = currentBlock?.id || "";
+  const currentType = currentBlock?.cardioType || "run";
 
   for (let i = allLogs.length - 1; i >= 0; i--) {
     const row = allLogs[i];
     const date = row?.date_ymd || row?.date;
     if (!date || date >= beforeYmd) continue;
 
-    const log = row?.log;
+    const log = row?.log || row?.log_json || row;
     if (!log) continue;
 
-    // V3: aggregate cardio across blocks
     if (Array.isArray(log.blocks) && log.blocks.length) {
-      let totalDist = 0;
-      let totalMin = 0;
+      const cardioBlocks = log.blocks.filter((block) => block?.cardio);
+      const exact = cardioBlocks.find((block) => currentId && block.id === currentId);
+      const comparable =
+        exact ||
+        cardioBlocks.find(
+          (block) => (block.cardioType || "run") === currentType
+        );
 
-      for (const b of log.blocks) {
-        if (!b || !b.cardio) continue;
-        const c = b.cardio;
-        totalDist += safeNumber(c.distanceKm);
-        totalMin += safeNumber(c.durationMin);
-      }
-
-      if (totalDist > 0 || totalMin > 0) {
-        const avgSpeed =
-          totalDist > 0 && totalMin > 0
-            ? totalDist / (totalMin || 1)
-            : safeNumber(log.cardio?.avgSpeedKmh);
-
-        return {
-          distanceKm: totalDist,
-          durationMin: totalMin,
-          avgSpeedKmh: avgSpeed,
-        };
+      if (comparable?.cardio) {
+        const distanceKm = safeNumber(comparable.cardio.distanceKm);
+        const durationMin = safeNumber(comparable.cardio.durationMin);
+        if (distanceKm > 0 || durationMin > 0) {
+          return {
+            distanceKm,
+            durationMin,
+            avgSpeedKmh:
+              distanceKm > 0 && durationMin > 0
+                ? distanceKm / (durationMin / 60)
+                : safeNumber(comparable.cardio.avgSpeedKmh),
+          };
+        }
       }
     }
 
-    // Legacy fallback: single cardio object on the log
-    const cLegacy = log.cardio;
-    if (
-      cLegacy &&
-      (safeNumber(cLegacy.distanceKm) > 0 ||
-        safeNumber(cLegacy.durationMin) > 0)
-    ) {
-      return {
-        distanceKm: safeNumber(cLegacy.distanceKm),
-        durationMin: safeNumber(cLegacy.durationMin),
-        avgSpeedKmh: safeNumber(cLegacy.avgSpeedKmh),
-      };
+    // Legacy cardio can only be safely compared to normal distance-based cardio.
+    if (!currentBlock || currentType === "run") {
+      const legacy = log.cardio;
+      if (
+        legacy &&
+        (safeNumber(legacy.distanceKm) > 0 ||
+          safeNumber(legacy.durationMin) > 0)
+      ) {
+        return {
+          distanceKm: safeNumber(legacy.distanceKm),
+          durationMin: safeNumber(legacy.durationMin),
+          avgSpeedKmh: safeNumber(legacy.avgSpeedKmh),
+        };
+      }
     }
   }
 
@@ -988,25 +971,22 @@ function summarizeCardio(c) {
   return bits.join(" • ") || "—";
 }
 
-function suggestCardioTarget({ lastCardio }) {
+function suggestCardioTarget({ lastCardio, distanceEnabled = true }) {
+  if (!distanceEnabled) {
+    return { text: "", targetSpeedKmh: null };
+  }
   if (!lastCardio) {
-    return { text: "Log once to generate targets.", targetSpeedKmh: null };
+    return { text: "Log a distance + time result to generate a performance target.", targetSpeedKmh: null };
   }
 
   const d = safeNumber(lastCardio.distanceKm);
   const t = safeNumber(lastCardio.durationMin);
 
-  let s = 0;
   if (d > 0 && t > 0) {
-    s = d / (t / 60); // km/h
-  } else {
-    s = safeNumber(lastCardio.avgSpeedKmh);
-  }
-
-  if (s > 0) {
-    const targetSpeedKmh = s + 0.2;
+    const speed = d / (t / 60);
+    const targetSpeedKmh = speed + 0.2;
     return {
-      text: `Try +0.2 km/h avg speed (≈ ${targetSpeedKmh.toFixed(1)} km/h)`,
+      text: `Try +0.2 km/h average speed (≈ ${targetSpeedKmh.toFixed(1)} km/h)`,
       targetSpeedKmh,
     };
   }
@@ -1018,14 +998,7 @@ function suggestCardioTarget({ lastCardio }) {
     };
   }
 
-  if (t > 0) {
-    return {
-      text: `Try +1 min duration (≈ ${t + 1} min)`,
-      targetSpeedKmh: null,
-    };
-  }
-
-  return { text: "Aim to beat last time.", targetSpeedKmh: null };
+  return { text: "", targetSpeedKmh: null };
 }
 
 function isDayComplete(log, planDay) {
@@ -1390,6 +1363,26 @@ function FocusedLogBlock({
       </button>
       {open ? <div className="focusedLogBlockBody">{children}</div> : null}
     </div>
+  );
+}
+
+function BlockCancelControl({ cancelled, onChange, session = false }) {
+  return (
+    <label
+      className={`blockCancelControl${cancelled ? " isCancelled" : ""}`}
+      title={
+        session
+          ? "Mark this Session as cancelled when it was impossible to do. It will be handled by the normal cancellation rules."
+          : "Mark this block as cancelled when it was impossible to do (e.g. weather, cancelled match). It won’t block your streak."
+      }
+    >
+      <input
+        type="checkbox"
+        checked={cancelled}
+        onChange={(event) => onChange?.(event.target.checked)}
+      />
+      <span>{cancelled ? "Cancelled" : "Cancel"}</span>
+    </label>
   );
 }
 
@@ -4049,6 +4042,7 @@ function toggleLogBlockFocus(blockId) {
     const mapped = rows
   .map((r) => ({
     id: r.id || null,
+    profile_id: r.profile_id || activeProfileId,
     date_ymd: r.date_ymd,
     log: getLogRowPayload(r),
     created_at: r.created_at || null,
@@ -9421,25 +9415,6 @@ const cardioProgress = useMemo(() => {
     {isSuspended && (
       <div className="recoveryModePausedLabel">Paused by recovery mode</div>
     )}
-    <div className="row between focusedLogBlockControls" style={{ alignItems: "center" }}>
-      <span className="muted mini">Block controls</span>
-
-      <label
-        className="mini"
-        style={{
-          opacity: isCancelled ? 1 : 0.5,
-        }}
-        title="Mark this block as cancelled when it was impossible to do (e.g. weather, cancelled match). It won’t block your streak."
-      >
-        <input
-          type="checkbox"
-          checked={isCancelled}
-          onChange={(e) => toggleBlockCancelled(block.id, e.target.checked)}
-        />
-        <span>Cancelled</span>
-      </label>
-    </div>
-
     {block.note ? (
       <div className="muted mt4">{block.note}</div>
     ) : null}
@@ -9708,25 +9683,31 @@ const cardioProgress = useMemo(() => {
                             • Rest per set: {restSec}s
                           </div>
 
-                          <div className="mt8" style={{ maxWidth: 180 }}>
-                            <div className="label">
-                              Actual minutes (optional)
+                          <div className="blockBottomControls mt8">
+                            <div className="blockBottomControls__field">
+                              <div className="label">
+                                Actual minutes (optional)
+                              </div>
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.5}
+                                value={actualMinutes}
+                                onChange={(v) =>
+                                  updateDurationForBlock(block.id, {
+                                    minutes: v,
+                                  })
+                                }
+                                placeholder={
+                                  estimatedMinutes > 0
+                                    ? String(estimatedMinutes)
+                                    : ""
+                                }
+                              />
                             </div>
-                            <Input
-                              type="number"
-                              min={0}
-                              step={0.5}
-                              value={actualMinutes}
-                              onChange={(v) =>
-                                updateDurationForBlock(block.id, {
-                                  minutes: v,
-                                })
-                              }
-                              placeholder={
-                                estimatedMinutes > 0
-                                  ? String(estimatedMinutes)
-                                  : ""
-                              }
+                            <BlockCancelControl
+                              cancelled={isCancelled}
+                              onChange={(checked) => toggleBlockCancelled(block.id, checked)}
                             />
                           </div>
     
@@ -9793,24 +9774,6 @@ const cardioProgress = useMemo(() => {
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
-          <div className="row between session-log-block__top focusedLogBlockControls">
-            <span className="muted mini">Session controls</span>
-            <label
-              className="mini"
-              style={{ opacity: isCancelled ? 1 : 0.55 }}
-              title="Mark this Session as cancelled when it was impossible to do. It will be handled by the normal cancellation rules."
-            >
-              <input
-                type="checkbox"
-                checked={isCancelled}
-                onChange={(e) =>
-                  toggleBlockCancelled(block.id, e.target.checked)
-                }
-              />
-              <span>Cancelled</span>
-            </label>
-          </div>
-
           {note ? <div className="muted mt4">{note}</div> : null}
 
           {block.isExtra ? (
@@ -9855,6 +9818,14 @@ const cardioProgress = useMemo(() => {
               />
             </div>
           )}
+
+          <div className="blockBottomControls blockBottomControls--end mt8">
+            <BlockCancelControl
+              session
+              cancelled={isCancelled}
+              onChange={(checked) => toggleBlockCancelled(block.id, checked)}
+            />
+          </div>
         </FocusedLogBlock>
       );
     })}
@@ -9899,15 +9870,18 @@ const cardioProgress = useMemo(() => {
       }
 
       const paceFromSpeed = getPaceFromSpeedKmh(avgSpeedKmh);
-      const previousCardio = findLastCardio(allLogs, ymd(selectedDate));
-      const cardioTarget = suggestCardioTarget({ lastCardio: previousCardio });
+      const previousCardio = findLastCardio(allLogs, ymd(selectedDate), block);
+      const distanceHidden = isDistanceHiddenCardioType(block.cardioType || "run");
+      const cardioTarget = suggestCardioTarget({
+        lastCardio: previousCardio,
+        distanceEnabled: !distanceHidden,
+      });
       const cardioTargetPace =
         cardioTarget?.targetSpeedKmh
           ? getPaceFromSpeedKmh(cardioTarget.targetSpeedKmh)
           : null;
       const focusState = getLogBlockFocusState(block);
       const blockOpen = isLogBlockOpen(block.id);
-      const distanceHidden = isDistanceHiddenCardioType(block.cardioType || "run");
       const loggedSummary = [
         !distanceHidden && distKm > 0 ? `${distKm.toFixed(2)} km` : null,
         timeMin > 0 ? `${timeMin} min` : null,
@@ -9933,57 +9907,37 @@ const cardioProgress = useMemo(() => {
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
-          <div className="rowBetween focusedLogBlockControls">
-  <span className="muted mini">Cardio controls</span>
-
-  {historyIndex?.cardioHas?.[block.id] && (
-    <button
-      type="button"
-      className="historyPill"
-      onClick={() => {
-        setHistoryRange("12w");
-        setHistoryModal({ kind: "cardio", id: block.id, title: label });
-      }}
-    >
-      History
-    </button>
-  )}
-</div>
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
 
-          <div className="inMomentTarget mt8">
-            <b>Today’s target</b>
-            <span>{cardioTarget?.text || block.targetText || "Log once to generate a cardio target."}</span>
-            {cardioTargetPace ? (
-              <small>Smartwatch: ~{cardioTargetPace.perKm} /km · {cardioTargetPace.perMile} /mile</small>
-            ) : null}
-            {block.targetText && cardioTarget?.text !== block.targetText ? (
-              <small>{block.targetText}</small>
-            ) : null}
-          </div>
+          {(cardioTarget?.text || block.targetText?.trim()) ? (
+            <div className="inMomentTarget mt8">
+              <b>Today’s target</b>
+              <span>{cardioTarget?.text || block.targetText.trim()}</span>
+              {cardioTargetPace ? (
+                <small>Smartwatch: ~{cardioTargetPace.perKm} /km · {cardioTargetPace.perMile} /mile</small>
+              ) : null}
+              {block.targetText?.trim() && cardioTarget?.text && cardioTarget.text !== block.targetText.trim() ? (
+                <small>{block.targetText}</small>
+              ) : null}
+            </div>
+          ) : null}
 
-          {/* Cancelled toggle */}
-    <div className="row between mt4">
-      <div className="muted small">
-        {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
-      </div>
-      <label
-        className="mini"
-        style={{
-          opacity: isCancelled ? 1 : 0.5,
-        }}
-        title="Mark this block as cancelled when it was impossible to do (e.g. weather, cancelled match). It won’t block your streak."
-      >
-        <input
-          type="checkbox"
-          checked={isCancelled}
-          onChange={(e) => toggleBlockCancelled(block.id, e.target.checked)}
-        />
-        <span>Cancelled</span>
-      </label>
-    </div>
+          {historyIndex?.cardioHas?.[block.id] && (
+            <div className="blockHistoryRow mt8">
+              <button
+                type="button"
+                className="historyPill"
+                onClick={() => {
+                  setHistoryRange("12w");
+                  setHistoryModal({ kind: "cardio", id: block.id, title: label });
+                }}
+              >
+                History
+              </button>
+            </div>
+          )}
 
           {block.isExtra && (
             <div className="row space mt4">
@@ -10061,6 +10015,12 @@ const cardioProgress = useMemo(() => {
   </div>
 )}
 </div>
+          <div className="blockBottomControls blockBottomControls--end mt8">
+            <BlockCancelControl
+              cancelled={isCancelled}
+              onChange={(checked) => toggleBlockCancelled(block.id, checked)}
+            />
+          </div>
           </FocusedLogBlock>
         );
       })}
@@ -10123,21 +10083,17 @@ const cardioProgress = useMemo(() => {
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
 
-          <div className="rowBetween focusedLogBlockControls">
-            <span className="muted mini">{isProfileRecovery ? "Recovery controls" : "Recovery block"}</span>
-
-            {block.isExtra && !isProfileRecovery && (
-              <div className="row space">
-                <div className="muted mini">One-day extra recovery</div>
-                <SecondaryButton
-                  className="btnSmall"
-                  onClick={() => removeExtraMovement(block.id)}
-                >
-                  Remove
-                </SecondaryButton>
-              </div>
-            )}
-          </div>
+          {block.isExtra && !isProfileRecovery && (
+            <div className="row space mt4">
+              <div className="muted mini">One-day extra recovery</div>
+              <SecondaryButton
+                className="btnSmall"
+                onClick={() => removeExtraMovement(block.id)}
+              >
+                Remove
+              </SecondaryButton>
+            </div>
+          )}
 
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
@@ -10283,51 +10239,9 @@ const cardioProgress = useMemo(() => {
             {isSuspended && (
               <div className="recoveryModePausedLabel">Paused by recovery mode</div>
             )}
-            <div className="rowBetween focusedLogBlockControls">
-  <span className="muted mini">Duration controls</span>
-
-  {historyIndex?.durationHas?.[block.id] && (
-    <button
-      type="button"
-      className="historyPill"
-      onClick={() => {
-        setHistoryRange("12w");
-        setHistoryModal({ kind: "duration", id: block.id, title: label });
-      }}
-    >
-      History
-    </button>
-  )}
-</div>
             {block.note ? (
               <div className="muted mt4">{block.note}</div>
             ) : null}
-            <div className="inMomentTarget mt8">
-              <b>Today’s target</b>
-              <span>{block.plannedMinutes || "0"} min</span>
-            </div>
-
-            {/* Cancelled toggle */}
-    <div className="row between mt4">
-      <div className="muted small">
-        {isCancelled ? "Marked as cancelled – won’t block your streak." : "\u00A0"}
-      </div>
-      <label
-        className="mini"
-        style={{
-          opacity: isCancelled ? 1 : 0.5,
-        }}
-        title="Mark this block as cancelled when it was impossible to do (e.g. weather, cancelled match). It won’t block your streak."
-      >
-        <input
-          type="checkbox"
-          checked={isCancelled}
-          onChange={(e) => toggleBlockCancelled(block.id, e.target.checked)}
-        />
-        <span>Cancelled</span>
-      </label>
-    </div>
-
             {block.isExtra && (
               <div className="row space mt4">
                 <div className="muted mini">One-day extra duration</div>
@@ -10358,6 +10272,26 @@ const cardioProgress = useMemo(() => {
 />
   </div>
 </div>
+            <div className="blockBottomControls mt8">
+              <div className="blockBottomControls__history">
+                {historyIndex?.durationHas?.[block.id] && (
+                  <button
+                    type="button"
+                    className="historyPill"
+                    onClick={() => {
+                      setHistoryRange("12w");
+                      setHistoryModal({ kind: "duration", id: block.id, title: label });
+                    }}
+                  >
+                    History
+                  </button>
+                )}
+              </div>
+              <BlockCancelControl
+                cancelled={isCancelled}
+                onChange={(checked) => toggleBlockCancelled(block.id, checked)}
+              />
+            </div>
           </FocusedLogBlock>
         );
       })}
@@ -16114,9 +16048,38 @@ function StyleTag() {
   color:#687789;
 }
 .focusedLogBlockBody{padding:0 12px 12px}
-.focusedLogBlockControls{
-  min-height:30px;
-  margin-top:3px;
+.blockHistoryRow{
+  display:flex;
+  justify-content:flex-end;
+}
+.blockBottomControls{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+}
+.blockBottomControls--end{justify-content:flex-end}
+.blockBottomControls__field{width:min(180px,100%)}
+.blockBottomControls__history{min-height:30px;display:flex;align-items:center}
+.blockCancelControl{
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid #d5dde6;
+  border-radius:10px;
+  padding:8px 11px;
+  background:#f7f9fb;
+  color:#617184;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.blockCancelControl input{margin:0}
+.blockCancelControl.isCancelled{
+  border-color:rgba(255,77,77,.42);
+  background:#fff2f2;
+  color:#b42323;
 }
 
 .focusedMovement{
@@ -16254,12 +16217,12 @@ function StyleTag() {
     white-space:nowrap;
   }
 
-  label[title^="Mark this block as cancelled"],
-  label[title^="Mark this Session as cancelled"]{
+  .blockCancelControl{
     position:relative;
     width:30px;
     height:30px;
     min-width:30px;
+    min-height:30px;
     display:grid !important;
     place-items:center;
     border:1px solid #cbd5df !important;
@@ -16268,25 +16231,25 @@ function StyleTag() {
     margin:0 !important;
     background:#eef2f5 !important;
     color:#64748b !important;
-    opacity:1 !important;
     overflow:hidden;
-    cursor:pointer;
   }
-  label[title^="Mark this block as cancelled"] input,
-  label[title^="Mark this Session as cancelled"] input{
+  .blockCancelControl input{
     position:absolute;
     width:1px;
     height:1px;
     opacity:0;
     pointer-events:none;
   }
-  label[title^="Mark this block as cancelled"] span,
-  label[title^="Mark this Session as cancelled"] span{display:none}
-  label[title^="Mark this block as cancelled"]::before,
-  label[title^="Mark this Session as cancelled"]::before{
+  .blockCancelControl span{display:none}
+  .blockCancelControl::before{
     content:"C";
     font-size:12px;
     font-weight:950;
+  }
+  .blockCancelControl.isCancelled{
+    border-color:#ff4d4d !important;
+    background:#ff4d4d !important;
+    color:#fff !important;
   }
   label[title^="Mark this block as cancelled"]:has(input:checked),
   label[title^="Mark this Session as cancelled"]:has(input:checked){
