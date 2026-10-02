@@ -3,6 +3,7 @@ import {
   aggregateSessionHistory,
   getSessionDistribution,
   sessionHasActivity,
+  sessionIsCompleted,
   sessionIsProgressCompleted,
 } from "./sessionEngine.js";
 
@@ -139,15 +140,23 @@ function sessionBlocks(row) {
 
 export function countStructuredSessionDays(
   logs = [],
-  { startDate = "", endDate = "", completedOnly = false } = {}
+  {
+    startDate = "",
+    endDate = "",
+    completedOnly = false,
+    inferCompletionFromMovements = false,
+  } = {}
 ) {
   const dates = new Set();
   for (const row of Array.isArray(logs) ? logs : []) {
     const date = rowDate(row);
     if (!dateInRange(date, startDate, endDate)) continue;
-    const qualifies = sessionBlocks(row).some((block) =>
-      completedOnly ? sessionIsProgressCompleted(block.session) : sessionHasActivity(block.session)
-    );
+    const qualifies = sessionBlocks(row).some((block) => {
+      if (!completedOnly) return sessionHasActivity(block.session);
+      return inferCompletionFromMovements
+        ? sessionIsProgressCompleted(block.session)
+        : sessionIsCompleted(block.session);
+    });
     if (qualifies) dates.add(date);
   }
   return dates.size;
@@ -155,12 +164,17 @@ export function countStructuredSessionDays(
 
 export function buildTrainingWindowSummary(
   logs = [],
-  { startDate = "", endDate = "", label = "" } = {}
+  {
+    startDate = "",
+    endDate = "",
+    label = "",
+    inferCompletionFromMovements = false,
+  } = {}
 ) {
   const history = aggregateSessionHistory(logs, {
     startDate,
     endDate,
-    inferCompletionFromMovements: true,
+    inferCompletionFromMovements,
   });
   return {
     label,
@@ -168,11 +182,16 @@ export function buildTrainingWindowSummary(
     endDate,
     completedSessions: history.completedSessions,
     partialSessions: history.partialSessions,
-    activeSessionDays: countStructuredSessionDays(logs, { startDate, endDate }),
+    activeSessionDays: countStructuredSessionDays(logs, {
+      startDate,
+      endDate,
+      inferCompletionFromMovements,
+    }),
     completedSessionDays: countStructuredSessionDays(logs, {
       startDate,
       endDate,
       completedOnly: true,
+      inferCompletionFromMovements,
     }),
     totalMinutes: history.totalMinutes,
     recordedExecutions: history.recordedExecutions,
@@ -188,7 +207,11 @@ export function buildTrainingWindowSummary(
 // days or switching to a competing calendar-week definition.
 export function buildTrainingTrendSeries(
   logs = [],
-  { startDate = "", endDate = "" } = {}
+  {
+    startDate = "",
+    endDate = "",
+    inferCompletionFromMovements = false,
+  } = {}
 ) {
   if (!isYmd(startDate) || !isYmd(endDate) || startDate > endDate) return [];
 
@@ -200,6 +223,7 @@ export function buildTrainingTrendSeries(
     const summary = buildTrainingWindowSummary(logs, {
       startDate: cursor,
       endDate: bucketEnd,
+      inferCompletionFromMovements,
     });
 
     rows.push({
@@ -246,12 +270,16 @@ function templateArchived(template) {
 export function buildSessionBalance(
   logs = [],
   sessionTemplates = [],
-  { startDate = "", endDate = "" } = {}
+  {
+    startDate = "",
+    endDate = "",
+    inferCompletionFromMovements = false,
+  } = {}
 ) {
   const recorded = getSessionDistribution(logs, {
     startDate,
     endDate,
-    inferCompletionFromMovements: true,
+    inferCompletionFromMovements,
   });
   const recordedById = new Map(recorded.map((row) => [row.templateId, row]));
 
@@ -337,15 +365,19 @@ export function buildTrainingProgress({
   const scopedLogs = scopeProgressLogs(logs, profileId);
   const windows = buildTrainingProgressWindows(selectedDate);
 
-  const week = buildTrainingWindowSummary(scopedLogs, windows.week);
-  const month = buildTrainingWindowSummary(scopedLogs, windows.month);
-  const recent28 = buildTrainingWindowSummary(scopedLogs, windows.recent28);
-  const lifetime = buildTrainingWindowSummary(scopedLogs, windows.lifetime);
-  const trainingTrend = buildTrainingTrendSeries(scopedLogs, windows.recent28);
+  const progressOptions = { inferCompletionFromMovements: true };
+  const week = buildTrainingWindowSummary(scopedLogs, { ...windows.week, ...progressOptions });
+  const month = buildTrainingWindowSummary(scopedLogs, { ...windows.month, ...progressOptions });
+  const recent28 = buildTrainingWindowSummary(scopedLogs, { ...windows.recent28, ...progressOptions });
+  const lifetime = buildTrainingWindowSummary(scopedLogs, { ...windows.lifetime, ...progressOptions });
+  const trainingTrend = buildTrainingTrendSeries(scopedLogs, {
+    ...windows.recent28,
+    ...progressOptions,
+  });
   const sessionBalance = buildSessionBalance(
     scopedLogs,
     sessionTemplates,
-    windows.recent28
+    { ...windows.recent28, ...progressOptions }
   );
   const movementTotals = buildMovementTotals(scopedLogs);
 
