@@ -10,7 +10,9 @@ describe("starter Programs", () => {
       const weeks = flattenProgramWeeks(program.content);
       expect(weeks).toHaveLength(1);
       expect(program.content.program.startDate).toBe("2026-09-28");
-      expect(Object.values(weeks[0].week.blocksByWeekday).flat().length).toBeGreaterThan(0);
+      const blocks = Object.values(weeks[0].week.blocksByWeekday).flat();
+      expect(blocks.length).toBeGreaterThan(0);
+      expect(blocks.some((block) => block.typeId === "hiit" || block.typeId === "box")).toBe(false);
     }
   });
 

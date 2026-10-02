@@ -30,7 +30,7 @@ body{
   color:#0f172a;
 }
 
-button, input, select{ font: inherit; }
+button, input, select, textarea{ font: inherit; }
 a{ color: inherit; }
 a, .link{ color: var(--brand); }
 a:hover{ color: var(--brand-2); }
@@ -257,6 +257,144 @@ button.btn.primary:hover{
 .weekPill.active{
   background:rgba(255,139,0,0.16);
   border-color:rgba(255,139,0,0.5);
+}
+
+/* === Settings and plan authoring polish === */
+.textarea{
+  width:100%;
+  min-height:78px;
+  border:1px solid #d7e0e8;
+  border-radius:14px;
+  padding:10px 12px;
+  background:#fff;
+  color:#0f172a;
+  line-height:1.45;
+  resize:vertical;
+}
+
+.btnSmall{
+  min-height:38px;
+  border:1px solid #d7e0e8;
+  border-radius:12px;
+  padding:8px 11px;
+  background:#fff;
+  color:#172033;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.btnSmall:hover{border-color:rgba(255,122,24,.55);background:#fffaf5;}
+
+.blockEditorActions{
+  display:grid;
+  grid-template-columns:42px 42px minmax(68px,1fr) minmax(78px,1fr);
+  gap:6px;
+  width:100%;
+}
+
+.blockEditorActions .btnSmall{width:100%;padding-inline:8px;}
+
+.planCycleSettings,
+.planCycleWeekDetails{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:12px;
+  align-items:end;
+}
+
+.planCycleWeekTabs{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding:2px 2px 7px;
+  scrollbar-width:thin;
+}
+
+.planCycleWeekTabs button{
+  flex:0 0 auto;
+  min-width:138px;
+  min-height:54px;
+  display:grid;
+  gap:3px;
+  align-content:center;
+  text-align:left;
+  border:1px solid #d7e0e8;
+  border-radius:14px;
+  padding:9px 12px;
+  background:#fff;
+  color:#172033;
+  font-weight:850;
+  cursor:pointer;
+}
+
+.planCycleWeekTabs button small{color:#64748b;font-size:10px;font-weight:700;}
+.planCycleWeekTabs button.active{border-color:#ff9a4d;background:#fff4ea;box-shadow:0 0 0 1px rgba(255,122,24,.12);}
+.planCycleWeekTabs button.add{border-style:dashed;color:#a54808;}
+.planCycleWeekTabs button.add small{font-size:17px;color:#e7660b;}
+
+.settingsWorkspace .card{border-color:#dce4eb;}
+.settingsWorkspace .panel{background:#f5f7f9;border-color:#dce4eb;}
+.settingsWorkspace .h2{color:#334155;letter-spacing:-.01em;}
+.settingsWorkspace .h3{color:#172033;}
+
+.assessment-hub button,
+.assessment-library button,
+.assessment-runner button,
+.assessment-history button{
+  min-height:38px;
+  border:1px solid #d4dde6;
+  border-radius:11px;
+  padding:8px 12px;
+  background:#fff;
+  color:#172033;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.assessment-hub button:hover,
+.assessment-library button:hover,
+.assessment-runner button:hover,
+.assessment-history button:hover{
+  border-color:#ff9a4d;
+  background:#fff8f2;
+}
+
+.assessment-hub button:disabled,
+.assessment-library button:disabled,
+.assessment-runner button:disabled,
+.assessment-history button:disabled{opacity:.5;cursor:not-allowed;}
+
+.assessment-hub__modes button[aria-pressed="true"],
+.assessment-library__tabs button[aria-pressed="true"],
+.assessment-history__tabs button[aria-pressed="true"]{
+  border-color:#ff9a4d;
+  background:#fff1e5;
+  color:#9a3f06;
+}
+
+.assessment-hub__card-top>button,
+.assessment-hub__run>button,
+.assessment-library__toolbar>button{
+  border-color:#e7660b;
+  background:#ff7a18;
+  color:#fff;
+}
+
+.assessment-hub__card-top>button:hover,
+.assessment-hub__run>button:hover,
+.assessment-library__toolbar>button:hover{
+  border-color:#e7660b;
+  background:#e7660b;
+}
+
+@media(max-width:640px){
+  .planCycleSettings,
+  .planCycleWeekDetails{grid-template-columns:1fr;}
+  .planCycleWeekTabs button{min-width:128px;}
+}
+
+@media(min-width:900px){
+  .blockEditorActions{width:auto;grid-template-columns:42px 42px auto auto;}
 }
 
 /* Plan layout — MOBILE FIRST */

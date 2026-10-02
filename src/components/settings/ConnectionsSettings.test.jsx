@@ -41,6 +41,20 @@ const profiles = [
 afterEach(() => cleanup());
 
 describe("ConnectionsSettings", () => {
+  it("keeps detailed data controls collapsed until the user opens them", async () => {
+    render(
+      <ConnectionsSettings
+        profiles={profiles.slice(0, 1)}
+        initialProfileId="paul"
+        api={api()}
+      />
+    );
+
+    await screen.findByText("Connect Strava to Paul");
+    const details = screen.getByText("Strava · Paul").closest("details");
+    expect(details?.hasAttribute("open")).toBe(false);
+  });
+
   it("assigns OAuth to the explicitly selected athlete rather than an implicit active profile", async () => {
     const mockApi = api();
     const navigate = vi.fn();
