@@ -24,9 +24,18 @@ describe("focused Log and dashboard readiness integration", () => {
     expect(app).toContain('className="inMomentTarget mt8"');
     expect(app).toContain("cardioTarget");
     expect(app).toContain("block.plannedMinutes");
-    expect(app).toContain("targetInfo?.text");
+    expect(app).toContain("targetInfo?.progressionText");
     expect(app).not.toContain("<div className=\"h3\">Today’s mission</div>");
     expect(app).not.toContain("<b>Planned blocks:</b>");
+  });
+
+  it("pairs strength progression guidance with History inside a contained full-width band", () => {
+    const app = read("../App.jsx");
+
+    expect(app).toContain("movementProgressionBand");
+    expect(app).toContain("movementProgressionBand__history");
+    expect(app).toContain("progressionText");
+    expect(app).toContain("overflow-wrap:anywhere");
   });
 
   it("uses progressive movement disclosure without preventing out-of-order access", () => {
