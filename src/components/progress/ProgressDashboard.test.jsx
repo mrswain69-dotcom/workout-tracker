@@ -92,7 +92,7 @@ describe("ProgressDashboard Stage 4 shell", () => {
     expect(screen.getByText("1,680")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Sessions Progress" }));
-    expect(screen.getByText("Training progress & benchmarks")).toBeTruthy();
+    expect(screen.getByText("Skills training progress & benchmarks")).toBeTruthy();
     expect(screen.getByText("Session distribution")).toBeTruthy();
     expect(screen.getByText("Movement totals")).toBeTruthy();
 

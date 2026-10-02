@@ -51,7 +51,7 @@ describe("Historical Timeline Stage 5 integration contract", () => {
 
     expect(ui).toContain("Performance Autobiography");
     expect(ui).toContain("Unlock the true age timeline");
-    expect(ui).toContain("View evidence");
+    expect(ui).toContain("Why this is a highlight");
     expect(ui).toContain("Three years of real history unlocks the full career view");
     expect(engine).toContain("universalPercentage: null");
     expect(engine).toContain('state: "metric_specific_only"');

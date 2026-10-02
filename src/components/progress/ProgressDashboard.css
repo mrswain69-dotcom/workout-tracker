@@ -451,27 +451,40 @@
 /* Progress information architecture */
 .progress-subnav{
   display:flex;
-  gap:8px;
+  gap:6px;
+  width:100%;
   overflow-x:auto;
-  padding:4px 1px 8px;
-  margin:14px 0 4px;
+  padding:6px;
+  margin:0;
+  border:1px solid rgba(15,23,42,.12);
+  border-radius:16px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 8px 24px rgba(15,23,42,.08);
   scrollbar-width:thin;
 }
 .progress-subnav button{
-  flex:0 0 auto;
-  border:1px solid #2c3440;
-  border-radius:999px;
-  background:#171b23;
-  color:#aebdca;
-  padding:8px 12px;
+  flex:1 1 0;
+  min-height:42px;
+  min-width:116px;
+  border:1px solid transparent;
+  border-radius:11px;
+  background:transparent;
+  color:#475569;
+  padding:8px 11px;
   font-size:12px;
   font-weight:850;
   cursor:pointer;
+  white-space:nowrap;
+}
+.progress-subnav button:hover{
+  border-color:rgba(255,122,24,.24);
+  background:rgba(255,122,24,.06);
+  color:#0f172a;
 }
 .progress-subnav button.active{
-  border-color:#00e5ff;
-  background:#062b31;
-  color:#00e5ff;
+  border-color:rgba(255,122,24,.42);
+  background:rgba(255,122,24,.12);
+  color:#0f172a;
 }
 .progress-view-stack{
   display:grid;
@@ -585,11 +598,15 @@
 }
 @media(max-width:640px){
   .progress-subnav{
-    margin-left:-2px;
-    margin-right:-2px;
+    gap:5px;
+    padding:5px;
+    border-radius:14px;
   }
   .progress-subnav button{
-    padding:8px 10px;
+    flex:0 0 auto;
+    min-width:118px;
+    min-height:42px;
+    padding:7px 9px;
     font-size:11px;
   }
   .progress-overview-grid,
@@ -597,4 +614,8 @@
   .progress-disclosure > summary{padding:12px}
   .progress-disclosure__copy > strong{font-size:15px}
   .progress-disclosure__body{padding:12px}
+}
+
+.progress-readiness-section .progress-state-grid{
+  margin-top:14px;
 }

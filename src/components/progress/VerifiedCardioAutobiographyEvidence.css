@@ -175,3 +175,92 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+.autobiography-verified-cardio__browser{
+  margin-top:12px;
+  border:1px solid #292f3a;
+  border-radius:12px;
+  background:#0b0e14;
+  overflow:hidden;
+}
+.autobiography-verified-cardio__browser > summary{
+  list-style:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px;
+  cursor:pointer;
+}
+.autobiography-verified-cardio__browser > summary::-webkit-details-marker{display:none}
+.autobiography-verified-cardio__browser > summary span{
+  color:#d8e1ee;
+  font-size:.8rem;
+  font-weight:800;
+}
+.autobiography-verified-cardio__browser > summary strong{
+  color:#00e5ff;
+  font-size:.7rem;
+}
+.autobiography-verified-cardio__browser[open] > summary{
+  border-bottom:1px solid #252b35;
+}
+.autobiography-verified-cardio__filters{
+  display:grid;
+  grid-template-columns:minmax(150px,.7fr) minmax(180px,1.3fr);
+  gap:9px;
+  padding:11px 12px 0;
+}
+.autobiography-verified-cardio__filters label{
+  display:grid;
+  gap:4px;
+}
+.autobiography-verified-cardio__filters label > span{
+  color:#7f8b9d;
+  font-size:.67rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.autobiography-verified-cardio__filters select,
+.autobiography-verified-cardio__filters input{
+  width:100%;
+  min-height:38px;
+  box-sizing:border-box;
+  border:1px solid #303744;
+  border-radius:9px;
+  padding:7px 9px;
+  background:#10131b;
+  color:#eaf2fc;
+  font:inherit;
+  font-size:.76rem;
+  color-scheme:dark;
+}
+.autobiography-verified-cardio__browser .autobiography-verified-cardio__list{
+  margin:11px 12px 0;
+}
+.autobiography-verified-cardio__more{
+  display:block;
+  margin:11px auto 12px;
+  padding:7px 11px;
+  border:1px solid rgba(0,229,255,.28);
+  border-radius:999px;
+  background:rgba(0,229,255,.06);
+  color:#9eeefa;
+  font:inherit;
+  font-size:.72rem;
+  font-weight:800;
+  cursor:pointer;
+}
+
+@media (max-width:520px){
+  .autobiography-verified-cardio__browser > summary{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:3px;
+  }
+  .autobiography-verified-cardio__filters{
+    grid-template-columns:1fr;
+  }
+}

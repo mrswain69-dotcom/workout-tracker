@@ -21,17 +21,19 @@
 .progress-dashboard .progress-hero{
   padding:18px 20px;
   border-radius:16px;
+  color:#0f172a;
   background:
-    radial-gradient(circle at top right,rgba(0,229,255,.14),transparent 34%),
-    var(--progress-surface);
-  border-color:rgba(0,229,255,.22);
-  box-shadow:none;
+    linear-gradient(135deg,rgba(0,229,255,.10),rgba(255,255,255,.97) 58%,rgba(255,122,24,.055));
+  border-color:rgba(0,174,196,.30);
+  box-shadow:0 10px 28px rgba(15,23,42,.08);
 }
-.progress-dashboard .progress-hero p{color:#aeb7c6}
+.progress-dashboard .progress-hero h2{color:#0f172a}
+.progress-dashboard .progress-hero__eyebrow{color:#08738a}
+.progress-dashboard .progress-hero p{color:#526477}
 .progress-dashboard .progress-hero__date{
-  color:#d6fbff;
-  border-color:rgba(0,229,255,.28);
-  background:rgba(0,229,255,.07);
+  color:#075d70;
+  border-color:rgba(0,174,196,.30);
+  background:rgba(255,255,255,.74);
 }
 
 .progress-dashboard .progress-section,

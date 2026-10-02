@@ -129,6 +129,8 @@ describe("PerformanceAutobiography Stage 5 UI", () => {
     const trainingLabel = screen.getByText("training days");
     expect(trainingLabel.parentElement?.textContent).toContain("2");
     expect(screen.getByText(/Three years of real history unlocks the full career view/i)).toBeTruthy();
+    expect(screen.getByLabelText("Recorded highlight summary")).toBeTruthy();
+    expect(screen.getByText("Why this is a highlight")).toBeTruthy();
   });
 
   it("saves a private DOB and immediately unlocks the correct age chapter without mutating history", async () => {
@@ -184,6 +186,11 @@ describe("PerformanceAutobiography Stage 5 UI", () => {
     expect(screen.getByRole("heading", { name: "Age 13 verified cardio evidence" })).toBeTruthy();
     expect(screen.getByText("5 km")).toBeTruthy();
     expect(screen.getByText("25 min")).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Verified cardio date range"), {
+      target: { value: "all" },
+    });
+
     expect(screen.getByText(/5:00 \/km/)).toBeTruthy();
     expect(screen.getByText(/148 bpm avg/)).toBeTruthy();
     expect(screen.getByText("Strava")).toBeTruthy();
