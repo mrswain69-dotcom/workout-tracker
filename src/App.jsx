@@ -34,10 +34,6 @@ import {
   getLog,
   upsertLog,
   listLogs,
-  listPlanTemplates,
-  createPlanTemplate,
-  updatePlanTemplate,
-  deletePlanTemplate,
   loadSessionLibrary,
   setFamilyPinHash,
   clearFamilyPin,
@@ -500,13 +496,13 @@ const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // built-in activity types
 function builtInTypes() {
   return [
-    { id: "strength", name: "Strength / HIIT (sets)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
+    { id: "strength", name: "Strength (sets + reps)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
+    { id: "hiit", name: "HIIT (intervals + circuits)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
     { id: "box", name: "Boxercise (timed rounds)", kind: "time", movementsEnabled: true, sets: 3, fixedSeconds: 60, allowCount: true, countLabel: "hits" },
-    { id: "run", name: "Run (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
-    { id: "swim", name: "Swim (distance + time)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
-    { id: "duration", name: "Duration only (minutes)", kind: "custom", movementsEnabled: false, fields: { durationMin: true } },
+    { id: "cardio", name: "Cardio (distance, time or target)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
+    { id: "duration", name: "Duration (mobility, yoga or stretching)", kind: "custom", movementsEnabled: false, fields: { durationMin: true } },
     { id: "recovery", name: "Recovery", kind: "recovery", movementsEnabled: false, fields: { recoveryDone: true, plannedMinutes: true } },
-    // NEW: tick-box tasks (yes/no)
+    { id: "session", name: "Session Library workout", kind: "session", movementsEnabled: false },
     { id: "tasks", name: "Tick-box tasks (yes/no)", kind: "task", movementsEnabled: false, fields: { tasks: true } },
   ];
 }
@@ -3302,9 +3298,7 @@ useEffect(() => {
   const chartsRef = useRef(null);
 
   const [pinUnlockedUntil, setPinUnlockedUntil] = useState(0);
-  const [selectedPresetId, setSelectedPresetId] = useState("");
-  const [planTemplates, setPlanTemplates] = useState([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [planWorkspaceView, setPlanWorkspaceView] = useState("build");
   const [undoPlan, setUndoPlan] = useState(null);
   const [undoLabel, setUndoLabel] = useState("");
   
@@ -3937,9 +3931,6 @@ function toggleLogBlockFocus(blockId) {
     if (!fam?.welcome_email_sent_at) {
       sendWelcomeTutorialEmail().catch(() => {});
     }
-
-    const { data: templs } = await listPlanTemplates(fam.id);
-    setPlanTemplates(templs || []);
 
     const { data: profs } = await listProfiles(fam.id);
     let profList = profs || [];
@@ -5888,6 +5879,26 @@ const selectedDayHasHeavyTrainingBlocks =
     });
     await applyPlan(imported, options.label || "Training plan applied");
     setPlanCycleWeekIndex(0);
+  }
+
+  async function startBlankTrainingProgram() {
+    const ok = window.confirm(
+      "Start a new blank Program?\n\nYour current Program remains available only if you have saved it to My Programs. You can undo immediately after creating the blank Program."
+    );
+    if (!ok) return;
+    const blank = ensurePlanProgram(defaultPlanForFamily(), {
+      todayYmd: getTodayYMD(),
+      name: "Untitled programme",
+    });
+    await applyTrainingPlanContent({
+      ...blank,
+      program: {
+        ...blank.program,
+        name: "Untitled programme",
+        completionMode: "repeat",
+      },
+    }, { label: "New blank Program" });
+    setPlanWorkspaceView("build");
   }
 
   function acceptRemotelyAppliedTrainingPlan(nextPlan, label = "Training plan applied") {
@@ -10997,6 +11008,37 @@ const cardioProgress = useMemo(() => {
 
 {tab === "plan" && (
   <>
+  <Card className="pad planWorkspaceNav">
+    <div className="rowBetween" style={{ gap: 12, flexWrap: "wrap" }}>
+      <div>
+        <div className="h2">Plans</div>
+        <div className="muted mt4">
+          Build the active Program or choose a reusable Program from your library.
+        </div>
+      </div>
+      <div className="pillToggle" role="tablist" aria-label="Plan workspace">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={planWorkspaceView === "build"}
+          className={"pillToggleBtn " + (planWorkspaceView === "build" ? "active" : "")}
+          onClick={() => setPlanWorkspaceView("build")}
+        >
+          Build
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={planWorkspaceView === "library"}
+          className={"pillToggleBtn " + (planWorkspaceView === "library" ? "active" : "")}
+          onClick={() => setPlanWorkspaceView("library")}
+        >
+          Program Library
+        </button>
+      </div>
+    </div>
+  </Card>
+  {planWorkspaceView === "build" ? (
   <div className="gridPlan">
     <Card className="pad" style={{ gridColumn: "1 / -1" }}>
       <div className="rowBetween" style={{ gap: 12, flexWrap: "wrap" }}>
@@ -11006,9 +11048,17 @@ const cardioProgress = useMemo(() => {
             Build phases and changing weeks once. The right week appears automatically from the start date.
           </div>
         </div>
-        <span className="pill">
-          {planProgramWeeks.length} week{planProgramWeeks.length === 1 ? "" : "s"} · {planProgram.program.phases.length} phase{planProgram.program.phases.length === 1 ? "" : "s"}
-        </span>
+        <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+          <span className="pill">
+            {planProgramWeeks.length} week{planProgramWeeks.length === 1 ? "" : "s"} · {planProgram.program.phases.length} phase{planProgram.program.phases.length === 1 ? "" : "s"}
+          </span>
+          {undoPlan ? (
+            <SecondaryButton onClick={undoLastPlan} title={undoLabel || "Undo recent Program change"}>
+              Undo recent change
+            </SecondaryButton>
+          ) : null}
+          <SecondaryButton onClick={startBlankTrainingProgram}>New blank Program</SecondaryButton>
+        </div>
       </div>
 
       <div className="planCycleSettings mt12">
@@ -11173,8 +11223,8 @@ const cardioProgress = useMemo(() => {
       <div className="mt16 stack">
         {blocksForSelectedPlanDay.length === 0 && (
           <div className="muted">
-            No blocks yet for {planWeekday}. Add a strength, cardio, duration,
-            recovery, session, or tasks block below.
+            No blocks yet for {planWeekday}. Add a strength, HIIT, boxercise,
+            cardio, duration, recovery, session, or tasks block below.
           </div>
         )}
 
@@ -11187,7 +11237,7 @@ const cardioProgress = useMemo(() => {
               <div key={block.id} className="panel mt8">
                 <div className="row between">
                   <div className="pill">
-                    {typeId === "strength" && "Strength / HIIT"}
+                    {typeId === "strength" && "Strength"}
                     {typeId === "hiit" && "HIIT"}
                     {typeId === "box" && "Boxercise"}
                     {typeId === "cardio" && "Cardio"}
@@ -11229,7 +11279,7 @@ const cardioProgress = useMemo(() => {
               <div className="row between">
                 <div className="pillRow">
                   <span className="pill">
-                    {typeId === "strength" && "Strength / HIIT"}
+                    {typeId === "strength" && "Strength"}
                     {typeId === "hiit" && "HIIT"}
                     {typeId === "box" && "Boxercise"}
                     {typeId === "cardio" && "Cardio"}
@@ -11239,18 +11289,20 @@ const cardioProgress = useMemo(() => {
                     {typeId === "tasks" && "Tasks"}
                   </span>
                   {typeId === "strength" || typeId === "hiit" || typeId === "box" ? (
-                    <Select
-                      className="ml8"
-                      value={typeId}
-                      onChange={(v) =>
-                        updateBlockInDay(block.id, () => ({ typeId: v }))
-                      }
-                      options={[
-                        { value: "strength", label: "Strength" },
-                        { value: "hiit", label: "HIIT" },
-                        { value: "box", label: "Boxercise" },
-                      ]}
-                    />
+                    <label className="trainingFormatSelect">
+                      <span>Training format</span>
+                      <Select
+                        value={typeId}
+                        onChange={(v) =>
+                          updateBlockInDay(block.id, () => ({ typeId: v }))
+                        }
+                        options={[
+                          { value: "strength", label: "Strength" },
+                          { value: "hiit", label: "HIIT" },
+                          { value: "box", label: "Boxercise" },
+                        ]}
+                      />
+                    </label>
                   ) : null}
                 </div>
                 <div className="row" style={{ gap: 4 }}>
@@ -11815,7 +11867,19 @@ const cardioProgress = useMemo(() => {
             className="btnSmall"
             onClick={() => addBlockToDay("strength")}
           >
-            + Strength / HIIT block
+            + Strength block
+          </PrimaryButton>
+          <PrimaryButton
+            className="btnSmall"
+            onClick={() => addBlockToDay("hiit")}
+          >
+            + HIIT block
+          </PrimaryButton>
+          <PrimaryButton
+            className="btnSmall"
+            onClick={() => addBlockToDay("box")}
+          >
+            + Boxercise block
           </PrimaryButton>
           <PrimaryButton
             className="btnSmall"
@@ -11851,18 +11915,17 @@ const cardioProgress = useMemo(() => {
       </div>
     </Card>
 
-    {/* RIGHT COLUMN: Weekly plan + presets + activity type info */}
+    {/* RIGHT COLUMN: selected week overview + block type guidance */}
     <Card className="pad planSide">
-      <div className="h2">Weekly plan overview</div>
+      <div className="h2">Selected week overview</div>
       <div className="muted mt8">
-        This shows all blocks for the week. Use it to sense-check balance and
-        save or apply presets.
+        This is {selectedProgramWeek?.week?.name || `Week ${planCycleWeekIndex + 1}`} in {selectedProgramWeek?.phase?.name || "the current phase"}. Use it to sense-check balance before moving to another week.
       </div>
 
       <div className="mt12 weeklyPlanSummary">
         {weekdays.map((d) => {
           const dayBlocks =
-            plan?.blocksByWeekday?.[d] || [];
+            planEditorPlan?.blocksByWeekday?.[d] || [];
           return (
             <div key={d} className="weeklyPlanDay">
               <div className="weeklyPlanDayHeader">{d}</div>
@@ -11898,217 +11961,66 @@ const cardioProgress = useMemo(() => {
         })}
       </div>
 
-        {/* Preset plans */}
-      <div className="panel mt16">
-        <div className="h3">Preset plans</div>
-        <div className="muted mt8">
-          Pick a weekly preset, then apply it. This can overwrite your current week.
-        </div>
-
-        <div className="row mt12">
-          <div style={{ flex: 1 }}>
-            <Select
-              value={selectedPresetId}
-              onChange={setSelectedPresetId}
-              options={[
-                { value: "", label: "Choose a preset…" },
-                ...presetPlans().map((p) => ({ value: p.id, label: p.name })),
-              ]}
-            />
-            {selectedPresetId ? (
-              <div className="muted mt8">
-                {presetPlans().find((p) => p.id === selectedPresetId)?.note || ""}
-              </div>
-            ) : null}
-          </div>
-          <div style={{ width: 12 }} />
-          <PrimaryButton
-            disabled={!selectedPresetId}
-            onClick={async () => {
-              const preset = presetPlans().find((p) => p.id === selectedPresetId);
-              if (!preset) return;
-              const ok = window.confirm(
-                `Apply preset "${preset.name}"?\n\nThis will overwrite your current weekly plan. You can undo right after applying.`
-              );
-              if (!ok) return;
-              await applyPlan(
-                { ...preset.plan, presetId: preset.id },
-                `Preset applied: ${preset.name}`
-              );
-            }}
-          >
-            Apply preset
-          </PrimaryButton>
-        </div>
-
-        {undoPlan ? (
-          <div className="rowBetween mt12">
-            <div className="mini">
-              Undo available: <b>{undoLabel || "Recent change"}</b>
-            </div>
-            <SecondaryButton onClick={undoLastPlan}>Undo</SecondaryButton>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Saved weekly plans */}
-      <div className="panel mt16">
-        <div className="rowBetween">
-          <div>
-            <div className="h3">Saved weekly plans</div>
-            <div className="muted mt8">
-              Save multiple weeks (templates) and switch between them.
-            </div>
-          </div>
-        </div>
-
-        <div className="row mt12">
-          <div style={{ flex: 1 }}>
-            <Select
-              value={selectedTemplateId}
-              onChange={setSelectedTemplateId}
-              options={[
-                { value: "", label: "Choose a saved plan…" },
-                ...planTemplates.map((t) => ({ value: t.id, label: t.name })),
-              ]}
-            />
-          </div>
-          <div style={{ width: 12 }} />
-          <PrimaryButton
-            disabled={!selectedTemplateId}
-            onClick={async () => {
-              const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
-              if (!tpl) return;
-              const ok = window.confirm(
-                `Load saved plan "${tpl.name}"?\n\nThis will overwrite your current weekly plan. You can undo right after applying.`
-              );
-              if (!ok) return;
-              await applyPlan(
-                { ...(tpl.plan_json || {}), templateId: tpl.id },
-                `Loaded saved plan: ${tpl.name}`
-              );
-            }}
-          >
-            Load
-          </PrimaryButton>
-        </div>
-
-        <div className="row planTemplatesRow mt12">
-<PrimaryButton
-  onClick={async () => {
-    const name = window.prompt("Name this saved weekly plan:");
-    if (!name) return;
-    if (!family?.id) return;
-    if (!(await ensureUnlocked("save a template"))) return;
-
-    const { data: created, error } = await createPlanTemplate(
-      family.id,
-      name,
-      plan || {}
-    );
-
-    if (error) {
-      window.alert(error.message || String(error));
-      return;
-    }
-
-    if (created) {
-      // Immediately add the new template to the local list
-      setPlanTemplates((prev) => [created, ...(prev || [])]);
-      // And select it so it’s obvious which one you just saved
-      setSelectedTemplateId(created.id);
-    }
-  }}
->
-  Save as new
-</PrimaryButton>
-          <div style={{ width: 10 }} />
-          <SecondaryButton
-            disabled={!selectedTemplateId}
-            onClick={async () => {
-              const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
-              if (!tpl) return;
-              const ok = window.confirm(
-                `Update "${tpl.name}" with your current plan?`
-              );
-              if (!ok) return;
-              if (!(await ensureUnlocked("update a template"))) return;
-              const { error } = await updatePlanTemplate(
-                tpl.id,
-                tpl.name,
-                plan || {}
-              );
-              if (error) window.alert(error.message || String(error));
-              const { data } = await listPlanTemplates(family.id);
-              setPlanTemplates(data || []);
-            }}
-          >
-            Update plan
-          </SecondaryButton>
-          <div style={{ width: 10 }} />
-          <SecondaryButton
-            disabled={!selectedTemplateId}
-            onClick={async () => {
-              const tpl = planTemplates.find((t) => t.id === selectedTemplateId);
-              if (!tpl) return;
-              const ok = window.confirm(
-                `Delete saved plan "${tpl.name}"?`
-              );
-              if (!ok) return;
-              if (!(await ensureUnlocked("delete a template"))) return;
-              const { error } = await deletePlanTemplate(tpl.id);
-              if (error) window.alert(error.message || String(error));
-              const { data } = await listPlanTemplates(family.id);
-              setPlanTemplates(data || []);
-              setSelectedTemplateId("");
-            }}
-          >
-            Delete plan
-          </SecondaryButton>
-        </div>
-      </div>
-
-      {/* Activity Types (collapsed by default) */}
+      {/* Block types (collapsed by default) */}
       <div className="panel mt16">
         <details>
-          <summary className="h3">Activity types</summary>
+          <summary className="h3">Block types</summary>
           <div className="muted mt8">
-            Information about the different types of activity you can add:
+            Every Program is built from these reusable block formats:
           </div>
           <ul className="mt8">
             <li>
-              <b>Strength / HIIT / Boxercise</b> — sets &amp; reps with optional
-              weight and duration tracking.
+              <b>Strength</b> — sets and reps with optional weight and duration tracking.
             </li>
             <li>
-              <b>Cardio</b> — runs, rides, swims, or other cardio with clear
-              free-form targets.
+              <b>HIIT</b> — faster interval or circuit work using movements, rounds and shorter recoveries.
             </li>
             <li>
-              <b>Duration</b> — time-based activities like yoga, mobility, or
-              stretching.
+              <b>Boxercise</b> — timed boxing movements and rounds.
             </li>
             <li>
-              <b>Tasks</b> — tick-box actions like stretching, journaling, or
-              ice baths, each with its own XP value.
+              <b>Cardio</b> — running, cycling, swimming, rowing, team sports and other cardio with a clear target.
+            </li>
+            <li>
+              <b>Duration</b> — time-based work such as yoga, mobility or stretching.
+            </li>
+            <li>
+              <b>Recovery</b> — a full or light recovery day with optional planned minutes.
+            </li>
+            <li>
+              <b>Session</b> — a reusable structured workout selected from the Session Library.
+            </li>
+            <li>
+              <b>Tasks</b> — tick-box actions such as stretching, journaling or rehab work, each with its own optional XP value.
             </li>
           </ul>
         </details>
       </div>
     </Card>
   </div>
-  <React.Suspense fallback={<div className="panel mt16">Loading programme library…</div>}>
+  ) : (
+  <React.Suspense fallback={<div className="panel mt16">Loading Program Library…</div>}>
     <TrainingProgramLibrary
       familyId={family?.id || ""}
       activeProfileId={activeProfileId}
       activePlan={planProgram}
       authorizeMutation={(reason) => ensureUnlocked(reason)}
-      onProgramApplied={(nextPlan) => {
-        if (nextPlan && activeProfileId) setAndCachePlan(activeProfileId, nextPlan);
-        setPlanCycleWeekIndex(0);
+      onProgramApplied={(nextPlan, label) => {
+        if (nextPlan) acceptRemotelyAppliedTrainingPlan(nextPlan, label);
+        setPlanWorkspaceView("build");
+      }}
+      onStarterApplied={async (program, options) => {
+        await applyTrainingPlanContent(program.content, {
+          startDate: options?.startDate,
+          repeatMode: options?.completionMode,
+          label: `Starter Program applied: ${program.title}`,
+          source: { kind: "starter", starterId: program.id },
+        });
+        setPlanWorkspaceView("build");
       }}
     />
   </React.Suspense>
+  )}
   </>
 )}
 
@@ -15580,10 +15492,12 @@ function StyleTag() {
       .mt16{margin-top:16px}
       .stack{display:flex;flex-direction:column;gap:12px}
       .row{display:flex;flex-direction:column;gap:10px}
+      .planWorkspaceNav{margin-bottom:12px;}
+      .trainingFormatSelect{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+      .trainingFormatSelect > span{font-size:11px;font-weight:800;color:#64748b;}
       @media (min-width: 900px){
   .row{ flex-direction:row; align-items:flex-start; justify-content:space-between; }
   .rowRight{ justify-content:flex-end; }
-  .planTemplatesRow{flex-wrap:wrap;align-items:center;}
 
 /* Log header alignment */
   .logTopRow{
@@ -16200,173 +16114,3 @@ function StyleTag() {
     `}</style>
   );
 }
-
-const COACHING_NOTES = {
-  "Push-ups": "Strong plank body. Chest to just above the floor, then press up.",
-  "Bodyweight Squats": "Feet shoulder-width. Sit back, knees track over toes. Stand tall.",
-  "Goblet Squat": "Hold a dumbbell/kettlebell at chest. Keep chest up, squat deep with control.",
-  "Reverse Lunges": "Step back, drop back knee towards floor, push through front foot.",
-  "Lunges": "Long step, front knee over mid-foot, keep torso tall.",
-  "Step-ups": "Use a stable step/bench. Drive through the whole foot; control down.",
-  "Split Squat": "Stay in a split stance. Drop straight down and up (slow & controlled).",
-  "Hip Hinge (RDL)": "Soft knees, push hips back, feel hamstrings, keep back neutral.",
-  "Glute Bridge": "Heels close to bum. Squeeze glutes at the top for 1 second.",
-  "Calf Raises": "Full range: down slow, up strong. Keep balance with a wall if needed.",
-  "Dumbbell Row": "Flat back. Pull elbow to your pocket, squeeze shoulder blade.",
-  "Shoulder Press": "Brace core. Press overhead without leaning back.",
-  "Pull / Row variation": "Pick any row/pull movement and focus on smooth reps.",
-  "Plank": "Elbows under shoulders. Ribs down, squeeze glutes, breathe.",
-  "Side Plank": "Hips high, straight line head-to-heels. Hold steady, breathe.",
-  "Hollow Hold": "Lower back pressed down. Hold a tight banana shape.",
-  "Wall Sit": "Back flat to wall. Knees about 90°. Stay strong and breathe.",
-  "Squat Jumps": "Soft landings. Jump up, absorb quietly, reset and repeat.",
-  "Jump Rope": "Small bounces, wrists turn the rope. Stay light on feet.",
-  "Mountain Climbers": "Hands under shoulders. Drive knees fast while keeping hips stable.",
-  "Burpees": "Smooth rhythm. Step back if needed; quality over speed.",
-  "1-2 (jab–cross) + move": "Snap punches, hands back to guard. Add a small step after.",
-  "Hook–cross + duck": "Turn hips for the hook. Duck under (small bend), back to guard.",
-  "Knees + teeps (shadow)": "Core tight. Knee up then extend for a light front kick. Control.",
-  "Core finisher (30s on / 30s off)": "Pick: plank, dead-bug, bicycle. Keep it tidy.",
-  "1-2-3-2 combo": "Jab–cross–hook–cross. Stay light, guard up.",
-  "Punch–slip–punch": "Slip = tiny head movement. Return fire fast, then reset.",
-  "Fast feet (shadow)": "Quick steps, light bounce. Hands up, breathe through nose if possible.",
-};
-
-function presetPlans() {
-  // Build a fresh plan each call (new movement IDs) so presets don’t clash with older logs.
-  const noteFor = (name) => COACHING_NOTES[name] || "";
-
-  const movement = (name, mode, opts = {}) => ({
-    id: uid(),
-    name,
-    mode,
-    note: noteFor(name),
-    ...opts,
-  });
-
-  
-const strengthDay = (names) =>
-  names.map((n) => {
-    const noWeight = ["Push-ups", "Plank", "Side Plank", "Hollow Hold", "Burpees", "Jump Rope", "Mountain Climbers"];
-    const allowWeight = !noWeight.includes(n);
-    return movement(n, "strength", { allowWeight });
-  });
-
-const boxRounds = (names) =>
-    names.map((n) =>
-      movement(n, "time", {
-        fixedSeconds: 60,
-        allowCount: true,
-        countLabel: "rounds",
-      })
-    );
-
-  const baseTypes = builtInTypes();
-
-  const makePlan = ({ dayTypeByWeekday, movementsByWeekday, restSecByWeekday, cardioTargetByWeekday, dayActivitiesByWeekday }) => ({
-    version: 1,
-    activityTypes: baseTypes,
-    dayTypeByWeekday: dayTypeByWeekday || defaultPlanForFamily().dayTypeByWeekday,
-    restSecByWeekday: restSecByWeekday || weekdays.reduce((acc, d) => ((acc[d] = 60), acc), {}),
-    movementsByWeekday: movementsByWeekday || {},
-    cardioTargetByWeekday: cardioTargetByWeekday || {},
-    dayActivitiesByWeekday: dayActivitiesByWeekday || {},
-  });
-
-  // --- Presets ---
-  const footballEngine = makePlan({
-    dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "run", Sun: "duration" },
-    restSecByWeekday: { Mon: 75, Tue: 0, Wed: 75, Thu: 45, Fri: 75, Sat: 0, Sun: 0 },
-    movementsByWeekday: {
-      Mon: strengthDay(["Goblet Squat", "Push-ups", "Dumbbell Row", "Plank"]),
-      Wed: strengthDay(["Reverse Lunges", "Shoulder Press", "Hip Hinge (RDL)", "Side Plank"]),
-      Thu: boxRounds(["1-2 (jab–cross) + move", "Hook–cross + duck", "Knees + teeps (shadow)", "Core finisher (30s on / 30s off)"]),
-      Fri: strengthDay(["Step-ups", "Pull / Row variation", "Split Squat", "Hollow Hold"]),
-    },
-    cardioTargetByWeekday: {
-      Tue: "Intervals: 5 min easy • 6×(1 min fast / 1 min easy) • 5 min easy",
-      Sat: "Tempo: 10 min easy • 10–15 min steady (talk-test) • 5 min easy",
-      Sun: "Easy walk / light cycle 20–40 min (optional)",
-    },
-  });
-
-  const legsPower = makePlan({
-    dayTypeByWeekday: { Mon: "strength", Tue: "duration", Wed: "strength", Thu: "duration", Fri: "strength", Sat: "duration", Sun: "duration" },
-    restSecByWeekday: { Mon: 90, Tue: 0, Wed: 90, Thu: 0, Fri: 90, Sat: 0, Sun: 0 },
-    movementsByWeekday: {
-      Mon: strengthDay(["Goblet Squat", "Reverse Lunges", "Calf Raises", "Plank"]),
-      Wed: strengthDay(["Hip Hinge (RDL)", "Step-ups", "Glute Bridge", "Side Plank"]),
-      Fri: strengthDay(["Split Squat", "Squat Jumps", "Wall Sit", "Hollow Hold"]),
-    },
-    cardioTargetByWeekday: {
-      Tue: "Zone 2: 20–30 min easy (you can talk).",
-      Thu: "Mobility walk: 15–25 min + 5 min stretching.",
-      Sat: "Optional: hills (walk up / easy down) 15–20 min.",
-    },
-  });
-
-  const toneConditioning = makePlan({
-    dayTypeByWeekday: { Mon: "strength", Tue: "run", Wed: "strength", Thu: "box", Fri: "strength", Sat: "duration", Sun: "duration" },
-    restSecByWeekday: { Mon: 45, Tue: 0, Wed: 45, Thu: 30, Fri: 45, Sat: 0, Sun: 0 },
-    movementsByWeekday: {
-      Mon: strengthDay(["Push-ups", "Bodyweight Squats", "Mountain Climbers", "Plank"]),
-      Wed: strengthDay(["Lunges", "Shoulder Press", "Dumbbell Row", "Hollow Hold"]),
-      Thu: boxRounds(["1-2-3-2 combo", "Punch–slip–punch", "Fast feet (shadow)", "Core finisher (30s on / 30s off)"]),
-      Fri: strengthDay(["Goblet Squat", "Burpees", "Jump Rope", "Side Plank"]),
-    },
-    cardioTargetByWeekday: {
-      Tue: "Intervals: 5 min easy • 8×(30s fast / 60s easy) • 5 min easy",
-      Sat: "Easy steady: 20–40 min (walk/jog/cycle).",
-      Sun: "Recovery: 15–30 min easy movement + stretch.",
-    },
-  });
-
-  const recoveryMobility = makePlan({
-    dayTypeByWeekday: { Mon: "duration", Tue: "duration", Wed: "duration", Thu: "duration", Fri: "duration", Sat: "duration", Sun: "duration" },
-    restSecByWeekday: weekdays.reduce((acc, d) => ((acc[d] = 0), acc), {}),
-    movementsByWeekday: {},
-    cardioTargetByWeekday: {
-      Mon: "Mobility: 10–20 min stretching (hips/hamstrings/ankles).",
-      Tue: "Easy walk: 20–40 min (relaxed).",
-      Wed: "Core + posture: 10–15 min (light).",
-      Thu: "Easy cycle / swim / walk: 20–40 min.",
-      Fri: "Mobility: shoulders + back 10–20 min.",
-      Sat: "Optional: fun activity 20–60 min.",
-      Sun: "Rest: breathe + stretch 5–10 min.",
-    },
-  });
-
-  return [
-    {
-      id: "blank_week",
-      name: "Blank week",
-      note: "Clear every planned block and rebuild the week from scratch. Existing activity history is not deleted.",
-      desc: "Clear every planned block and rebuild the week from scratch.",
-      plan: defaultPlanForFamily(),
-    },
-    {
-      id: "football_engine",
-      name: "Football Speed & Engine (5 days)",
-      desc: "Intervals + conditioning + strength base. Great for players.",
-      plan: footballEngine,
-    },
-    {
-      id: "legs_power",
-      name: "Leg Strength + Power",
-      desc: "Leg strength focus with plyometrics + easy conditioning.",
-      plan: legsPower,
-    },
-    {
-      id: "tone_conditioning",
-      name: "Muscular Conditioning / Tone",
-      desc: "Higher reps, shorter rest, and cardio bias for fitness & tone.",
-      plan: toneConditioning,
-    },
-    {
-      id: "recovery_mobility",
-      name: "Recovery & Mobility",
-      desc: "Light movement + mobility every day to stay fresh.",
-      plan: recoveryMobility,
-    },
-  ];
-};
