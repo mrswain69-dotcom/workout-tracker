@@ -11,15 +11,15 @@ describe("Phase 3 Stage 4 App integration contract", () => {
     expect(appSource).not.toContain('["progress", "Progress"]');
   });
 
-  it("mounts ProgressDashboard inside the existing stats route before legacy Stats", () => {
+  it("mounts ProgressDashboard as the single Progress surface and retires legacy Stats", () => {
     const statsRoute = appSource.indexOf('{tab === "stats" && (');
     const progressShell = appSource.indexOf("<ProgressDashboard", statsRoute);
-    const legacyStats = appSource.indexOf('className="grid2cols progressLegacyStats"', statsRoute);
 
     expect(statsRoute).toBeGreaterThanOrEqual(0);
     expect(progressShell).toBeGreaterThan(statsRoute);
-    expect(legacyStats).toBeGreaterThan(progressShell);
-    expect(appSource).toContain('<div className="h2">Highlights</div>');
+    expect(appSource).not.toContain("progressLegacyStats");
+    expect(appSource).toContain("summaryStats={stats}");
+    expect(appSource).toContain("recordStats={records}");
   });
 
   it("keeps the Assessment bridge and live app state wiring explicit", () => {
