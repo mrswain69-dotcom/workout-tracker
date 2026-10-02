@@ -141,6 +141,153 @@ button.btn.primary:hover{
   border-color: rgba(255, 122, 24, 0.35);
 }
 
+/* === Authenticated account hydration === */
+.accountHydrationPage{
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(15,118,110,.12),transparent 44%),
+    #f5f7fa;
+}
+
+.accountHydrationCard{
+  width:min(480px,100%);
+  margin:40px auto;
+  padding:28px;
+  border:1px solid #dbe5e1;
+  border-radius:24px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 24px 70px rgba(15,23,42,.12);
+  text-align:center;
+}
+
+.accountHydrationMark{
+  width:58px;
+  height:58px;
+  border-radius:16px;
+  box-shadow:0 10px 24px rgba(15,118,110,.16);
+}
+
+.accountHydrationKicker{
+  margin-top:14px;
+  color:#0f766e;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.16em;
+}
+
+.accountHydrationCard h1{
+  margin:7px 0 0;
+  color:#172033;
+  font-size:clamp(22px,5vw,30px);
+  letter-spacing:-.025em;
+}
+
+.accountHydrationCard p{
+  margin:10px auto 18px;
+  max-width:370px;
+  color:#64748b;
+  line-height:1.55;
+}
+
+.accountHydrationProgress{
+  overflow:hidden;
+  width:min(280px,100%);
+  height:7px;
+  margin:18px auto 2px;
+  border-radius:999px;
+  background:#e2e8f0;
+}
+
+.accountHydrationProgress span{
+  display:block;
+  width:38%;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#0f766e,#ff7a18);
+  animation:accountHydrationSlide 1.15s ease-in-out infinite alternate;
+}
+
+/* Compact in-session set entry: set number, reps, weight and time stay aligned. */
+.movementSetRow{
+  display:grid;
+  grid-template-columns:52px minmax(0,430px);
+  align-items:end;
+  gap:10px;
+  width:100%;
+  padding:8px 10px;
+  border:1px solid #e2e8f0;
+  border-radius:12px;
+  background:#f8fafc;
+}
+
+.movementSetRow.setRowSimple-complete{
+  padding:8px 10px;
+  border-color:#bae6fd;
+  background:#e0f2fe;
+}
+
+.movementSetRow .setLabel{
+  align-self:center;
+  margin:0;
+  white-space:nowrap;
+}
+
+.movementSetFields{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(82px,1fr));
+  gap:8px;
+  min-width:0;
+}
+
+.movementSetField{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+
+.movementSetField > span{
+  overflow:hidden;
+  color:#64748b;
+  font-size:10px;
+  font-weight:800;
+  line-height:1.2;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.movementSetField .input{
+  min-width:0;
+  height:40px;
+  padding:7px 9px;
+  border-radius:10px;
+}
+
+@keyframes accountHydrationSlide{
+  from{ transform:translateX(0); }
+  to{ transform:translateX(165%); }
+}
+
+@media(max-width:600px){
+  .accountHydrationPage{ place-items:start center; }
+  .accountHydrationCard{
+    margin:24px auto;
+    padding:22px 18px;
+    border-radius:20px;
+  }
+
+  .movementSetRow{
+    grid-template-columns:44px minmax(0,1fr);
+    gap:7px;
+    padding:7px;
+  }
+
+  .movementSetRow.setRowSimple-complete{ padding:7px; }
+  .movementSetFields{ gap:6px; }
+  .movementSetField .input{ height:38px; padding:6px 7px; }
+}
+
 /* === Service worker toasts === */
 /* Legacy toast (if used anywhere) */
 .swToast{
