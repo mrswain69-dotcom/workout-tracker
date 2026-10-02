@@ -54,6 +54,12 @@ import {
   getNextAvatarReward,
 } from "./engine/dashboardEngine.js";
 import {
+  PRESTIGE_FRAME_OPTIONS,
+  PRESTIGE_FRAME_UNLOCK_XP,
+  getPrestigeFrameState,
+  normalisePrestigeFrameKey,
+} from "./engine/avatarFrameSettings.js";
+import {
   buildSessionLogBlockSnapshot,
   hydrateSessionSnapshotsInLog,
   reconcileSessionLogBlockSnapshot,
@@ -4732,12 +4738,16 @@ const headerAvatarIsPack4Plus =
 
 const avatarFramesEnabled = plan?.meta?.avatarFramesEnabled !== false;
 
-const selectedAvatarFrame =
-  typeof plan?.meta?.avatarFrame === "string" && plan.meta.avatarFrame
-    ? plan.meta.avatarFrame
-    : "prestige_cyan_gold";
+const prestigeFrameState = getPrestigeFrameState(xp);
+
+const selectedAvatarFrame = normalisePrestigeFrameKey(plan?.meta?.avatarFrame);
+
+const selectedAvatarFrameOption =
+  PRESTIGE_FRAME_OPTIONS.find((frame) => frame.key === selectedAvatarFrame) ||
+  PRESTIGE_FRAME_OPTIONS[0];
 
 const headerAvatarIsPrestige =
+  prestigeFrameState.earned &&
   avatarFramesEnabled &&
   !!headerAvatar &&
   (
@@ -13265,12 +13275,38 @@ if (!didClaim) {
             {tab === "appsettings" && (
             <Card className="pad" style={{ gridColumn: "1 / -1" }}>
               <div ref={accountRef} />
-              <div className="h2">Data notes</div>
-              <div className="mini mt12">
-                - This is a <b>single account</b> with multiple people.<br/>
-                - Each person’s stats are private to this account.<br/>
-                - Plan + logs sync across devices automatically.<br/>
-              </div>
+              <section className="settingsDataNotes" aria-labelledby="settings-data-title">
+                <div className="settingsDataNotes__intro">
+                  <div className="settingsDataNotes__eyebrow">ACCOUNT &amp; DATA</div>
+                  <div className="h2" id="settings-data-title">How your data works</div>
+                  <div className="muted mt4">
+                    A quick guide to profiles, privacy and syncing on this account.
+                  </div>
+                </div>
+                <div className="settingsDataNotes__grid">
+                  <div className="settingsDataNote">
+                    <span className="settingsDataNote__icon" aria-hidden="true">01</span>
+                    <div>
+                      <strong>One family account</strong>
+                      <span>Keep multiple people and their training profiles together.</span>
+                    </div>
+                  </div>
+                  <div className="settingsDataNote">
+                    <span className="settingsDataNote__icon" aria-hidden="true">02</span>
+                    <div>
+                      <strong>Private profile stats</strong>
+                      <span>Each person’s activity and progress stay inside this account.</span>
+                    </div>
+                  </div>
+                  <div className="settingsDataNote">
+                    <span className="settingsDataNote__icon" aria-hidden="true">03</span>
+                    <div>
+                      <strong>Automatic sync</strong>
+                      <span>Programs and logs stay up to date across signed-in devices.</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
               <div className="panel mt16">
                 <div className="h3">Parent Lock (PIN)</div>
@@ -13333,70 +13369,121 @@ if (!didClaim) {
               </div>
 
               <div className="panel mt16">
-  <div className="h3">Avatar frames</div>
-  <div className="muted mt8">
-    Prestige frames apply to 10,000 XP+ avatars. You can turn them off if you prefer a cleaner look.
-  </div>
+                <div className="avatarFrameSettings">
+                  <div className="avatarFrameSettings__heading">
+                    <div>
+                      <div className="h3">Avatar frames</div>
+                      <div className="muted mt4">
+                        Prestige frame effects unlock at 10,000 XP and decorate 10,000 XP+ avatars.
+                      </div>
+                    </div>
+                  </div>
 
-  <div className="rowBetween mt12">
-    <div>
-      <div className="label">Prestige frame effects</div>
-      <div className="mini muted">
-        Current status: {avatarFramesEnabled ? <b>ON</b> : <b>OFF</b>}
-      </div>
-    </div>
+                  <div className="avatarFrameSettings__control mt12">
+                    <div>
+                      <div className="label">Prestige frame effects</div>
+                      <div className="mini muted mt4">
+                        {prestigeFrameState.earned
+                          ? "Choose whether the effect appears around eligible avatars."
+                          : `${prestigeFrameState.remainingXp.toLocaleString("en-GB")} XP left to unlock.`}
+                      </div>
+                    </div>
+                    <div className="avatarFrameSettings__actions">
+                      <span
+                        className={`avatarFrameStatus ${prestigeFrameState.earned ? "earned" : "locked"}`}
+                      >
+                        Status: <b>{prestigeFrameState.earned ? "Earned" : "Not yet"}</b>
+                      </span>
+                      {prestigeFrameState.earned ? (
+                        <SecondaryButton
+                          onClick={async () => {
+                            if (!(await ensureUnlocked("change avatar frame settings"))) return;
+                            await savePlanMetaNoPin({
+                              avatarFramesEnabled: !avatarFramesEnabled,
+                            });
+                          }}
+                        >
+                          {avatarFramesEnabled ? "Turn effects off" : "Turn effects on"}
+                        </SecondaryButton>
+                      ) : (
+                        <SecondaryButton disabled>
+                          Unlock at {PRESTIGE_FRAME_UNLOCK_XP.toLocaleString("en-GB")} XP
+                        </SecondaryButton>
+                      )}
+                    </div>
+                  </div>
 
-    <SecondaryButton
-      onClick={async () => {
-        if (!(await ensureUnlocked("change avatar frame settings"))) return;
-        await savePlanMetaNoPin({
-          avatarFramesEnabled: !avatarFramesEnabled,
-        });
-      }}
-    >
-      {avatarFramesEnabled ? "Turn frames off" : "Turn frames on"}
-    </SecondaryButton>
-  </div>
+                  {!prestigeFrameState.earned ? (
+                    <div
+                      className="avatarFrameProgress mt12"
+                      role="progressbar"
+                      aria-label="Prestige frame unlock progress"
+                      aria-valuemin={0}
+                      aria-valuemax={PRESTIGE_FRAME_UNLOCK_XP}
+                      aria-valuenow={prestigeFrameState.xp}
+                    >
+                      <div className="avatarFrameProgress__track" aria-hidden="true">
+                        <span style={{ width: `${prestigeFrameState.progressPct}%` }} />
+                      </div>
+                      <div className="mini muted">
+                        {prestigeFrameState.xp.toLocaleString("en-GB")} / {PRESTIGE_FRAME_UNLOCK_XP.toLocaleString("en-GB")} XP
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="avatarFrameEarned mt16">
+                      <div className="rowBetween avatarFramePicker__heading">
+                        <div className="label">Choose a frame colour</div>
+                        <div className="mini muted">{selectedAvatarFrameOption.label}</div>
+                      </div>
+                      <div className="avatarFramePreviewRow mt8" role="group" aria-label="Prestige frame colours">
+                        {PRESTIGE_FRAME_OPTIONS.map((frame) => (
+                          <button
+                            key={frame.key}
+                            type="button"
+                            className={`avatarFramePreview avatarFrame-${frame.key} ${selectedAvatarFrame === frame.key ? "active" : ""}`}
+                            onClick={async () => {
+                              if (!(await ensureUnlocked("change avatar frame"))) return;
+                              await savePlanMetaNoPin({
+                                avatarFrame: frame.key,
+                              });
+                            }}
+                            aria-label={`Use ${frame.label}`}
+                            aria-pressed={selectedAvatarFrame === frame.key}
+                            title={frame.label}
+                          />
+                        ))}
+                      </div>
 
-  {avatarFramesEnabled && (
-    <div className="mt12">
-      <div className="label">Selected prestige frame</div>
-      <Select
-        value={selectedAvatarFrame}
-        onChange={async (v) => {
-          if (!(await ensureUnlocked("change avatar frame"))) return;
-          await savePlanMetaNoPin({
-            avatarFrame: v,
-          });
-        }}
-        options={[
-          { value: "prestige_cyan_gold", label: "Cyan / Gold Prestige" },
-          { value: "prestige_red_black", label: "Red / Black Power" },
-          { value: "prestige_neon_lime", label: "Neon Lime Speed" },
-          { value: "prestige_pink_cyan", label: "Pink / Cyan Elite" },
-          { value: "prestige_ice_blue", label: "Ice Blue Focus" },
-        ]}
-      />
-
-      <div className="avatarFramePreviewRow mt12">
-        {["prestige_cyan_gold", "prestige_red_black", "prestige_neon_lime", "prestige_pink_cyan", "prestige_ice_blue"].map((frameKey) => (
-          <button
-            key={frameKey}
-            type="button"
-            className={`avatarFramePreview avatarFrame-${frameKey} ${selectedAvatarFrame === frameKey ? "active" : ""}`}
-            onClick={async () => {
-              if (!(await ensureUnlocked("change avatar frame"))) return;
-              await savePlanMetaNoPin({
-                avatarFrame: frameKey,
-              });
-            }}
-            aria-label={`Select ${frameKey} avatar frame`}
-          />
-        ))}
-      </div>
-    </div>
-  )}
-</div>
+                      <div className="avatarFrameDemo mt16">
+                        <div className="avatarFrameDemo__copy">
+                          <div className="label">Preview on {activeProfile?.name || "this profile"}</div>
+                          <div className="mini muted mt4">
+                            {avatarFramesEnabled
+                              ? "This is how the selected frame will look on an eligible avatar."
+                              : "Preview only — turn effects on to use this frame in the app."}
+                          </div>
+                        </div>
+                        <div
+                          className={`avatarFrameDemo__stage selectedAvatarPanelPrestige avatarFrame-${selectedAvatarFrame}`}
+                          aria-label={`${selectedAvatarFrameOption.label} preview`}
+                        >
+                          {headerAvatarImg ? (
+                            <img
+                              src={headerAvatarImg}
+                              alt={headerAvatar?.label || "Current avatar"}
+                              className="avatarFrameDemo__avatar selectedAvatarImg selectedAvatarImgPrestige"
+                            />
+                          ) : (
+                            <span className="avatarFrameDemo__emoji" aria-hidden="true">
+                              {headerAvatar?.emoji || "🙂"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="panel mt16">
                 <div className="h3">Tutorial</div>

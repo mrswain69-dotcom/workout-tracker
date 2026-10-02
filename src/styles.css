@@ -337,6 +337,194 @@ button.btn.primary:hover{
 .settingsWorkspace .h2{color:#334155;letter-spacing:-.01em;}
 .settingsWorkspace .h3{color:#172033;}
 
+.settingsDataNotes{
+  overflow:hidden;
+  border:1px solid #d8e7e2;
+  border-radius:20px;
+  background:linear-gradient(135deg,#f2fbf7 0%,#fff 58%,#fff8f1 100%);
+  box-shadow:0 12px 30px rgba(15,23,42,.055);
+}
+
+.settingsDataNotes__intro{padding:18px 20px 14px;}
+
+.settingsDataNotes__eyebrow{
+  margin-bottom:4px;
+  color:#0f766e;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+
+.settingsDataNotes__grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  border-top:1px solid #e2ece8;
+  background:rgba(255,255,255,.72);
+}
+
+.settingsDataNote{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  min-width:0;
+  padding:15px 17px;
+  border-right:1px solid #e2ece8;
+}
+
+.settingsDataNote:last-child{border-right:0;}
+
+.settingsDataNote__icon{
+  display:grid;
+  place-items:center;
+  flex:0 0 28px;
+  width:28px;
+  height:28px;
+  border-radius:9px;
+  background:#e3f5ee;
+  color:#0f766e;
+  font-size:10px;
+  font-weight:900;
+}
+
+.settingsDataNote strong,
+.settingsDataNote span{display:block;}
+
+.settingsDataNote strong{color:#172033;font-size:13px;line-height:1.3;}
+.settingsDataNote div>span{margin-top:4px;color:#64748b;font-size:12px;line-height:1.45;}
+
+.avatarFrameSettings__heading,
+.avatarFrameSettings__control,
+.avatarFrameDemo{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.avatarFrameSettings__control{
+  padding:14px;
+  border:1px solid #dce4eb;
+  border-radius:16px;
+  background:#fff;
+}
+
+.avatarFrameSettings__actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.avatarFrameStatus{
+  display:inline-flex;
+  align-items:center;
+  min-height:40px;
+  padding:8px 12px;
+  border:1px solid #d7e0e8;
+  border-radius:12px;
+  background:#f8fafc;
+  color:#475569;
+  font-size:12px;
+  white-space:nowrap;
+}
+
+.avatarFrameStatus.earned{
+  border-color:#addfca;
+  background:#eaf8f2;
+  color:#126047;
+}
+
+.avatarFrameStatus.locked{
+  border-color:#e3e8ee;
+  background:#f1f4f7;
+  color:#64748b;
+}
+
+.avatarFrameProgress{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  border:1px solid #dce4eb;
+  border-radius:14px;
+  background:#eef2f5;
+}
+
+.avatarFrameProgress__track{
+  overflow:hidden;
+  height:8px;
+  border-radius:999px;
+  background:#dbe3ea;
+}
+
+.avatarFrameProgress__track span{
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg,#0f766e,#ff7a18);
+}
+
+.avatarFrameEarned{
+  padding:15px;
+  border:1px solid #dce4eb;
+  border-radius:16px;
+  background:#fff;
+}
+
+.avatarFramePicker__heading{gap:10px;}
+
+.avatarFrameDemo{
+  align-items:center;
+  padding-top:16px;
+  border-top:1px solid #e2e8f0;
+}
+
+.avatarFrameDemo__copy{max-width:290px;}
+
+.avatarFrameDemo__stage{
+  position:relative;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  flex:0 0 176px;
+  width:176px;
+  min-height:150px;
+  border:2px solid transparent;
+  border-radius:20px;
+}
+
+.avatarFrameDemo__avatar{
+  width:140px;
+  height:140px;
+  object-fit:contain;
+}
+
+.avatarFrameDemo__emoji{
+  position:relative;
+  z-index:1;
+  font-size:64px;
+}
+
+@media(max-width:760px){
+  .settingsDataNotes__grid{grid-template-columns:1fr;}
+  .settingsDataNote{border-right:0;border-bottom:1px solid #e2ece8;}
+  .settingsDataNote:last-child{border-bottom:0;}
+  .avatarFrameSettings__control,
+  .avatarFrameDemo{flex-direction:column;align-items:stretch;}
+  .avatarFrameSettings__actions{display:grid;grid-template-columns:1fr 1fr;width:100%;}
+  .avatarFrameStatus{justify-content:center;text-align:center;white-space:normal;}
+  .avatarFrameSettings__actions .btn{width:100%;}
+  .avatarFrameDemo__copy{max-width:none;}
+  .avatarFrameDemo__stage{align-self:center;}
+}
+
+@media(max-width:430px){
+  .settingsDataNotes__intro{padding:16px;}
+  .avatarFramePicker__heading{align-items:flex-start;flex-direction:column;}
+}
+
 .assessment-hub button,
 .assessment-library button,
 .assessment-runner button,
