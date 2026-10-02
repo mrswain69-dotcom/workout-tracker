@@ -10963,154 +10963,18 @@ const cardioProgress = useMemo(() => {
         )}
 
         {tab === "stats" && (
-          <>
-            <ProgressDashboard
-              familyId={family?.id}
-              profileId={activeProfileId}
-              profileName={activeProfile?.name || "Athlete"}
-              logs={allLogs}
-              currentStreak={stats.streak}
-              currentXp={xp}
-              referenceDate={getTodayYMD()}
-              onOpenAssessments={() => setTab("assessments")}
-            />
-            <div className="grid2cols progressLegacyStats">
-            <Card className="pad">
-              <div className="h2">Highlights</div>
-              <div className="grid2 mt12">
-                <SummaryStat label="Streak" value={`${stats.streak} day${stats.streak === 1 ? "" : "s"}`} />
-<SummaryStat
-  label="Most active day"
-  value={
-    stats.mostActiveDayMinutes
-      ? `${Math.round(stats.mostActiveDayMinutes)} min`
-      : "—"
-  }
-/>
-<SummaryStat
-  label="Most active week"
-  value={
-    stats.mostActiveWeekMinutes
-      ? `${Math.round(stats.mostActiveWeekMinutes)} min`
-      : "—"
-  }
-/>
-                <SummaryStat label="Best cardio speed" value={stats.bestCardioSpeed ? `${stats.bestCardioSpeed.toFixed(2)} km/h` : "—"} />
-                <SummaryStat label="Best cardio distance" value={stats.bestCardioDistance ? `${stats.bestCardioDistance.toFixed(2)} km` : "—"} />
-              </div>
-
-              <div className="mt16">
-                <div className="h3">Most improved this month</div>
-                <div className="mt8">{stats.improved === null ? "Log sessions across two months to see improvement." : `${stats.improved}% vs last month (strength volume)`}</div>
-              </div>
-              <div className="mt16">
-  <div className="h3">Records</div>
-  <div className="mini muted mt4">
-    All-time bests for this profile.
-  </div>
-  <div className="stack mt8 mini">
-    <div>
-      🏆 <b>Most XP in a day</b>:{" "}
-      {records.bestXpValue
-        ? `${records.bestXpValue} XP on ${records.bestXpDay}`
-        : "—"}
-    </div>
-    <div>
-      🥇 <b>Longest set streak</b>:{" "}
-      {records.longestCombo
-        ? `${records.longestCombo} sets (best combo day)`
-        : "—"}
-    </div>
-    <div>
-      🥈 <b>Longest daily activity streak</b>:{" "}
-      {stats.longestActivityStreak
-        ? `${stats.longestActivityStreak} days`
-        : "—"}
-    </div>
-    <div>
-      🥉 <b>Fastest average speed</b>:{" "}
-      {stats.bestCardioSpeed
-        ? `${stats.bestCardioSpeed.toFixed(2)} km/h`
-        : "—"}
-    </div>
-    <div>
-      📈 <b>Biggest improvement</b>:{" "}
-      <span className="muted">
-        per-exercise improvement badges are coming later.
-      </span>
-    </div>
-  </div>
-</div>
-
-            </Card>
-
-            <Card className="pad">
-              <div ref={chartsRef} />
-              <div className="h2">Weekly chart</div>
-              <div className="chart mt12">
-                {stats.weeklyChart.length ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={stats.weeklyChart} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="week" tick={{ fontSize: 10 }} />
-                      <YAxis tick={{ fontSize: 10 }} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="strengthVolume" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="cardioKm" strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="muted">No chart data yet.</div>
-                )}
-              </div>
-
-              <div className="mt16 rowBetween">
-                <div className="h2">Exercise progress</div>
-                <div className="selectWide">
-                  <Select value={selectedExerciseForChart} onChange={setSelectedExerciseForChart} options={exerciseOptions.map((e) => ({ value: e.id, label: e.name }))} />
-                </div>
-              </div>
-
-              <div className="chart mt12">
-                {exerciseProgress.length ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={exerciseProgress} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                      <YAxis tick={{ fontSize: 10 }} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="bestVol" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="bestReps" strokeWidth={2} dot={false} />
-                      <Line type="monotone" dataKey="bestTime" strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="muted">Log this exercise to see progress.</div>
-                )}
-              </div>
-
-              <div className="mt16">
-                <div className="h2">Cardio progress</div>
-                <div className="chart mt12">
-                  {cardioProgress.length ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={cardioProgress} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                        <YAxis tick={{ fontSize: 10 }} />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="km" strokeWidth={2} dot={false} />
-                        <Line type="monotone" dataKey="speed" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="muted">Log a few cardio days to see the chart.</div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </div>
-          </>
+          <ProgressDashboard
+            familyId={family?.id}
+            profileId={activeProfileId}
+            profileName={activeProfile?.name || "Athlete"}
+            logs={allLogs}
+            currentStreak={stats.streak}
+            currentXp={xp}
+            referenceDate={getTodayYMD()}
+            summaryStats={stats}
+            recordStats={records}
+            onOpenAssessments={() => setTab("assessments")}
+          />
         )}
 
 {tab === "plan" && (
