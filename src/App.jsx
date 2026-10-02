@@ -6567,7 +6567,7 @@ function cloneBlockForPlanPreserveIds(block) {
       if (idx >= 0) {
         next[idx] = { ...next[idx], date_ymd: dateYmd, log: cachedLog };
       } else {
-        next.push({ date_ymd: dateYmd, log: cachedLog });
+        next.push({ profile_id: profileId, date_ymd: dateYmd, log: cachedLog });
       }
     }
 
