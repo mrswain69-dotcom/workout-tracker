@@ -42,8 +42,8 @@ describe("verification sync, strength matching and invite polish", () => {
     expect(progressCss).toContain(".verified-match-finder>button");
     expect(progressCss).toContain("max-width:100%");
     expect(progressCss).toContain("overflow-wrap:anywhere");
-    expect(connectionCss).toContain("background:#10313b");
-    expect(connectionCss).toContain("color:#effcff");
+    expect(connectionCss).toContain("background:#edf9f5");
+    expect(connectionCss).toContain("color:#174f40");
   });
 
   it("keeps every one-use secret generated in the current Groups window copyable and revokable", () => {

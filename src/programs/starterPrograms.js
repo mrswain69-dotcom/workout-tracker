@@ -6,9 +6,7 @@ import {
 } from "../engine/planCycleEngine.js";
 
 const ACTIVITY_TYPES = [
-  { id: "strength", name: "Strength (sets + reps)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
-  { id: "hiit", name: "HIIT (intervals + circuits)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
-  { id: "box", name: "Boxercise (timed rounds)", kind: "time", movementsEnabled: true, sets: 3, fixedSeconds: 60, allowCount: true, countLabel: "hits" },
+  { id: "strength", name: "Strength / HIIT / Box (sets, reps or duration)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
   { id: "cardio", name: "Cardio (distance, time or target)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
   { id: "duration", name: "Duration (mobility, yoga or stretching)", kind: "custom", movementsEnabled: false, fields: { durationMin: true } },
   { id: "recovery", name: "Recovery", kind: "recovery", movementsEnabled: false, fields: { recoveryDone: true, plannedMinutes: true } },
@@ -54,10 +52,10 @@ function movement(programId, weekday, index, name, overrides = {}) {
   };
 }
 
-function strengthBlock(programId, weekday, label, names, { typeId = "strength", restSec = 60 } = {}) {
+function strengthBlock(programId, weekday, label, names, { idSuffix = "strength", restSec = 60 } = {}) {
   return {
-    id: `${programId}_${weekday.toLowerCase()}_${typeId}`,
-    typeId,
+    id: `${programId}_${weekday.toLowerCase()}_${idSuffix}`,
+    typeId: "strength",
     label,
     note: "",
     restSec,
@@ -143,7 +141,7 @@ export function buildStarterPrograms(startDate = "") {
   football.Mon = [strengthBlock("football_engine", "Mon", "Lower-body strength", ["Goblet Squat", "Push-ups", "Dumbbell Row", "Plank"], { restSec: 75 })];
   football.Tue = [cardioBlock("football_engine", "Tue", "Speed intervals", "5 min easy · 6 × (1 min fast / 1 min easy) · 5 min easy")];
   football.Wed = [strengthBlock("football_engine", "Wed", "Single-leg strength", ["Reverse Lunges", "Shoulder Press", "Hip Hinge (RDL)", "Side Plank"], { restSec: 75 })];
-  football.Thu = [strengthBlock("football_engine", "Thu", "Fast conditioning", ["Mountain Climbers", "Burpees", "Jump Rope", "Hollow Hold"], { typeId: "hiit", restSec: 30 })];
+  football.Thu = [strengthBlock("football_engine", "Thu", "Fast conditioning", ["Mountain Climbers", "Burpees", "Jump Rope", "Hollow Hold"], { idSuffix: "hiit", restSec: 30 })];
   football.Fri = [strengthBlock("football_engine", "Fri", "Strength maintenance", ["Step-ups", "Pull / Row variation", "Split Squat", "Hollow Hold"], { restSec: 75 })];
   football.Sat = [cardioBlock("football_engine", "Sat", "Tempo conditioning", "10 min easy · 10–15 min steady · 5 min easy")];
   football.Sun = [recoveryBlock("football_engine", "Sun")];
@@ -157,11 +155,11 @@ export function buildStarterPrograms(startDate = "") {
   power.Sat = [cardioBlock("legs_power", "Sat", "Easy hills", "15–20 min · walk up / easy down", "walk")];
 
   const conditioning = emptyBlocksByWeekday();
-  conditioning.Mon = [strengthBlock("conditioning", "Mon", "Full-body conditioning", ["Push-ups", "Bodyweight Squats", "Mountain Climbers", "Plank"], { typeId: "hiit", restSec: 30 })];
+  conditioning.Mon = [strengthBlock("conditioning", "Mon", "Full-body conditioning", ["Push-ups", "Bodyweight Squats", "Mountain Climbers", "Plank"], { idSuffix: "hiit", restSec: 30 })];
   conditioning.Tue = [cardioBlock("conditioning", "Tue", "Short intervals", "5 min easy · 8 × (30 sec fast / 60 sec easy) · 5 min easy")];
   conditioning.Wed = [strengthBlock("conditioning", "Wed", "Strength circuit", ["Lunges", "Shoulder Press", "Dumbbell Row", "Hollow Hold"], { restSec: 45 })];
   conditioning.Thu = [recoveryBlock("conditioning", "Thu", "Light recovery")];
-  conditioning.Fri = [strengthBlock("conditioning", "Fri", "Conditioning circuit", ["Goblet Squat", "Burpees", "Jump Rope", "Side Plank"], { typeId: "hiit", restSec: 30 })];
+  conditioning.Fri = [strengthBlock("conditioning", "Fri", "Conditioning circuit", ["Goblet Squat", "Burpees", "Jump Rope", "Side Plank"], { idSuffix: "hiit", restSec: 30 })];
   conditioning.Sat = [cardioBlock("conditioning", "Sat", "Easy steady cardio", "20–40 min at conversational pace", "walk")];
 
   const recovery = emptyBlocksByWeekday();

@@ -496,9 +496,7 @@ const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // built-in activity types
 function builtInTypes() {
   return [
-    { id: "strength", name: "Strength (sets + reps)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
-    { id: "hiit", name: "HIIT (intervals + circuits)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
-    { id: "box", name: "Boxercise (timed rounds)", kind: "time", movementsEnabled: true, sets: 3, fixedSeconds: 60, allowCount: true, countLabel: "hits" },
+    { id: "strength", name: "Strength / HIIT / Box (sets, reps or duration)", kind: "strength", movementsEnabled: true, sets: 3, allowWeight: true },
     { id: "cardio", name: "Cardio (distance, time or target)", kind: "cardio", movementsEnabled: false, fields: { distanceKm: true, durationMin: true, avgSpeed: true } },
     { id: "duration", name: "Duration (mobility, yoga or stretching)", kind: "custom", movementsEnabled: false, fields: { durationMin: true } },
     { id: "recovery", name: "Recovery", kind: "recovery", movementsEnabled: false, fields: { recoveryDone: true, plannedMinutes: true } },
@@ -1221,16 +1219,16 @@ function Pill({ children, onClick }) {
   }
   return <span className="pill">{children}</span>;
 }
-function PrimaryButton({ children, onClick, disabled }) {
+function PrimaryButton({ children, onClick, disabled, className = "", ...buttonProps }) {
   return (
-    <button className={`btn btn-primary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
+    <button type="button" className={`btn btn-primary ${className} ${disabled ? "btn-disabled" : ""}`.trim()} onClick={onClick} disabled={disabled} {...buttonProps}>
       {children}
     </button>
   );
 }
-function SecondaryButton({ children, onClick, disabled }) {
+function SecondaryButton({ children, onClick, disabled, className = "", ...buttonProps }) {
   return (
-    <button className={`btn btn-secondary ${disabled ? "btn-disabled" : ""}`} onClick={onClick} disabled={disabled}>
+    <button type="button" className={`btn btn-secondary ${className} ${disabled ? "btn-disabled" : ""}`.trim()} onClick={onClick} disabled={disabled} {...buttonProps}>
       {children}
     </button>
   );
@@ -6330,9 +6328,8 @@ if (!didClaim) {
   function addBlockToDay(typeId) {
     let newBlock;
 
-    if (typeId === "strength" || typeId === "hiit" || typeId === "box") {
+    if (typeId === "strength") {
       newBlock = createStrengthBlock();
-      newBlock.typeId = typeId;
     } else if (typeId === "cardio") {
       newBlock = createCardioBlock();
     } else if (typeId === "duration") {
@@ -11223,8 +11220,8 @@ const cardioProgress = useMemo(() => {
       <div className="mt16 stack">
         {blocksForSelectedPlanDay.length === 0 && (
           <div className="muted">
-            No blocks yet for {planWeekday}. Add a strength, HIIT, boxercise,
-            cardio, duration, recovery, session, or tasks block below.
+            No blocks yet for {planWeekday}. Add a Strength / HIIT / Box,
+            Cardio, Duration, Recovery, Session, or Tasks block below.
           </div>
         )}
 
@@ -11237,9 +11234,7 @@ const cardioProgress = useMemo(() => {
               <div key={block.id} className="panel mt8">
                 <div className="row between">
                   <div className="pill">
-                    {typeId === "strength" && "Strength"}
-                    {typeId === "hiit" && "HIIT"}
-                    {typeId === "box" && "Boxercise"}
+                    {(typeId === "strength" || typeId === "hiit" || typeId === "box") && "Strength / HIIT / Box"}
                     {typeId === "cardio" && "Cardio"}
                     {typeId === "duration" && "Duration"}
                     {typeId === "recovery" && "Recovery"}
@@ -11279,36 +11274,20 @@ const cardioProgress = useMemo(() => {
               <div className="row between">
                 <div className="pillRow">
                   <span className="pill">
-                    {typeId === "strength" && "Strength"}
-                    {typeId === "hiit" && "HIIT"}
-                    {typeId === "box" && "Boxercise"}
+                    {(typeId === "strength" || typeId === "hiit" || typeId === "box") && "Strength / HIIT / Box"}
                     {typeId === "cardio" && "Cardio"}
                     {typeId === "duration" && "Duration"}
                     {typeId === "recovery" && "Recovery"}
                     {typeId === "session" && "Session"}
                     {typeId === "tasks" && "Tasks"}
                   </span>
-                  {typeId === "strength" || typeId === "hiit" || typeId === "box" ? (
-                    <label className="trainingFormatSelect">
-                      <span>Training format</span>
-                      <Select
-                        value={typeId}
-                        onChange={(v) =>
-                          updateBlockInDay(block.id, () => ({ typeId: v }))
-                        }
-                        options={[
-                          { value: "strength", label: "Strength" },
-                          { value: "hiit", label: "HIIT" },
-                          { value: "box", label: "Boxercise" },
-                        ]}
-                      />
-                    </label>
-                  ) : null}
                 </div>
-                <div className="row" style={{ gap: 4 }}>
+                <div className="blockEditorActions">
                   <button
                     className="btnSmall"
                     type="button"
+                    aria-label="Move block up"
+                    title="Move block up"
                     onClick={() => moveBlockInDay(block.id, -1)}
                   >
                     ↑
@@ -11316,6 +11295,8 @@ const cardioProgress = useMemo(() => {
                   <button
                     className="btnSmall"
                     type="button"
+                    aria-label="Move block down"
+                    title="Move block down"
                     onClick={() => moveBlockInDay(block.id, +1)}
                   >
                     ↓
@@ -11867,19 +11848,7 @@ const cardioProgress = useMemo(() => {
             className="btnSmall"
             onClick={() => addBlockToDay("strength")}
           >
-            + Strength block
-          </PrimaryButton>
-          <PrimaryButton
-            className="btnSmall"
-            onClick={() => addBlockToDay("hiit")}
-          >
-            + HIIT block
-          </PrimaryButton>
-          <PrimaryButton
-            className="btnSmall"
-            onClick={() => addBlockToDay("box")}
-          >
-            + Boxercise block
+            + Strength / HIIT / Box block
           </PrimaryButton>
           <PrimaryButton
             className="btnSmall"
@@ -11936,9 +11905,7 @@ const cardioProgress = useMemo(() => {
                   {dayBlocks.map((b) => (
                     <li key={b.id} className="weeklyPlanBlockItem">
                       <span className="pill tiny">
-                        {b.typeId === "strength" && "Strength"}
-                        {b.typeId === "hiit" && "HIIT"}
-                        {b.typeId === "box" && "Box"}
+                        {(b.typeId === "strength" || b.typeId === "hiit" || b.typeId === "box") && "Strength / HIIT / Box"}
                         {b.typeId === "cardio" && "Cardio"}
                         {b.typeId === "duration" && "Duration"}
                         {b.typeId === "recovery" && "Recovery"}
@@ -11970,13 +11937,7 @@ const cardioProgress = useMemo(() => {
           </div>
           <ul className="mt8">
             <li>
-              <b>Strength</b> — sets and reps with optional weight and duration tracking.
-            </li>
-            <li>
-              <b>HIIT</b> — faster interval or circuit work using movements, rounds and shorter recoveries.
-            </li>
-            <li>
-              <b>Boxercise</b> — timed boxing movements and rounds.
+              <b>Strength / HIIT / Box</b> — movement-based work using sets, reps or duration, with optional weight tracking. Name the block and movements for the session you are planning.
             </li>
             <li>
               <b>Cardio</b> — running, cycling, swimming, rowing, team sports and other cardio with a clear target.
@@ -13090,7 +13051,7 @@ if (!didClaim) {
 )}
 
 {["settings", "appsettings"].includes(tab) && (
-          <div className="grid2cols">
+          <div className="grid2cols settingsWorkspace">
             {tab === "settings" && (
             <Card className="pad" style={{ gridColumn: "1 / -1" }}>
               <div ref={peopleRef} />
@@ -15493,8 +15454,6 @@ function StyleTag() {
       .stack{display:flex;flex-direction:column;gap:12px}
       .row{display:flex;flex-direction:column;gap:10px}
       .planWorkspaceNav{margin-bottom:12px;}
-      .trainingFormatSelect{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-      .trainingFormatSelect > span{font-size:11px;font-weight:800;color:#64748b;}
       @media (min-width: 900px){
   .row{ flex-direction:row; align-items:flex-start; justify-content:space-between; }
   .rowRight{ justify-content:flex-end; }

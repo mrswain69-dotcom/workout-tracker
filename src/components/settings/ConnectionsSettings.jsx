@@ -456,18 +456,21 @@ export default function ConnectionsSettings({
         })}
       </div>
 
-      <section className="connections-streams" aria-label={`Strava data streams for ${selectedName}`}>
-        <div className="connections-streams__heading">
-          <div>
-            <div className="connections-kicker">DATA &amp; HISTORY</div>
-            <h3>Strava · {selectedName}</h3>
-          </div>
-          <span>Details stay out of the daily Log</span>
-        </div>
-        <p>
-          Choose what Workout Tracker may retain. Provider history can be broad for verification while automatic Log updates stay deliberately recent.
-        </p>
-        <div className="connections-stream-list">
+      <details className="connections-streams" aria-label={`Strava data streams for ${selectedName}`}>
+        <summary className="connections-streams__summary">
+          <span className="connections-streams__heading">
+            <span>
+              <span className="connections-kicker">DATA &amp; HISTORY</span>
+              <strong>Strava · {selectedName}</strong>
+            </span>
+            <span className="connections-streams__summary-action">Show data controls</span>
+          </span>
+        </summary>
+        <div className="connections-streams__body">
+          <p>
+            Choose what Workout Tracker may retain. Provider history can be broad for verification while automatic Log updates stay deliberately recent.
+          </p>
+          <div className="connections-stream-list">
           <PreferenceSelect
             label="History to import when connecting"
             detail="Controls how far back Workout Tracker asks Strava for evidence when you connect or reconnect."
@@ -531,8 +534,9 @@ export default function ConnectionsSettings({
             disabled={busy.startsWith("preference:")}
             onChange={(checked) => changePreference("strava", "include_private_activities", checked)}
           />
+          </div>
         </div>
-      </section>
+      </details>
     </div>
   );
 }
