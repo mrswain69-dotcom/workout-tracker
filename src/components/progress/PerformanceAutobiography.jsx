@@ -108,6 +108,25 @@ function buildFeed({ chapter = null, foundation }) {
     );
 }
 
+function notabilityReason(item) {
+  if (item?.sourceType === "improvement") {
+    return "A comparable result improved on an earlier compatible result, so it marks genuine performance progress rather than routine activity.";
+  }
+  if (item?.sourceType === "consistency") {
+    return "A supported Consistency milestone was reached across a defined plan period, making it more meaningful than a single completed day.";
+  }
+  if (item?.sourceType === "group_award") {
+    return "A frozen group or season award was recorded. Frozen awards remain part of the historical record even as later results change.";
+  }
+  if (item?.sourceType === "assessment") {
+    return "A completed benchmark added valid Assessment evidence that can support future comparisons and development trends.";
+  }
+  if (item?.sourceType === "knowledge") {
+    return "A completed knowledge milestone was retained as part of long-range development history.";
+  }
+  return "This event was selected because it represents a milestone rather than routine day-to-day training.";
+}
+
 function evidenceLines(item) {
   const evidence = item?.evidence || {};
   const lines = [];
@@ -194,17 +213,16 @@ function MilestoneFeed({ items }) {
                 <span>{sourceLabel(item.sourceType)}</span>
               </div>
               <h4>{item.title || "Recorded milestone"}</h4>
-              {lines.length ? (
-                <details>
-                  <summary>View evidence</summary>
-                  <div className="autobiography-evidence">
-                    {lines.map((line) => (
-                      <span key={line}>{line}</span>
-                    ))}
-                    <small>Source state: {cleanText(item.evidenceState, "recorded").replace(/_/g, " ")}</small>
-                  </div>
-                </details>
-              ) : null}
+              <details>
+                <summary>Why this is a highlight</summary>
+                <div className="autobiography-evidence">
+                  <strong className="autobiography-evidence__reason">{notabilityReason(item)}</strong>
+                  {lines.map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
+                  <small>Source state: {cleanText(item.evidenceState, "recorded").replace(/_/g, " ")}</small>
+                </div>
+              </details>
             </div>
           </article>
         );
@@ -417,6 +435,7 @@ export default function PerformanceAutobiography({
 
   const chapters = foundation.chapters || [];
   const [selectedAge, setSelectedAge] = useState(null);
+  const [highlightLimit, setHighlightLimit] = useState(8);
 
   useEffect(() => {
     setSavedBirthDate(null);
@@ -426,9 +445,23 @@ export default function PerformanceAutobiography({
     setSelectedAge(chapters.length ? chapters.at(-1).age : null);
   }, [profileId, resolvedBirthDate, chapters.length]);
 
+  useEffect(() => {
+    setHighlightLimit(8);
+  }, [profileId, selectedAge]);
+
   const selectedChapter =
     chapters.find((chapter) => chapter.age === selectedAge) || chapters.at(-1) || null;
   const feed = buildFeed({ chapter: selectedChapter, foundation });
+  const highlightSummary = useMemo(
+    () => ({
+      total: feed.length,
+      improvements: feed.filter((item) => item?.sourceType === "improvement").length,
+      consistency: feed.filter((item) => item?.sourceType === "consistency").length,
+      benchmarks: feed.filter((item) => item?.sourceType === "assessment").length,
+      awards: feed.filter((item) => item?.sourceType === "group_award").length,
+    }),
+    [feed]
+  );
   const evidenceCount = foundation.events?.filter((event) => event.sourceType === "workout").length || 0;
   const verifiedEvidenceRange = selectedChapter
     ? { startDate: selectedChapter.startDate, endDate: selectedChapter.endDate }
@@ -513,9 +546,39 @@ export default function PerformanceAutobiography({
           <span>MILESTONE FEED</span>
           <h4>{selectedChapter ? `Age ${selectedChapter.age} highlights` : "Recorded highlights"}</h4>
         </div>
-        <small>Routine workouts stay in totals; this feed surfaces notable evidence.</small>
+        <small>Routine workouts stay in totals; only milestone-level evidence appears here.</small>
       </div>
-      <MilestoneFeed items={feed} />
+
+      <div className="autobiography-highlight-summary" aria-label="Recorded highlight summary">
+        <div><strong>{highlightSummary.total}</strong><span>recorded highlights</span></div>
+        <div><strong>{highlightSummary.improvements}</strong><span>PB / improvement</span></div>
+        <div><strong>{highlightSummary.consistency}</strong><span>Consistency milestones</span></div>
+        <div>
+          <strong>{highlightSummary.benchmarks + highlightSummary.awards}</strong>
+          <span>benchmarks / awards</span>
+        </div>
+      </div>
+
+      {feed.length ? (
+        <details className="autobiography-highlight-breakdown">
+          <summary>
+            <span>Highlight breakdown</span>
+            <strong>View why each milestone matters</strong>
+          </summary>
+          <MilestoneFeed items={feed.slice(0, highlightLimit)} />
+          {feed.length > highlightLimit ? (
+            <button
+              type="button"
+              className="autobiography-show-more"
+              onClick={() => setHighlightLimit((value) => value + 8)}
+            >
+              Show 8 more · {feed.length - highlightLimit} remaining
+            </button>
+          ) : null}
+        </details>
+      ) : (
+        <MilestoneFeed items={[]} />
+      )}
 
       <CareerSummary summary={foundation.careerSummary} />
 
