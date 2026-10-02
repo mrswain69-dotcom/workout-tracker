@@ -82,14 +82,19 @@ describe("ProgressDashboard Stage 4 shell", () => {
     );
 
     expect(screen.getAllByText("No baseline yet").length).toBeGreaterThan(0);
-    expect(screen.getByText(/No structured Sessions logged yet/)).toBeTruthy();
-    expect(screen.getByText(/First benchmark:/)).toBeTruthy();
-    expect(screen.getAllByText(/21 Sept 2026/).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole("button", { name: "Dashboard" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sessions Progress" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Assessments" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Activity Verification" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Autobiography" })).toBeTruthy();
+    expect(screen.getByText("Your progress dashboard")).toBeTruthy();
     expect(screen.getByText("4d")).toBeTruthy();
     expect(screen.getByText("1,680")).toBeTruthy();
-    expect(screen.getByText("A")).toBeTruthy();
-    expect(screen.getByText("B")).toBeTruthy();
-    expect(screen.getByText("C")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sessions Progress" }));
+    expect(screen.getByText("Training progress & benchmarks")).toBeTruthy();
+    expect(screen.getByText("Session distribution")).toBeTruthy();
+    expect(screen.getByText("Movement totals")).toBeTruthy();
 
     expect(api.loadSessionLibrary).toHaveBeenCalledWith("family-1");
     expect(api.loadCompletedAssessmentHistory).toHaveBeenCalledWith(
@@ -115,6 +120,10 @@ describe("ProgressDashboard Stage 4 shell", () => {
       />
     );
 
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Assessments" })).toBeTruthy()
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Assessments" }));
     await waitFor(() =>
       expect(screen.getAllByRole("button", { name: "Open Assess" }).length).toBeGreaterThan(0)
     );
@@ -143,9 +152,9 @@ describe("ProgressDashboard Stage 4 shell", () => {
     await waitFor(() =>
       expect(screen.getByText("Some Progress data could not be loaded.")).toBeTruthy()
     );
-    expect(screen.getByText("Training progress")).toBeTruthy();
-    expect(screen.getByText("Benchmark progress")).toBeTruthy();
-    expect(screen.getByText("Development trends")).toBeTruthy();
+    expect(screen.getByText("Your progress dashboard")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sessions Progress" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Assessments" })).toBeTruthy();
   });
 
   it("retries the remote Progress load without changing workout history", async () => {
