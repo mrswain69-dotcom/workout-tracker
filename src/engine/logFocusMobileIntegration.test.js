@@ -66,6 +66,25 @@ describe("focused Log and dashboard readiness integration", () => {
     expect(app).toContain(".todaySummaryCard{display:none}");
   });
 
+  it("removes redundant control labels and keeps cancel actions at block bottoms", () => {
+    const app = read("../App.jsx");
+
+    expect(app).not.toContain(">Block controls<");
+    expect(app).not.toContain(">Cardio controls<");
+    expect(app).not.toContain(">Duration controls<");
+    expect(app).not.toContain(">Session controls<");
+    expect(app).toContain("blockBottomControls");
+    expect(app).toContain("BlockCancelControl");
+  });
+
+  it("does not create speed targets for time-only cardio", () => {
+    const app = read("../App.jsx");
+
+    expect(app).toContain("distanceEnabled: !distanceHidden");
+    expect(app).toContain("if (!distanceEnabled)");
+    expect(app).toContain("findLastCardio(allLogs, ymd(selectedDate), block)");
+  });
+
   it("uses performance-brand history styling", () => {
     const app = read("../App.jsx");
 

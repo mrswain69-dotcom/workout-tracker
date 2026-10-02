@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ProgressDashboard from "./ProgressDashboard.jsx";
 
@@ -153,9 +153,8 @@ describe("Phase 4 Stage 5 ProgressDashboard integration", () => {
     );
 
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Assessments" }));
 
-    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
-    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
     await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
     const analysis = screen.getByLabelText("Assessment Analysis");
     const analysisScreen = within(analysis);
@@ -189,8 +188,7 @@ describe("Phase 4 Stage 5 ProgressDashboard integration", () => {
     );
 
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
-    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
-    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: "Assessments" }));
     await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
     const analysis = screen.getByLabelText("Assessment Analysis");
     const analysisScreen = within(analysis);

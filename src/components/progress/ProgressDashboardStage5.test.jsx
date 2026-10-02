@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ProgressDashboard from "./ProgressDashboard.jsx";
 
@@ -130,6 +130,7 @@ describe("ProgressDashboard Stage 5 training UI", () => {
 
     await waitFor(() => expect(screen.getByText("Wilf · Progress")).toBeTruthy());
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Sessions Progress" }));
 
     expect(screen.getByLabelText("Completed Sessions by 7-day period")).toBeTruthy();
     expect(screen.getByLabelText("Training time by 7-day period")).toBeTruthy();

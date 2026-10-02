@@ -4,6 +4,7 @@ import {
   getSessionDistribution,
   sessionHasActivity,
   sessionIsCompleted,
+  sessionIsProgressCompleted,
 } from "./sessionEngine.js";
 
 function cleanText(value, fallback = "") {
@@ -96,9 +97,16 @@ export function buildTrainingProgressWindows(selectedDate) {
   };
 }
 
+function rowPayload(row) {
+  if (row?.log_json && typeof row.log_json === "object") return row.log_json;
+  if (row?.log && typeof row.log === "object") return row.log;
+  return row;
+}
+
 function rowProfileId(row) {
+  const payload = rowPayload(row);
   return cleanText(
-    valueOf(row, "profileId", "profile_id", valueOf(row?.log_json, "profileId", "profile_id", "")),
+    valueOf(row, "profileId", "profile_id", valueOf(payload, "profileId", "profile_id", "")),
     ""
   );
 }
@@ -111,9 +119,7 @@ export function scopeProgressLogs(logs = [], profileId = "") {
 }
 
 function rowDate(row) {
-  const payload = row?.log_json && typeof row.log_json === "object"
-    ? row.log_json
-    : row;
+  const payload = rowPayload(row);
   return cleanText(row?.date_ymd || payload?.date_ymd || payload?.date || payload?.ymd, "");
 }
 
@@ -125,9 +131,7 @@ function dateInRange(date, startDate, endDate) {
 }
 
 function sessionBlocks(row) {
-  const payload = row?.log_json && typeof row.log_json === "object"
-    ? row.log_json
-    : row;
+  const payload = rowPayload(row);
   const blocks = Array.isArray(payload?.blocks) ? payload.blocks : [];
   return blocks.filter(
     (block) => block?.typeId === "session" && block?.session && typeof block.session === "object"
@@ -136,15 +140,23 @@ function sessionBlocks(row) {
 
 export function countStructuredSessionDays(
   logs = [],
-  { startDate = "", endDate = "", completedOnly = false } = {}
+  {
+    startDate = "",
+    endDate = "",
+    completedOnly = false,
+    inferCompletionFromMovements = false,
+  } = {}
 ) {
   const dates = new Set();
   for (const row of Array.isArray(logs) ? logs : []) {
     const date = rowDate(row);
     if (!dateInRange(date, startDate, endDate)) continue;
-    const qualifies = sessionBlocks(row).some((block) =>
-      completedOnly ? sessionIsCompleted(block.session) : sessionHasActivity(block.session)
-    );
+    const qualifies = sessionBlocks(row).some((block) => {
+      if (!completedOnly) return sessionHasActivity(block.session);
+      return inferCompletionFromMovements
+        ? sessionIsProgressCompleted(block.session)
+        : sessionIsCompleted(block.session);
+    });
     if (qualifies) dates.add(date);
   }
   return dates.size;
@@ -152,20 +164,34 @@ export function countStructuredSessionDays(
 
 export function buildTrainingWindowSummary(
   logs = [],
-  { startDate = "", endDate = "", label = "" } = {}
+  {
+    startDate = "",
+    endDate = "",
+    label = "",
+    inferCompletionFromMovements = false,
+  } = {}
 ) {
-  const history = aggregateSessionHistory(logs, { startDate, endDate });
+  const history = aggregateSessionHistory(logs, {
+    startDate,
+    endDate,
+    inferCompletionFromMovements,
+  });
   return {
     label,
     startDate,
     endDate,
     completedSessions: history.completedSessions,
     partialSessions: history.partialSessions,
-    activeSessionDays: countStructuredSessionDays(logs, { startDate, endDate }),
+    activeSessionDays: countStructuredSessionDays(logs, {
+      startDate,
+      endDate,
+      inferCompletionFromMovements,
+    }),
     completedSessionDays: countStructuredSessionDays(logs, {
       startDate,
       endDate,
       completedOnly: true,
+      inferCompletionFromMovements,
     }),
     totalMinutes: history.totalMinutes,
     recordedExecutions: history.recordedExecutions,
@@ -181,7 +207,11 @@ export function buildTrainingWindowSummary(
 // days or switching to a competing calendar-week definition.
 export function buildTrainingTrendSeries(
   logs = [],
-  { startDate = "", endDate = "" } = {}
+  {
+    startDate = "",
+    endDate = "",
+    inferCompletionFromMovements = false,
+  } = {}
 ) {
   if (!isYmd(startDate) || !isYmd(endDate) || startDate > endDate) return [];
 
@@ -193,6 +223,7 @@ export function buildTrainingTrendSeries(
     const summary = buildTrainingWindowSummary(logs, {
       startDate: cursor,
       endDate: bucketEnd,
+      inferCompletionFromMovements,
     });
 
     rows.push({
@@ -239,9 +270,17 @@ function templateArchived(template) {
 export function buildSessionBalance(
   logs = [],
   sessionTemplates = [],
-  { startDate = "", endDate = "" } = {}
+  {
+    startDate = "",
+    endDate = "",
+    inferCompletionFromMovements = false,
+  } = {}
 ) {
-  const recorded = getSessionDistribution(logs, { startDate, endDate });
+  const recorded = getSessionDistribution(logs, {
+    startDate,
+    endDate,
+    inferCompletionFromMovements,
+  });
   const recordedById = new Map(recorded.map((row) => [row.templateId, row]));
 
   const activeRows = (Array.isArray(sessionTemplates) ? sessionTemplates : [])
@@ -326,15 +365,19 @@ export function buildTrainingProgress({
   const scopedLogs = scopeProgressLogs(logs, profileId);
   const windows = buildTrainingProgressWindows(selectedDate);
 
-  const week = buildTrainingWindowSummary(scopedLogs, windows.week);
-  const month = buildTrainingWindowSummary(scopedLogs, windows.month);
-  const recent28 = buildTrainingWindowSummary(scopedLogs, windows.recent28);
-  const lifetime = buildTrainingWindowSummary(scopedLogs, windows.lifetime);
-  const trainingTrend = buildTrainingTrendSeries(scopedLogs, windows.recent28);
+  const progressOptions = { inferCompletionFromMovements: true };
+  const week = buildTrainingWindowSummary(scopedLogs, { ...windows.week, ...progressOptions });
+  const month = buildTrainingWindowSummary(scopedLogs, { ...windows.month, ...progressOptions });
+  const recent28 = buildTrainingWindowSummary(scopedLogs, { ...windows.recent28, ...progressOptions });
+  const lifetime = buildTrainingWindowSummary(scopedLogs, { ...windows.lifetime, ...progressOptions });
+  const trainingTrend = buildTrainingTrendSeries(scopedLogs, {
+    ...windows.recent28,
+    ...progressOptions,
+  });
   const sessionBalance = buildSessionBalance(
     scopedLogs,
     sessionTemplates,
-    windows.recent28
+    { ...windows.recent28, ...progressOptions }
   );
   const movementTotals = buildMovementTotals(scopedLogs);
 

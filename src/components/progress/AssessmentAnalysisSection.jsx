@@ -15,6 +15,7 @@ export default function AssessmentAnalysisSection({
   onOpenAssessments = null,
   timelineApi = loadHistoricalTimelineData,
   verificationData = null,
+  view = "all",
 }) {
   const [timelineData, setTimelineData] = useState(null);
   const [timelineError, setTimelineError] = useState(null);
@@ -58,35 +59,45 @@ export default function AssessmentAnalysisSection({
     };
   }, [profileId, timelineApi]);
 
+  const showAnalysis = view === "all" || view === "analysis";
+  const showVerification = view === "all" || view === "verification";
+  const showAutobiography = view === "all" || view === "autobiography";
+
   return (
     <>
-      <AssessmentAnalysisProgress
-        model={model}
-        onOpenAssessments={onOpenAssessments}
-      />
+      {showAnalysis ? (
+        <AssessmentAnalysisProgress
+          model={model}
+          onOpenAssessments={onOpenAssessments}
+        />
+      ) : null}
 
-      {timelineError ? (
+      {(showVerification || showAutobiography) && timelineError ? (
         <div className="progress-system-message progress-system-message--error" role="status">
           Long-range milestones could not be loaded. Recorded training history is still available below.
         </div>
       ) : null}
 
-      <VerifiedConsistencyPanel
-        verificationData={verificationData}
-        logs={logs}
-        consistencySnapshots={timelineData?.consistencySnapshots || []}
-      />
+      {showVerification ? (
+        <VerifiedConsistencyPanel
+          verificationData={verificationData}
+          logs={logs}
+          consistencySnapshots={timelineData?.consistencySnapshots || []}
+        />
+      ) : null}
 
-      <PerformanceAutobiography
-        profileId={profileId}
-        profileName={timelineData?.profile?.name || "Athlete"}
-        logs={logs}
-        assessmentRuns={completedHistory?.runs || []}
-        assessmentResults={completedHistory?.results || []}
-        timelineData={timelineData}
-        verificationData={verificationData}
-        referenceDate={timelineData?.referenceDate || ""}
-      />
+      {showAutobiography ? (
+        <PerformanceAutobiography
+          profileId={profileId}
+          profileName={timelineData?.profile?.name || "Athlete"}
+          logs={logs}
+          assessmentRuns={completedHistory?.runs || []}
+          assessmentResults={completedHistory?.results || []}
+          timelineData={timelineData}
+          verificationData={verificationData}
+          referenceDate={timelineData?.referenceDate || ""}
+        />
+      ) : null}
     </>
   );
 }

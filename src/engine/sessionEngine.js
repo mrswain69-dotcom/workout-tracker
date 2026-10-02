@@ -48,6 +48,11 @@ function getLogPayload(logOrRow) {
   if (logOrRow.log_json && typeof logOrRow.log_json === "object") {
     return logOrRow.log_json;
   }
+  // App-level log rows use { date_ymd, log } while database rows use
+  // { date_ymd, log_json }. Progress/history must understand both shapes.
+  if (logOrRow.log && typeof logOrRow.log === "object") {
+    return logOrRow.log;
+  }
   return logOrRow;
 }
 
@@ -583,6 +588,21 @@ export function sessionIsCompleted(sessionOrBlock) {
   return !!getSessionObject(sessionOrBlock)?.completed;
 }
 
+// Progress may treat a Session as completed when every non-skipped Movement was
+// explicitly ticked/performed, even if the athlete did not press the separate
+// "Complete Session" button. This is analytics-only; callers must opt in so XP,
+// rewards and normal logging semantics still require the explicit Session state.
+export function sessionIsProgressCompleted(sessionOrBlock) {
+  const session = getSessionObject(sessionOrBlock);
+  if (!session) return false;
+  if (session.completed) return true;
+  const movements = Array.isArray(session.movements) ? session.movements : [];
+  const active = movements.filter(
+    (movement) => movement && typeof movement === "object" && !movement.skipped
+  );
+  return active.length > 0 && active.every(movementWasPerformed);
+}
+
 export function sessionHasActivity(sessionOrBlock) {
   const session = getSessionObject(sessionOrBlock);
   if (!session) return false;
@@ -688,14 +708,17 @@ export function getBestScore(movementOrSession) {
   return scores.length ? Math.max(...scores) : null;
 }
 
-export function getSessionActualDuration(sessionOrBlock, { fallbackToPlanned = true } = {}) {
+export function getSessionActualDuration(
+  sessionOrBlock,
+  { fallbackToPlanned = true, completedOverride = null } = {}
+) {
   const session = getSessionObject(sessionOrBlock);
   if (!session) return 0;
 
   const actual = Number(session.actualDurationSec);
   if (Number.isFinite(actual) && actual > 0) return actual;
 
-  if (fallbackToPlanned && session.completed) {
+  if (fallbackToPlanned && (session.completed || completedOverride === true)) {
     const planned = Number(session.plannedDurationSec);
     if (Number.isFinite(planned) && planned > 0) return planned;
   }
@@ -728,11 +751,13 @@ export function aggregateSessionHistory(logs = [], options = {}) {
   let successes = 0;
 
   for (const { date, session } of entries) {
-    const completed = sessionIsCompleted(session);
+    const completed = options.inferCompletionFromMovements
+      ? sessionIsProgressCompleted(session)
+      : sessionIsCompleted(session);
     const active = sessionHasActivity(session);
     if (completed) completedSessions += 1;
     else if (active) partialSessions += 1;
-    if (active) totalMinutes += getSessionTrainingMinutes(session);
+    if (active) totalMinutes += getSessionTrainingMinutes(session, { completedOverride: completed });
     recordedExecutions += getRecordedExecutionTotal(session);
     const attemptTotals = getAttemptSuccessTotals(session);
     attempts += attemptTotals.attempts;
@@ -754,7 +779,7 @@ export function aggregateSessionHistory(logs = [], options = {}) {
     const row = byTemplate.get(templateId);
     if (completed) row.completed += 1;
     else if (active) row.partial += 1;
-    if (active) row.minutes += getSessionTrainingMinutes(session);
+    if (active) row.minutes += getSessionTrainingMinutes(session, { completedOverride: completed });
     row.recordedExecutions += getRecordedExecutionTotal(session);
     if (active && (!row.lastActivityDate || date > row.lastActivityDate)) {
       row.lastActivityDate = date;
@@ -826,7 +851,10 @@ export function aggregateMovementHistory(logs = [], options = {}) {
 export function getSessionDistribution(logs = [], options = {}) {
   const map = new Map();
   for (const { date, session } of sessionEntries(logs, options)) {
-    if (!sessionIsCompleted(session)) continue;
+    const completed = options.inferCompletionFromMovements
+      ? sessionIsProgressCompleted(session)
+      : sessionIsCompleted(session);
+    if (!completed) continue;
     const templateId = cleanText(session.templateId, "unknown");
     if (!map.has(templateId)) {
       map.set(templateId, {
