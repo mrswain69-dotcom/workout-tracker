@@ -38,6 +38,16 @@ describe("focused Log and dashboard readiness integration", () => {
     expect(app).toContain("overflow-wrap:anywhere");
   });
 
+  it("keeps editable reps, weight and time fields in one compact set row", () => {
+    const app = read("../App.jsx");
+    const styles = read("../styles.css");
+
+    expect(app).toContain("movementSetRow");
+    expect(app).toContain("movementSetFields");
+    expect(app).toContain("movementSetField");
+    expect(styles).toContain("grid-template-columns:52px minmax(0,430px)");
+  });
+
   it("uses progressive movement disclosure without preventing out-of-order access", () => {
     const app = read("../App.jsx");
 

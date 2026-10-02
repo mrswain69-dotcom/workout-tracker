@@ -54,6 +54,16 @@ import {
   getNextAvatarReward,
 } from "./engine/dashboardEngine.js";
 import {
+  getAccountHydrationPhase,
+  runAccountLoadWithRetry,
+} from "./engine/accountHydrationEngine.js";
+import {
+  extractComparableMovementSets,
+  findLastComparableMovementSets,
+  movementHistoryPoint,
+  normaliseMovementHistoryName,
+} from "./engine/movementHistoryEngine.js";
+import {
   PRESTIGE_FRAME_OPTIONS,
   PRESTIGE_FRAME_UNLOCK_XP,
   getPrestigeFrameState,
@@ -199,28 +209,27 @@ function buildTargetInfoForMovement({ movement, lastSets, plannedRepsText }) {
     };
   }
 
-  let lastReps = null;
-  let lastWeight = null;
-  let lastTime = null;
-
-  for (const set of lastSets) {
-    if (!set) continue;
-    const reps = safeNumber(set.reps);
-    const weight = safeNumber(set.weight);
-    const time = safeNumber(set.timeSeconds);
-    if (reps > 0) lastReps = reps;
-    if (weight > 0) lastWeight = weight;
-    if (time > 0) lastTime = time;
-  }
+  const activeSets = lastSets.filter(setDidSomething);
+  const lastTime = Math.max(0, ...activeSets.map((set) => safeNumber(set?.timeSeconds)));
+  const lastReps = Math.max(0, ...activeSets.map((set) => safeNumber(set?.reps)));
+  const weightedSets = activeSets
+    .filter((set) => safeNumber(set?.weight) > 0)
+    .sort((a, b) =>
+      safeNumber(b?.weight) - safeNumber(a?.weight) ||
+      safeNumber(b?.reps) - safeNumber(a?.reps)
+    );
+  const bestWeightedSet = weightedSets[0] || null;
+  const lastWeight = safeNumber(bestWeightedSet?.weight);
+  const weightedReps = safeNumber(bestWeightedSet?.reps);
 
   let progression = "";
-  if (movement?.trackDuration && lastTime != null) {
+  if (movement?.trackDuration && lastTime > 0) {
     progression = `Aim for ${Math.round(lastTime + 5)}s with the same clean form`;
-  } else if (lastReps != null && movement?.trackWeight && lastWeight != null) {
-    progression = `Aim for ${Math.round(lastReps + 1)} clean reps at ${lastWeight} kg`;
-  } else if (lastReps != null) {
+  } else if (weightedReps > 0 && movement?.trackWeight && lastWeight > 0) {
+    progression = `Aim for ${Math.round(weightedReps + 1)} clean reps at ${lastWeight} kg`;
+  } else if (lastReps > 0) {
     progression = `Aim for ${Math.round(lastReps + 1)} clean reps`;
-  } else if (movement?.trackWeight && lastWeight != null) {
+  } else if (movement?.trackWeight && lastWeight > 0) {
     progression = `Match ${lastWeight} kg with clean form; only progress if technique stays strong`;
   }
 
@@ -760,38 +769,8 @@ function calcComboMax(log) {
   }
   return maxCombo;
 }
-function findLastMovementSets(allLogs, movementId, beforeYmd) {
-  if (!Array.isArray(allLogs)) return null;
-
-  for (let i = allLogs.length - 1; i >= 0; i--) {
-    const row = allLogs[i];
-    if (!row?.date_ymd || row.date_ymd >= beforeYmd) continue;
-
-    const log = row?.log;
-    if (!log) continue;
-
-    // --- V2: legacy per-day entries ---
-    const legacySets = log?.entries?.[movementId] || null;
-    if (Array.isArray(legacySets) && legacySets.some(setDidSomething)) {
-      return legacySets;
-    }
-
-    // --- V3: per-block sets on log.blocks[].sets[movementId] ---
-    const blocks = Array.isArray(log.blocks) ? log.blocks : [];
-    for (const b of blocks) {
-      if (!b) continue;
-      const setsByMovement =
-        b.sets && typeof b.sets === "object" ? b.sets : null;
-      if (!setsByMovement) continue;
-
-      const blockSets = setsByMovement[movementId];
-      if (Array.isArray(blockSets) && blockSets.some(setDidSomething)) {
-        return blockSets;
-      }
-    }
-  }
-
-  return null;
+function findLastMovementSets(allLogs, movement, beforeYmd) {
+  return findLastComparableMovementSets(allLogs, movement, beforeYmd);
 }
 
 // Backwards-compatible wrapper for older calls.
@@ -1721,6 +1700,33 @@ function AuthScreen({ onAuthed }) {
       </PublicSite>
       <StyleTag />
     </>
+  );
+}
+
+function AccountHydrationScreen({ phase, error, onRetry }) {
+  const failed = phase === "error";
+
+  return (
+    <div className="page accountHydrationPage">
+      <div className="wrap">
+        <div className="accountHydrationCard" role={failed ? "alert" : "status"}>
+          <img className="accountHydrationMark" src="/icons/icon-192.png" alt="" />
+          <div className="accountHydrationKicker">WORKOUT TRACKER</div>
+          <h1>{failed ? "Your training data did not load" : "Loading your training history"}</h1>
+          <p>
+            {failed
+              ? error || "The first account load was interrupted. Your saved data has not been changed."
+              : "We’re securely loading your profile, program, streak and stats."}
+          </p>
+          {failed ? (
+            <PrimaryButton onClick={onRetry}>Try again</PrimaryButton>
+          ) : (
+            <div className="accountHydrationProgress" aria-hidden="true"><span /></div>
+          )}
+        </div>
+      </div>
+      <StyleTag />
+    </div>
   );
 }
 
@@ -3319,6 +3325,10 @@ useEffect(() => {
   }; // log | stats | plan | rewards | settings
   const [sessionReady, setSessionReady] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [accountLoadState, setAccountLoadState] = useState("idle");
+  const [accountLoadError, setAccountLoadError] = useState("");
+  const [accountLoadRevision, setAccountLoadRevision] = useState(0);
+  const accountLoadRequestRef = useRef(0);
   const [showGroups, setShowGroups] = useState(false);
   const [avatarIdentityModal, setAvatarIdentityModal] = useState(null);
   const [avatarIdentitySelecting, setAvatarIdentitySelecting] = useState(false);
@@ -3346,6 +3356,9 @@ useEffect(() => {
   }, [activeProfileId]);
 
   const [plan, setPlan] = useState(null);
+  const [planReady, setPlanReady] = useState(false);
+  const [planLoadError, setPlanLoadError] = useState("");
+  const planLoadRequestRef = useRef(0);
   
   // Keep a ref to the latest plan (used by async reward/XP recompute callbacks).
   // setAndCachePlan also updates this synchronously so back-to-back reward claims
@@ -3464,6 +3477,8 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const [allLogs, setAllLogs] = useState([]); // for stats
   const [streakScheduleSnapshots, setStreakScheduleSnapshots] = useState([]);
   const [logsReady, setLogsReady] = useState(false);
+  const [logsLoadError, setLogsLoadError] = useState("");
+  const allLogsLoadRequestRef = useRef(0);
   const [externalLogRevision, setExternalLogRevision] = useState(0);
 
   // --- History pill / modal ---
@@ -3918,17 +3933,24 @@ function toggleLogBlockFocus(blockId) {
     setFamily(null);
     setProfiles([]);
     setPlan(null);
+    setPlanReady(false);
+    setPlanLoadError("");
     setAllLogs([]);
+    setLogsReady(false);
+    setLogsLoadError("");
     setLogForDay(null);
     setActiveProfileId("");
+    setAccountLoadState("idle");
+    setAccountLoadError("");
     try { localStorage.removeItem("wt_activeProfileId"); } catch {}
   };
 
   // --- After auth: family + profiles + plan ---
-  async function refreshAll() {
+  async function refreshAll({ isCurrent = () => true } = {}) {
     const { family: fam, error } = await getOrCreateFamily("My Family");
     if (error) throw error;
-    setFamily(fam);
+    if (!fam?.id) throw new Error("Your family account could not be loaded.");
+    if (!isCurrent()) return null;
 
     // Transactional welcome/tutorial email is idempotent server-side. It is
     // requested after the verified account has successfully initialised.
@@ -3936,21 +3958,29 @@ function toggleLogBlockFocus(blockId) {
       sendWelcomeTutorialEmail().catch(() => {});
     }
 
-    const { data: profs } = await listProfiles(fam.id);
+    const { data: profs, error: profilesError } = await listProfiles(fam.id);
+    if (profilesError) throw profilesError;
     let profList = profs || [];
 
     if (profList.length === 0) {
       // New accounts begin with one neutral, fully blank profile. The name can
       // be changed in People without forcing a family-specific default.
-      await addProfile(fam.id, "Athlete", blankPlanForNewProfile());
+      const { error: addProfileError } = await addProfile(fam.id, "Athlete", blankPlanForNewProfile());
+      if (addProfileError) throw addProfileError;
       const again = await listProfiles(fam.id);
+      if (again.error) throw again.error;
       profList = again.data || [];
     }
 
-    const { data: recoveryPeriods } = await listProfileRecoveryPeriods(fam.id);
-    setProfileRecoveryPeriods(recoveryPeriods || []);
+    if (!profList.length) throw new Error("No training profile could be loaded.");
 
-    setProfiles(profList);
+    const {
+      data: recoveryPeriods,
+      error: recoveryPeriodsError,
+    } = await listProfileRecoveryPeriods(fam.id);
+    if (recoveryPeriodsError) throw recoveryPeriodsError;
+    if (!isCurrent()) return null;
+
     const storedProfileId = (() => {
   try {
     const v = localStorage.getItem("wt_activeProfileId") || "";
@@ -3966,17 +3996,54 @@ function toggleLogBlockFocus(blockId) {
         : (activeProfileId && profList.some((p) => p.id === activeProfileId))
           ? activeProfileId
           : (profList[0]?.id || "");
+
+    setFamily(fam);
+    setProfileRecoveryPeriods(recoveryPeriods || []);
+    setProfiles(profList);
     setActiveProfileId(nextProfileId);
     // IMPORTANT:
     // Weekly plans are per-profile (stored on the profile row or keyed per profile).
     // Don't fetch/write a shared family plan here. Plan loading is handled by the
     // per-profile effect below so switching profiles always shows the right plan.
+    return nextProfileId;
   }
 
   useEffect(() => {
-    if (!authed) return;
-    refreshAll().catch(() => {});
-  }, [authed]);
+    if (!authed) {
+      accountLoadRequestRef.current += 1;
+      setAccountLoadState("idle");
+      setAccountLoadError("");
+      return;
+    }
+
+    const requestId = ++accountLoadRequestRef.current;
+    const isCurrent = () => accountLoadRequestRef.current === requestId;
+    setAccountLoadState("loading");
+    setAccountLoadError("");
+
+    runAccountLoadWithRetry(() => refreshAll({ isCurrent }))
+      .then((profileId) => {
+        if (!isCurrent() || !profileId) return;
+        setAccountLoadState("ready");
+      })
+      .catch((error) => {
+        if (!isCurrent()) return;
+        console.error("account bootstrap failed", error);
+        setAccountLoadError(
+          "We couldn’t load your profile and training data. Please try again."
+        );
+        setAccountLoadState("error");
+      });
+  }, [authed, accountLoadRevision]);
+
+  function retryAccountHydration() {
+    setAccountLoadError("");
+    setPlanLoadError("");
+    setLogsLoadError("");
+    setPlanReady(false);
+    setLogsReady(false);
+    setAccountLoadRevision((revision) => revision + 1);
+  }
 
   async function persistTutorialState(status, step = 0) {
     if (!family?.id) return;
@@ -4024,17 +4091,25 @@ function toggleLogBlockFocus(blockId) {
 // --- Load logs when profile changes ---
   useEffect(() => {
   if (!family?.id || !activeProfileId) {
+    allLogsLoadRequestRef.current += 1;
     setLogsReady(false);
+    setLogsLoadError("");
     setAllLogs([]);
     return;
   }
 
   // Important: clear immediately so we don't display previous profile streak/logs
+  const requestId = ++allLogsLoadRequestRef.current;
   setLogsReady(false);
+  setLogsLoadError("");
   setAllLogs([]);
 
-  (async () => {
-    const { data } = await listLogs(family.id, activeProfileId, 2000);
+  runAccountLoadWithRetry(async () => {
+    const { data, error } = await listLogs(family.id, activeProfileId, 2000);
+    if (error) throw error;
+    return data || [];
+  }).then((data) => {
+    if (requestId !== allLogsLoadRequestRef.current) return;
 
     // Defensive: if db query ever returns mixed profiles, filter client-side
     const rows = (data || []).filter(
@@ -4054,11 +4129,13 @@ function toggleLogBlockFocus(blockId) {
 
     setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId));
     setLogsReady(true);
-  })().catch(() => {
-    // Even if it fails, mark as "done" so we don't get stuck.
-    setLogsReady(true);
+  }).catch((error) => {
+    if (requestId !== allLogsLoadRequestRef.current) return;
+    console.error("listLogs failed", error);
+    setLogsLoadError("We couldn’t load this profile’s training history.");
+    setLogsReady(false);
   });
-}, [family?.id, activeProfileId, externalLogRevision]);
+}, [family?.id, activeProfileId, externalLogRevision, accountLoadRevision]);
 
 useEffect(() => {
   if (!activeProfileId) {
@@ -4480,53 +4557,74 @@ const badgeStats = useMemo(() => {
    // --- Load weekly plan for the selected profile ---
   useEffect(() => {
     // We need both a profile and a family to be able to read/write the DB plan
-    if (!activeProfileId || !family?.id) return;
+    if (!activeProfileId || !family?.id) {
+      planLoadRequestRef.current += 1;
+      setPlanReady(false);
+      setPlanLoadError("");
+      return;
+    }
 
     const familyId = family.id;
     const profileId = activeProfileId;
+    const requestId = ++planLoadRequestRef.current;
+    setPlanReady(false);
+    setPlanLoadError("");
 
 // 1) Try local cached copy first (fast), BUT still fetch DB after (authoritative)
 const cached = getCachedPlan(profileId);
 if (cached) {
   setAndCachePlan(profileId, cached);
+  setPlanReady(true);
   // DO NOT return — we still want to fetch the DB plan to catch updates from other devices
 }
 
     // 2) Always try the DB plan (authoritative for extras)
-    (async () => {
-          const { data, error } = await getProfilePlan(familyId, profileId);
-    if (error) {
-      console.error("getProfilePlan failed", error);
-      // If we have cached, just keep it; otherwise we’ll fall back to a default plan.
+    runAccountLoadWithRetry(async () => {
+      const { data, error } = await getProfilePlan(familyId, profileId);
+      if (error) throw error;
+      return data || null;
+    }).then(async (data) => {
+      if (requestId !== planLoadRequestRef.current) return;
+
+      if (data?.plan_json) {
+        const dbPlan = normalisePlanForRuntime(data.plan_json);
+
+        // Only overwrite if it’s actually different
+        const cachedStr = cached ? JSON.stringify(cached) : "";
+        const dbStr = dbPlan ? JSON.stringify(dbPlan) : "";
+
+        if (!cached || cachedStr !== dbStr) {
+          setAndCachePlan(profileId, dbPlan);
+        }
+        setPlanReady(true);
+        return;
+      }
+
+      // A successful read confirms there truly is no saved plan. Only then is
+      // it safe to create the blank default; never overwrite after a read error.
       if (!cached) {
-        const p = defaultPlanForFamily();
-        await upsertProfilePlan(familyId, profileId, p);
-        setAndCachePlan(profileId, p);
+        const nextPlan = defaultPlanForFamily();
+        const { error: saveError } = await upsertProfilePlan(
+          familyId,
+          profileId,
+          nextPlan
+        );
+        if (saveError) throw saveError;
+        if (requestId !== planLoadRequestRef.current) return;
+        setAndCachePlan(profileId, nextPlan);
       }
-      return;
-    }
-
-    if (data?.plan_json) {
-      const dbPlan = normalisePlanForRuntime(data.plan_json);
-
-      // Only overwrite if it’s actually different
-      const cachedStr = cached ? JSON.stringify(cached) : "";
-      const dbStr = dbPlan ? JSON.stringify(dbPlan) : "";
-
-      if (!cached || cachedStr !== dbStr) {
-        setAndCachePlan(profileId, dbPlan);
+      setPlanReady(true);
+    }).catch((error) => {
+      if (requestId !== planLoadRequestRef.current) return;
+      console.error("getProfilePlan failed", error);
+      if (cached) {
+        setPlanReady(true);
+        return;
       }
-      return;
-    }
-
-    // No DB plan and no cached copy: create default + persist
-    if (!cached) {
-      const p = defaultPlanForFamily();
-      await upsertProfilePlan(familyId, profileId, p);
-      setAndCachePlan(profileId, p);
-    }
-    })();
-  }, [activeProfileId, family?.id]);  // IMPORTANT: do not depend on activeProfile here
+      setPlanLoadError("We couldn’t load this profile’s training program.");
+      setPlanReady(false);
+    });
+  }, [activeProfileId, family?.id, accountLoadRevision]);  // IMPORTANT: do not depend on activeProfile here
 
 
   // Names we’ve used before for one-off activities (for dropdown suggestions)
@@ -5214,7 +5312,7 @@ let progressCount = 0;
 
             setsLogged += completedSets.length;
 
-            const lastSets = findLastMovementSets(records, mov.id, date);
+            const lastSets = findLastMovementSets(records, mov, date);
             const lastScore = scoreSets(lastSets || []);
             const curScore = scoreSets(movementSets);
             if (curScore > lastScore && lastScore > 0) {
@@ -7849,38 +7947,10 @@ const ymdMinusDays = (ymdStr, days) => {
   return ymd(d);
 };
 
-const extractMovementSetsFromLog = (log, movementId) => {
-  if (!log) return null;
+const extractMovementSetsFromLog = (log, movement) =>
+  extractComparableMovementSets(log, movement);
 
-  // V2 legacy
-  const legacy = log?.entries?.[movementId];
-  if (Array.isArray(legacy) && legacy.some(setDidSomething)) return legacy;
-
-  // V3 blocks
-  const blocks = Array.isArray(log.blocks) ? log.blocks : [];
-  for (const b of blocks) {
-    const setsByMovement = b?.sets && typeof b.sets === "object" ? b.sets : null;
-    if (!setsByMovement) continue;
-    const s = setsByMovement[movementId];
-    if (Array.isArray(s) && s.some(setDidSomething)) return s;
-  }
-  return null;
-};
-
-const strengthPointForSets = (sets) => {
-  // Return all three metrics (max per day)
-  let weight = 0;
-  let reps = 0;
-  let timeSec = 0;
-
-  for (const s of sets || []) {
-    weight = Math.max(weight, safeNumber(s.weight));
-    reps = Math.max(reps, safeNumber(s.reps));
-    timeSec = Math.max(timeSec, safeNumber(s.timeSeconds));
-  }
-
-  return { weight, reps, timeSec };
-};
+const strengthPointForSets = movementHistoryPoint;
 
 const extractCardioFromLogByBlockId = (log, blockId) => {
   if (!log) return null;
@@ -7918,6 +7988,7 @@ const extractTaskDoneFromLog = (log, blockId, taskId) => {
 // Build a quick “has history?” index so we only show the pill when data exists
 const historyIndex = useMemo(() => {
   const movementHas = {};
+  const movementNameHas = {};
   const cardioHas = {};
   const durationHas = {};
   const taskHas = {};
@@ -7934,6 +8005,11 @@ const historyIndex = useMemo(() => {
     for (const [mid, sets] of Object.entries(setsByMovement)) {
       if (Array.isArray(sets) && sets.some(setDidSomething)) {
         movementHas[mid] = true;
+        const movement = (Array.isArray(b.movements) ? b.movements : []).find(
+          (candidate) => candidate?.id === mid
+        );
+        const nameKey = normaliseMovementHistoryName(movement?.name);
+        if (nameKey) movementNameHas[nameKey] = true;
       }
     }
   }
@@ -7970,7 +8046,7 @@ const historyIndex = useMemo(() => {
     }
   }
 
-  return { movementHas, cardioHas, durationHas, taskHas };
+  return { movementHas, movementNameHas, cardioHas, durationHas, taskHas };
 }, [allLogs]);
 
 // When modal opens or range changes, rebuild chart series
@@ -7990,7 +8066,10 @@ useEffect(() => {
       const d = row?.date_ymd || row?.date;
       if (!d || d < cutoff) continue;
 
-      const sets = extractMovementSetsFromLog(row.log, historyModal.id);
+      const sets = extractMovementSetsFromLog(row.log || row.log_json, {
+        id: historyModal.id,
+        name: historyModal.name || historyModal.title,
+      });
       if (!sets) continue;
 
       const p = strengthPointForSets(sets);
@@ -9062,6 +9141,28 @@ const cardioProgress = useMemo(() => {
 <div className="muted">Loading…</div></div><StyleTag/></div>;
   if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />;
 
+  const accountHydrationPhase = getAccountHydrationPhase({
+    authed,
+    accountLoadState,
+    familyId: family?.id,
+    activeProfileId,
+    planReady,
+    logsReady,
+    accountLoadError,
+    planLoadError,
+    logsLoadError,
+  });
+
+  if (accountHydrationPhase !== "ready") {
+    return (
+      <AccountHydrationScreen
+        phase={accountHydrationPhase}
+        error={accountLoadError || planLoadError || logsLoadError}
+        onRetry={retryAccountHydration}
+      />
+    );
+  }
+
   return (
     <div className="page">
       <div className="wrap">
@@ -9473,17 +9574,18 @@ const cardioProgress = useMemo(() => {
                               movementSets.length || 0
                             );
 
-                            const lastSets = findLastMovementSets(
-                              allLogs,
-                              mov.id,
-                              ymd(selectedDate)
-                            );
+                            const lastSets = findLastMovementSets(allLogs, mov, ymd(selectedDate));
 
                             const targetInfo = buildTargetInfoForMovement({
                               movement: mov,
                               lastSets,
                               plannedRepsText: mov.initialTarget || mov.reps || "",
                             });
+                            const movementHasHistory =
+                              !!historyIndex?.movementHas?.[mov.id] ||
+                              !!historyIndex?.movementNameHas?.[
+                                normaliseMovementHistoryName(mov.name)
+                              ];
 
                             const completedPlannedSets = movementSets
                               .slice(0, basePlannedSets)
@@ -9544,11 +9646,11 @@ const cardioProgress = useMemo(() => {
                                 : "mt12 setRowSimple";
 
                               rows.push(
-                                <div key={i} className={rowClass}>
+                                <div key={i} className={`${rowClass} movementSetRow`}>
                                   <div className="setLabel">Set {i + 1}</div>
-                                  <div className="grid3 mt4">
-                                    <div>
-                                      <div className="label">Reps</div>
+                                  <div className="movementSetFields">
+                                    <label className="movementSetField">
+                                      <span>Reps</span>
                                       <Input
                                         type="number"
                                         min={0}
@@ -9559,11 +9661,11 @@ const cardioProgress = useMemo(() => {
                                           updateStrengthSetsForMovement(block.id, mov.id, nextSets);
                                         }}
                                       />
-                                    </div>
+                                    </label>
 
                                     {mov.trackWeight && (
-                                      <div>
-                                        <div className="label">Weight (kg)</div>
+                                      <label className="movementSetField">
+                                        <span>Weight (kg)</span>
                                         <Input
                                           type="number"
                                           min={0}
@@ -9574,12 +9676,12 @@ const cardioProgress = useMemo(() => {
                                             updateStrengthSetsForMovement(block.id, mov.id, nextSets);
                                           }}
                                         />
-                                      </div>
+                                      </label>
                                     )}
 
                                     {mov.trackDuration && (
-                                      <div>
-                                        <div className="label">Time (sec)</div>
+                                      <label className="movementSetField">
+                                        <span>Time (sec)</span>
                                         <Input
                                           type="number"
                                           min={0}
@@ -9590,7 +9692,7 @@ const cardioProgress = useMemo(() => {
                                             updateStrengthSetsForMovement(block.id, mov.id, nextSets);
                                           }}
                                         />
-                                      </div>
+                                      </label>
                                     )}
                                   </div>
                                 </div>
@@ -9636,7 +9738,7 @@ const cardioProgress = useMemo(() => {
                                       <div className="movementCoachNote">{mov.coachNote}</div>
                                     ) : null}
 
-                                    {(targetInfo?.progressionText || historyIndex?.movementHas?.[mov.id]) && (
+                                    {(targetInfo?.progressionText || movementHasHistory) && (
                                       <div className="movementProgressionBand">
                                         <div className="movementProgressionBand__copy">
                                           <span className="movementProgressionBand__label">Progression</span>
@@ -9644,13 +9746,18 @@ const cardioProgress = useMemo(() => {
                                             {targetInfo?.progressionText || "Compare with your previous result before choosing today’s progression."}
                                           </span>
                                         </div>
-                                        {historyIndex?.movementHas?.[mov.id] && (
+                                        {movementHasHistory && (
                                           <button
                                             type="button"
                                             className="historyPill movementProgressionBand__history"
                                             onClick={() => {
                                               setHistoryRange("8w");
-                                              setHistoryModal({ kind: "movement", id: mov.id, title: mov.name });
+                                              setHistoryModal({
+                                                kind: "movement",
+                                                id: mov.id,
+                                                name: mov.name,
+                                                title: mov.name,
+                                              });
                                             }}
                                           >
                                             History
@@ -13695,13 +13802,13 @@ if (!didClaim) {
     {historyModal.kind === "movement" && (
       <>
         {historyStrengthShow.weight && (
-          <Line type="monotone" dataKey="weight" dot={false} strokeWidth={3} stroke="#0ea5e9" connectNulls />
+          <Line type="monotone" dataKey="weight" dot={{ r: 3 }} strokeWidth={3} stroke="#0ea5e9" connectNulls />
         )}
         {historyStrengthShow.reps && (
-          <Line type="monotone" dataKey="reps" dot={false} strokeWidth={3} stroke="#22c55e" connectNulls />
+          <Line type="monotone" dataKey="reps" dot={{ r: 3 }} strokeWidth={3} stroke="#22c55e" connectNulls />
         )}
         {historyStrengthShow.time && (
-          <Line type="monotone" dataKey="timeSec" dot={false} strokeWidth={3} stroke="#f59e0b" connectNulls />
+          <Line type="monotone" dataKey="timeSec" dot={{ r: 3 }} strokeWidth={3} stroke="#f59e0b" connectNulls />
         )}
       </>
     )}
