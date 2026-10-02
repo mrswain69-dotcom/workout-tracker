@@ -192,6 +192,8 @@ function buildTargetInfoForMovement({ movement, lastSets, plannedRepsText }) {
   if (!lastSets || !Array.isArray(lastSets) || lastSets.length === 0) {
     return {
       text: baseText ? `Today: ${baseText}` : "",
+      todayText: baseText ? `Today: ${baseText}` : "",
+      progressionText: "",
     };
   }
 
@@ -220,12 +222,17 @@ function buildTargetInfoForMovement({ movement, lastSets, plannedRepsText }) {
     progression = `Match ${lastWeight} kg with clean form; only progress if technique stays strong`;
   }
 
-  if (baseText && progression) {
-    return { text: `Today: ${baseText} · Progression: ${progression}` };
-  }
-  if (progression) return { text: `Today: ${progression}` };
-  if (baseText) return { text: `Today: ${baseText}` };
-  return { text: "" };
+  const todayText = baseText ? `Today: ${baseText}` : "";
+  const text =
+    todayText && progression
+      ? `${todayText} · Progression: ${progression}`
+      : todayText || progression;
+
+  return {
+    text,
+    todayText,
+    progressionText: progression,
+  };
 }
 // ----- V3 BLOCK MODEL HELPERS -----
 
@@ -9591,9 +9598,6 @@ const cardioProgress = useMemo(() => {
                                   <div className="focusedMovementSummary__copy">
                                     <div className="movementName">{mov.name}</div>
                                     <div className="focusedMovementPlan">{planSummary}</div>
-                                    <div className="movementTarget">
-                                      {targetInfo?.text || "Log once to generate targets."}
-                                    </div>
                                   </div>
                                   <span
                                     className="focusedMovementStatus"
@@ -9605,23 +9609,32 @@ const cardioProgress = useMemo(() => {
 
                                 {movementOpen && (
                                   <div className="focusedMovementBody">
-                                    <div className="movementHeaderTop">
-                                      {mov.coachNote ? (
-                                        <div className="movementCoachNote">{mov.coachNote}</div>
-                                      ) : <span />}
-                                      {historyIndex?.movementHas?.[mov.id] && (
-                                        <button
-                                          type="button"
-                                          className="historyPill"
-                                          onClick={() => {
-                                            setHistoryRange("8w");
-                                            setHistoryModal({ kind: "movement", id: mov.id, title: mov.name });
-                                          }}
-                                        >
-                                          History
-                                        </button>
-                                      )}
-                                    </div>
+                                    {mov.coachNote ? (
+                                      <div className="movementCoachNote">{mov.coachNote}</div>
+                                    ) : null}
+
+                                    {(targetInfo?.progressionText || historyIndex?.movementHas?.[mov.id]) && (
+                                      <div className="movementProgressionBand">
+                                        <div className="movementProgressionBand__copy">
+                                          <span className="movementProgressionBand__label">Progression</span>
+                                          <span>
+                                            {targetInfo?.progressionText || "Compare with your previous result before choosing today’s progression."}
+                                          </span>
+                                        </div>
+                                        {historyIndex?.movementHas?.[mov.id] && (
+                                          <button
+                                            type="button"
+                                            className="historyPill movementProgressionBand__history"
+                                            onClick={() => {
+                                              setHistoryRange("8w");
+                                              setHistoryModal({ kind: "movement", id: mov.id, title: mov.name });
+                                            }}
+                                          >
+                                            History
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
 
                                     {rows}
 
@@ -15976,6 +15989,44 @@ function StyleTag() {
 .focusedMovement .movementName{margin:0;color:#0f172a;font-size:16px;font-weight:900}
 .focusedMovementPlan{margin-top:2px;color:#526477;font-size:10px;font-weight:800}
 .focusedMovement .movementTarget{margin:4px 0 0;font-size:11px;line-height:1.35}
+.movementProgressionBand{
+  width:100%;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:7px 0 10px;
+  padding:4px 4px 4px 10px;
+  border:1px solid rgba(0,174,196,.34);
+  border-radius:999px;
+  background:#fbfdff;
+  box-sizing:border-box;
+}
+.movementProgressionBand__copy{
+  min-width:0;
+  flex:1 1 auto;
+  display:flex;
+  align-items:baseline;
+  gap:6px;
+  overflow-wrap:anywhere;
+  color:#526477;
+  font-size:10px;
+  line-height:1.3;
+}
+.movementProgressionBand__label{
+  flex:0 0 auto;
+  color:#08738a;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.movementProgressionBand__history{
+  flex:0 0 auto;
+  margin:0;
+  white-space:nowrap;
+}
 .focusedMovementStatus{
   flex:0 0 28px;
   width:28px;
@@ -16129,6 +16180,9 @@ function StyleTag() {
   .focusedLogBlockTitle{font-size:16px}
   .focusedMovementSummary{padding:10px}
   .focusedMovementBody{padding:0 10px 10px}
+  .movementProgressionBand{align-items:stretch;border-radius:14px;padding:5px 5px 5px 9px}
+  .movementProgressionBand__copy{align-items:flex-start;flex-direction:column;gap:1px}
+  .movementProgressionBand__history{align-self:center}
 }
 
       .authCard{max-width:520px;margin:60px auto}
