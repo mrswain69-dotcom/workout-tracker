@@ -116,6 +116,8 @@ describe("AssessmentTemplateLibrary", () => {
     expect(db.loadAssessmentLibrary).toHaveBeenCalledWith("f1");
     expect(screen.getByText("1 Assessment")).toBeTruthy();
     expect(screen.getByText(/v2 · 1 Test/)).toBeTruthy();
+    expect(screen.queryByText("Athletic")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show details" }));
     expect(screen.getByText("Athletic")).toBeTruthy();
   });
 
