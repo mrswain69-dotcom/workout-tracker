@@ -20,18 +20,19 @@ const css = fs.readFileSync(
 );
 
 describe("Phase 4 Stage 5 Progress Analysis contract", () => {
-  it("builds Analysis from the existing Progress data and renders it between Development Trends and the legacy bridge", () => {
+  it("builds Analysis from the existing Progress data inside the dedicated Assessments view", () => {
     expect(section).toContain("buildAssessmentAnalysis({");
     expect(section).toContain("sessionLibrary: sessionLibrary || {}");
     expect(section).toContain("assessmentLibrary: assessmentLibrary || {}");
     expect(section).toContain("buildAssessmentAnalysisViewModel(analysis)");
 
-    const developmentIndex = dashboard.indexOf('<DevelopmentTrendDetails developmentTrends={developmentTrends} />');
-    const analysisIndex = dashboard.indexOf("<AssessmentAnalysisSection");
-    const legacyIndex = dashboard.indexOf('<div className="progress-legacy-bridge">');
-    expect(developmentIndex).toBeGreaterThan(-1);
+    const assessmentsView = dashboard.indexOf('progressView === "assessments"');
+    const developmentIndex = dashboard.indexOf('<DevelopmentTrendDetails developmentTrends={developmentTrends} />', assessmentsView);
+    const analysisIndex = dashboard.indexOf('view="analysis"', assessmentsView);
+    expect(assessmentsView).toBeGreaterThan(-1);
+    expect(developmentIndex).toBeGreaterThan(assessmentsView);
     expect(analysisIndex).toBeGreaterThan(developmentIndex);
-    expect(legacyIndex).toBeGreaterThan(analysisIndex);
+    expect(dashboard).not.toContain('className="progress-legacy-bridge"');
   });
 
   it("keeps Test evidence collapsed by default to control Progress information density", () => {
