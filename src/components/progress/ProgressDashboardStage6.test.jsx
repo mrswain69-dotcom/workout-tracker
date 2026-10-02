@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ProgressDashboard from "./ProgressDashboard.jsx";
 
@@ -80,7 +80,7 @@ function dbApi() {
 }
 
 describe("ProgressDashboard Stage 6 integration", () => {
-  it("wires Assessment charts and detailed Development Trends into Progress without removing Stage 5 or legacy Stats bridge", async () => {
+  it("wires Assessment charts and detailed Development Trends into the dedicated Assessments view", async () => {
     render(
       <ProgressDashboard
         familyId="family-1"
@@ -95,6 +95,7 @@ describe("ProgressDashboard Stage 6 integration", () => {
     );
 
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Assessments" }));
 
     expect(screen.getByLabelText("Latest benchmark Test status summary")).toBeTruthy();
     expect(screen.getByLabelText("10 m acceleration Assessment history chart")).toBeTruthy();
@@ -103,7 +104,8 @@ describe("ProgressDashboard Stage 6 integration", () => {
     expect(screen.getByText("Acceleration")).toBeTruthy();
     expect(screen.getByText("Strength")).toBeTruthy();
 
-    expect(screen.getByText(/Training charts will appear after structured Session activity is recorded/)).toBeTruthy();
-    expect(screen.getByText("Legacy workout history retained below")).toBeTruthy();
+    expect(screen.getByText("Benchmark progress")).toBeTruthy();
+    expect(screen.getByText("Assessment analysis")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sessions Progress" })).toBeTruthy();
   });
 });
