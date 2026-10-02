@@ -123,6 +123,7 @@ describe("ProgressDashboard Stage 7 range and density UI", () => {
     );
 
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Sessions Progress" }));
 
     const rangeGroup = screen.getByRole("group", { name: "Training detail range" });
     expect(rangeGroup).toBeTruthy();
@@ -146,7 +147,7 @@ describe("ProgressDashboard Stage 7 range and density UI", () => {
     expect(screen.getByLabelText("Training time by active months")).toBeTruthy();
   });
 
-  it("keeps the legacy parity message explicit rather than implying old Stats were replaced", async () => {
+  it("uses the new Progress dashboard instead of the retired legacy Stats bridge", async () => {
     render(
       <ProgressDashboard
         familyId="family-1"
@@ -159,7 +160,8 @@ describe("ProgressDashboard Stage 7 range and density UI", () => {
     );
 
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
-    expect(screen.getByText("Legacy workout history retained below")).toBeTruthy();
-    expect(screen.getByText(/do not yet have truthful Progress parity/)).toBeTruthy();
+    expect(screen.getByText("Your progress dashboard")).toBeTruthy();
+    expect(screen.queryByText("Legacy workout history retained below")).toBeNull();
+    expect(screen.getByRole("button", { name: "Autobiography" })).toBeTruthy();
   });
 });
