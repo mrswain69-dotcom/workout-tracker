@@ -3,7 +3,7 @@ import {
   aggregateSessionHistory,
   getSessionDistribution,
   sessionHasActivity,
-  sessionIsCompleted,
+  sessionIsProgressCompleted,
 } from "./sessionEngine.js";
 
 function cleanText(value, fallback = "") {
@@ -96,9 +96,16 @@ export function buildTrainingProgressWindows(selectedDate) {
   };
 }
 
+function rowPayload(row) {
+  if (row?.log_json && typeof row.log_json === "object") return row.log_json;
+  if (row?.log && typeof row.log === "object") return row.log;
+  return row;
+}
+
 function rowProfileId(row) {
+  const payload = rowPayload(row);
   return cleanText(
-    valueOf(row, "profileId", "profile_id", valueOf(row?.log_json, "profileId", "profile_id", "")),
+    valueOf(row, "profileId", "profile_id", valueOf(payload, "profileId", "profile_id", "")),
     ""
   );
 }
@@ -111,9 +118,7 @@ export function scopeProgressLogs(logs = [], profileId = "") {
 }
 
 function rowDate(row) {
-  const payload = row?.log_json && typeof row.log_json === "object"
-    ? row.log_json
-    : row;
+  const payload = rowPayload(row);
   return cleanText(row?.date_ymd || payload?.date_ymd || payload?.date || payload?.ymd, "");
 }
 
@@ -125,9 +130,7 @@ function dateInRange(date, startDate, endDate) {
 }
 
 function sessionBlocks(row) {
-  const payload = row?.log_json && typeof row.log_json === "object"
-    ? row.log_json
-    : row;
+  const payload = rowPayload(row);
   const blocks = Array.isArray(payload?.blocks) ? payload.blocks : [];
   return blocks.filter(
     (block) => block?.typeId === "session" && block?.session && typeof block.session === "object"
@@ -143,7 +146,7 @@ export function countStructuredSessionDays(
     const date = rowDate(row);
     if (!dateInRange(date, startDate, endDate)) continue;
     const qualifies = sessionBlocks(row).some((block) =>
-      completedOnly ? sessionIsCompleted(block.session) : sessionHasActivity(block.session)
+      completedOnly ? sessionIsProgressCompleted(block.session) : sessionHasActivity(block.session)
     );
     if (qualifies) dates.add(date);
   }
@@ -154,7 +157,11 @@ export function buildTrainingWindowSummary(
   logs = [],
   { startDate = "", endDate = "", label = "" } = {}
 ) {
-  const history = aggregateSessionHistory(logs, { startDate, endDate });
+  const history = aggregateSessionHistory(logs, {
+    startDate,
+    endDate,
+    inferCompletionFromMovements: true,
+  });
   return {
     label,
     startDate,
@@ -241,7 +248,11 @@ export function buildSessionBalance(
   sessionTemplates = [],
   { startDate = "", endDate = "" } = {}
 ) {
-  const recorded = getSessionDistribution(logs, { startDate, endDate });
+  const recorded = getSessionDistribution(logs, {
+    startDate,
+    endDate,
+    inferCompletionFromMovements: true,
+  });
   const recordedById = new Map(recorded.map((row) => [row.templateId, row]));
 
   const activeRows = (Array.isArray(sessionTemplates) ? sessionTemplates : [])
