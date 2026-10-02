@@ -51,6 +51,23 @@ function todayYmd() {
   return `${year}-${month}-${day}`;
 }
 
+function monthName(dateYmd) {
+  const date = new Date(`${dateYmd}T12:00:00Z`);
+  return Number.isNaN(date.getTime())
+    ? "this month"
+    : date.toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" });
+}
+
+function strengthTrendHeadline(summaryStats) {
+  const trend = summaryStats?.strengthTrend;
+  if (!trend) return "Log strength sets to build a rolling comparison";
+  if (trend.state === "no_current") return "No strength sets in the current 4-week window";
+  if (trend.state === "no_baseline") return "Current activity logged · previous 4-week baseline needed";
+  if (trend.state === "no_activity") return "Log strength sets to build a rolling comparison";
+  const value = Number(trend.percentageChange);
+  return `${value > 0 ? "+" : ""}${value}% vs the previous 4 weeks`;
+}
+
 function emptyRemoteData() {
   return {
     sessionLibrary: {
@@ -534,6 +551,7 @@ export default function ProgressDashboard({
   const [progressView, setProgressView] = useState("dashboard");
   const [verificationData, setVerificationData] = useState(null);
   const resolvedReferenceDate = referenceDate || todayYmd();
+  const resolvedMonthName = monthName(resolvedReferenceDate);
 
   useEffect(() => {
     setVerificationData(null);
@@ -768,14 +786,14 @@ export default function ProgressDashboard({
               {hasSessionHistory ? (
                 <>
                   <MetricCard
-                    label="Sessions · this month"
+                    label={`Completed Sessions · ${resolvedMonthName}`}
                     value={model.training.sessionsThisMonth}
-                    note="Completion ticks count even when numeric drill counts are left blank"
+                    note="Calendar month to date · completion ticks count"
                   />
                   <MetricCard
-                    label="Skills training days · 4 weeks"
+                    label="Session activity days · rolling 28 days"
                     value={trainingProgress.recent28.activeSessionDays}
-                    note="Structured Session activity"
+                    note="Can include days from the previous calendar month"
                   />
                 </>
               ) : null}
@@ -801,14 +819,14 @@ export default function ProgressDashboard({
               {!hasSessionHistory ? (
                 <>
                   <MetricCard
-                    label="Sessions · this month"
+                    label={`Completed Sessions · ${resolvedMonthName}`}
                     value={model.training.sessionsThisMonth}
-                    note="Appears higher once Session history is recorded"
+                    note="Calendar month to date"
                   />
                   <MetricCard
-                    label="Skills training days · 4 weeks"
+                    label="Session activity days · rolling 28 days"
                     value={trainingProgress.recent28.activeSessionDays}
-                    note="Structured Session activity"
+                    note="Can include days from the previous calendar month"
                   />
                 </>
               ) : null}
@@ -824,12 +842,8 @@ export default function ProgressDashboard({
                 </strong>
               </div>
               <div>
-                <span>Strength activity change</span>
-                <strong>
-                  {summaryStats?.improved === null || summaryStats?.improved === undefined
-                    ? "Needs comparable month-to-month activity"
-                    : `${summaryStats.improved > 0 ? "+" : ""}${summaryStats.improved}% vs last month`}
-                </strong>
+                <span>Strength set activity · rolling 4 weeks</span>
+                <strong>{strengthTrendHeadline(summaryStats)}</strong>
               </div>
               <div>
                 <span>Record</span>

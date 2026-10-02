@@ -95,6 +95,7 @@ import {
   computeActivityMinutesForDay,
   formatActivityMinutes,
 } from "./engine/activityTimeEngine.js";
+import { buildStrengthActivityTrend } from "./engine/strengthActivityTrendEngine.js";
 
 import { AVATAR_PACKS, AVATAR_PACK_GROUPS } from "./config/avatars";
 import { resolveAvatarIdentity, AVATAR_IDENTITY_TRACKING_RELEASED_AT } from "./config/avatarIdentity";
@@ -8746,7 +8747,6 @@ async function removeExtraMovement(blockId) {
   let mostActiveWeekMinutes = 0;
 
   const weekly = new Map();
-  const monthToStrength = new Map();
   const sessionDays = new Set();
   const strengthByDay = new Map();
 
@@ -8787,9 +8787,6 @@ async function removeExtraMovement(blockId) {
           w.strengthVolume += sets;
           w.strengthBlocks += 1;
 
-          // Month-level strength volume
-          const mk = `${d.slice(0, 7)}`; // YYYY-MM
-          monthToStrength.set(mk, (monthToStrength.get(mk) || 0) + sets);
         }
       } else if (typeId === "cardio") {
         const c = b.cardio || {};
@@ -8929,20 +8926,7 @@ async function removeExtraMovement(blockId) {
       sessions: v.sessions,
     }));
 
-  // improved this month vs last (strength volume)
-  const now = new Date();
-  const thisMk = `${now.getFullYear()}-${String(
-    now.getMonth() + 1
-  ).padStart(2, "0")}`;
-  const last = new Date(now);
-  last.setMonth(now.getMonth() - 1);
-  const lastMk = `${last.getFullYear()}-${String(
-    last.getMonth() + 1
-  ).padStart(2, "0")}`;
-  const thisVol = monthToStrength.get(thisMk) || 0;
-  const lastVol = monthToStrength.get(lastMk) || 0;
-    const improved =
-    lastVol > 0 ? Math.round(((thisVol - lastVol) / lastVol) * 100) : null;
+  const strengthTrend = buildStrengthActivityTrend(strengthByDay, todayYmd);
 
   // Plan-based streak (same as the Plan Streak tile, includes streak saver)
   const streak = workoutStreak.currentDays;
@@ -8956,7 +8940,8 @@ async function removeExtraMovement(blockId) {
     weeklyChart,
     streak,
     longestActivityStreak: workoutStreak.longestDays,
-    improved,
+    improved: strengthTrend.percentageChange,
+    strengthTrend,
     // fields we’ll adjust in the next section
     mostActiveDayMinutes,
     mostActiveWeekMinutes,
@@ -9378,7 +9363,7 @@ const cardioProgress = useMemo(() => {
 
         {tab === "log" && (
           <div className="gridLog" key={`${activeProfileId}_${selectedDate}`}>
-            <Card className="pad">
+            <Card className="pad logWorkspaceCard">
               <div className="row logTopRow">
                 <div className="rowLeft">
                   <div className="field">
@@ -11162,12 +11147,12 @@ const cardioProgress = useMemo(() => {
             Build phases and changing weeks once. The right week appears automatically from the start date.
           </div>
         </div>
-        <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        <div className="planProgrammeActions">
           <span className="pill">
             {planProgramWeeks.length} week{planProgramWeeks.length === 1 ? "" : "s"} · {planProgram.program.phases.length} phase{planProgram.program.phases.length === 1 ? "" : "s"}
           </span>
           {undoPlan ? (
-            <SecondaryButton onClick={undoLastPlan} title={undoLabel || "Undo recent Program change"}>
+            <SecondaryButton className="planProgrammeUndo" onClick={undoLastPlan} title={undoLabel || "Undo recent Program change"}>
               Undo recent change
             </SecondaryButton>
           ) : null}
@@ -11272,7 +11257,7 @@ const cardioProgress = useMemo(() => {
             <div className="h3">Assessment checkpoints</div>
             <div className="muted mt4">Optional before/after measures for this phase.</div>
           </div>
-          <div className="row" style={{ gap: 8 }}>
+          <div className="planCheckpointActions">
             <SecondaryButton onClick={() => addAssessmentCheckpoint("before")}>Add before</SecondaryButton>
             <SecondaryButton onClick={() => addAssessmentCheckpoint("after")}>Add after</SecondaryButton>
           </div>
@@ -15713,6 +15698,24 @@ function StyleTag() {
       .rowLeft{display:grid;grid-template-columns:1fr;gap:10px}
       @media(min-width:600px){.rowLeft{grid-template-columns:180px 260px}}
       .rowBetween{display:flex;align-items:center;justify-content:space-between;gap:10px}
+      .planProgrammeActions,
+      .planCheckpointActions{
+        display:flex;
+        flex-direction:row;
+        align-items:center;
+        justify-content:flex-end;
+        gap:8px;
+        flex-wrap:wrap;
+      }
+      .planProgrammeActions .pill,
+      .planProgrammeActions .btn,
+      .planCheckpointActions .btn{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        box-sizing:border-box;
+        text-align:center;
+      }
       .field{min-width:180px}
       /* Log layout – match width with header + top slots */
       .gridLog{
@@ -15750,7 +15753,7 @@ function StyleTag() {
       @media(max-width:720px){.grid2{grid-template-columns:1fr}}
            @media(max-width:720px){
               .wrap{
-          padding:12px;
+          padding:8px;
           overflow-x:hidden;
           max-width:100vw;
         }
@@ -16246,15 +16249,58 @@ function StyleTag() {
   }
 
   .logUserBlockTitle{font-size:17px}
+  .logWorkspaceCard{
+    padding:8px;
+    border-radius:14px;
+  }
+  .logWorkspaceCard .panel{
+    padding:8px;
+    border-radius:14px;
+  }
   .panel .logBlockTypeTitle{margin-bottom:4px}
-  .focusedLogBlockSummary{padding:10px}
-  .focusedLogBlockBody{padding:0 10px 10px}
+  .focusedLogBlock{margin-top:7px;border-radius:12px}
+  .focusedLogBlockSummary{padding:8px}
+  .focusedLogBlockBody{padding:0 6px 7px}
   .focusedLogBlockTitle{font-size:16px}
-  .focusedMovementSummary{padding:10px}
-  .focusedMovementBody{padding:0 10px 10px}
-  .movementProgressionBand{align-items:stretch;border-radius:14px;padding:5px 5px 5px 9px}
+  .focusedMovement{margin-top:6px;border-radius:11px}
+  .focusedMovementSummary{padding:8px}
+  .focusedMovementBody{padding:0 5px 7px}
+  .movementProgressionBand{align-items:stretch;margin:5px 0 7px;border-radius:12px;padding:4px 4px 4px 7px}
   .movementProgressionBand__copy{align-items:flex-start;flex-direction:column;gap:1px}
   .movementProgressionBand__history{align-self:center}
+  .movementSetRow{
+    grid-template-columns:38px minmax(0,1fr);
+    gap:5px;
+    padding:5px;
+    border:0;
+    border-radius:9px;
+  }
+  .movementSetRow.setRowSimple-complete{padding:5px;border:0}
+  .movementSetFields{gap:5px}
+  .movementSetField .input{height:36px;padding:5px 6px}
+  .planProgrammeActions,
+  .planCheckpointActions{
+    width:100%;
+  }
+  .planProgrammeActions{flex-wrap:wrap}
+  .planCheckpointActions{flex-wrap:nowrap}
+  .planProgrammeActions > *,
+  .planCheckpointActions > *{
+    flex:1 1 0;
+    min-width:0;
+  }
+  .planProgrammeActions .pill,
+  .planProgrammeActions .btn,
+  .planCheckpointActions .btn{
+    min-height:40px;
+    padding-inline:8px;
+    line-height:1.2;
+    white-space:normal;
+  }
+  .planProgrammeActions .planProgrammeUndo{
+    order:2;
+    flex:1 0 100%;
+  }
 }
 
       .authCard{max-width:520px;margin:60px auto}

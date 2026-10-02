@@ -160,6 +160,22 @@ describe("VerifiedActivityEvidenceSection", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Not linked/i }));
     fireEvent.click(screen.getByRole("button", { name: "Add to Log on recorded date" }));
     await waitFor(() => expect(add).toHaveBeenCalledWith("paul", "verified-1"));
+    expect((await screen.findByRole("status")).textContent).toContain(`Activity added to the Log for ${today}.`);
+  });
+
+  it("shows a clear failure when adding synced activity to the Log fails", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const api = emptyApi({
+      loadVerifiedActivityData: vi.fn(async () => ({
+        data: evidenceData({ activityType: "Tennis", activityName: "Evening Tennis", date: today }),
+        error: null,
+      })),
+      addUnmatchedVerifiedActivity: vi.fn(async () => ({ data: null, error: new Error("Log update failed") })),
+    });
+    render(<VerifiedActivityEvidenceSection profileId="paul" profileName="Paul" api={api} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Not linked/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Add to Log on recorded date" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("Log update failed");
   });
 
   it("explains that a manual Strava entry cannot verify or create a Log activity", async () => {

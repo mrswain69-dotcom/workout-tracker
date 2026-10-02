@@ -52,6 +52,8 @@ function metricSummary(test) {
 }
 
 function TemplateCard({ template, rows, testsById, onEdit, onArchive, busy }) {
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = `assessment-template-${template.id}-details`;
   return (
     <article className="assessment-library__card">
       <div className="assessment-library__card-top">
@@ -64,19 +66,31 @@ function TemplateCard({ template, rows, testsById, onEdit, onArchive, busy }) {
         <div className="assessment-library__card-actions">
           <button type="button" disabled={busy} onClick={() => onEdit(template.id)}>Edit</button>
           <button type="button" disabled={busy} onClick={() => onArchive(template)}>Archive</button>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={detailsId}
+            onClick={() => setExpanded((current) => !current)}
+          >
+            {expanded ? "Hide details" : "Show details"}
+          </button>
         </div>
       </div>
-      {template.description ? <p>{template.description}</p> : null}
-      {rows.length ? (
-        <ol className="assessment-library__ordered-tests">
-          {rows.map((row) => (
-            <li key={row.id || `${template.id}-${row.position}`}>
-              <span>{row.display_label || row.displayLabel || testsById.get(row.test_id || row.testId)?.name || "Test"}</span>
-              {(row.section_label || row.sectionLabel) ? <small>{row.section_label || row.sectionLabel}</small> : null}
-            </li>
-          ))}
-        </ol>
-      ) : <div className="assessment-library__empty-inline">No Tests yet.</div>}
+      {expanded ? (
+        <div id={detailsId} className="assessment-library__card-details">
+          {template.description ? <p>{template.description}</p> : null}
+          {rows.length ? (
+            <ol className="assessment-library__ordered-tests">
+              {rows.map((row) => (
+                <li key={row.id || `${template.id}-${row.position}`}>
+                  <span>{row.display_label || row.displayLabel || testsById.get(row.test_id || row.testId)?.name || "Test"}</span>
+                  {(row.section_label || row.sectionLabel) ? <small>{row.section_label || row.sectionLabel}</small> : null}
+                </li>
+              ))}
+            </ol>
+          ) : <div className="assessment-library__empty-inline">No Tests yet.</div>}
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -119,6 +133,8 @@ const styles = `
 .assessment-library__card-title{font-size:16px;font-weight:850}
 .assessment-library__card-meta{font-size:12px;color:#64748b;margin-top:3px}
 .assessment-library__card-actions{display:flex;gap:6px;flex-wrap:wrap}
+.assessment-library__card-actions button{display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.assessment-library__card-details{padding-top:2px}
 .assessment-library__card p{font-size:13px;color:#475569;margin:10px 0}
 .assessment-library__ordered-tests{margin:10px 0 0;padding-left:20px;display:grid;gap:5px}
 .assessment-library__ordered-tests li{font-size:13px}.assessment-library__ordered-tests small{display:block;color:#64748b}
@@ -136,7 +152,7 @@ const styles = `
 .assessment-editor__inline-check--bottom{align-self:end;padding-bottom:9px}.assessment-editor__error{padding:9px 11px;border-radius:10px;background:#fee2e2;color:#991b1b;font-size:13px}
 .assessment-editor__actions{display:flex;justify-content:flex-end;gap:8px}.assessment-editor__actions button:last-child{font-weight:800}
 .assessment-template-editor__rows{display:flex;flex-direction:column;gap:10px}.assessment-template-test-row{border:1px solid #e2e8f0;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}.assessment-template-test-row__top{display:flex;justify-content:space-between;gap:8px;align-items:center}.assessment-template-test-row__actions{display:flex;gap:5px;flex-wrap:wrap}
-@media(max-width:720px){.assessment-editor__grid--two,.assessment-editor__grid--three{grid-template-columns:1fr}.assessment-library__header,.assessment-library__toolbar,.assessment-library__test-footer{flex-direction:column}.assessment-library__card-top{flex-direction:column}.assessment-template-test-row__top{align-items:flex-start;flex-direction:column}}
+@media(max-width:720px){.assessment-editor__grid--two,.assessment-editor__grid--three{grid-template-columns:1fr}.assessment-library__header,.assessment-library__toolbar,.assessment-library__test-footer{flex-direction:column}.assessment-library__card-top{flex-direction:column}.assessment-library__card-actions{width:100%;flex-wrap:nowrap}.assessment-library__card-actions button{flex:1 1 0;min-width:0;padding-inline:8px}.assessment-template-test-row__top{align-items:flex-start;flex-direction:column}}
 `;
 
 export default function AssessmentTemplateLibrary({

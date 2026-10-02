@@ -259,6 +259,7 @@ export default function VerifiedActivityEvidenceSection({
   const [expandedId, setExpandedId] = useState("");
   const [busy, setBusy] = useState("");
   const [actionError, setActionError] = useState("");
+  const [actionNotice, setActionNotice] = useState("");
   const [syncNotice, setSyncNotice] = useState("");
   const [nowTick, setNowTick] = useState(Date.now());
   const [candidatesByActivity, setCandidatesByActivity] = useState({});
@@ -344,6 +345,7 @@ export default function VerifiedActivityEvidenceSection({
     if (!profileId || !stravaConnection || syncCooldown.blocked || busy) return;
     setBusy("sync");
     setActionError("");
+    setActionNotice("");
     setSyncNotice("");
     try {
       const result = await api.checkConnectedSources(profileId, "strava");
@@ -363,13 +365,16 @@ export default function VerifiedActivityEvidenceSection({
     }
   }
 
-  async function runAction(activityId, actionNameOrHandler, maybeHandler = null) {
+  async function runAction(activityId, actionNameOrHandler, maybeHandler = null, successMessage = "") {
     const action = maybeHandler || actionNameOrHandler;
     const actionName = maybeHandler ? actionNameOrHandler : "activity";
     setBusy(`${actionName}:${activityId}`);
     setActionError("");
+    setActionNotice("");
     try {
-      await action();
+      const result = await action();
+      const message = typeof successMessage === "function" ? successMessage(result) : successMessage;
+      if (message) setActionNotice(message);
       setCandidatesByActivity((current) => ({ ...current, [activityId]: undefined }));
       await load();
     } catch (actionFailure) {
@@ -468,7 +473,10 @@ export default function VerifiedActivityEvidenceSection({
                       onClick={() => runAction(activity.id, "add", async () => {
                         const result = await api.addUnmatchedVerifiedActivity(profileId, activity.id);
                         if (result?.error) throw result.error;
-                      })}
+                        return result?.data || null;
+                      }, (result) => result?.requestedOutcome === "existing"
+                        ? `This activity is already in the Log for ${activity.localDateYmd}.`
+                        : `Activity added to the Log for ${activity.localDateYmd}.`)}
                     >
                       {busy === `add:${activity.id}` ? "Adding…" : "Add to Log on recorded date"}
                     </button>
@@ -583,6 +591,7 @@ export default function VerifiedActivityEvidenceSection({
       {loading ? <div className="verified-system-message">Loading verified activity…</div> : null}
       {error ? <div className="verified-system-message verified-system-message--error" role="alert">Verified activity could not be loaded.</div> : null}
       {actionError ? <div className="verified-system-message verified-system-message--error" role="alert">{actionError}</div> : null}
+      {actionNotice ? <div className="verified-system-message verified-system-message--success" role="status">{actionNotice}</div> : null}
       {syncNotice ? <div className="verified-system-message verified-system-message--success" role="status">{syncNotice}</div> : null}
 
       <div className="verified-summary-grid" aria-label="Verification summary">
