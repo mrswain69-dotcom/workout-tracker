@@ -31,12 +31,26 @@ export async function listOwnedTrainingPrograms(familyId) {
   if (!familyId) return { data: [], error: null };
   const { data, error } = await supabase
     .from("training_programs")
-    .select("id,owner_family_id,creator_profile_id,title,description,purpose,sport,difficulty,age_band,equipment,tags,status,creator_role,current_version_no,current_version_id,week_count,phase_count,access_model,marketplace_status,created_at,updated_at")
+    .select("id,owner_family_id,creator_profile_id,title,description,purpose,sport,difficulty,age_band,equipment,tags,status,creator_role,current_version_no,current_version_id,week_count,phase_count,access_model,marketplace_status,legacy_plan_template_id,created_at,updated_at")
     .eq("owner_family_id", familyId)
     .eq("status", "active")
     .order("updated_at", { ascending: false });
   if (error) return { data: [], error };
   return attachCurrentVersions(data || []);
+}
+
+export async function importLegacyTrainingProgramTemplate({
+  templateId,
+  creatorProfileId,
+  content,
+}) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("training_program_import_legacy_template", {
+    p_template_id: templateId,
+    p_creator_profile_id: creatorProfileId || null,
+    p_content: content,
+  });
+  return { data: firstRow(data), error };
 }
 
 export async function saveTrainingProgram({

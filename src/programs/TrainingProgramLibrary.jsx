@@ -1,9 +1,15 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { listPlanTemplates } from "../db.js";
 import { listProfileGroups } from "../groups/groupDb.js";
 import {
   extractShareablePlanContent,
   normaliseProgramStartDate,
 } from "../engine/planCycleEngine.js";
+import { buildStarterPrograms } from "./starterPrograms.js";
+import {
+  findUnmigratedLegacyTemplates,
+  legacyTemplateToProgramContent,
+} from "./trainingProgramMigration.js";
 import {
   acceptTrainingProgramAssignment,
   acceptTrainingProgramShare,
@@ -13,6 +19,7 @@ import {
   buildTrainingProgramShareLink,
   createTrainingProgramShare,
   declineTrainingProgramAssignment,
+  importLegacyTrainingProgramTemplate,
   listOwnedTrainingPrograms,
   listTrainingProgramAssignments,
   previewTrainingProgramShare,
@@ -31,7 +38,7 @@ function message(error, fallback = "Something went wrong.") {
   return error?.message || String(error || fallback);
 }
 
-function ProgramCard({ program, children }) {
+function ProgramCard({ program, badge = "Private", children }) {
   return (
     <article className="trainingProgramCard">
       <div className="trainingProgramCardTop">
@@ -40,12 +47,15 @@ function ProgramCard({ program, children }) {
           <div className="trainingProgramMeta">
             <span>{program.phase_count || 1} phase{Number(program.phase_count) === 1 ? "" : "s"}</span>
             <span>{program.week_count || 1} week{Number(program.week_count) === 1 ? "" : "s"}</span>
-            <span>Version {program.current_version_no || program.version_no || 1}</span>
+            {program.current_version_no || program.version_no ? (
+              <span>Version {program.current_version_no || program.version_no}</span>
+            ) : null}
           </div>
         </div>
-        <span className="pill">Private</span>
+        <span className="pill">{badge}</span>
       </div>
       {program.description ? <p>{program.description}</p> : null}
+      {program.purpose ? <div className="trainingProgramPurpose">{program.purpose}</div> : null}
       {children ? <div className="trainingProgramActions">{children}</div> : null}
     </article>
   );
@@ -57,7 +67,9 @@ export default function TrainingProgramLibrary({
   activePlan,
   authorizeMutation,
   onProgramApplied,
+  onStarterApplied,
 }) {
+  const [section, setSection] = useState("mine");
   const [programs, setPrograms] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -70,6 +82,7 @@ export default function TrainingProgramLibrary({
   const [notice, setNotice] = useState("");
   const [sharedPreview, setSharedPreview] = useState(null);
   const [shareToken] = useState(readTrainingProgramShareToken);
+  const starterPrograms = useMemo(() => buildStarterPrograms(startDate), [startDate]);
 
   useEffect(() => {
     if (activePlan?.program?.name) setTitle(activePlan.program.name);
@@ -77,18 +90,48 @@ export default function TrainingProgramLibrary({
 
   const refresh = useCallback(async () => {
     if (!familyId || !activeProfileId) return;
-    const [owned, incoming, memberships] = await Promise.all([
+    const [owned, incoming, memberships, legacyTemplates] = await Promise.all([
       listOwnedTrainingPrograms(familyId),
       listTrainingProgramAssignments(activeProfileId),
       listProfileGroups(activeProfileId),
+      listPlanTemplates(familyId),
     ]);
-    if (owned.error || incoming.error || memberships.error) {
-      setNotice(message(owned.error || incoming.error || memberships.error));
+    if (owned.error || incoming.error || memberships.error || legacyTemplates.error) {
+      setNotice(message(owned.error || incoming.error || memberships.error || legacyTemplates.error));
       return;
     }
-    setPrograms(owned.data || []);
+
+    let nextPrograms = owned.data || [];
+    const templatesToMigrate = findUnmigratedLegacyTemplates(
+      legacyTemplates.data || [],
+      nextPrograms
+    );
+    if (templatesToMigrate.length) {
+      const results = await Promise.all(
+        templatesToMigrate.map((template) => importLegacyTrainingProgramTemplate({
+          templateId: template.id,
+          creatorProfileId: activeProfileId,
+          content: legacyTemplateToProgramContent(template, todayMonday()),
+        }))
+      );
+      const migrationError = results.find((result) => result.error)?.error;
+      if (migrationError) {
+        setNotice(message(migrationError, "Saved weekly plans could not be moved into My Programs."));
+      } else {
+        const reloaded = await listOwnedTrainingPrograms(familyId);
+        if (reloaded.error) setNotice(message(reloaded.error));
+        else nextPrograms = reloaded.data || [];
+        setNotice(
+          `${templatesToMigrate.length} saved weekly plan${templatesToMigrate.length === 1 ? " was" : "s were"} moved safely into My Programs.`
+        );
+      }
+    }
+
+    setPrograms(nextPrograms);
     setAssignments(incoming.data || []);
-    const administeredGroups = (memberships.data || []).filter((group) => group?.membership?.role === "admin");
+    const administeredGroups = (memberships.data || []).filter(
+      (group) => group?.membership?.role === "admin"
+    );
     setGroups(administeredGroups);
     setTargetGroupId((current) => current || administeredGroups[0]?.id || "");
   }, [familyId, activeProfileId]);
@@ -99,7 +142,10 @@ export default function TrainingProgramLibrary({
     if (!shareToken) return;
     previewTrainingProgramShare(shareToken).then(({ data, error }) => {
       if (error) setNotice(message(error, "This programme link is unavailable."));
-      else setSharedPreview(data);
+      else {
+        setSharedPreview(data);
+        setSection("shared");
+      }
     });
   }, [shareToken]);
 
@@ -121,7 +167,7 @@ export default function TrainingProgramLibrary({
     });
     setBusy("");
     if (error) return setNotice(message(error));
-    setNotice("Programme saved as a reusable frozen version.");
+    setNotice("Active programme saved to My Programs as a reusable frozen version.");
     await refresh();
   }
 
@@ -161,8 +207,21 @@ export default function TrainingProgramLibrary({
     });
     setBusy("");
     if (error) return setNotice(message(error));
-    onProgramApplied?.(data);
+    onProgramApplied?.(data, `“${program.title}” is now active.`);
     setNotice(`“${program.title}” is now the active programme.`);
+  }
+
+  async function useStarterProgram(program) {
+    if (!(await allowed("use a starter programme"))) return;
+    setBusy(program.id);
+    try {
+      await onStarterApplied?.(program, { startDate, completionMode });
+      setNotice(`“${program.title}” is now active. You can adapt it in Build and save your version to My Programs.`);
+    } catch (error) {
+      setNotice(message(error));
+    } finally {
+      setBusy("");
+    }
   }
 
   async function shareProgram(program) {
@@ -172,7 +231,7 @@ export default function TrainingProgramLibrary({
     setBusy("");
     if (error) return setNotice(message(error));
     const link = buildTrainingProgramShareLink(data?.share_token);
-    try { await navigator.clipboard.writeText(link); } catch { /* link remains available in the notice */ }
+    try { await navigator.clipboard.writeText(link); } catch { /* link remains in the notice */ }
     setNotice(`Private link copied: ${link}`);
   }
 
@@ -200,7 +259,7 @@ export default function TrainingProgramLibrary({
     const { data, error } = await acceptTrainingProgramAssignment(assignment.id, activeProfileId);
     setBusy("");
     if (error) return setNotice(message(error));
-    onProgramApplied?.(data);
+    onProgramApplied?.(data, `Accepted “${assignment.program?.title || "programme"}”.`);
     setNotice(`Accepted “${assignment.program?.title || "programme"}”.`);
     await refresh();
   }
@@ -216,74 +275,112 @@ export default function TrainingProgramLibrary({
     });
     setBusy("");
     if (error) return setNotice(message(error));
-    onProgramApplied?.(data);
-    setNotice("The shared frozen version is now active. Your personal rewards and history were preserved.");
+    onProgramApplied?.(data, "Shared programme applied");
+    setNotice("The shared frozen version is now active. Personal rewards and history were preserved.");
   }
 
   return (
     <section className="trainingProgramLibrary">
       <div className="trainingProgramHeading">
         <div>
-          <h2>Programme library & coaching</h2>
-          <p>Save immutable versions, privately share them, or assign one version to a team.</p>
+          <h2>Program Library</h2>
+          <p>Create, reuse and privately share complete Programs without mixing them into the active builder.</p>
         </div>
         <span className="pill">Private foundation</span>
       </div>
 
-      {notice ? <div className="trainingProgramNotice">{notice}</div> : null}
+      <div className="trainingProgramTabs" role="tablist" aria-label="Program Library sections">
+        <button type="button" role="tab" aria-selected={section === "mine"} className={section === "mine" ? "active" : ""} onClick={() => setSection("mine")}>My Programs</button>
+        <button type="button" role="tab" aria-selected={section === "shared"} className={section === "shared" ? "active" : ""} onClick={() => setSection("shared")}>Shared &amp; assigned{assignments.length ? ` (${assignments.length})` : ""}</button>
+        <button type="button" role="tab" aria-selected={section === "starters"} className={section === "starters" ? "active" : ""} onClick={() => setSection("starters")}>Starter Programs</button>
+        <button type="button" role="tab" aria-selected={section === "discover"} className={section === "discover" ? "active" : ""} onClick={() => setSection("discover")}>Discover</button>
+      </div>
 
-      {sharedPreview ? (
-        <div className="trainingProgramShared">
-          <div>
-            <strong>Shared with you: {sharedPreview.title}</strong>
-            <div className="muted">Version {sharedPreview.version_no} · {sharedPreview.week_count} weeks · frozen copy</div>
-          </div>
-          <button type="button" className="primary" disabled={busy === "share"} onClick={acceptShare}>Use programme</button>
+      {notice ? <div className="trainingProgramNotice" role="status">{notice}</div> : null}
+
+      {section !== "discover" ? (
+        <div className="trainingProgramControls">
+          <label>Starts Monday<input type="date" value={startDate} onChange={(event) => setStartDate(normaliseProgramStartDate(event.target.value))} /></label>
+          <label>At the end<select value={completionMode} onChange={(event) => setCompletionMode(event.target.value)}><option value="repeat">Repeat</option><option value="once">Finish</option><option value="hold">Hold final week</option></select></label>
+          {section === "mine" && groups.length ? <label>Team for assignments<select value={targetGroupId} onChange={(event) => setTargetGroupId(event.target.value)}>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label> : null}
         </div>
       ) : null}
 
-      <div className="trainingProgramControls">
-        <label>Starts Monday<input type="date" value={startDate} onChange={(event) => setStartDate(normaliseProgramStartDate(event.target.value))} /></label>
-        <label>At the end<select value={completionMode} onChange={(event) => setCompletionMode(event.target.value)}><option value="repeat">Repeat</option><option value="once">Finish</option><option value="hold">Hold final week</option></select></label>
-        {groups.length ? <label>Team for assignments<select value={targetGroupId} onChange={(event) => setTargetGroupId(event.target.value)}>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label> : null}
-      </div>
+      {section === "mine" ? (
+        <>
+          <div className="trainingProgramCreate">
+            <label>Name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} /></label>
+            <label>Description<input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1200} placeholder="Who this is for and what it develops" /></label>
+            <button type="button" className="primary" disabled={busy === "save" || !title.trim()} onClick={saveNewProgram}>Save active Program</button>
+          </div>
 
-      <div className="trainingProgramCreate">
-        <label>Name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} /></label>
-        <label>Description<input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1200} placeholder="Who this is for and what it develops" /></label>
-        <button type="button" className="primary" disabled={busy === "save" || !title.trim()} onClick={saveNewProgram}>Save active as new</button>
-      </div>
+          <div className="trainingProgramSection">
+            <h3>My Programs</h3>
+            {programs.length ? (
+              <div className="trainingProgramGrid">
+                {programs.map((program) => (
+                  <ProgramCard key={program.id} program={program} badge={program.legacy_plan_template_id ? "Moved from saved plans" : "Private"}>
+                    <button type="button" className="primary" disabled={busy === program.id} onClick={() => useProgram(program)}>Use</button>
+                    <button type="button" disabled={busy === program.id} onClick={() => saveNewVersion(program)}>Save new version</button>
+                    <button type="button" disabled={busy === program.id} onClick={() => shareProgram(program)}>Copy private link</button>
+                    <button type="button" disabled={busy === program.id} onClick={() => assignToTeam(program)}>Assign to team</button>
+                    <button type="button" disabled={busy === program.id} onClick={async () => { if (window.confirm(`Archive “${program.title}”?`)) { await archiveTrainingProgram(program.id); await refresh(); } }}>Archive</button>
+                  </ProgramCard>
+                ))}
+              </div>
+            ) : <p className="muted">No reusable Programs saved yet. Save the active Program above or start from a Starter Program.</p>}
+          </div>
+        </>
+      ) : null}
 
-      {assignments.length ? (
+      {section === "shared" ? (
         <div className="trainingProgramSection">
-          <h3>Assigned to this profile</h3>
+          <h3>Shared &amp; assigned</h3>
+          {sharedPreview ? (
+            <div className="trainingProgramShared">
+              <div>
+                <strong>Shared with you: {sharedPreview.title}</strong>
+                <div className="muted">Version {sharedPreview.version_no} · {sharedPreview.week_count} weeks · frozen copy</div>
+              </div>
+              <button type="button" className="primary" disabled={busy === "share"} onClick={acceptShare}>Use Program</button>
+            </div>
+          ) : null}
+          {assignments.length ? (
+            <div className="trainingProgramGrid">
+              {assignments.map((assignment) => (
+                <ProgramCard key={assignment.id} badge="Assigned" program={{ ...assignment.program, current_version_no: assignment.version?.version_no }}>
+                  <button type="button" className="primary" disabled={busy === assignment.id} onClick={() => acceptAssignment(assignment)}>Accept</button>
+                  <button type="button" disabled={busy === assignment.id} onClick={async () => { await declineTrainingProgramAssignment(assignment.id); await refresh(); }}>Decline</button>
+                </ProgramCard>
+              ))}
+            </div>
+          ) : null}
+          {!sharedPreview && !assignments.length ? <p className="muted">No Programs have been shared or assigned to this profile.</p> : null}
+        </div>
+      ) : null}
+
+      {section === "starters" ? (
+        <div className="trainingProgramSection">
+          <h3>Starter Programs</h3>
+          <p className="muted">Curated foundations you can use immediately, adapt in Build and save as your own version.</p>
           <div className="trainingProgramGrid">
-            {assignments.map((assignment) => (
-              <ProgramCard key={assignment.id} program={{ ...assignment.program, current_version_no: assignment.version?.version_no }}>
-                <button type="button" className="primary" disabled={busy === assignment.id} onClick={() => acceptAssignment(assignment)}>Accept</button>
-                <button type="button" disabled={busy === assignment.id} onClick={async () => { await declineTrainingProgramAssignment(assignment.id); await refresh(); }}>Decline</button>
+            {starterPrograms.map((program) => (
+              <ProgramCard key={program.id} badge="Included" program={{ ...program, phase_count: 1, week_count: 1 }}>
+                <button type="button" className="primary" disabled={busy === program.id} onClick={() => useStarterProgram(program)}>Use starter</button>
               </ProgramCard>
             ))}
           </div>
         </div>
       ) : null}
 
-      <div className="trainingProgramSection">
-        <h3>Saved programmes</h3>
-        {programs.length ? (
-          <div className="trainingProgramGrid">
-            {programs.map((program) => (
-              <ProgramCard key={program.id} program={program}>
-                <button type="button" className="primary" disabled={busy === program.id} onClick={() => useProgram(program)}>Use</button>
-                <button type="button" disabled={busy === program.id} onClick={() => saveNewVersion(program)}>Save new version</button>
-                <button type="button" disabled={busy === program.id} onClick={() => shareProgram(program)}>Copy private link</button>
-                <button type="button" disabled={busy === program.id} onClick={() => assignToTeam(program)}>Assign to team</button>
-                <button type="button" disabled={busy === program.id} onClick={async () => { if (window.confirm(`Archive “${program.title}”?`)) { await archiveTrainingProgram(program.id); await refresh(); } }}>Archive</button>
-              </ProgramCard>
-            ))}
-          </div>
-        ) : <p className="muted">No reusable programmes saved yet.</p>}
-      </div>
+      {section === "discover" ? (
+        <div className="trainingProgramComingSoon">
+          <span className="pill">Later phase</span>
+          <h3>Discover public Programs</h3>
+          <p>Free community Programs, verified creator Programs, purchases and creator subscriptions will live here once the private library and coaching workflow are stable.</p>
+          <p className="muted">Access method will never change XP, badges or competitive rankings.</p>
+        </div>
+      ) : null}
     </section>
   );
 }
