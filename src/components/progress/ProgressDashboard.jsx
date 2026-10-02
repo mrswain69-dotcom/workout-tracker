@@ -697,6 +697,11 @@ export default function ProgressDashboard({
     ]
   );
 
+  const blockWeeklySeries = useMemo(
+    () => buildBlockWeeklySeries(logs),
+    [logs]
+  );
+
   return (
     <section className="progress-dashboard" aria-label="Progress dashboard">
       <div className="progress-hero">
