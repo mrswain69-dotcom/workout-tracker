@@ -203,6 +203,53 @@ describe("profile scoping", () => {
   });
 });
 
+describe("app log shape and completion-only Progress", () => {
+
+  it("reads the app's nested log row shape and preserves profile scoping", () => {
+    const session = complete(snapshotFor("session-a"));
+    session.movements[0].completed = true;
+    const dbRow = makeSessionLog("2026-09-08", session, "profile-wilf");
+    const appRow = {
+      id: dbRow.id,
+      profile_id: dbRow.profile_id,
+      date_ymd: dbRow.date_ymd,
+      log: dbRow.log_json,
+    };
+
+    const progress = buildTrainingProgress({
+      logs: [appRow],
+      profileId: "profile-wilf",
+      sessionTemplates: makeLibrary().templates,
+      selectedDate: "2026-09-10",
+    });
+
+    expect(progress.week.completedSessions).toBe(1);
+    expect(progress.sessionBalance.find((row) => row.templateId === "session-a")?.count).toBe(1);
+    expect(progress.movementTotals.find((row) => row.movementId === "movement-sole-rolls")?.timesPerformed).toBe(1);
+  });
+
+  it("counts completion-only Sessions in Progress when every active Movement was ticked", () => {
+    const session = snapshotFor("session-a");
+    session.movements.forEach((movement) => {
+      movement.completed = true;
+      movement.result = null;
+    });
+
+    const progress = buildTrainingProgress({
+      logs: [makeSessionLog("2026-09-08", session, "profile-wilf")],
+      profileId: "profile-wilf",
+      sessionTemplates: makeLibrary().templates,
+      selectedDate: "2026-09-10",
+    });
+
+    expect(session.completed).toBe(false);
+    expect(progress.week.completedSessions).toBe(1);
+    expect(progress.sessionBalance.find((row) => row.templateId === "session-a")?.count).toBe(1);
+    expect(progress.movementTotals[0]?.timesPerformed).toBe(1);
+    expect(progress.week.recordedExecutions).toBe(0);
+  });
+});
+
 describe("Training Progress empty and early history", () => {
   it("returns deliberate zero state while retaining zero-count active Session balance", () => {
     const library = makeLibrary();
