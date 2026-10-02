@@ -2,6 +2,8 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import ProgressDashboard from "./ProgressDashboard.jsx";
 
 function dbApi() {
@@ -145,6 +147,17 @@ describe("ProgressDashboard Stage 7 range and density UI", () => {
     expect(screen.getAllByText(/50% of completed Sessions/)).toHaveLength(2);
     expect(screen.getByLabelText("Completed Sessions by active months")).toBeTruthy();
     expect(screen.getByLabelText("Training time by active months")).toBeTruthy();
+  });
+
+  it("keeps the persistent Progress hero readable with a static mint surface", () => {
+    const css = fs.readFileSync(
+      path.join(process.cwd(), "src/components/progress/ProgressDashboardStage7.css"),
+      "utf8"
+    );
+
+    expect(css).toContain("background:#e8f7ef");
+    expect(css).toContain("color:#173b2b");
+    expect(css).not.toContain("linear-gradient(135deg,rgba(0,229,255,.10)");
   });
 
   it("uses the new Progress dashboard instead of the retired legacy Stats bridge", async () => {

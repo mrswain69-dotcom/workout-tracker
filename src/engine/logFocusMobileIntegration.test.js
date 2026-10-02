@@ -49,6 +49,14 @@ describe("focused Log and dashboard readiness integration", () => {
     expect(app).toContain('movementComplete ? "✓"');
   });
 
+  it("starts with one natural movement open but lets the user collapse every movement", () => {
+    const app = read("../App.jsx");
+
+    expect(app).toContain("hasExplicitMovementFocus");
+    expect(app).toContain("Object.prototype.hasOwnProperty.call");
+    expect(app).toContain("movementOpen ? null : mov.id");
+  });
+
   it("focuses the day on the next incomplete block while keeping every block manually accessible", () => {
     const app = read("../App.jsx");
 
