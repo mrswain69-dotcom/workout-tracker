@@ -87,7 +87,7 @@ describe("Historical Timeline Stage 7 release contract", () => {
     expect(app).not.toMatch(/\{\s*id:\s*["'](?:timeline|history|career|autobiography)["']/i);
 
     expect(ui).toContain("Performance Autobiography");
-    expect(ui).toContain("View evidence");
+    expect(ui).toContain("Why this is a highlight");
     expect(ui).toContain("Three years of real history unlocks the full career view");
     expect(milestones).toContain("universalPercentage: null");
     expect(milestones).toContain('state: "metric_specific_only"');
