@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
+import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
 import MovementCompletion from "./components/log/MovementCompletion.jsx";
 import { movementEntriesComplete } from "./engine/movementEntryCompletion.js";
 import { mapProfileHistoryRows } from "./engine/profileHistoryRows.js";
@@ -3179,7 +3181,11 @@ export default function App() {
   const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
 
   const [providerReturn] = useState(() => readProviderReturn());
-  const [tab, setTab] = useState(() => providerReturn ? "connections" : "dashboard");
+  const [initialNavigation] = useState(() => {
+    try { return readLogNavigation(window.sessionStorage, ymd(new Date())); }
+    catch { return { tab: "dashboard", date: ymd(new Date()) }; }
+  });
+  const [tab, setTab] = useState(() => providerReturn ? "connections" : initialNavigation.tab);
 
   useEffect(() => {
     if (providerReturn) clearProviderReturnFromUrl();
@@ -3369,7 +3375,12 @@ useEffect(() => {
   // never build from a one-render-old plan.
 useEffect(() => { planRef.current = plan; }, [plan]);
 
-  const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
+  const [selectedDate, setSelectedDate] = useState(initialNavigation.date);
+  const currentLogViewRef = useRef(null);
+  currentLogViewRef.current = { familyId: family?.id, profileId: activeProfileId, date: selectedDate };
+  useEffect(() => {
+    try { writeLogNavigation(window.sessionStorage, tab, selectedDate); } catch {}
+  }, [tab, selectedDate]);
   const selectedWeekday = weekdayFromYMD(selectedDate);
   const selectedDatePlan = useMemo(
     () => (plan ? resolvePlanForDate(plan, selectedDate) : null),
@@ -3476,9 +3487,17 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   return `${familyId}:${profileId}:${ymd(date)}`;
 }
 
-  const [logForDay, setLogForDay] = useState(null);
+  const [dayLogState, setDayLogState] = useState(null);
+  const dayLogKey = makeLogCacheKey(family?.id, activeProfileId, selectedDate);
+  function setLogForDay(log) {
+    if (!sameLogView(currentLogViewRef.current, family?.id, activeProfileId, selectedDate)) return;
+    setDayLogState({ key: dayLogKey, log });
+  }
   const [isSavingLog, setIsSavingLog] = useState(false);
   const [allLogs, setAllLogs] = useState([]); // for stats
+  const logForDay = dayLogState?.key === dayLogKey
+    ? dayLogState.log
+    : (allLogs || []).find((row) => row.profile_id === activeProfileId && row.date_ymd === selectedDate)?.log || null;
   const [streakScheduleSnapshots, setStreakScheduleSnapshots] = useState([]);
   const [logsReady, setLogsReady] = useState(false);
   const [logsLoadError, setLogsLoadError] = useState("");
@@ -3615,6 +3634,7 @@ useEffect(() => {
   const [oneOffNameDraft, setOneOffNameDraft] = useState("");
   const [oneOffKindDraft, setOneOffKindDraft] = useState("custom");
   const [extraMovNameDraft, setExtraMovNameDraft] = useState("");
+  const [extraStrengthBlockNameDraft, setExtraStrengthBlockNameDraft] = useState("");
   const [extraMovModeDraft, setExtraMovModeDraft] = useState("strength");
   const [extraMovRepsDraft, setExtraMovRepsDraft] = useState("");
   const [extraMovTrackWeightDraft, setExtraMovTrackWeightDraft] =
@@ -3667,6 +3687,8 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
   const logSaveRevisionRef = useRef(new Map());
   const logPersistedRevisionRef = useRef(new Map());
   const logSaveInFlightRef = useRef(0);
+  const logWriteQueueRef = useRef(null);
+  if (!logWriteQueueRef.current) logWriteQueueRef.current = createKeyedLogWriteQueue();
   const rewardClaimLockRef = useRef(new Set());
   const planMetaSaveQueueRef = useRef(Promise.resolve());
 
@@ -3954,7 +3976,7 @@ function toggleLogBlockFocus(blockId) {
     setActiveProfileId("");
     setAccountLoadState("idle");
     setAccountLoadError("");
-    try { localStorage.removeItem("wt_activeProfileId"); } catch {}
+    try { localStorage.removeItem("wt_activeProfileId"); clearLogNavigation(window.sessionStorage); } catch {}
   };
 
   // --- After auth: family + profiles + plan ---
@@ -4178,9 +4200,9 @@ useEffect(() => {
     ? logSaveRevisionRef.current.get(cacheKey) || 0
     : 0;
 
-  if (cachedAtLoadStart) {
-    setLogForDay(cachedAtLoadStart);
-  }
+  const historyLog = (allLogs || []).find((row) => row.profile_id === activeProfileId && row.date_ymd === selectedDate)?.log;
+  setLogForDay(cachedAtLoadStart || historyLog || null);
+  let cancelled = false;
 
   const reqId = ++loadDayLogReqRef.current;
 
@@ -4190,7 +4212,7 @@ useEffect(() => {
       activeProfileId,
       selectedDate
     );
-    if (reqId !== loadDayLogReqRef.current) return;
+    if (cancelled || reqId !== loadDayLogReqRef.current) return;
 
     // Re-read the live cache after the network request. A user may have typed
     // while getLog was in flight, and that optimistic edit is newer than the
@@ -4225,12 +4247,11 @@ useEffect(() => {
 
     // Never let the result of an older load overwrite an edit made while that
     // request was in flight.
-    // A cached value only outranks the database while it represents a genuinely
-    // unsaved/in-flight local edit. Once that revision has been persisted, a
-    // fresh page entry should be allowed to repair stale in-memory cache state.
+    // Keep this session's local edits authoritative even after saving: a read
+    // overlapping the write can still contain an older snapshot.
     const rawLatest = hasPendingLocalEdit
       ? (liveCached || fromDb || null)
-      : (fromDb || liveCached || null);
+      : selectDayLogSnapshot({ cached: liveCached, remote: fromDb, localRevision: liveRevision });
 
     // Snap the log to the *current* plan structure for this weekday so:
     // - blocks always line up with the active plan
@@ -4254,7 +4275,7 @@ useEffect(() => {
       }
     }
   })().catch((e) => {
-    if (reqId !== loadDayLogReqRef.current) return;
+    if (cancelled || reqId !== loadDayLogReqRef.current) return;
     console.error("getLog exception", e);
 
     const liveCached = cacheKey
@@ -4266,6 +4287,7 @@ useEffect(() => {
       setLogForDay(null);
     }
   });
+  return () => { cancelled = true; };
 }, [
   tab,
   family?.id,
@@ -6840,36 +6862,6 @@ function stampLogTiming(prevLog, nextLog) {
   // optimistic; this async hydration path is only needed on first Session use.
   let preparedLog = nextLog ? { ...nextLog } : null;
 
-  const hasUnresolvedSessionSnapshot =
-    !!preparedLog &&
-    Array.isArray(preparedLog.blocks) &&
-    preparedLog.blocks.some(
-      (b) => b && b.typeId === "session" && !b.session
-    );
-
-  if (hasUnresolvedSessionSnapshot && familyId) {
-    try {
-      const { data: sessionLibrary, error: sessionLibraryError } =
-        await loadSessionLibrary(familyId, { includeArchived: true });
-
-      if (sessionLibraryError) {
-        console.warn(
-          "Session snapshot library load failed; keeping the saved template anchor for retry",
-          sessionLibraryError
-        );
-      } else {
-        preparedLog = hydrateSessionSnapshotsInLog(
-          preparedLog,
-          sessionLibrary || {}
-        );
-      }
-    } catch (sessionSnapshotError) {
-      console.warn(
-        "Session snapshot hydration failed; keeping the saved template anchor for retry",
-        sessionSnapshotError
-      );
-    }
-  }
 
   const previousLatest =
     (cacheKey && lastLogByDateRef.current?.[cacheKey]) ||
@@ -6948,11 +6940,45 @@ function stampLogTiming(prevLog, nextLog) {
     setIsSavingLog(true);
 
     try {
+      preparedLog = logToStore;
+      const hasUnresolvedSessionSnapshot =
+        !!preparedLog &&
+        Array.isArray(preparedLog.blocks) &&
+        preparedLog.blocks.some(
+          (b) => b && b.typeId === "session" && !b.session
+        );
+
+      if (hasUnresolvedSessionSnapshot && familyId) {
+        try {
+          const { data: sessionLibrary, error: sessionLibraryError } =
+            await loadSessionLibrary(familyId, { includeArchived: true });
+
+          if (sessionLibraryError) {
+            console.warn(
+              "Session snapshot library load failed; keeping the saved template anchor for retry",
+              sessionLibraryError
+            );
+          } else {
+            preparedLog = hydrateSessionSnapshotsInLog(
+              preparedLog,
+              sessionLibrary || {}
+            );
+          }
+        } catch (sessionSnapshotError) {
+          console.warn(
+            "Session snapshot hydration failed; keeping the saved template anchor for retry",
+            sessionSnapshotError
+          );
+        }
+      }
+
+      // A newer edit may have arrived while the template library was loading.
+      if (cacheKey && logSaveRevisionRef.current.get(cacheKey) !== revision) return [];
       const { data: savedRow, error } = await upsertLog(
         familyId,
         profileId,
         dateKey,
-        logToStore
+        preparedLog
       );
 
       if (error) {
@@ -6974,7 +7000,7 @@ function stampLogTiming(prevLog, nextLog) {
       }
 
       const canonicalLog =
-        getLogRowPayload(savedRow) || logToStore || null;
+        getLogRowPayload(savedRow) || preparedLog || null;
 
       if (cacheKey) {
         logPersistedRevisionRef.current.set(cacheKey, revision);
@@ -6988,7 +7014,7 @@ function stampLogTiming(prevLog, nextLog) {
         }
       }
 
-      if (historyIdentityIsCurrent(familyId, profileId) && selectedDate === dateKey) {
+      if (sameLogView(currentLogViewRef.current, familyId, profileId, dateKey)) {
         setLogForDay(canonicalLog);
       }
 
@@ -7034,7 +7060,7 @@ function stampLogTiming(prevLog, nextLog) {
 
     const timer = setTimeout(() => {
       logPersistTimersRef.current.delete(cacheKey);
-      persistRevision().catch((error) =>
+      logWriteQueueRef.current(cacheKey, persistRevision).catch((error) =>
         console.error("debounced log save failed", error)
       );
     }, debounceMs);
@@ -7051,7 +7077,7 @@ function stampLogTiming(prevLog, nextLog) {
     }
   }
 
-  return persistRevision();
+  return logWriteQueueRef.current(cacheKey, persistRevision);
 }
 
 function latestLogForSelectedDay() {
@@ -8208,7 +8234,7 @@ async function addExtraMovementForToday(draft) {
     id: blockId,
     typeId: "strength",      // stays in Strength / HIIT lane
     isExtra: true,           // flag so we know it’s one-day-only
-    label: "",               // no block-level label by default
+    label: (draft?.blockName || "").trim() || name,
     note: "",                // you could wire a block-level note later
     movements: [movement],
     sets: {},                // sets will be filled via updateStrengthSetsForMovement
@@ -8242,6 +8268,7 @@ async function addExtraMovementForToday(draft) {
   ];
   nextLog.meta = meta;
 
+  setFocusedLogBlockId(blockId);
   await saveLog(nextLog);
 }
 
@@ -8289,6 +8316,7 @@ targetText,
     blocks: [...existingBlocks, newBlock],
   };
 
+  setFocusedLogBlockId(blockId);
   await saveLog(nextLog);
 }
 
@@ -8331,6 +8359,7 @@ async function addExtraDurationBlockForToday(draft) {
     blocks: [...existingBlocks, newBlock],
   };
 
+  setFocusedLogBlockId(blockId);
   await saveLog(nextLog);
 }
 
@@ -8378,6 +8407,7 @@ async function addExtraRecoveryBlockForToday(draft) {
     blocks: [...existingBlocks, newBlock],
   };
 
+  setFocusedLogBlockId(blockId);
   await saveLog(nextLog);
 }
 
@@ -8402,6 +8432,7 @@ async function addExtraSessionBlockForToday(draft) {
     duration: { minutes: "" },
   };
 
+  setFocusedLogBlockId(newBlock.id);
   await saveLog({
     ...baseLog,
     blocks: [...existingBlocks, newBlock],
@@ -8472,6 +8503,7 @@ async function addExtraActivityBlockForToday(draft) {
     blocks: nextBlocks,
   };
 
+  setFocusedLogBlockId(updatedBlock.id);
   await saveLog(nextLog);
 }
   
@@ -8510,7 +8542,8 @@ async function addExtraMovement() {
       coachNote: extraMovCoachNoteDraft || "",
     };
 
-    await addExtraMovementForToday(draft);
+    await addExtraMovementForToday({ ...draft, blockName: extraStrengthBlockNameDraft });
+    setExtraStrengthBlockNameDraft("");
 
     setExtraMovNameDraft("");
     setExtraMovModeDraft("strength");
@@ -9498,7 +9531,7 @@ const cardioProgress = useMemo(() => {
                       );
                       const focusState = getLogBlockFocusState(block);
                       const blockOpen = isLogBlockOpen(block.id);
-                      const blockLabel = block.label?.trim() || "Untitled strength block";
+                      const blockLabel = block.label?.trim() || (block.isExtra ? movements[0]?.name?.trim() : "") || "Untitled strength block";
                       const blockSummary = isCancelled
                         ? "Cancelled"
                         : isSuspended
@@ -10653,9 +10686,14 @@ const cardioProgress = useMemo(() => {
   {/* Strength extra form */}
   {extraBlockKind === "strength" && (
     <>
+      <div className="mt8">
+        <div className="label">Block name (optional)</div>
+        <Input value={extraStrengthBlockNameDraft} onChange={setExtraStrengthBlockNameDraft}
+          placeholder="e.g. Extra strength — uses movement name if blank" />
+      </div>
       <div className="row mt8">
         <div style={{ flex: 1 }}>
-          <div className="label">Name</div>
+          <div className="label">Movement name</div>
           <Input
             value={extraMovNameDraft}
             onChange={setExtraMovNameDraft}

@@ -26,12 +26,12 @@ describe("Rewards roadmap and log input reliability", () => {
     const saveBody = app.slice(saveStart, saveEnd);
 
     expect(saveBody).toContain("const { data: savedRow, error } = await upsertLog");
-    expect(saveBody).toContain("getLogRowPayload(savedRow) || logToStore || null");
+    expect(saveBody).toContain("getLogRowPayload(savedRow) || preparedLog || null");
     expect(saveBody).not.toContain("const { data: dayData, error: dayError } = await getLog");
     expect(saveBody).toContain("The UPSERT already returns the row that was written");
   });
 
-  it("rehydrates logs from the database after navigation once local edits are persisted", () => {
+  it("keeps local revisions authoritative across navigation while still loading untouched days", () => {
     const app = fs.readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
 
     expect(app).toContain("const logPersistedRevisionRef = useRef(new Map())");
@@ -39,7 +39,7 @@ describe("Rewards roadmap and log input reliability", () => {
     expect(app).toContain("const hasPendingLocalEdit =");
     expect(app).toContain("liveRevision > persistedRevision");
     expect(app).toContain("? (liveCached || fromDb || null)");
-    expect(app).toContain(": (fromDb || liveCached || null)");
+    expect(app).toContain("selectDayLogSnapshot({ cached: liveCached, remote: fromDb, localRevision: liveRevision })");
     expect(app).toContain("logPersistedRevisionRef.current.set(cacheKey, revision)");
   });
 
