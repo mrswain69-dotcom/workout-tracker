@@ -1,4 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
+import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
+import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
+import MovementCompletion from "./components/log/MovementCompletion.jsx";
+import { movementEntriesComplete } from "./engine/movementEntryCompletion.js";
+import { mapProfileHistoryRows } from "./engine/profileHistoryRows.js";
 import {
   LineChart,
   Line,
@@ -1316,6 +1322,8 @@ function SummaryStat({ label, value }) {
 
 function FocusedLogBlock({
   label,
+  extraLabel = "",
+  onRemoveExtra,
   summary = "",
   open = false,
   complete = false,
@@ -1348,7 +1356,17 @@ function FocusedLogBlock({
           {cancelled ? "C" : complete ? "✓" : suspended ? "Ⅱ" : open ? "−" : "+"}
         </span>
       </button>
-      {open ? <div className="focusedLogBlockBody">{children}</div> : null}
+      {open ? (
+        <div className="focusedLogBlockBody">
+          {children}
+          {onRemoveExtra ? (
+            <div className="extraBlockRemove">
+              <SecondaryButton className="btnSmall" onClick={onRemoveExtra}>Remove</SecondaryButton>
+            </div>
+          ) : null}
+          {extraLabel ? <div className="oneDayExtraPill">{extraLabel}</div> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -3176,7 +3194,11 @@ export default function App() {
   const ENABLE_SW_TOAST = false; // keep false to avoid sticky update toast UX
 
   const [providerReturn] = useState(() => readProviderReturn());
-  const [tab, setTab] = useState(() => providerReturn ? "connections" : "dashboard");
+  const [initialNavigation] = useState(() => {
+    try { return readLogNavigation(window.sessionStorage, ymd(new Date())); }
+    catch { return { tab: "dashboard", date: ymd(new Date()) }; }
+  });
+  const [tab, setTab] = useState(() => providerReturn ? "connections" : initialNavigation.tab);
 
   useEffect(() => {
     if (providerReturn) clearProviderReturnFromUrl();
@@ -3366,7 +3388,12 @@ useEffect(() => {
   // never build from a one-render-old plan.
 useEffect(() => { planRef.current = plan; }, [plan]);
 
-  const [selectedDate, setSelectedDate] = useState(ymd(new Date()));
+  const [selectedDate, setSelectedDate] = useState(initialNavigation.date);
+  const currentLogViewRef = useRef(null);
+  currentLogViewRef.current = { familyId: family?.id, profileId: activeProfileId, date: selectedDate };
+  useEffect(() => {
+    try { writeLogNavigation(window.sessionStorage, tab, selectedDate); } catch {}
+  }, [tab, selectedDate]);
   const selectedWeekday = weekdayFromYMD(selectedDate);
   const selectedDatePlan = useMemo(
     () => (plan ? resolvePlanForDate(plan, selectedDate) : null),
@@ -3473,9 +3500,17 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   return `${familyId}:${profileId}:${ymd(date)}`;
 }
 
-  const [logForDay, setLogForDay] = useState(null);
+  const [dayLogState, setDayLogState] = useState(null);
+  const dayLogKey = makeLogCacheKey(family?.id, activeProfileId, selectedDate);
+  function setLogForDay(log) {
+    if (!sameLogView(currentLogViewRef.current, family?.id, activeProfileId, selectedDate)) return;
+    setDayLogState({ key: dayLogKey, log });
+  }
   const [isSavingLog, setIsSavingLog] = useState(false);
   const [allLogs, setAllLogs] = useState([]); // for stats
+  const logForDay = dayLogState?.key === dayLogKey
+    ? dayLogState.log
+    : (allLogs || []).find((row) => row.profile_id === activeProfileId && row.date_ymd === selectedDate)?.log || null;
   const [streakScheduleSnapshots, setStreakScheduleSnapshots] = useState([]);
   const [logsReady, setLogsReady] = useState(false);
   const [logsLoadError, setLogsLoadError] = useState("");
@@ -3491,11 +3526,19 @@ const [historySeries, setHistorySeries] = useState([]); // [{ x:"YYYY-MM-DD", y:
 
 const [focusedMovementByBlock, setFocusedMovementByBlock] = useState({});
 const [focusedLogBlockId, setFocusedLogBlockId] = useState("");
+const [movementAutoDisabled, setMovementAutoDisabled] = useState({});
+const activeHistoryIdentityRef = useRef(null);
+activeHistoryIdentityRef.current = { familyId: family?.id, profileId: activeProfileId };
+function historyIdentityIsCurrent(familyId, profileId) {
+  const identity = activeHistoryIdentityRef.current;
+  return identity?.familyId === familyId && identity?.profileId === profileId;
+}
 
 useEffect(() => {
   // A date/profile change should begin from the natural "next" focus,
   // not preserve an accordion choice from another session.
   setFocusedMovementByBlock({});
+  setMovementAutoDisabled({});
   setFocusedLogBlockId("");
 }, [activeProfileId, selectedDate]);
 
@@ -3604,6 +3647,7 @@ useEffect(() => {
   const [oneOffNameDraft, setOneOffNameDraft] = useState("");
   const [oneOffKindDraft, setOneOffKindDraft] = useState("custom");
   const [extraMovNameDraft, setExtraMovNameDraft] = useState("");
+  const [extraStrengthBlockNameDraft, setExtraStrengthBlockNameDraft] = useState("");
   const [extraMovModeDraft, setExtraMovModeDraft] = useState("strength");
   const [extraMovRepsDraft, setExtraMovRepsDraft] = useState("");
   const [extraMovTrackWeightDraft, setExtraMovTrackWeightDraft] =
@@ -3611,6 +3655,11 @@ useEffect(() => {
   const [extraMovCoachNoteDraft, setExtraMovCoachNoteDraft] = useState("");
   // Extra block type selection for today-only blocks
   const [showExtraBlockForm, setShowExtraBlockForm] = useState(false);
+  const [extraBlockNotice, setExtraBlockNotice] = useState(null);
+  function announceExtraBlockAdded() {
+    setShowExtraBlockForm(false);
+    setExtraBlockNotice({ key: Date.now(), viewKey: dayLogKey });
+  }
    const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration" | "session" | "recovery" | "activity"
   const [extraSessionDraft, setExtraSessionDraft] = useState(() => createSessionPlanBlock(""));
 
@@ -3656,6 +3705,8 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
   const logSaveRevisionRef = useRef(new Map());
   const logPersistedRevisionRef = useRef(new Map());
   const logSaveInFlightRef = useRef(0);
+  const logWriteQueueRef = useRef(null);
+  if (!logWriteQueueRef.current) logWriteQueueRef.current = createKeyedLogWriteQueue();
   const rewardClaimLockRef = useRef(new Set());
   const planMetaSaveQueueRef = useRef(Promise.resolve());
 
@@ -3824,7 +3875,7 @@ function getLogBlockFocusState(block) {
         const sets = Array.isArray(setsByMovement[movement?.id])
           ? setsByMovement[movement.id]
           : [];
-        return sets.slice(0, plannedSets).filter(setDidSomething).length >= plannedSets;
+        return movementEntriesComplete(movement, sets, plannedSets);
       });
   } else if (
     typeId === "cardio" ||
@@ -3943,7 +3994,7 @@ function toggleLogBlockFocus(blockId) {
     setActiveProfileId("");
     setAccountLoadState("idle");
     setAccountLoadError("");
-    try { localStorage.removeItem("wt_activeProfileId"); } catch {}
+    try { localStorage.removeItem("wt_activeProfileId"); clearLogNavigation(window.sessionStorage); } catch {}
   };
 
   // --- After auth: family + profiles + plan ---
@@ -4112,21 +4163,7 @@ function toggleLogBlockFocus(blockId) {
   }).then((data) => {
     if (requestId !== allLogsLoadRequestRef.current) return;
 
-    // Defensive: if db query ever returns mixed profiles, filter client-side
-    const rows = (data || []).filter(
-      (r) => !r.profile_id || r.profile_id === activeProfileId
-    );
-
-    const mapped = rows
-  .map((r) => ({
-    id: r.id || null,
-    profile_id: r.profile_id || activeProfileId,
-    date_ymd: r.date_ymd,
-    log: getLogRowPayload(r),
-    created_at: r.created_at || null,
-    updated_at: r.updated_at || null,
-  }))
-  .filter((r) => r.log);
+    const mapped = mapProfileHistoryRows(data, activeProfileId);
 
     setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId));
     setLogsReady(true);
@@ -4181,9 +4218,9 @@ useEffect(() => {
     ? logSaveRevisionRef.current.get(cacheKey) || 0
     : 0;
 
-  if (cachedAtLoadStart) {
-    setLogForDay(cachedAtLoadStart);
-  }
+  const historyLog = (allLogs || []).find((row) => row.profile_id === activeProfileId && row.date_ymd === selectedDate)?.log;
+  setLogForDay(cachedAtLoadStart || historyLog || null);
+  let cancelled = false;
 
   const reqId = ++loadDayLogReqRef.current;
 
@@ -4193,7 +4230,7 @@ useEffect(() => {
       activeProfileId,
       selectedDate
     );
-    if (reqId !== loadDayLogReqRef.current) return;
+    if (cancelled || reqId !== loadDayLogReqRef.current) return;
 
     // Re-read the live cache after the network request. A user may have typed
     // while getLog was in flight, and that optimistic edit is newer than the
@@ -4228,12 +4265,11 @@ useEffect(() => {
 
     // Never let the result of an older load overwrite an edit made while that
     // request was in flight.
-    // A cached value only outranks the database while it represents a genuinely
-    // unsaved/in-flight local edit. Once that revision has been persisted, a
-    // fresh page entry should be allowed to repair stale in-memory cache state.
+    // Keep this session's local edits authoritative even after saving: a read
+    // overlapping the write can still contain an older snapshot.
     const rawLatest = hasPendingLocalEdit
       ? (liveCached || fromDb || null)
-      : (fromDb || liveCached || null);
+      : selectDayLogSnapshot({ cached: liveCached, remote: fromDb, localRevision: liveRevision });
 
     // Snap the log to the *current* plan structure for this weekday so:
     // - blocks always line up with the active plan
@@ -4257,7 +4293,7 @@ useEffect(() => {
       }
     }
   })().catch((e) => {
-    if (reqId !== loadDayLogReqRef.current) return;
+    if (cancelled || reqId !== loadDayLogReqRef.current) return;
     console.error("getLog exception", e);
 
     const liveCached = cacheKey
@@ -4269,6 +4305,7 @@ useEffect(() => {
       setLogForDay(null);
     }
   });
+  return () => { cancelled = true; };
 }, [
   tab,
   family?.id,
@@ -6676,7 +6713,7 @@ function cloneBlockForPlanPreserveIds(block) {
   }
 
   function mergeMappedLogsWithLocalCache(mappedRows, familyId, profileId) {
-    const next = Array.isArray(mappedRows) ? mappedRows.slice() : [];
+    const next = mapProfileHistoryRows(mappedRows, profileId);
     if (!familyId || !profileId) return next;
 
     const cache = lastLogByDateRef.current || {};
@@ -6843,36 +6880,6 @@ function stampLogTiming(prevLog, nextLog) {
   // optimistic; this async hydration path is only needed on first Session use.
   let preparedLog = nextLog ? { ...nextLog } : null;
 
-  const hasUnresolvedSessionSnapshot =
-    !!preparedLog &&
-    Array.isArray(preparedLog.blocks) &&
-    preparedLog.blocks.some(
-      (b) => b && b.typeId === "session" && !b.session
-    );
-
-  if (hasUnresolvedSessionSnapshot && familyId) {
-    try {
-      const { data: sessionLibrary, error: sessionLibraryError } =
-        await loadSessionLibrary(familyId, { includeArchived: true });
-
-      if (sessionLibraryError) {
-        console.warn(
-          "Session snapshot library load failed; keeping the saved template anchor for retry",
-          sessionLibraryError
-        );
-      } else {
-        preparedLog = hydrateSessionSnapshotsInLog(
-          preparedLog,
-          sessionLibrary || {}
-        );
-      }
-    } catch (sessionSnapshotError) {
-      console.warn(
-        "Session snapshot hydration failed; keeping the saved template anchor for retry",
-        sessionSnapshotError
-      );
-    }
-  }
 
   const previousLatest =
     (cacheKey && lastLogByDateRef.current?.[cacheKey]) ||
@@ -6906,7 +6913,7 @@ function stampLogTiming(prevLog, nextLog) {
 
   setAllLogs((prev) => {
     const existing = Array.isArray(prev) ? prev : [];
-    if (!familyId || !profileId || !dateKey) return existing;
+    if (!familyId || !profileId || !dateKey || !historyIdentityIsCurrent(familyId, profileId)) return existing;
 
     const idx = existing.findIndex(
       (r) => (r?.date_ymd || r?.date) === dateKey
@@ -6915,6 +6922,7 @@ function stampLogTiming(prevLog, nextLog) {
     if (logToStore) {
       const updatedRow = {
         ...(idx >= 0 ? existing[idx] : {}),
+        profile_id: profileId,
         date_ymd: dateKey,
         log: logToStore,
       };
@@ -6950,11 +6958,45 @@ function stampLogTiming(prevLog, nextLog) {
     setIsSavingLog(true);
 
     try {
+      preparedLog = logToStore;
+      const hasUnresolvedSessionSnapshot =
+        !!preparedLog &&
+        Array.isArray(preparedLog.blocks) &&
+        preparedLog.blocks.some(
+          (b) => b && b.typeId === "session" && !b.session
+        );
+
+      if (hasUnresolvedSessionSnapshot && familyId) {
+        try {
+          const { data: sessionLibrary, error: sessionLibraryError } =
+            await loadSessionLibrary(familyId, { includeArchived: true });
+
+          if (sessionLibraryError) {
+            console.warn(
+              "Session snapshot library load failed; keeping the saved template anchor for retry",
+              sessionLibraryError
+            );
+          } else {
+            preparedLog = hydrateSessionSnapshotsInLog(
+              preparedLog,
+              sessionLibrary || {}
+            );
+          }
+        } catch (sessionSnapshotError) {
+          console.warn(
+            "Session snapshot hydration failed; keeping the saved template anchor for retry",
+            sessionSnapshotError
+          );
+        }
+      }
+
+      // A newer edit may have arrived while the template library was loading.
+      if (cacheKey && logSaveRevisionRef.current.get(cacheKey) !== revision) return [];
       const { data: savedRow, error } = await upsertLog(
         familyId,
         profileId,
         dateKey,
-        logToStore
+        preparedLog
       );
 
       if (error) {
@@ -6976,7 +7018,7 @@ function stampLogTiming(prevLog, nextLog) {
       }
 
       const canonicalLog =
-        getLogRowPayload(savedRow) || logToStore || null;
+        getLogRowPayload(savedRow) || preparedLog || null;
 
       if (cacheKey) {
         logPersistedRevisionRef.current.set(cacheKey, revision);
@@ -6990,7 +7032,7 @@ function stampLogTiming(prevLog, nextLog) {
         }
       }
 
-      if (activeProfileId === profileId && selectedDate === dateKey) {
+      if (sameLogView(currentLogViewRef.current, familyId, profileId, dateKey)) {
         setLogForDay(canonicalLog);
       }
 
@@ -7002,16 +7044,12 @@ function stampLogTiming(prevLog, nextLog) {
         return [];
       }
 
-      const { data } = await listLogs(familyId, profileId, 2000);
-      const mapped = (data || [])
-        .map((r) => ({
-          id: r.id || null,
-          date_ymd: r.date_ymd,
-          log: getLogRowPayload(r),
-          created_at: r.created_at || null,
-          updated_at: r.updated_at || null,
-        }))
-        .filter((r) => r.log);
+      const { data, error: historyError } = await listLogs(familyId, profileId, 2000);
+      // A late save for another athlete must never replace the selected history.
+      // Keep the optimistic history on read failure rather than showing an empty page.
+      if (historyError || !historyIdentityIsCurrent(familyId, profileId)) return [];
+      if (cacheKey && logSaveRevisionRef.current.get(cacheKey) !== revision) return [];
+      const mapped = mapProfileHistoryRows(data, profileId);
 
       const merged = mergeMappedLogsWithLocalCache(
         mapped,
@@ -7040,7 +7078,7 @@ function stampLogTiming(prevLog, nextLog) {
 
     const timer = setTimeout(() => {
       logPersistTimersRef.current.delete(cacheKey);
-      persistRevision().catch((error) =>
+      logWriteQueueRef.current(cacheKey, persistRevision).catch((error) =>
         console.error("debounced log save failed", error)
       );
     }, debounceMs);
@@ -7057,7 +7095,7 @@ function stampLogTiming(prevLog, nextLog) {
     }
   }
 
-  return persistRevision();
+  return logWriteQueueRef.current(cacheKey, persistRevision);
 }
 
 function latestLogForSelectedDay() {
@@ -8214,7 +8252,7 @@ async function addExtraMovementForToday(draft) {
     id: blockId,
     typeId: "strength",      // stays in Strength / HIIT lane
     isExtra: true,           // flag so we know it’s one-day-only
-    label: "",               // no block-level label by default
+    label: (draft?.blockName || "").trim() || name,
     note: "",                // you could wire a block-level note later
     movements: [movement],
     sets: {},                // sets will be filled via updateStrengthSetsForMovement
@@ -8248,6 +8286,7 @@ async function addExtraMovementForToday(draft) {
   ];
   nextLog.meta = meta;
 
+  setFocusedLogBlockId(blockId);
   await saveLog(nextLog);
 }
 
@@ -8295,6 +8334,7 @@ targetText,
     blocks: [...existingBlocks, newBlock],
   };
 
+  setFocusedLogBlockId(blockId);
   await saveLog(nextLog);
 }
 
@@ -8337,6 +8377,7 @@ async function addExtraDurationBlockForToday(draft) {
     blocks: [...existingBlocks, newBlock],
   };
 
+  setFocusedLogBlockId(blockId);
   await saveLog(nextLog);
 }
 
@@ -8384,6 +8425,7 @@ async function addExtraRecoveryBlockForToday(draft) {
     blocks: [...existingBlocks, newBlock],
   };
 
+  setFocusedLogBlockId(blockId);
   await saveLog(nextLog);
 }
 
@@ -8408,6 +8450,7 @@ async function addExtraSessionBlockForToday(draft) {
     duration: { minutes: "" },
   };
 
+  setFocusedLogBlockId(newBlock.id);
   await saveLog({
     ...baseLog,
     blocks: [...existingBlocks, newBlock],
@@ -8478,6 +8521,7 @@ async function addExtraActivityBlockForToday(draft) {
     blocks: nextBlocks,
   };
 
+  setFocusedLogBlockId(updatedBlock.id);
   await saveLog(nextLog);
 }
   
@@ -8516,13 +8560,16 @@ async function addExtraMovement() {
       coachNote: extraMovCoachNoteDraft || "",
     };
 
-    await addExtraMovementForToday(draft);
+    const addition = addExtraMovementForToday({ ...draft, blockName: extraStrengthBlockNameDraft });
+    announceExtraBlockAdded();
+    setExtraStrengthBlockNameDraft("");
 
     setExtraMovNameDraft("");
     setExtraMovModeDraft("strength");
     setExtraMovRepsDraft("");
     setExtraMovTrackWeightDraft(true);
     setExtraMovCoachNoteDraft("");
+    await addition;
     return;
   }
 
@@ -8538,13 +8585,15 @@ async function addExtraMovement() {
   coachNote: extraCardioCoachNoteDraft || "",
 };
 
-    await addExtraCardioBlockForToday(draft);
+    const addition = addExtraCardioBlockForToday(draft);
+    announceExtraBlockAdded();
 
     setExtraCardioNameDraft("");
 setExtraCardioTypeDraft("run");
 setExtraCardioActivityNameDraft("");
 setExtraCardioTargetDraft("");
 setExtraCardioCoachNoteDraft("");
+    await addition;
     return;
   }
 
@@ -8558,11 +8607,13 @@ setExtraCardioCoachNoteDraft("");
       coachNote: extraDurationCoachNoteDraft || "",
     };
 
-    await addExtraDurationBlockForToday(draft);
+    const addition = addExtraDurationBlockForToday(draft);
+    announceExtraBlockAdded();
 
     setExtraDurationNameDraft("");
     setExtraDurationMinutesDraft("");
     setExtraDurationCoachNoteDraft("");
+    await addition;
     return;
   }
 
@@ -8576,7 +8627,8 @@ setExtraCardioCoachNoteDraft("");
       coachNote: extraRecoveryCoachNoteDraft || "",
     };
 
-    await addExtraRecoveryBlockForToday(draft);
+    const addition = addExtraRecoveryBlockForToday(draft);
+    announceExtraBlockAdded();
 
     setExtraRecoveryNameDraft("Recovery");
     setExtraRecoveryModeDraft("full");
@@ -8584,6 +8636,7 @@ setExtraCardioCoachNoteDraft("");
     setExtraRecoveryCoachNoteDraft(
       "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session."
     );
+    await addition;
     return;
   }
 
@@ -8592,8 +8645,10 @@ setExtraCardioCoachNoteDraft("");
       window.alert("Choose a Session template first.");
       return;
     }
-    await addExtraSessionBlockForToday(extraSessionDraft);
+    const addition = addExtraSessionBlockForToday(extraSessionDraft);
+    announceExtraBlockAdded();
     setExtraSessionDraft(createSessionPlanBlock(""));
+    await addition;
     return;
   }
 
@@ -8607,11 +8662,13 @@ setExtraCardioCoachNoteDraft("");
       coachNote: extraActivityCoachNoteDraft || "",
     };
 
-    await addExtraActivityBlockForToday(draft);
+    const addition = addExtraActivityBlockForToday(draft);
+    announceExtraBlockAdded();
 
     setExtraActivityNameDraft("");
     setExtraActivityXpDraft("");
     setExtraActivityCoachNoteDraft("");
+    await addition;
     return;
   }
 }
@@ -9504,7 +9561,7 @@ const cardioProgress = useMemo(() => {
                       );
                       const focusState = getLogBlockFocusState(block);
                       const blockOpen = isLogBlockOpen(block.id);
-                      const blockLabel = block.label?.trim() || "Untitled strength block";
+                      const blockLabel = block.label?.trim() || (block.isExtra ? movements[0]?.name?.trim() : "") || "Untitled strength block";
                       const blockSummary = isCancelled
                         ? "Cancelled"
                         : isSuspended
@@ -9521,6 +9578,8 @@ const cardioProgress = useMemo(() => {
     complete={focusState.complete}
     cancelled={isCancelled}
     suspended={isSuspended}
+    extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
     onToggle={() => toggleLogBlockFocus(block.id)}
   >
     {isSuspended && (
@@ -9530,19 +9589,7 @@ const cardioProgress = useMemo(() => {
       <div className="muted mt4">{block.note}</div>
     ) : null}
 
-                          {block.isExtra && (
-                            <div className="row space mt4">
-                              <div className="muted mini">
-                                One-day extra movement
-                              </div>
-                              <SecondaryButton
-                                className="btnSmall"
-                                onClick={() => removeExtraMovement(block.id)}
-                              >
-                                Remove
-                              </SecondaryButton>
-                            </div>
-                          )}
+
 
                           {/* Movements grid */}
                           {block.movements.map((planMov, movementIndex) => {
@@ -9572,23 +9619,13 @@ const cardioProgress = useMemo(() => {
                                 normaliseMovementHistoryName(mov.name)
                               ];
 
-                            const completedPlannedSets = movementSets
-                              .slice(0, basePlannedSets)
-                              .filter(setDidSomething).length;
-                            const movementComplete =
-                              basePlannedSets > 0 &&
-                              completedPlannedSets >= basePlannedSets;
-
+                            const movementComplete = movementEntriesComplete(mov, movementSets, basePlannedSets);
                             const firstIncompleteMovementId =
-                              movements.find((candidate) => {
-                                const candidateSets = Array.isArray(setsByMovement[candidate.id])
-                                  ? setsByMovement[candidate.id]
-                                  : [];
-                                const candidatePlanned = block.isExtra ? 1 : (candidate.sets || 3);
-                                return candidateSets
-                                  .slice(0, candidatePlanned)
-                                  .filter(setDidSomething).length < candidatePlanned;
-                              })?.id || "";
+                              movements.find((candidate) => !movementEntriesComplete(
+                                candidate,
+                                setsByMovement[candidate.id] || [],
+                                block.isExtra ? 1 : (candidate.sets || 3)
+                              ))?.id || "";
 
                             const hasExplicitMovementFocus =
                               Object.prototype.hasOwnProperty.call(
@@ -9641,6 +9678,8 @@ const cardioProgress = useMemo(() => {
                                         min={0}
                                         value={baseSet.reps != null ? baseSet.reps : ""}
                                         onChange={(v) => {
+                                          setFocusedLogBlockId(block.id);
+                                          setFocusedMovementByBlock((current) => ({ ...current, [block.id]: mov.id }));
                                           const nextSets = [...movementSets];
                                           nextSets[i] = { ...baseSet, reps: v };
                                           updateStrengthSetsForMovement(block.id, mov.id, nextSets);
@@ -9656,6 +9695,8 @@ const cardioProgress = useMemo(() => {
                                           min={0}
                                           value={baseSet.weight != null ? baseSet.weight : ""}
                                           onChange={(v) => {
+                                            setFocusedLogBlockId(block.id);
+                                            setFocusedMovementByBlock((current) => ({ ...current, [block.id]: mov.id }));
                                             const nextSets = [...movementSets];
                                             nextSets[i] = { ...baseSet, weight: v };
                                             updateStrengthSetsForMovement(block.id, mov.id, nextSets);
@@ -9672,6 +9713,8 @@ const cardioProgress = useMemo(() => {
                                           min={0}
                                           value={baseSet.timeSeconds != null ? baseSet.timeSeconds : ""}
                                           onChange={(v) => {
+                                            setFocusedLogBlockId(block.id);
+                                            setFocusedMovementByBlock((current) => ({ ...current, [block.id]: mov.id }));
                                             const nextSets = [...movementSets];
                                             nextSets[i] = { ...baseSet, timeSeconds: v };
                                             updateStrengthSetsForMovement(block.id, mov.id, nextSets);
@@ -9752,6 +9795,24 @@ const cardioProgress = useMemo(() => {
                                     )}
 
                                     {rows}
+                                    <MovementCompletion
+                                      key={`${activeProfileId}:${selectedDate}:${block.id}:${mov.id}`}
+                                      complete={movementComplete}
+                                      signature={JSON.stringify({ sets: movementSets, count: rowCount })}
+                                      autoDisabled={!!movementAutoDisabled[`${block.id}:${mov.id}`]}
+                                      onDisableAuto={() => setMovementAutoDisabled((current) => ({ ...current, [`${block.id}:${mov.id}`]: true }))}
+                                      onDone={() => {
+                                        const nextMovement = movements.slice(movementIndex + 1).find((candidate) => !movementEntriesComplete(
+                                          candidate, setsByMovement[candidate.id] || [], block.isExtra ? 1 : (candidate.sets || 3)
+                                        ));
+                                        setFocusedMovementByBlock((current) => ({ ...current, [block.id]: nextMovement?.id || null }));
+                                        if (!nextMovement && getLogBlockFocusState(block).complete) {
+                                          const index = focusBlockSequence.findIndex((candidate) => candidate.id === block.id);
+                                          const nextBlock = focusBlockSequence.slice(index + 1).find((candidate) => !getLogBlockFocusState(candidate).resolved);
+                                          setFocusedLogBlockId(nextBlock?.id || "__none__");
+                                        }
+                                      }}
+                                    />
 
                                     <div className="mt8 row gap8">
                                       <SecondaryButton
@@ -9897,21 +9958,16 @@ const cardioProgress = useMemo(() => {
           complete={focusState.complete}
           cancelled={isCancelled}
           suspended={isSuspended}
-          onToggle={() => toggleLogBlockFocus(block.id)}
+          extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
+    onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
           {note ? <div className="muted mt4">{note}</div> : null}
 
-          {block.isExtra ? (
-            <div className="row space mt4">
-              <div className="muted mini">One-day extra Session</div>
-              <SecondaryButton className="btnSmall" onClick={() => removeExtraMovement(block.id)}>
-                Remove
-              </SecondaryButton>
-            </div>
-          ) : null}
+
 
           {isCancelled ? (
             <div className="session-log-block__cancelled mt8">
@@ -10030,7 +10086,9 @@ const cardioProgress = useMemo(() => {
           complete={focusState.complete}
           cancelled={isCancelled}
           suspended={isSuspended}
-          onToggle={() => toggleLogBlockFocus(block.id)}
+          extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
+    onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
@@ -10067,17 +10125,7 @@ const cardioProgress = useMemo(() => {
             </div>
           )}
 
-          {block.isExtra && (
-            <div className="row space mt4">
-              <div className="muted mini">One-day extra cardio</div>
-              <SecondaryButton
-                className="btnSmall"
-                onClick={() => removeExtraMovement(block.id)}
-              >
-                Remove
-              </SecondaryButton>
-            </div>
-          )}
+
             <div
   className={`mt8 ${
     isDistanceHiddenCardioType(block.cardioType || "run") ? "grid2" : "grid3"
@@ -10205,23 +10253,15 @@ const cardioProgress = useMemo(() => {
           complete={focusState.complete}
           cancelled={isCancelled}
           suspended={isSuspended}
-          onToggle={() => toggleLogBlockFocus(block.id)}
+          extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra && !isProfileRecovery ? () => removeExtraMovement(block.id) : undefined}
+    onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
 
-          {block.isExtra && !isProfileRecovery && (
-            <div className="row space mt4">
-              <div className="muted mini">One-day extra recovery</div>
-              <SecondaryButton
-                className="btnSmall"
-                onClick={() => removeExtraMovement(block.id)}
-              >
-                Remove
-              </SecondaryButton>
-            </div>
-          )}
+
 
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
@@ -10362,7 +10402,9 @@ const cardioProgress = useMemo(() => {
             complete={focusState.complete}
             cancelled={isCancelled}
             suspended={isSuspended}
-            onToggle={() => toggleLogBlockFocus(block.id)}
+            extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
+    onToggle={() => toggleLogBlockFocus(block.id)}
           >
             {isSuspended && (
               <div className="recoveryModePausedLabel">Paused by recovery mode</div>
@@ -10370,17 +10412,7 @@ const cardioProgress = useMemo(() => {
             {block.note ? (
               <div className="muted mt4">{block.note}</div>
             ) : null}
-            {block.isExtra && (
-              <div className="row space mt4">
-                <div className="muted mini">One-day extra duration</div>
-                <SecondaryButton
-                  className="btnSmall"
-                  onClick={() => removeExtraMovement(block.id)}
-                >
-                  Remove
-                </SecondaryButton>
-              </div>
-            )}
+
 
 <div className="grid3 mt8">
   <div>
@@ -10455,23 +10487,15 @@ const cardioProgress = useMemo(() => {
           complete={focusState.complete}
           cancelled={false}
           suspended={false}
-          onToggle={() => toggleLogBlockFocus(block.id)}
+          extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
+    onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
 
-          {block.isExtra && (
-            <div className="row space mt4">
-              <div className="muted mini">One-day extra activity</div>
-              <SecondaryButton
-                className="btnSmall"
-                onClick={() => removeExtraMovement(block.id)}
-              >
-                Remove
-              </SecondaryButton>
-            </div>
-          )}
+
 
           {tasks.length === 0 ? (
             <div className="muted mt4">
@@ -10617,6 +10641,9 @@ const cardioProgress = useMemo(() => {
     {showExtraBlockForm ? "Hide extra block form" : "+ Extra block for today"}
   </button>
 
+  {extraBlockNotice?.viewKey === dayLogKey && (
+    <ExtraBlockNotice key={extraBlockNotice.key} onExpire={() => setExtraBlockNotice(null)} />
+  )}
   {showExtraBlockForm && (
     <>
   {/* Block type selector */}
@@ -10645,9 +10672,14 @@ const cardioProgress = useMemo(() => {
   {/* Strength extra form */}
   {extraBlockKind === "strength" && (
     <>
+      <div className="mt8">
+        <div className="label">Block name (optional)</div>
+        <Input value={extraStrengthBlockNameDraft} onChange={setExtraStrengthBlockNameDraft}
+          placeholder="e.g. Extra strength — uses movement name if blank" />
+      </div>
       <div className="row mt8">
         <div style={{ flex: 1 }}>
-          <div className="label">Name</div>
+          <div className="label">Movement name</div>
           <Input
             value={extraMovNameDraft}
             onChange={setExtraMovNameDraft}
@@ -15948,6 +15980,8 @@ function StyleTag() {
   opacity:.82;
 }
 .focusedLogBlockSummary{
+  box-sizing:border-box;
+  white-space:normal;
   width:100%;
   display:flex;
   align-items:center;
@@ -15962,6 +15996,8 @@ function StyleTag() {
 }
 .focusedLogBlockSummary__copy{min-width:0;flex:1}
 .focusedLogBlockTitle{
+  overflow-wrap:anywhere;
+  white-space:normal;
   color:#0f172a;
   font-size:17px;
   line-height:1.2;
@@ -15999,7 +16035,7 @@ function StyleTag() {
   background:#dbe3ea;
   color:#687789;
 }
-.focusedLogBlockBody{padding:0 12px 12px}
+.focusedLogBlockBody{padding:10px 12px 12px}
 .blockHistoryRow{
   display:flex;
   justify-content:flex-end;
@@ -16048,6 +16084,8 @@ function StyleTag() {
   background:#f0fff7;
 }
 .focusedMovementSummary{
+  box-sizing:border-box;
+  white-space:normal;
   width:100%;
   display:flex;
   align-items:center;
@@ -16061,8 +16099,8 @@ function StyleTag() {
   cursor:pointer;
 }
 .focusedMovementSummary__copy{min-width:0;flex:1}
-.focusedMovement .movementName{margin:0;color:#0f172a;font-size:16px;font-weight:900}
-.focusedMovementPlan{margin-top:2px;color:#526477;font-size:10px;font-weight:800}
+.focusedMovement .movementName{overflow-wrap:anywhere;white-space:normal;margin:0;color:#0f172a;font-size:16px;font-weight:900}
+.focusedMovementPlan{overflow-wrap:anywhere;white-space:normal;margin-top:2px;color:#526477;font-size:10px;font-weight:800}
 .focusedMovement .movementTarget{margin:4px 0 0;font-size:11px;line-height:1.35}
 .movementProgressionBand{
   width:100%;
@@ -16260,7 +16298,7 @@ function StyleTag() {
   .panel .logBlockTypeTitle{margin-bottom:4px}
   .focusedLogBlock{margin-top:7px;border-radius:12px}
   .focusedLogBlockSummary{padding:8px}
-  .focusedLogBlockBody{padding:0 6px 7px}
+  .focusedLogBlockBody{padding:10px 6px 7px}
   .focusedLogBlockTitle{font-size:16px}
   .focusedMovement{margin-top:6px;border-radius:11px}
   .focusedMovementSummary{padding:8px}
