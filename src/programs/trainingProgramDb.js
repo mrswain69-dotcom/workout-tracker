@@ -149,6 +149,83 @@ export async function assignTrainingProgramToGroup({ programId, groupId, startDa
   return { data, error };
 }
 
+export async function assignTrainingProgramToMembers({
+  programId,
+  membershipIds,
+  startDate,
+  completionMode = "repeat",
+  recipientCanEdit = true,
+  message = "",
+}) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("training_program_assign_members", {
+    p_program_id: programId,
+    p_membership_ids: [...new Set((membershipIds || []).filter(Boolean))],
+    p_start_date: startDate,
+    p_completion_mode: completionMode,
+    p_recipient_can_edit: !!recipientCanEdit,
+    p_message: message,
+  });
+  return { data, error };
+}
+
+export async function listManagedTrainingProgramAssignments(familyId) {
+  if (!supabase) return unavailable([]);
+  if (!familyId) return { data: [], error: null };
+
+  const { data: assignments, error } = await supabase
+    .from("training_program_assignments")
+    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,message,created_at,responded_at")
+    .eq("assigned_by_family_id", familyId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error || !(assignments || []).length) return { data: [], error };
+
+  const programIds = [...new Set(assignments.map((row) => row.program_id).filter(Boolean))];
+  const versionIds = [...new Set(assignments.map((row) => row.version_id).filter(Boolean))];
+  const membershipIds = [...new Set(assignments.map((row) => row.target_membership_id).filter(Boolean))];
+  const [programResult, versionResult, directoryResult] = await Promise.all([
+    supabase
+      .from("training_programs")
+      .select("id,title")
+      .in("id", programIds),
+    supabase
+      .from("training_program_versions")
+      .select("id,version_no")
+      .in("id", versionIds),
+    membershipIds.length
+      ? supabase
+          .from("group_member_directory")
+          .select("membership_id,group_id,nickname")
+          .in("membership_id", membershipIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  const relatedError = programResult.error || versionResult.error || directoryResult.error;
+  if (relatedError) return { data: [], error: relatedError };
+
+  const programs = new Map((programResult.data || []).map((row) => [row.id, row]));
+  const versions = new Map((versionResult.data || []).map((row) => [row.id, row]));
+  const recipients = new Map((directoryResult.data || []).map((row) => [row.membership_id, row]));
+
+  return {
+    data: assignments.map((assignment) => ({
+      ...assignment,
+      program: programs.get(assignment.program_id) || null,
+      version: versions.get(assignment.version_id) || null,
+      recipient: recipients.get(assignment.target_membership_id) || null,
+    })),
+    error: null,
+  };
+}
+
+export async function revokeTrainingProgramAssignment(assignmentId) {
+  if (!supabase) return unavailable(false);
+  const { data, error } = await supabase.rpc("training_program_revoke_assignment", {
+    p_assignment_id: assignmentId,
+  });
+  return { data, error };
+}
+
 export async function listTrainingProgramAssignments(profileId) {
   if (!supabase) return unavailable([]);
   if (!profileId) return { data: [], error: null };
