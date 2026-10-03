@@ -1323,6 +1323,7 @@ function SummaryStat({ label, value }) {
 function FocusedLogBlock({
   label,
   extraLabel = "",
+  onRemoveExtra,
   summary = "",
   open = false,
   complete = false,
@@ -1355,7 +1356,17 @@ function FocusedLogBlock({
           {cancelled ? "C" : complete ? "✓" : suspended ? "Ⅱ" : open ? "−" : "+"}
         </span>
       </button>
-      {open ? <div className="focusedLogBlockBody">{children}{extraLabel ? <div className="oneDayExtraPill">{extraLabel}</div> : null}</div> : null}
+      {open ? (
+        <div className="focusedLogBlockBody">
+          {children}
+          {onRemoveExtra ? (
+            <div className="extraBlockRemove">
+              <SecondaryButton className="btnSmall" onClick={onRemoveExtra}>Remove</SecondaryButton>
+            </div>
+          ) : null}
+          {extraLabel ? <div className="oneDayExtraPill">{extraLabel}</div> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -9568,6 +9579,7 @@ const cardioProgress = useMemo(() => {
     cancelled={isCancelled}
     suspended={isSuspended}
     extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
     onToggle={() => toggleLogBlockFocus(block.id)}
   >
     {isSuspended && (
@@ -9577,17 +9589,7 @@ const cardioProgress = useMemo(() => {
       <div className="muted mt4">{block.note}</div>
     ) : null}
 
-                          {block.isExtra && (
-                            <div className="row space mt4">
 
-                              <SecondaryButton
-                                className="btnSmall"
-                                onClick={() => removeExtraMovement(block.id)}
-                              >
-                                Remove
-                              </SecondaryButton>
-                            </div>
-                          )}
 
                           {/* Movements grid */}
                           {block.movements.map((planMov, movementIndex) => {
@@ -9957,6 +9959,7 @@ const cardioProgress = useMemo(() => {
           cancelled={isCancelled}
           suspended={isSuspended}
           extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
     onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
@@ -9964,14 +9967,7 @@ const cardioProgress = useMemo(() => {
           )}
           {note ? <div className="muted mt4">{note}</div> : null}
 
-          {block.isExtra ? (
-            <div className="row space mt4">
 
-              <SecondaryButton className="btnSmall" onClick={() => removeExtraMovement(block.id)}>
-                Remove
-              </SecondaryButton>
-            </div>
-          ) : null}
 
           {isCancelled ? (
             <div className="session-log-block__cancelled mt8">
@@ -10091,6 +10087,7 @@ const cardioProgress = useMemo(() => {
           cancelled={isCancelled}
           suspended={isSuspended}
           extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
     onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
@@ -10128,17 +10125,7 @@ const cardioProgress = useMemo(() => {
             </div>
           )}
 
-          {block.isExtra && (
-            <div className="row space mt4">
 
-              <SecondaryButton
-                className="btnSmall"
-                onClick={() => removeExtraMovement(block.id)}
-              >
-                Remove
-              </SecondaryButton>
-            </div>
-          )}
             <div
   className={`mt8 ${
     isDistanceHiddenCardioType(block.cardioType || "run") ? "grid2" : "grid3"
@@ -10267,23 +10254,14 @@ const cardioProgress = useMemo(() => {
           cancelled={isCancelled}
           suspended={isSuspended}
           extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra && !isProfileRecovery ? () => removeExtraMovement(block.id) : undefined}
     onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
           )}
 
-          {block.isExtra && !isProfileRecovery && (
-            <div className="row space mt4">
 
-              <SecondaryButton
-                className="btnSmall"
-                onClick={() => removeExtraMovement(block.id)}
-              >
-                Remove
-              </SecondaryButton>
-            </div>
-          )}
 
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
@@ -10425,6 +10403,7 @@ const cardioProgress = useMemo(() => {
             cancelled={isCancelled}
             suspended={isSuspended}
             extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
     onToggle={() => toggleLogBlockFocus(block.id)}
           >
             {isSuspended && (
@@ -10433,17 +10412,7 @@ const cardioProgress = useMemo(() => {
             {block.note ? (
               <div className="muted mt4">{block.note}</div>
             ) : null}
-            {block.isExtra && (
-              <div className="row space mt4">
 
-                <SecondaryButton
-                  className="btnSmall"
-                  onClick={() => removeExtraMovement(block.id)}
-                >
-                  Remove
-                </SecondaryButton>
-              </div>
-            )}
 
 <div className="grid3 mt8">
   <div>
@@ -10519,23 +10488,14 @@ const cardioProgress = useMemo(() => {
           cancelled={false}
           suspended={false}
           extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+          onRemoveExtra={block.isExtra ? () => removeExtraMovement(block.id) : undefined}
     onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
           ) : null}
 
-          {block.isExtra && (
-            <div className="row space mt4">
 
-              <SecondaryButton
-                className="btnSmall"
-                onClick={() => removeExtraMovement(block.id)}
-              >
-                Remove
-              </SecondaryButton>
-            </div>
-          )}
 
           {tasks.length === 0 ? (
             <div className="muted mt4">
@@ -16075,7 +16035,7 @@ function StyleTag() {
   background:#dbe3ea;
   color:#687789;
 }
-.focusedLogBlockBody{padding:0 12px 12px}
+.focusedLogBlockBody{padding:10px 12px 12px}
 .blockHistoryRow{
   display:flex;
   justify-content:flex-end;
@@ -16338,7 +16298,7 @@ function StyleTag() {
   .panel .logBlockTypeTitle{margin-bottom:4px}
   .focusedLogBlock{margin-top:7px;border-radius:12px}
   .focusedLogBlockSummary{padding:8px}
-  .focusedLogBlockBody{padding:0 6px 7px}
+  .focusedLogBlockBody{padding:10px 6px 7px}
   .focusedLogBlockTitle{font-size:16px}
   .focusedMovement{margin-top:6px;border-radius:11px}
   .focusedMovementSummary{padding:8px}
