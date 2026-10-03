@@ -14,13 +14,13 @@ describe("movement completion confirmation", () => {
     const { rerender } = render(<MovementCompletion complete={false} signature="empty" onDone={done} />);
     rerender(<MovementCompletion complete={false} signature="reps-only" onDone={done} />);
     tick(10000);
-    expect(screen.queryByText("Done")).toBeNull();
+    expect(screen.queryByText("Next Movement")).toBeNull();
     expect(done).not.toHaveBeenCalled();
     rerender(<MovementCompletion complete signature="all-fields" onDone={done} />);
     tick(1999);
-    expect(screen.queryByText("Done")).toBeNull();
+    expect(screen.queryByText("Next Movement")).toBeNull();
     tick(1);
-    expect(screen.getByText("Done")).toBeTruthy();
+    expect(screen.getByText("Next Movement")).toBeTruthy();
     tick(2999);
     expect(done).not.toHaveBeenCalled();
     tick(1);
@@ -34,13 +34,13 @@ describe("movement completion confirmation", () => {
     tick(4000);
     rerender(<MovementCompletion complete signature="12" onDone={done} />);
     tick(1999);
-    expect(screen.queryByText("Done")).toBeNull();
+    expect(screen.queryByText("Next Movement")).toBeNull();
     rerender(<MovementCompletion complete={false} signature="extra-blank-set" onDone={done} />);
     tick(10000);
     expect(done).not.toHaveBeenCalled();
   });
 
-  it("allows explicit Done and disables auto-collapse with the keep-open button", () => {
+  it("allows explicit Next Movement and disables auto-collapse with the keep-open button", () => {
     const done = vi.fn();
     const disable = vi.fn();
     const { rerender } = render(<MovementCompletion complete={false} signature="empty" onDone={done} onDisableAuto={disable} />);
@@ -51,7 +51,7 @@ describe("movement completion confirmation", () => {
     rerender(<MovementCompletion complete signature="filled" onDone={done} autoDisabled />);
     tick(10000);
     expect(done).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next Movement" }));
     expect(done).toHaveBeenCalledTimes(1);
   });
 

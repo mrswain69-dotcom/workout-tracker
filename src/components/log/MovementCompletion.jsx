@@ -29,7 +29,7 @@ export default function MovementCompletion({ complete, signature, onDone, autoDi
   return (
     <div className="movementCompletion" aria-label="Movement completion">
       <button type="button" className={`movementCompletionDone ${autoDisabled ? "" : "isCounting"}`}
-        onClick={() => doneRef.current()}><span>Done</span></button>
+        onClick={() => doneRef.current()}><span>Next Movement</span></button>
       {!autoDisabled && <button type="button" className="movementCompletionCancel"
         aria-label="Keep movement open and disable automatic collapse" title="Keep open"
         onClick={onDisableAuto}>×</button>}

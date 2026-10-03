@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
+import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
 import MovementCompletion from "./components/log/MovementCompletion.jsx";
 import { movementEntriesComplete } from "./engine/movementEntryCompletion.js";
 import { mapProfileHistoryRows } from "./engine/profileHistoryRows.js";
@@ -1321,6 +1322,7 @@ function SummaryStat({ label, value }) {
 
 function FocusedLogBlock({
   label,
+  extraLabel = "",
   summary = "",
   open = false,
   complete = false,
@@ -1353,7 +1355,7 @@ function FocusedLogBlock({
           {cancelled ? "C" : complete ? "✓" : suspended ? "Ⅱ" : open ? "−" : "+"}
         </span>
       </button>
-      {open ? <div className="focusedLogBlockBody">{children}</div> : null}
+      {open ? <div className="focusedLogBlockBody">{children}{extraLabel ? <div className="oneDayExtraPill">{extraLabel}</div> : null}</div> : null}
     </div>
   );
 }
@@ -3642,6 +3644,11 @@ useEffect(() => {
   const [extraMovCoachNoteDraft, setExtraMovCoachNoteDraft] = useState("");
   // Extra block type selection for today-only blocks
   const [showExtraBlockForm, setShowExtraBlockForm] = useState(false);
+  const [extraBlockNotice, setExtraBlockNotice] = useState(null);
+  function announceExtraBlockAdded() {
+    setShowExtraBlockForm(false);
+    setExtraBlockNotice({ key: Date.now(), viewKey: dayLogKey });
+  }
    const [extraBlockKind, setExtraBlockKind] = useState("strength"); // "strength" | "cardio" | "duration" | "session" | "recovery" | "activity"
   const [extraSessionDraft, setExtraSessionDraft] = useState(() => createSessionPlanBlock(""));
 
@@ -8542,7 +8549,8 @@ async function addExtraMovement() {
       coachNote: extraMovCoachNoteDraft || "",
     };
 
-    await addExtraMovementForToday({ ...draft, blockName: extraStrengthBlockNameDraft });
+    const addition = addExtraMovementForToday({ ...draft, blockName: extraStrengthBlockNameDraft });
+    announceExtraBlockAdded();
     setExtraStrengthBlockNameDraft("");
 
     setExtraMovNameDraft("");
@@ -8550,6 +8558,7 @@ async function addExtraMovement() {
     setExtraMovRepsDraft("");
     setExtraMovTrackWeightDraft(true);
     setExtraMovCoachNoteDraft("");
+    await addition;
     return;
   }
 
@@ -8565,13 +8574,15 @@ async function addExtraMovement() {
   coachNote: extraCardioCoachNoteDraft || "",
 };
 
-    await addExtraCardioBlockForToday(draft);
+    const addition = addExtraCardioBlockForToday(draft);
+    announceExtraBlockAdded();
 
     setExtraCardioNameDraft("");
 setExtraCardioTypeDraft("run");
 setExtraCardioActivityNameDraft("");
 setExtraCardioTargetDraft("");
 setExtraCardioCoachNoteDraft("");
+    await addition;
     return;
   }
 
@@ -8585,11 +8596,13 @@ setExtraCardioCoachNoteDraft("");
       coachNote: extraDurationCoachNoteDraft || "",
     };
 
-    await addExtraDurationBlockForToday(draft);
+    const addition = addExtraDurationBlockForToday(draft);
+    announceExtraBlockAdded();
 
     setExtraDurationNameDraft("");
     setExtraDurationMinutesDraft("");
     setExtraDurationCoachNoteDraft("");
+    await addition;
     return;
   }
 
@@ -8603,7 +8616,8 @@ setExtraCardioCoachNoteDraft("");
       coachNote: extraRecoveryCoachNoteDraft || "",
     };
 
-    await addExtraRecoveryBlockForToday(draft);
+    const addition = addExtraRecoveryBlockForToday(draft);
+    announceExtraBlockAdded();
 
     setExtraRecoveryNameDraft("Recovery");
     setExtraRecoveryModeDraft("full");
@@ -8611,6 +8625,7 @@ setExtraCardioCoachNoteDraft("");
     setExtraRecoveryCoachNoteDraft(
       "Recovery is where adaptation happens. Muscles repair. Energy restores. Smart athletes recover well so they can push harder next session."
     );
+    await addition;
     return;
   }
 
@@ -8619,8 +8634,10 @@ setExtraCardioCoachNoteDraft("");
       window.alert("Choose a Session template first.");
       return;
     }
-    await addExtraSessionBlockForToday(extraSessionDraft);
+    const addition = addExtraSessionBlockForToday(extraSessionDraft);
+    announceExtraBlockAdded();
     setExtraSessionDraft(createSessionPlanBlock(""));
+    await addition;
     return;
   }
 
@@ -8634,11 +8651,13 @@ setExtraCardioCoachNoteDraft("");
       coachNote: extraActivityCoachNoteDraft || "",
     };
 
-    await addExtraActivityBlockForToday(draft);
+    const addition = addExtraActivityBlockForToday(draft);
+    announceExtraBlockAdded();
 
     setExtraActivityNameDraft("");
     setExtraActivityXpDraft("");
     setExtraActivityCoachNoteDraft("");
+    await addition;
     return;
   }
 }
@@ -9548,6 +9567,7 @@ const cardioProgress = useMemo(() => {
     complete={focusState.complete}
     cancelled={isCancelled}
     suspended={isSuspended}
+    extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
     onToggle={() => toggleLogBlockFocus(block.id)}
   >
     {isSuspended && (
@@ -9559,9 +9579,7 @@ const cardioProgress = useMemo(() => {
 
                           {block.isExtra && (
                             <div className="row space mt4">
-                              <div className="muted mini">
-                                One-day extra movement
-                              </div>
+
                               <SecondaryButton
                                 className="btnSmall"
                                 onClick={() => removeExtraMovement(block.id)}
@@ -9938,7 +9956,8 @@ const cardioProgress = useMemo(() => {
           complete={focusState.complete}
           cancelled={isCancelled}
           suspended={isSuspended}
-          onToggle={() => toggleLogBlockFocus(block.id)}
+          extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+    onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
@@ -9947,7 +9966,7 @@ const cardioProgress = useMemo(() => {
 
           {block.isExtra ? (
             <div className="row space mt4">
-              <div className="muted mini">One-day extra Session</div>
+
               <SecondaryButton className="btnSmall" onClick={() => removeExtraMovement(block.id)}>
                 Remove
               </SecondaryButton>
@@ -10071,7 +10090,8 @@ const cardioProgress = useMemo(() => {
           complete={focusState.complete}
           cancelled={isCancelled}
           suspended={isSuspended}
-          onToggle={() => toggleLogBlockFocus(block.id)}
+          extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+    onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
@@ -10110,7 +10130,7 @@ const cardioProgress = useMemo(() => {
 
           {block.isExtra && (
             <div className="row space mt4">
-              <div className="muted mini">One-day extra cardio</div>
+
               <SecondaryButton
                 className="btnSmall"
                 onClick={() => removeExtraMovement(block.id)}
@@ -10246,7 +10266,8 @@ const cardioProgress = useMemo(() => {
           complete={focusState.complete}
           cancelled={isCancelled}
           suspended={isSuspended}
-          onToggle={() => toggleLogBlockFocus(block.id)}
+          extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+    onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {isSuspended && (
             <div className="recoveryModePausedLabel">Paused by recovery mode</div>
@@ -10254,7 +10275,7 @@ const cardioProgress = useMemo(() => {
 
           {block.isExtra && !isProfileRecovery && (
             <div className="row space mt4">
-              <div className="muted mini">One-day extra recovery</div>
+
               <SecondaryButton
                 className="btnSmall"
                 onClick={() => removeExtraMovement(block.id)}
@@ -10403,7 +10424,8 @@ const cardioProgress = useMemo(() => {
             complete={focusState.complete}
             cancelled={isCancelled}
             suspended={isSuspended}
-            onToggle={() => toggleLogBlockFocus(block.id)}
+            extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+    onToggle={() => toggleLogBlockFocus(block.id)}
           >
             {isSuspended && (
               <div className="recoveryModePausedLabel">Paused by recovery mode</div>
@@ -10413,7 +10435,7 @@ const cardioProgress = useMemo(() => {
             ) : null}
             {block.isExtra && (
               <div className="row space mt4">
-                <div className="muted mini">One-day extra duration</div>
+
                 <SecondaryButton
                   className="btnSmall"
                   onClick={() => removeExtraMovement(block.id)}
@@ -10496,7 +10518,8 @@ const cardioProgress = useMemo(() => {
           complete={focusState.complete}
           cancelled={false}
           suspended={false}
-          onToggle={() => toggleLogBlockFocus(block.id)}
+          extraLabel={block.isExtra ? "One-day extra · This date only" : ""}
+    onToggle={() => toggleLogBlockFocus(block.id)}
         >
           {block.note ? (
             <div className="muted mt4">{block.note}</div>
@@ -10504,7 +10527,7 @@ const cardioProgress = useMemo(() => {
 
           {block.isExtra && (
             <div className="row space mt4">
-              <div className="muted mini">One-day extra activity</div>
+
               <SecondaryButton
                 className="btnSmall"
                 onClick={() => removeExtraMovement(block.id)}
@@ -10658,6 +10681,9 @@ const cardioProgress = useMemo(() => {
     {showExtraBlockForm ? "Hide extra block form" : "+ Extra block for today"}
   </button>
 
+  {extraBlockNotice?.viewKey === dayLogKey && (
+    <ExtraBlockNotice key={extraBlockNotice.key} onExpire={() => setExtraBlockNotice(null)} />
+  )}
   {showExtraBlockForm && (
     <>
   {/* Block type selector */}

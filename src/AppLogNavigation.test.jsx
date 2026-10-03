@@ -77,6 +77,9 @@ describe("actual Log navigation", () => {
     fireEvent.change(screen.getByPlaceholderText("e.g. Extra push-ups"), { target: { value: "Dips" } });
     fireEvent.click(screen.getByRole("button", { name: "+ Add extra block" }));
     await screen.findByText("Extra arms");
+    expect(screen.getByText("Extra block added").getAttribute("role")).toBe("status");
+    expect(screen.queryByPlaceholderText("e.g. Extra push-ups")).toBeNull();
+    expect(screen.getByText("One-day extra · This date only")).toBeTruthy();
     expect(screen.getByText("Dips")).toBeTruthy();
     expect(screen.queryByText("Untitled strength block")).toBeNull();
     await waitFor(() => expect(finish).toBeTypeOf("function"));

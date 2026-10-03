@@ -32,13 +32,19 @@ body{
 
 button, input, select, textarea{ font: inherit; }
 
-.movementCompletion{display:flex;align-items:center;gap:8px;margin-top:10px;}
-.movementCompletionDone,.movementCompletionCancel{position:relative;overflow:hidden;border:1px solid #a7b8ad;border-radius:9px;padding:8px 18px;background:#f3f8f5;color:#123e27;cursor:pointer;min-height:40px;}
+/* Completion controls share the compact Log button typography and spacing. */
+.movementCompletion{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.movementCompletionDone,.movementCompletionCancel{position:relative;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;box-sizing:border-box;border:1px solid #b9d8c7;border-radius:12px;background:#effaf4;color:#123e27;cursor:pointer;min-height:42px;font-family:inherit;font-weight:850;line-height:1.2;}
+.movementCompletionDone{flex:1;min-width:0;padding:10px 14px;font-size:13px;text-align:center;white-space:normal;}
 .movementCompletionDone span{position:relative;z-index:1;}
 .movementCompletionDone.isCounting::before{content:"";position:absolute;inset:0;background:#00c775;transform-origin:left;animation:movementDoneFill 3s linear forwards;}
-.movementCompletionCancel{padding:8px 14px;font-size:20px;}
+.movementCompletionCancel{flex:0 0 42px;width:42px;padding:0;font-size:21px;background:#f7faf8;}
+.movementCompletionDone:focus-visible,.movementCompletionCancel:focus-visible{outline:2px solid #008e52;outline-offset:2px;}
+.oneDayExtraPill{display:block;width:100%;box-sizing:border-box;margin-top:10px;padding:4px 10px;border:1px solid #f0ddae;border-radius:999px;background:#fff8e8;color:#927132;font-size:10px;font-weight:650;line-height:1.3;text-align:center;}
+.extraBlockNotice{margin-top:9px;padding:9px 12px;border:1px solid #b9ddc7;border-radius:12px;background:#effaf4;color:#226743;font-size:13px;font-weight:800;animation:extraBlockNoticeFade 5s linear forwards;}
 @keyframes movementDoneFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@media(prefers-reduced-motion:reduce){.movementCompletionDone.isCounting::before{animation:none;transform:scaleX(1);}}
+@keyframes extraBlockNoticeFade{0%,80%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.movementCompletionDone.isCounting::before{animation:none;transform:scaleX(1);}.extraBlockNotice{animation:none;}}
 a{ color: inherit; }
 a, .link{ color: var(--brand); }
 a:hover{ color: var(--brand-2); }
