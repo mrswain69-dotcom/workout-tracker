@@ -31,6 +31,14 @@ body{
 }
 
 button, input, select, textarea{ font: inherit; }
+
+.movementCompletion{display:flex;align-items:center;gap:8px;margin-top:10px;}
+.movementCompletionDone,.movementCompletionCancel{position:relative;overflow:hidden;border:1px solid #a7b8ad;border-radius:9px;padding:8px 18px;background:#f3f8f5;color:#123e27;cursor:pointer;min-height:40px;}
+.movementCompletionDone span{position:relative;z-index:1;}
+.movementCompletionDone.isCounting::before{content:"";position:absolute;inset:0;background:#00c775;transform-origin:left;animation:movementDoneFill 3s linear forwards;}
+.movementCompletionCancel{padding:8px 14px;font-size:20px;}
+@keyframes movementDoneFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media(prefers-reduced-motion:reduce){.movementCompletionDone.isCounting::before{animation:none;transform:scaleX(1);}}
 a{ color: inherit; }
 a, .link{ color: var(--brand); }
 a:hover{ color: var(--brand-2); }

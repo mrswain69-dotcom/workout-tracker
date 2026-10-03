@@ -1,4 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import MovementCompletion from "./components/log/MovementCompletion.jsx";
+import { movementEntriesComplete } from "./engine/movementEntryCompletion.js";
+import { mapProfileHistoryRows } from "./engine/profileHistoryRows.js";
 import {
   LineChart,
   Line,
@@ -3491,11 +3494,19 @@ const [historySeries, setHistorySeries] = useState([]); // [{ x:"YYYY-MM-DD", y:
 
 const [focusedMovementByBlock, setFocusedMovementByBlock] = useState({});
 const [focusedLogBlockId, setFocusedLogBlockId] = useState("");
+const [movementAutoDisabled, setMovementAutoDisabled] = useState({});
+const activeHistoryIdentityRef = useRef(null);
+activeHistoryIdentityRef.current = { familyId: family?.id, profileId: activeProfileId };
+function historyIdentityIsCurrent(familyId, profileId) {
+  const identity = activeHistoryIdentityRef.current;
+  return identity?.familyId === familyId && identity?.profileId === profileId;
+}
 
 useEffect(() => {
   // A date/profile change should begin from the natural "next" focus,
   // not preserve an accordion choice from another session.
   setFocusedMovementByBlock({});
+  setMovementAutoDisabled({});
   setFocusedLogBlockId("");
 }, [activeProfileId, selectedDate]);
 
@@ -3824,7 +3835,7 @@ function getLogBlockFocusState(block) {
         const sets = Array.isArray(setsByMovement[movement?.id])
           ? setsByMovement[movement.id]
           : [];
-        return sets.slice(0, plannedSets).filter(setDidSomething).length >= plannedSets;
+        return movementEntriesComplete(movement, sets, plannedSets);
       });
   } else if (
     typeId === "cardio" ||
@@ -4112,21 +4123,7 @@ function toggleLogBlockFocus(blockId) {
   }).then((data) => {
     if (requestId !== allLogsLoadRequestRef.current) return;
 
-    // Defensive: if db query ever returns mixed profiles, filter client-side
-    const rows = (data || []).filter(
-      (r) => !r.profile_id || r.profile_id === activeProfileId
-    );
-
-    const mapped = rows
-  .map((r) => ({
-    id: r.id || null,
-    profile_id: r.profile_id || activeProfileId,
-    date_ymd: r.date_ymd,
-    log: getLogRowPayload(r),
-    created_at: r.created_at || null,
-    updated_at: r.updated_at || null,
-  }))
-  .filter((r) => r.log);
+    const mapped = mapProfileHistoryRows(data, activeProfileId);
 
     setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId));
     setLogsReady(true);
@@ -6676,7 +6673,7 @@ function cloneBlockForPlanPreserveIds(block) {
   }
 
   function mergeMappedLogsWithLocalCache(mappedRows, familyId, profileId) {
-    const next = Array.isArray(mappedRows) ? mappedRows.slice() : [];
+    const next = mapProfileHistoryRows(mappedRows, profileId);
     if (!familyId || !profileId) return next;
 
     const cache = lastLogByDateRef.current || {};
@@ -6906,7 +6903,7 @@ function stampLogTiming(prevLog, nextLog) {
 
   setAllLogs((prev) => {
     const existing = Array.isArray(prev) ? prev : [];
-    if (!familyId || !profileId || !dateKey) return existing;
+    if (!familyId || !profileId || !dateKey || !historyIdentityIsCurrent(familyId, profileId)) return existing;
 
     const idx = existing.findIndex(
       (r) => (r?.date_ymd || r?.date) === dateKey
@@ -6915,6 +6912,7 @@ function stampLogTiming(prevLog, nextLog) {
     if (logToStore) {
       const updatedRow = {
         ...(idx >= 0 ? existing[idx] : {}),
+        profile_id: profileId,
         date_ymd: dateKey,
         log: logToStore,
       };
@@ -6990,7 +6988,7 @@ function stampLogTiming(prevLog, nextLog) {
         }
       }
 
-      if (activeProfileId === profileId && selectedDate === dateKey) {
+      if (historyIdentityIsCurrent(familyId, profileId) && selectedDate === dateKey) {
         setLogForDay(canonicalLog);
       }
 
@@ -7002,16 +7000,12 @@ function stampLogTiming(prevLog, nextLog) {
         return [];
       }
 
-      const { data } = await listLogs(familyId, profileId, 2000);
-      const mapped = (data || [])
-        .map((r) => ({
-          id: r.id || null,
-          date_ymd: r.date_ymd,
-          log: getLogRowPayload(r),
-          created_at: r.created_at || null,
-          updated_at: r.updated_at || null,
-        }))
-        .filter((r) => r.log);
+      const { data, error: historyError } = await listLogs(familyId, profileId, 2000);
+      // A late save for another athlete must never replace the selected history.
+      // Keep the optimistic history on read failure rather than showing an empty page.
+      if (historyError || !historyIdentityIsCurrent(familyId, profileId)) return [];
+      if (cacheKey && logSaveRevisionRef.current.get(cacheKey) !== revision) return [];
+      const mapped = mapProfileHistoryRows(data, profileId);
 
       const merged = mergeMappedLogsWithLocalCache(
         mapped,
@@ -9572,23 +9566,13 @@ const cardioProgress = useMemo(() => {
                                 normaliseMovementHistoryName(mov.name)
                               ];
 
-                            const completedPlannedSets = movementSets
-                              .slice(0, basePlannedSets)
-                              .filter(setDidSomething).length;
-                            const movementComplete =
-                              basePlannedSets > 0 &&
-                              completedPlannedSets >= basePlannedSets;
-
+                            const movementComplete = movementEntriesComplete(mov, movementSets, basePlannedSets);
                             const firstIncompleteMovementId =
-                              movements.find((candidate) => {
-                                const candidateSets = Array.isArray(setsByMovement[candidate.id])
-                                  ? setsByMovement[candidate.id]
-                                  : [];
-                                const candidatePlanned = block.isExtra ? 1 : (candidate.sets || 3);
-                                return candidateSets
-                                  .slice(0, candidatePlanned)
-                                  .filter(setDidSomething).length < candidatePlanned;
-                              })?.id || "";
+                              movements.find((candidate) => !movementEntriesComplete(
+                                candidate,
+                                setsByMovement[candidate.id] || [],
+                                block.isExtra ? 1 : (candidate.sets || 3)
+                              ))?.id || "";
 
                             const hasExplicitMovementFocus =
                               Object.prototype.hasOwnProperty.call(
@@ -9641,6 +9625,8 @@ const cardioProgress = useMemo(() => {
                                         min={0}
                                         value={baseSet.reps != null ? baseSet.reps : ""}
                                         onChange={(v) => {
+                                          setFocusedLogBlockId(block.id);
+                                          setFocusedMovementByBlock((current) => ({ ...current, [block.id]: mov.id }));
                                           const nextSets = [...movementSets];
                                           nextSets[i] = { ...baseSet, reps: v };
                                           updateStrengthSetsForMovement(block.id, mov.id, nextSets);
@@ -9656,6 +9642,8 @@ const cardioProgress = useMemo(() => {
                                           min={0}
                                           value={baseSet.weight != null ? baseSet.weight : ""}
                                           onChange={(v) => {
+                                            setFocusedLogBlockId(block.id);
+                                            setFocusedMovementByBlock((current) => ({ ...current, [block.id]: mov.id }));
                                             const nextSets = [...movementSets];
                                             nextSets[i] = { ...baseSet, weight: v };
                                             updateStrengthSetsForMovement(block.id, mov.id, nextSets);
@@ -9672,6 +9660,8 @@ const cardioProgress = useMemo(() => {
                                           min={0}
                                           value={baseSet.timeSeconds != null ? baseSet.timeSeconds : ""}
                                           onChange={(v) => {
+                                            setFocusedLogBlockId(block.id);
+                                            setFocusedMovementByBlock((current) => ({ ...current, [block.id]: mov.id }));
                                             const nextSets = [...movementSets];
                                             nextSets[i] = { ...baseSet, timeSeconds: v };
                                             updateStrengthSetsForMovement(block.id, mov.id, nextSets);
@@ -9752,6 +9742,24 @@ const cardioProgress = useMemo(() => {
                                     )}
 
                                     {rows}
+                                    <MovementCompletion
+                                      key={`${activeProfileId}:${selectedDate}:${block.id}:${mov.id}`}
+                                      complete={movementComplete}
+                                      signature={JSON.stringify({ sets: movementSets, count: rowCount })}
+                                      autoDisabled={!!movementAutoDisabled[`${block.id}:${mov.id}`]}
+                                      onDisableAuto={() => setMovementAutoDisabled((current) => ({ ...current, [`${block.id}:${mov.id}`]: true }))}
+                                      onDone={() => {
+                                        const nextMovement = movements.slice(movementIndex + 1).find((candidate) => !movementEntriesComplete(
+                                          candidate, setsByMovement[candidate.id] || [], block.isExtra ? 1 : (candidate.sets || 3)
+                                        ));
+                                        setFocusedMovementByBlock((current) => ({ ...current, [block.id]: nextMovement?.id || null }));
+                                        if (!nextMovement && getLogBlockFocusState(block).complete) {
+                                          const index = focusBlockSequence.findIndex((candidate) => candidate.id === block.id);
+                                          const nextBlock = focusBlockSequence.slice(index + 1).find((candidate) => !getLogBlockFocusState(candidate).resolved);
+                                          setFocusedLogBlockId(nextBlock?.id || "__none__");
+                                        }
+                                      }}
+                                    />
 
                                     <div className="mt8 row gap8">
                                       <SecondaryButton
@@ -15948,6 +15956,8 @@ function StyleTag() {
   opacity:.82;
 }
 .focusedLogBlockSummary{
+  box-sizing:border-box;
+  white-space:normal;
   width:100%;
   display:flex;
   align-items:center;
@@ -15962,6 +15972,8 @@ function StyleTag() {
 }
 .focusedLogBlockSummary__copy{min-width:0;flex:1}
 .focusedLogBlockTitle{
+  overflow-wrap:anywhere;
+  white-space:normal;
   color:#0f172a;
   font-size:17px;
   line-height:1.2;
@@ -16048,6 +16060,8 @@ function StyleTag() {
   background:#f0fff7;
 }
 .focusedMovementSummary{
+  box-sizing:border-box;
+  white-space:normal;
   width:100%;
   display:flex;
   align-items:center;
@@ -16061,8 +16075,8 @@ function StyleTag() {
   cursor:pointer;
 }
 .focusedMovementSummary__copy{min-width:0;flex:1}
-.focusedMovement .movementName{margin:0;color:#0f172a;font-size:16px;font-weight:900}
-.focusedMovementPlan{margin-top:2px;color:#526477;font-size:10px;font-weight:800}
+.focusedMovement .movementName{overflow-wrap:anywhere;white-space:normal;margin:0;color:#0f172a;font-size:16px;font-weight:900}
+.focusedMovementPlan{overflow-wrap:anywhere;white-space:normal;margin-top:2px;color:#526477;font-size:10px;font-weight:800}
 .focusedMovement .movementTarget{margin:4px 0 0;font-size:11px;line-height:1.35}
 .movementProgressionBand{
   width:100%;
