@@ -7,10 +7,11 @@
 .trainingProgramTabs button.active{border-color:#0f172a;background:#0f172a;color:#fff}
 .trainingProgramNotice{margin-top:12px;padding:10px 12px;border-radius:10px;background:#eef7ff;color:#17466f;overflow-wrap:anywhere}
 .trainingProgramShared{margin-top:14px;padding:14px;border:1px solid #8fd3b2;border-radius:12px;background:#f1fff8}
-.trainingProgramControls,.trainingProgramCreate{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px;align-items:end}
+.trainingProgramControls,.trainingProgramCreate{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px;align-items:end}
 .trainingProgramCreate{grid-template-columns:minmax(150px,.7fr) minmax(220px,1.3fr) auto}
 .trainingProgramLibrary label{display:grid;gap:5px;font-size:12px;font-weight:700;color:var(--muted,#475569)}
-.trainingProgramLibrary input,.trainingProgramLibrary select{min-height:40px;border:1px solid var(--border,#cbd5e1);border-radius:9px;padding:8px 10px;background:var(--card,#fff);color:inherit;font:inherit}
+.trainingProgramLibrary input,.trainingProgramLibrary select,.trainingProgramLibrary textarea{min-height:40px;border:1px solid var(--border,#cbd5e1);border-radius:9px;padding:8px 10px;background:var(--card,#fff);color:inherit;font:inherit}
+.trainingProgramLibrary textarea{min-height:82px;resize:vertical}
 .trainingProgramSection{margin-top:20px}
 .trainingProgramGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:10px}
 .trainingProgramCard{padding:14px;border:1px solid var(--border,#d9e1e7);border-radius:12px;background:var(--card,#fff)}
@@ -21,6 +22,38 @@
 .trainingProgramLibrary button{min-height:36px;border:1px solid var(--border,#cbd5e1);border-radius:9px;padding:7px 10px;background:var(--card,#fff);color:inherit;cursor:pointer}
 .trainingProgramLibrary button.primary{border-color:#245f50;background:#245f50;color:#fff}
 .trainingProgramLibrary button:disabled{cursor:not-allowed;opacity:.55}
+.trainingProgramAssignmentComposer{margin-top:18px;padding:16px;border:1px solid #8fcab5;border-radius:14px;background:linear-gradient(135deg,#f6fff9,#eef8f5)}
+.trainingProgramAssignmentHeading,.trainingProgramAssignmentHistoryHeading,.trainingProgramAssignmentFooter,.trainingProgramRecipientToolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.trainingProgramAssignmentHeading h3{margin:8px 0 0}
+.trainingProgramAssignmentHeading p,.trainingProgramAssignmentFooter p{margin:5px 0 0;color:var(--muted,#64748b);max-width:720px}
+.trainingProgramAssignmentFields{display:grid;grid-template-columns:minmax(180px,.65fr) minmax(260px,1.35fr);gap:12px;margin-top:16px;align-items:start}
+.trainingProgramRecipientToolbar{align-items:center;margin-top:14px}
+.trainingProgramRecipientToolbar>div{display:flex;gap:7px;flex-wrap:wrap}
+.trainingProgramRecipients{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:10px}
+.trainingProgramLibrary .trainingProgramRecipient{display:flex;grid-template-columns:none;align-items:center;gap:9px;min-height:54px;padding:9px 11px;border:1px solid var(--border,#cbd5e1);border-radius:10px;background:var(--card,#fff);cursor:pointer}
+.trainingProgramLibrary .trainingProgramRecipient.selected{border-color:#245f50;background:#eaf8f1;box-shadow:inset 0 0 0 1px #245f50}
+.trainingProgramRecipient input{flex:0 0 auto;min-height:0;width:17px;height:17px;margin:0;padding:0}
+.trainingProgramRecipient span{display:grid;gap:2px;min-width:0;color:inherit}
+.trainingProgramRecipient strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trainingProgramRecipient small{font-weight:500;color:var(--muted,#64748b)}
+.trainingProgramAssignmentFooter{align-items:center;margin-top:15px;padding-top:13px;border-top:1px solid #c8e3d8}
+.trainingProgramAssignmentFooter .primary{flex:0 0 auto;min-width:112px}
+.trainingProgramAssignmentHistoryHeading{align-items:end}
+.trainingProgramAssignmentHistoryHeading p{margin:4px 0 0}
+.trainingProgramAssignmentHistoryHeading label{min-width:170px}
+.trainingProgramAssignmentList{display:grid;gap:9px;margin-top:10px}
+.trainingProgramAssignmentRow{display:grid;grid-template-columns:minmax(180px,1fr) minmax(210px,1fr) auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--border,#d9e1e7);border-radius:11px;background:var(--card,#fff)}
+.trainingProgramAssignmentMain{display:grid;gap:3px;min-width:0}
+.trainingProgramAssignmentMain strong,.trainingProgramAssignmentMain span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trainingProgramAssignmentMain span,.trainingProgramAssignmentDetails{color:var(--muted,#64748b);font-size:12px}
+.trainingProgramAssignmentDetails{display:flex;gap:6px;flex-wrap:wrap}
+.trainingProgramAssignmentDetails span+span:before{content:"·";margin-right:6px}
+.trainingProgramAssignmentState{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.trainingProgramStatus{display:inline-flex;align-items:center;min-height:28px;padding:4px 9px;border-radius:999px;background:#edf2f7;color:#475569;font-size:11px;font-weight:800;white-space:nowrap}
+.trainingProgramStatus.pending{background:#fff4d6;color:#795208}
+.trainingProgramStatus.accepted{background:#e7f8ee;color:#17623c}
+.trainingProgramStatus.declined,.trainingProgramStatus.revoked{background:#f2f4f6;color:#59636e}
+.trainingProgramAssignmentMessage{grid-column:1/-1;margin:0;padding-top:9px;border-top:1px solid var(--border,#e1e7eb);color:var(--muted,#64748b);font-size:13px}
 .trainingProgramComingSoon{margin-top:18px;padding:22px;border:1px dashed #aebdca;border-radius:14px;background:linear-gradient(135deg,#f8fafc,#eef7ff)}
 .trainingProgramComingSoon h3{margin:12px 0 6px}
 .trainingProgramComingSoon p{margin:5px 0;max-width:760px}
@@ -28,5 +61,11 @@
   .trainingProgramLibrary{padding:14px}
   .trainingProgramTabs{display:grid;grid-template-columns:1fr 1fr}
   .trainingProgramTabs button{min-width:0;padding:8px 9px}
-  .trainingProgramControls,.trainingProgramCreate{grid-template-columns:1fr}
+  .trainingProgramControls,.trainingProgramCreate,.trainingProgramAssignmentFields{grid-template-columns:1fr}
+  .trainingProgramAssignmentComposer{padding:13px}
+  .trainingProgramAssignmentHeading,.trainingProgramAssignmentHistoryHeading,.trainingProgramAssignmentFooter{align-items:stretch;flex-direction:column}
+  .trainingProgramAssignmentHeading>button,.trainingProgramAssignmentFooter .primary{width:100%}
+  .trainingProgramAssignmentHistoryHeading label{min-width:0;width:100%}
+  .trainingProgramAssignmentRow{grid-template-columns:1fr}
+  .trainingProgramAssignmentState{justify-content:space-between}
 }
