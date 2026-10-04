@@ -16,6 +16,7 @@ import {
   acceptTrainingProgramAssignment,
   assignTrainingProgramToMembers,
   listManagedTrainingProgramAssignments,
+  removeTrainingProgramAddOn,
   revokeTrainingProgramAssignment,
   undoTrainingProgramAssignment,
 } from "./trainingProgramDb.js";
@@ -118,6 +119,15 @@ describe("coach Program assignment DB adapter", () => {
     mock.rpc.mockResolvedValue({ data: { restored: true }, error: null });
     await undoTrainingProgramAssignment("assignment-1", "profile-1");
     expect(mock.rpc).toHaveBeenCalledWith("training_program_undo_assignment", {
+      p_assignment_id: "assignment-1",
+      p_profile_id: "profile-1",
+    });
+  });
+
+  it("removes only the selected add-on through its protected RPC", async () => {
+    mock.rpc.mockResolvedValue({ data: { version: 5 }, error: null });
+    await removeTrainingProgramAddOn("assignment-1", "profile-1");
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_remove_add_on", {
       p_assignment_id: "assignment-1",
       p_profile_id: "profile-1",
     });

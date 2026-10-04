@@ -130,7 +130,10 @@ import FirstRunTutorial, {
 import PublicSite from "./components/public/PublicSite.jsx";
 import AccountPrivacyPanel from "./components/settings/AccountPrivacyPanel.jsx";
 import { sendWelcomeTutorialEmail } from "./accountLifecycleDb.js";
-import { undoTrainingProgramAssignment } from "./programs/trainingProgramDb.js";
+import {
+  removeTrainingProgramAddOn,
+  undoTrainingProgramAssignment,
+} from "./programs/trainingProgramDb.js";
 import {
   addProgramAssessment,
   addProgramPhase,
@@ -3339,6 +3342,7 @@ useEffect(() => {
   const [planWorkspaceView, setPlanWorkspaceView] = useState("build");
   const [undoPlan, setUndoPlan] = useState(null);
   const [undoLabel, setUndoLabel] = useState("");
+  const [removingProgramAddOnId, setRemovingProgramAddOnId] = useState("");
   
   const jumpTo = (nextTab, ref) => {
     setTab(nextTab);
@@ -6090,6 +6094,28 @@ const selectedDayHasHeavyTrainingBlocks =
     setAndCachePlan(activeProfileId, prev);
     if (!family?.id || !activeProfileId) return;
     await upsertProfilePlan(family.id, activeProfileId, prev);
+  }
+
+  async function removeAddedGroupProgram(program) {
+    if (!program?.id || removingProgramAddOnId) return;
+    const confirmed = window.confirm(
+      `Remove “${program.title || "Assigned Program"}” from alongside your plan?\n\nYour base plan, completed logs, history and XP will stay unchanged.`
+    );
+    if (!confirmed || !(await ensureUnlocked("remove an added Program"))) return;
+
+    setRemovingProgramAddOnId(program.id);
+    const { data, error } = await removeTrainingProgramAddOn(
+      program.id,
+      activeProfileId
+    );
+    setRemovingProgramAddOnId("");
+    if (error) {
+      window.alert(error.message || "This added Program could not be removed.");
+      return;
+    }
+    setUndoPlan(null);
+    setUndoLabel("");
+    setAndCachePlan(activeProfileId, data);
   }
 
       async function savePlan(nextPlan) {
@@ -11238,10 +11264,19 @@ const cardioProgress = useMemo(() => {
           <strong>Added group Program{addedGroupPrograms.length === 1 ? "" : "s"}</strong>
           <div>
             {addedGroupPrograms.map((program) => (
-              <span key={program.id || program.versionId}>
-                {program.title || "Assigned Program"}
-                {program.content?.program?.startDate ? ` · from ${program.content.program.startDate}` : ""}
-              </span>
+              <div className="planAddedProgram" key={program.id || program.versionId}>
+                <span>
+                  {program.title || "Assigned Program"}
+                  {program.content?.program?.startDate ? ` · from ${program.content.program.startDate}` : ""}
+                </span>
+                <SecondaryButton
+                  className="planAddedProgramRemove"
+                  disabled={!!removingProgramAddOnId}
+                  onClick={() => removeAddedGroupProgram(program)}
+                >
+                  {removingProgramAddOnId === program.id ? "Removing…" : "Remove"}
+                </SecondaryButton>
+              </div>
             ))}
           </div>
           <small>These run on their own schedule beside your personal Program and appear in blue-black on Log days.</small>
@@ -15819,7 +15854,9 @@ function StyleTag() {
       }
       .planAddedPrograms>strong{font-size:11px;letter-spacing:.05em;text-transform:uppercase}
       .planAddedPrograms>div{display:flex;gap:7px;flex-wrap:wrap}
-      .planAddedPrograms span{padding:5px 8px;border-radius:999px;background:#17344c;color:#fff;font-size:11px;font-weight:850}
+      .planAddedProgram{display:flex;align-items:center;max-width:100%;gap:4px;padding:3px;border-radius:999px;background:#17344c}
+      .planAddedProgram>span{min-width:0;padding:4px 7px;overflow-wrap:anywhere;color:#fff;font-size:11px;font-weight:850}
+      .planAddedProgram .planAddedProgramRemove{min-height:28px;padding:4px 8px;border-color:#7190a8;background:#f5f8fa;color:#17344c;font-size:10px}
       .planAddedPrograms small{color:#566f84;font-size:10px;font-weight:700}
       .field{min-width:180px}
       /* Log layout – match width with header + top slots */
