@@ -218,4 +218,22 @@ describe("coach/client Program management", () => {
     const options = programDb.acceptTrainingProgramAssignment.mock.calls[0][2];
     expect(options.preparedPlan.program.phases[0].weeks[0].blocksByWeekday.Mon.map((block) => block.id)).toContain("physio");
   });
+
+  it("limits a profile to one Program alongside its base plan", async () => {
+    programDb.listTrainingProgramAssignments.mockResolvedValue({ data: [assignedProgram], error: null });
+    renderLibrary({
+      activePlan: {
+        meta: { programAddOns: [{ id: "existing-assignment", title: "Existing team plan" }] },
+        activityTypes: [],
+        blocksByWeekday: blankDays(),
+      },
+    });
+
+    fireEvent.click(await screen.findByRole("tab", { name: /Shared & assigned/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview & choose" }));
+
+    expect(screen.getByText(/already have one Program running alongside/)).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /Add alongside my plan/ }).disabled).toBe(true);
+    expect(screen.getByRole("radio", { name: /Use as my whole plan/ }).checked).toBe(true);
+  });
 });

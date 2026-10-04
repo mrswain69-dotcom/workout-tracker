@@ -72,8 +72,10 @@
 .assignedProgramBlock span{font-size:10px;color:#587087}
 .assignedProgramChoices{display:grid;gap:8px;margin:16px 0 0;padding:0;border:0}
 .assignedProgramChoices legend{margin-bottom:8px;color:#102a40;font-size:14px;font-weight:900}
+.assignedProgramLimitNote{margin-bottom:2px;padding:9px 11px;border:1px solid #ddbd75;border-radius:9px;background:#fff7df;color:#6f4d08;font-size:12px;font-weight:700;line-height:1.4}
 .trainingProgramLibrary .assignedProgramChoice{display:grid;grid-template-columns:auto 1fr;align-items:start;gap:10px;padding:11px;border:1px solid #c5d2de;border-radius:11px;background:#fff;cursor:pointer}
 .trainingProgramLibrary .assignedProgramChoice.selected{border-color:#254f70;background:#eaf3fa;box-shadow:inset 0 0 0 1px #254f70}
+.trainingProgramLibrary .assignedProgramChoice.disabled{cursor:not-allowed;opacity:.58;background:#f5f7f9}
 .assignedProgramChoice input{width:17px;height:17px;min-height:0;margin:2px 0 0;padding:0}
 .assignedProgramChoice>span{display:grid;gap:4px;color:#152f46}
 .assignedProgramChoice strong{display:flex;align-items:center;gap:8px;flex-wrap:wrap}

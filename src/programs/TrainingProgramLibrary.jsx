@@ -118,8 +118,14 @@ function AssignedProgramPreview({
   onClose,
   onAdopt,
 }) {
+  const activeAddOnCount = Array.isArray(activePlan?.meta?.programAddOns)
+    ? activePlan.meta.programAddOns.length
+    : 0;
+  const canAddAnotherProgram = activeAddOnCount < 1;
   const [weekIndex, setWeekIndex] = useState(0);
-  const [adoptionMode, setAdoptionMode] = useState("add");
+  const [adoptionMode, setAdoptionMode] = useState(() => (
+    canAddAnotherProgram ? "add" : "replace"
+  ));
   const content = useMemo(
     () => ensurePlanProgram(assignment.version?.content_json || {}),
     [assignment.version?.content_json]
@@ -178,13 +184,22 @@ function AssignedProgramPreview({
 
       <fieldset className="assignedProgramChoices">
         <legend>How should this fit with your current plan?</legend>
+        {!canAddAnotherProgram ? (
+          <div className="assignedProgramLimitNote">
+            You already have one Program running alongside your base plan. Remove it from Build before adding a different one alongside.
+          </div>
+        ) : null}
         {ADOPTION_CHOICES.map((choice) => (
-          <label key={choice.id} className={`assignedProgramChoice${adoptionMode === choice.id ? " selected" : ""}`}>
+          <label
+            key={choice.id}
+            className={`assignedProgramChoice${adoptionMode === choice.id ? " selected" : ""}${choice.id === "add" && !canAddAnotherProgram ? " disabled" : ""}`}
+          >
             <input
               type="radio"
               name={`assignment-adoption-${assignment.id}`}
               value={choice.id}
               checked={adoptionMode === choice.id}
+              disabled={choice.id === "add" && !canAddAnotherProgram}
               onChange={() => setAdoptionMode(choice.id)}
             />
             <span>
@@ -656,7 +671,7 @@ export default function TrainingProgramLibrary({
                       <span>{assignment.completion_mode === "once" ? "Finishes" : assignment.completion_mode === "hold" ? "Holds final week" : "Repeats"}</span>
                     </div>
                     <div className="trainingProgramAssignmentState">
-                      <span className={`trainingProgramStatus ${assignment.status}`}>{assignment.undone_at ? "Accepted · later undone" : ASSIGNMENT_STATUS[assignment.status] || assignment.status}</span>
+                      <span className={`trainingProgramStatus ${assignment.status}`}>{assignment.removed_at ? "Accepted · add-on removed" : assignment.undone_at ? "Accepted · later undone" : ASSIGNMENT_STATUS[assignment.status] || assignment.status}</span>
                       {assignment.status === "pending" ? <button type="button" disabled={busy === assignment.id} onClick={() => revokeAssignment(assignment)}>Revoke</button> : null}
                     </div>
                     {assignment.message ? <p className="trainingProgramAssignmentMessage">“{assignment.message}”</p> : null}

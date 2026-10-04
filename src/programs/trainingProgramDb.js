@@ -175,7 +175,7 @@ export async function listManagedTrainingProgramAssignments(familyId) {
 
   const { data: assignments, error } = await supabase
     .from("training_program_assignments")
-    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,message,adoption_mode,undone_at,created_at,responded_at")
+    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,message,adoption_mode,undone_at,removed_at,created_at,responded_at")
     .eq("assigned_by_family_id", familyId)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -291,6 +291,15 @@ export async function acceptTrainingProgramAssignment(
 export async function undoTrainingProgramAssignment(assignmentId, profileId) {
   if (!supabase) return unavailable();
   const { data, error } = await supabase.rpc("training_program_undo_assignment", {
+    p_assignment_id: assignmentId,
+    p_profile_id: profileId,
+  });
+  return { data, error };
+}
+
+export async function removeTrainingProgramAddOn(assignmentId, profileId) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("training_program_remove_add_on", {
     p_assignment_id: assignmentId,
     p_profile_id: profileId,
   });
