@@ -341,6 +341,10 @@ export function buildSessionLogBlockSnapshot(planBlock = {}, library = {}) {
   return {
     id: cleanText(valueOf(planBlock, "id", "id"), ""),
     typeId: "session",
+    programSource:
+      planBlock?.programSource && typeof planBlock.programSource === "object"
+        ? { ...planBlock.programSource }
+        : null,
     label: cleanText(valueOf(planBlock, "label", "label"), ""),
     note: typeof rawNote === "string" ? rawNote : "",
     sessionTemplateId: templateId,

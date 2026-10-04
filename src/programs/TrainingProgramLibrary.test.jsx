@@ -40,6 +40,39 @@ const program = {
   week_count: 2,
   current_version_no: 4,
 };
+const blankDays = () => ({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] });
+const assignedProgram = {
+  id: "assignment-incoming",
+  program_id: "program-1",
+  version_id: "version-4",
+  start_date: "2026-10-05",
+  completion_mode: "repeat",
+  message: "Complete the skills session first",
+  program,
+  version: {
+    version_no: 4,
+    content_json: {
+      activityTypes: [],
+      program: {
+        name: "Two-week match preparation",
+        startDate: "2026-10-05",
+        completionMode: "repeat",
+        phases: [{
+          id: "phase-1",
+          name: "Build",
+          weeks: [{
+            id: "week-1",
+            name: "Week 1",
+            blocksByWeekday: {
+              ...blankDays(),
+              Mon: [{ id: "skills-1", typeId: "session", label: "Team skills" }],
+            },
+          }],
+        }],
+      },
+    },
+  },
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -65,17 +98,28 @@ beforeEach(() => {
   });
   programDb.assignTrainingProgramToMembers.mockResolvedValue({ data: 1, error: null });
   programDb.revokeTrainingProgramAssignment.mockResolvedValue({ data: true, error: null });
+  programDb.acceptTrainingProgramAssignment.mockResolvedValue({ data: { version: 5 }, error: null });
 });
 
 afterEach(() => cleanup());
 
-function renderLibrary() {
+function renderLibrary(props = {}) {
   return render(
     <TrainingProgramLibrary
       familyId="family-1"
       activeProfileId="profile-1"
-      activePlan={{ program: { name: "Active plan" } }}
+      activePlan={{
+        activityTypes: [],
+        blocksByWeekday: blankDays(),
+        program: {
+          name: "Active plan",
+          startDate: "2026-10-05",
+          completionMode: "repeat",
+          phases: [{ id: "mine", name: "Mine", weeks: [{ id: "mine-week", name: "Week 1", blocksByWeekday: blankDays() }] }],
+        },
+      }}
       authorizeMutation={vi.fn(async () => true)}
+      {...props}
     />
   );
 }
@@ -125,5 +169,53 @@ describe("coach/client Program management", () => {
     expect(screen.getByText("for Rocket")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Revoke" }));
     await waitFor(() => expect(programDb.revokeTrainingProgramAssignment).toHaveBeenCalledWith("assignment-1"));
+  });
+
+  it("previews an assigned week and defaults to adding it alongside the current plan", async () => {
+    programDb.listTrainingProgramAssignments.mockResolvedValue({ data: [assignedProgram], error: null });
+    const onProgramApplied = vi.fn();
+    renderLibrary({ onProgramApplied });
+
+    fireEvent.click(await screen.findByRole("tab", { name: /Shared & assigned/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview & choose" }));
+    expect(screen.getByRole("heading", { name: /Preview “Two-week match preparation”/ })).toBeTruthy();
+    expect(screen.getByText("Team skills")).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /Add alongside my plan/ }).checked).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Apply this choice" }));
+    await waitFor(() => expect(programDb.acceptTrainingProgramAssignment).toHaveBeenCalledWith(
+      "assignment-incoming",
+      "profile-1",
+      { adoptionMode: "add", preparedPlan: null }
+    ));
+    expect(onProgramApplied).toHaveBeenCalledWith(
+      { version: 5 },
+      expect.stringContaining("You can undo this from Build")
+    );
+  });
+
+  it("prepares a replacement that retains personal task blocks", async () => {
+    programDb.listTrainingProgramAssignments.mockResolvedValue({ data: [assignedProgram], error: null });
+    const personalTaskPlan = {
+      activityTypes: [],
+      blocksByWeekday: { ...blankDays(), Mon: [{ id: "physio", typeId: "tasks", tasks: [{ id: "stretch", label: "Stretch" }] }] },
+    };
+    renderLibrary({ activePlan: personalTaskPlan });
+
+    fireEvent.click(await screen.findByRole("tab", { name: /Shared & assigned/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview & choose" }));
+    fireEvent.click(screen.getByRole("radio", { name: /Replace, but keep my tasks/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply this choice" }));
+
+    await waitFor(() => expect(programDb.acceptTrainingProgramAssignment).toHaveBeenCalledWith(
+      "assignment-incoming",
+      "profile-1",
+      expect.objectContaining({
+        adoptionMode: "replace_keep_tasks",
+        preparedPlan: expect.objectContaining({ program: expect.any(Object) }),
+      })
+    ));
+    const options = programDb.acceptTrainingProgramAssignment.mock.calls[0][2];
+    expect(options.preparedPlan.program.phases[0].weeks[0].blocksByWeekday.Mon.map((block) => block.id)).toContain("physio");
   });
 });

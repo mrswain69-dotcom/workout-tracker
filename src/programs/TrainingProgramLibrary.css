@@ -54,6 +54,36 @@
 .trainingProgramStatus.accepted{background:#e7f8ee;color:#17623c}
 .trainingProgramStatus.declined,.trainingProgramStatus.revoked{background:#f2f4f6;color:#59636e}
 .trainingProgramAssignmentMessage{grid-column:1/-1;margin:0;padding-top:9px;border-top:1px solid var(--border,#e1e7eb);color:var(--muted,#64748b);font-size:13px}
+.assignedProgramPreview{margin:16px 0;padding:16px;border:1px solid #466784;border-radius:15px;background:linear-gradient(145deg,#f8fbfe,#edf4fa)}
+.assignedProgramPreviewHeading,.assignedProgramWeekNav,.assignedProgramPreviewFooter{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.assignedProgramPreviewHeading h3{margin:8px 0 0;color:#0f2538}
+.assignedProgramPreviewHeading p,.assignedProgramPreviewFooter p{margin:5px 0 0;color:var(--muted,#64748b)}
+.assignedProgramCoachMessage{display:grid;gap:4px;margin-top:13px;padding:11px 12px;border-left:4px solid #315b7d;border-radius:9px;background:#fff;color:#26435c}
+.assignedProgramCoachMessage strong{font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.assignedProgramWeekNav{align-items:end;margin-top:15px}
+.assignedProgramWeekNav label{min-width:min(320px,100%)}
+.assignedProgramWeekNav>div{display:grid;gap:2px;text-align:right;color:#18344d}
+.assignedProgramWeekNav>div span{color:var(--muted,#64748b);font-size:12px}
+.assignedProgramDays{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:11px}
+.assignedProgramDay{min-width:0;padding:10px;border:1px solid #c9d8e5;border-radius:10px;background:#fff}
+.assignedProgramDay h4{margin:0 0 8px;color:#17334b}
+.assignedProgramBlock{display:grid;gap:1px;margin-top:6px;padding:7px 8px;border-radius:8px;background:#eaf1f7;color:#19334a}
+.assignedProgramBlock strong{overflow-wrap:anywhere;font-size:12px}
+.assignedProgramBlock span{font-size:10px;color:#587087}
+.assignedProgramChoices{display:grid;gap:8px;margin:16px 0 0;padding:0;border:0}
+.assignedProgramChoices legend{margin-bottom:8px;color:#102a40;font-size:14px;font-weight:900}
+.trainingProgramLibrary .assignedProgramChoice{display:grid;grid-template-columns:auto 1fr;align-items:start;gap:10px;padding:11px;border:1px solid #c5d2de;border-radius:11px;background:#fff;cursor:pointer}
+.trainingProgramLibrary .assignedProgramChoice.selected{border-color:#254f70;background:#eaf3fa;box-shadow:inset 0 0 0 1px #254f70}
+.assignedProgramChoice input{width:17px;height:17px;min-height:0;margin:2px 0 0;padding:0}
+.assignedProgramChoice>span{display:grid;gap:4px;color:#152f46}
+.assignedProgramChoice strong{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.assignedProgramChoice em{border-radius:999px;padding:3px 7px;background:#245f50;color:#fff;font-size:9px;font-style:normal;letter-spacing:.04em;text-transform:uppercase}
+.assignedProgramChoice small{color:var(--muted,#64748b);font-weight:500;line-height:1.4}
+.assignedProgramWarning,.assignedProgramInfo{margin-top:10px;padding:10px 12px;border-radius:9px;font-size:12px;font-weight:700}
+.assignedProgramWarning{border:1px solid #edca7b;background:#fff7df;color:#6f4d08}
+.assignedProgramInfo{border:1px solid #a8c7dc;background:#edf7fd;color:#244c68}
+.assignedProgramPreviewFooter{align-items:center;margin-top:14px;padding-top:13px;border-top:1px solid #c5d5e1}
+.assignedProgramPreviewFooter>div{display:flex;gap:8px;flex-wrap:wrap}
 .trainingProgramComingSoon{margin-top:18px;padding:22px;border:1px dashed #aebdca;border-radius:14px;background:linear-gradient(135deg,#f8fafc,#eef7ff)}
 .trainingProgramComingSoon h3{margin:12px 0 6px}
 .trainingProgramComingSoon p{margin:5px 0;max-width:760px}
@@ -68,4 +98,11 @@
   .trainingProgramAssignmentHistoryHeading label{min-width:0;width:100%}
   .trainingProgramAssignmentRow{grid-template-columns:1fr}
   .trainingProgramAssignmentState{justify-content:space-between}
+  .assignedProgramPreview{padding:12px}
+  .assignedProgramPreviewHeading,.assignedProgramWeekNav,.assignedProgramPreviewFooter{align-items:stretch;flex-direction:column}
+  .assignedProgramPreviewHeading>button{width:100%}
+  .assignedProgramWeekNav>div{text-align:left}
+  .assignedProgramDays{grid-template-columns:1fr 1fr}
+  .assignedProgramPreviewFooter>div{display:grid;grid-template-columns:1fr 1fr;width:100%}
 }
+@media(max-width:430px){.assignedProgramDays{grid-template-columns:1fr}}

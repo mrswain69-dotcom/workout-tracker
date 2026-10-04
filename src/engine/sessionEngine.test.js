@@ -187,6 +187,7 @@ describe("Session Plan-to-log snapshot reconciliation", () => {
         sessionTemplateId: "session-a",
         sessionTemplateNameSnapshot: "Session A — Close Control",
         plannedDurationSecOverride: 750,
+        programSource: { assignmentId: "assignment-1", title: "Team Program" },
       },
       library
     );
@@ -195,6 +196,7 @@ describe("Session Plan-to-log snapshot reconciliation", () => {
     expect(block.sessionTemplateId).toBe("session-a");
     expect(block.sessionTemplateNameSnapshot).toBe("Session A — Close Control");
     expect(block.plannedDurationSecOverride).toBe(750);
+    expect(block.programSource).toEqual({ assignmentId: "assignment-1", title: "Team Program" });
     expect(block.session.templateId).toBe("session-a");
     expect(block.session.templateVersion).toBe(1);
     expect(block.session.plannedDurationSec).toBe(750);

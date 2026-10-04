@@ -223,7 +223,7 @@ export function getPlanProgramWeekIndex(plan, targetYmd) {
 
 export const getPlanCycleWeekIndex = getPlanProgramWeekIndex;
 
-export function resolvePlanForDate(plan, targetYmd) {
+function resolveBasePlanForDate(plan, targetYmd) {
   if (!plan) return plan;
   const normalised = ensurePlanProgram(plan, { todayYmd: targetYmd });
   const resolution = getPlanProgramWeekIndex(normalised, targetYmd);
@@ -252,6 +252,87 @@ export function resolvePlanForDate(plan, targetYmd) {
       weekName: position?.week?.name || "",
       status: resolution.status,
       cycleNumber: resolution.cycleNumber,
+    },
+  };
+}
+
+function cleanProgramAddOns(plan) {
+  return (Array.isArray(plan?.meta?.programAddOns) ? plan.meta.programAddOns : [])
+    .filter((addOn) => addOn && typeof addOn === "object" && addOn.content);
+}
+
+function programSourceForAddOn(addOn) {
+  return {
+    kind: addOn.sourceKind || "assignment",
+    assignmentId: cleanText(addOn.id),
+    programId: cleanText(addOn.programId),
+    versionId: cleanText(addOn.versionId),
+    version: Number(addOn.version) || 0,
+    title: cleanText(addOn.title) || "Group Program",
+  };
+}
+
+function sourceBlockId(addOn, block, weekday, index) {
+  const assignmentId = cleanText(addOn?.id) || "program";
+  const originalId = cleanText(block?.id) || `${weekday}_${index}`;
+  return `assigned_${assignmentId}_${originalId}`;
+}
+
+export function resolvePlanForDate(plan, targetYmd) {
+  const resolved = resolveBasePlanForDate(plan, targetYmd);
+  if (!resolved) return resolved;
+
+  const addOns = cleanProgramAddOns(plan);
+  if (!addOns.length) return resolved;
+
+  const combinedBlocks = normaliseBlocksByWeekday(resolved.blocksByWeekday);
+  const combinedTypes = Array.isArray(resolved.activityTypes)
+    ? [...resolved.activityTypes]
+    : [];
+  const typeIds = new Set(combinedTypes.map((type) => type?.id).filter(Boolean));
+  const addOnResolutions = [];
+
+  for (const addOn of addOns) {
+    const addOnPlan = resolveBasePlanForDate(addOn.content, targetYmd);
+    if (!addOnPlan) continue;
+    const source = programSourceForAddOn(addOn);
+    const active = addOnPlan.programResolution?.weekIndex >= 0;
+    addOnResolutions.push({
+      ...source,
+      status: addOnPlan.programResolution?.status || "finished",
+      weekNumber: addOnPlan.programResolution?.weekNumber || 0,
+    });
+    if (!active) continue;
+
+    for (const weekday of PLAN_WEEKDAYS) {
+      const blocks = Array.isArray(addOnPlan.blocksByWeekday?.[weekday])
+        ? addOnPlan.blocksByWeekday[weekday]
+        : [];
+      combinedBlocks[weekday] = [
+        ...(combinedBlocks[weekday] || []),
+        ...blocks.map((block, index) => ({
+          ...block,
+          id: sourceBlockId(addOn, block, weekday, index),
+          sourceBlockId: cleanText(block?.id),
+          programSource: source,
+        })),
+      ];
+    }
+
+    for (const type of addOnPlan.activityTypes || []) {
+      if (!type?.id || typeIds.has(type.id)) continue;
+      typeIds.add(type.id);
+      combinedTypes.push(type);
+    }
+  }
+
+  return {
+    ...resolved,
+    activityTypes: combinedTypes,
+    blocksByWeekday: combinedBlocks,
+    programResolution: {
+      ...resolved.programResolution,
+      addOns: addOnResolutions,
     },
   };
 }
@@ -493,5 +574,72 @@ export function prepareImportedPlanContent(content, {
       ...(source ? { activeProgramSource: source } : {}),
       planSetupPrompt: false,
     },
+  };
+}
+
+function metadataForReplacement(meta) {
+  if (!meta || typeof meta !== "object") return {};
+  const {
+    programAddOns: _programAddOns,
+    activeProgramSource: _activeProgramSource,
+    programAdoptionUndo: _programAdoptionUndo,
+    ...retained
+  } = meta;
+  return retained;
+}
+
+function cloneTaskBlocks(blocks) {
+  return (Array.isArray(blocks) ? blocks : [])
+    .filter((block) => block?.typeId === "tasks")
+    .map((block) => ({
+      ...block,
+      tasks: Array.isArray(block.tasks)
+        ? block.tasks.map((task) => ({ ...task }))
+        : [],
+    }));
+}
+
+export function prepareAssignedProgramAdoption(currentPlan, assignment, adoptionMode = "replace") {
+  const content = assignment?.version?.content_json;
+  if (!content) return null;
+  const source = {
+    kind: "assignment",
+    assignmentId: assignment.id,
+    programId: assignment.program_id,
+    versionId: assignment.version_id,
+    version: assignment.version?.version_no || 0,
+    title: assignment.program?.title || "Assigned Program",
+    adoptionMode,
+  };
+  const imported = prepareImportedPlanContent(content, {
+    startDate: assignment.start_date,
+    completionMode: assignment.completion_mode,
+    existingMeta: metadataForReplacement(currentPlan?.meta),
+    source,
+  });
+  if (adoptionMode !== "replace_keep_tasks") return imported;
+
+  const currentWeeks = flattenProgramWeeks(currentPlan || {});
+  if (!currentWeeks.length) return imported;
+  let globalWeekIndex = 0;
+  const phases = imported.program.phases.map((phase) => ({
+    ...phase,
+    weeks: phase.weeks.map((week) => {
+      const currentWeek = currentWeeks[globalWeekIndex % currentWeeks.length]?.week;
+      globalWeekIndex += 1;
+      const blocksByWeekday = Object.fromEntries(PLAN_WEEKDAYS.map((weekday) => [
+        weekday,
+        [
+          ...(week.blocksByWeekday?.[weekday] || []),
+          ...cloneTaskBlocks(currentWeek?.blocksByWeekday?.[weekday]),
+        ],
+      ]));
+      return { ...week, blocksByWeekday };
+    }),
+  }));
+  return {
+    ...imported,
+    program: { ...imported.program, phases },
+    blocksByWeekday: phases[0].weeks[0].blocksByWeekday,
   };
 }

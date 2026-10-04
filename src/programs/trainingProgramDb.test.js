@@ -13,9 +13,11 @@ vi.mock("../supabaseClient", () => ({
 }));
 
 import {
+  acceptTrainingProgramAssignment,
   assignTrainingProgramToMembers,
   listManagedTrainingProgramAssignments,
   revokeTrainingProgramAssignment,
+  undoTrainingProgramAssignment,
 } from "./trainingProgramDb.js";
 
 function queryChain(data = []) {
@@ -92,6 +94,32 @@ describe("coach Program assignment DB adapter", () => {
     await revokeTrainingProgramAssignment("assignment-1");
     expect(mock.rpc).toHaveBeenCalledWith("training_program_revoke_assignment", {
       p_assignment_id: "assignment-1",
+    });
+  });
+
+  it("sends the selected adoption mode and prepared keep-tasks plan", async () => {
+    mock.rpc.mockResolvedValue({ data: { version: 5 }, error: null });
+    const preparedPlan = { version: 5, program: { phases: [] } };
+
+    await acceptTrainingProgramAssignment("assignment-1", "profile-1", {
+      adoptionMode: "replace_keep_tasks",
+      preparedPlan,
+    });
+
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_accept_assignment", {
+      p_assignment_id: "assignment-1",
+      p_profile_id: "profile-1",
+      p_adoption_mode: "replace_keep_tasks",
+      p_prepared_plan: preparedPlan,
+    });
+  });
+
+  it("uses the protected persistent undo RPC", async () => {
+    mock.rpc.mockResolvedValue({ data: { restored: true }, error: null });
+    await undoTrainingProgramAssignment("assignment-1", "profile-1");
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_undo_assignment", {
+      p_assignment_id: "assignment-1",
+      p_profile_id: "profile-1",
     });
   });
 });
