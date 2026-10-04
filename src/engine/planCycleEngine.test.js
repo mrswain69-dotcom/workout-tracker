@@ -9,6 +9,7 @@ import {
   getPlanProgramWeekIndex,
   normaliseProgramStartDate,
   planHasAnyCycleBlocks,
+  prepareAssignedProgramAdoption,
   prepareImportedPlanContent,
   removeProgramPhase,
   removeProgramWeek,
@@ -142,5 +143,96 @@ describe("planCycleEngine Program model", () => {
     expect(flattenProgramWeeks(plan)[0].week.blocksByWeekday.Fri[0].id).toBe("peak");
     plan = removeProgramPhase(plan, 0);
     expect(plan.program.phases).toHaveLength(1);
+  });
+
+  it("layers an assigned Program beside the personal Program with stable source identity", () => {
+    const personal = ensurePlanProgram({
+      blocksByWeekday: {
+        ...blankDays(),
+        Mon: [{ id: "personal-strength", typeId: "strength", label: "My strength" }],
+      },
+    }, { startDate: "2026-10-05" });
+    const assigned = ensurePlanProgram({
+      blocksByWeekday: {
+        ...blankDays(),
+        Mon: [{ id: "coach-session", typeId: "session", label: "Team skills" }],
+      },
+    }, { startDate: "2026-10-05" });
+    const layered = {
+      ...personal,
+      meta: {
+        programAddOns: [{
+          id: "assignment-1",
+          programId: "program-1",
+          versionId: "version-1",
+          version: 3,
+          title: "Team preparation",
+          content: assigned,
+        }],
+      },
+    };
+
+    const resolved = resolvePlanForDate(layered, "2026-10-05");
+    expect(resolved.blocksByWeekday.Mon).toHaveLength(2);
+    expect(resolved.blocksByWeekday.Mon[0].id).toBe("personal-strength");
+    expect(resolved.blocksByWeekday.Mon[1]).toMatchObject({
+      id: "assigned_assignment-1_coach-session",
+      sourceBlockId: "coach-session",
+      programSource: {
+        assignmentId: "assignment-1",
+        title: "Team preparation",
+      },
+    });
+  });
+
+  it("stops a run-once assigned layer without stopping the personal Program", () => {
+    const personal = ensurePlanProgram(legacy(), { startDate: "2026-10-05" });
+    const assigned = updatePlanProgramSettings(
+      ensurePlanProgram({ blocksByWeekday: { ...blankDays(), Tue: [{ id: "sprint", typeId: "cardio" }] } }, { startDate: "2026-10-05" }),
+      { completionMode: "once" }
+    );
+    const resolved = resolvePlanForDate({
+      ...personal,
+      meta: { programAddOns: [{ id: "assignment-2", title: "Sprint block", content: assigned }] },
+    }, "2026-10-12");
+
+    expect(resolved.blocksByWeekday.Mon[0].id).toBe("monday");
+    expect(resolved.blocksByWeekday.Tue).toEqual([]);
+    expect(resolved.programResolution.addOns[0]).toMatchObject({ status: "finished" });
+  });
+
+  it("can replace training while retaining the recipient's task blocks", () => {
+    const current = ensurePlanProgram({
+      meta: { avatarId: "mine", programAddOns: [{ id: "older", content: legacy() }] },
+      blocksByWeekday: {
+        ...blankDays(),
+        Mon: [
+          { id: "mine-strength", typeId: "strength" },
+          { id: "mine-tasks", typeId: "tasks", label: "My physio", tasks: [{ id: "task-1", label: "Stretch" }] },
+        ],
+      },
+    }, { startDate: "2026-10-05" });
+    const assignment = {
+      id: "assignment-3",
+      program_id: "program-3",
+      version_id: "version-3",
+      start_date: "2026-10-05",
+      completion_mode: "repeat",
+      program: { title: "Club skills" },
+      version: {
+        version_no: 2,
+        content_json: ensurePlanProgram({
+          blocksByWeekday: { ...blankDays(), Mon: [{ id: "club-session", typeId: "session" }] },
+        }),
+      },
+    };
+
+    const adopted = prepareAssignedProgramAdoption(current, assignment, "replace_keep_tasks");
+    expect(adopted.program.phases[0].weeks[0].blocksByWeekday.Mon.map((block) => block.id)).toEqual([
+      "club-session",
+      "mine-tasks",
+    ]);
+    expect(adopted.meta.avatarId).toBe("mine");
+    expect(adopted.meta.programAddOns).toBeUndefined();
   });
 });

@@ -2,8 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { listPlanTemplates } from "../db.js";
 import { listGroupDirectory, listProfileGroups } from "../groups/groupDb.js";
 import {
+  ensurePlanProgram,
   extractShareablePlanContent,
+  flattenProgramWeeks,
   normaliseProgramStartDate,
+  prepareAssignedProgramAdoption,
 } from "../engine/planCycleEngine.js";
 import { buildStarterPrograms } from "./starterPrograms.js";
 import {
@@ -80,6 +83,139 @@ function ProgramCard({ program, badge = "Private", children }) {
   );
 }
 
+const BLOCK_TYPE_LABELS = {
+  strength: "Strength / HIIT / Box",
+  cardio: "Cardio",
+  duration: "Duration",
+  recovery: "Recovery",
+  session: "Session",
+  tasks: "Tasks",
+};
+
+const ADOPTION_CHOICES = [
+  {
+    id: "add",
+    title: "Add alongside my plan",
+    badge: "Recommended",
+    description: "Keep your current Program and add these assigned sessions on their own schedule.",
+  },
+  {
+    id: "replace",
+    title: "Use as my whole plan",
+    description: "Replace your current Program, including its sessions, strength, recovery and tasks.",
+  },
+  {
+    id: "replace_keep_tasks",
+    title: "Replace, but keep my tasks",
+    description: "Use the assigned Program for training while retaining your current tick-box task blocks.",
+  },
+];
+
+function AssignedProgramPreview({
+  assignment,
+  activePlan,
+  busy,
+  onClose,
+  onAdopt,
+}) {
+  const [weekIndex, setWeekIndex] = useState(0);
+  const [adoptionMode, setAdoptionMode] = useState("add");
+  const content = useMemo(
+    () => ensurePlanProgram(assignment.version?.content_json || {}),
+    [assignment.version?.content_json]
+  );
+  const weeks = useMemo(() => flattenProgramWeeks(content), [content]);
+  const selectedWeek = weeks[Math.min(weekIndex, Math.max(weeks.length - 1, 0))];
+  const hasExistingPlan = !!activePlan?.program?.phases?.length;
+
+  return (
+    <section className="assignedProgramPreview" aria-labelledby="assigned-program-preview-title">
+      <div className="assignedProgramPreviewHeading">
+        <div>
+          <span className="pill">Assigned frozen version {assignment.version?.version_no || "—"}</span>
+          <h3 id="assigned-program-preview-title">Preview “{assignment.program?.title || "Assigned Program"}”</h3>
+          <p>
+            Starts {displayDate(assignment.start_date)} · {assignment.completion_mode === "once" ? "finishes after its final week" : assignment.completion_mode === "hold" ? "holds its final week" : "repeats after its final week"}
+          </p>
+        </div>
+        <button type="button" onClick={onClose}>Close preview</button>
+      </div>
+
+      {assignment.message ? (
+        <div className="assignedProgramCoachMessage"><strong>Coach note</strong><span>“{assignment.message}”</span></div>
+      ) : null}
+
+      <div className="assignedProgramWeekNav">
+        <label>
+          Preview week
+          <select value={weekIndex} onChange={(event) => setWeekIndex(Number(event.target.value))}>
+            {weeks.map((entry) => (
+              <option key={entry.week.id} value={entry.globalWeekIndex}>
+                {entry.phase.name} · {entry.week.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div>
+          <strong>{selectedWeek?.week?.name || "Week 1"}</strong>
+          {selectedWeek?.week?.focus ? <span>{selectedWeek.week.focus}</span> : null}
+        </div>
+      </div>
+
+      <div className="assignedProgramDays">
+        {Object.entries(selectedWeek?.week?.blocksByWeekday || {}).map(([weekday, blocks]) => (
+          <article key={weekday} className="assignedProgramDay">
+            <h4>{weekday}</h4>
+            {blocks.length ? blocks.map((block, index) => (
+              <div key={block.id || `${weekday}-${index}`} className="assignedProgramBlock">
+                <strong>{block.label || BLOCK_TYPE_LABELS[block.typeId] || "Activity"}</strong>
+                <span>{BLOCK_TYPE_LABELS[block.typeId] || block.typeId || "Activity"}</span>
+              </div>
+            )) : <span className="muted">Rest / no planned blocks</span>}
+          </article>
+        ))}
+      </div>
+
+      <fieldset className="assignedProgramChoices">
+        <legend>How should this fit with your current plan?</legend>
+        {ADOPTION_CHOICES.map((choice) => (
+          <label key={choice.id} className={`assignedProgramChoice${adoptionMode === choice.id ? " selected" : ""}`}>
+            <input
+              type="radio"
+              name={`assignment-adoption-${assignment.id}`}
+              value={choice.id}
+              checked={adoptionMode === choice.id}
+              onChange={() => setAdoptionMode(choice.id)}
+            />
+            <span>
+              <strong>{choice.title}{choice.badge ? <em>{choice.badge}</em> : null}</strong>
+              <small>{choice.description}</small>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+
+      {adoptionMode === "replace" ? (
+        <div className="assignedProgramWarning">This replaces your whole current Program. You can undo afterwards to restore it exactly.</div>
+      ) : adoptionMode === "replace_keep_tasks" ? (
+        <div className="assignedProgramWarning">Your current task blocks stay; all other current Program blocks are replaced. You can undo afterwards.</div>
+      ) : (
+        <div className="assignedProgramInfo">Assigned blocks will be marked as group Program work and remain separate from your personal Program cycle.</div>
+      )}
+
+      <div className="assignedProgramPreviewFooter">
+        <p>{hasExistingPlan ? "Your current plan is backed up before this change." : "This becomes your first active Program."}</p>
+        <div>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="button" className="primary" disabled={busy} onClick={() => onAdopt(adoptionMode)}>
+            {busy ? "Applying…" : "Apply this choice"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function TrainingProgramLibrary({
   familyId,
   activeProfileId,
@@ -106,6 +242,7 @@ export default function TrainingProgramLibrary({
   const [completionMode, setCompletionMode] = useState("repeat");
   const [busy, setBusy] = useState("");
   const [notice, setNotice] = useState("");
+  const [previewAssignmentId, setPreviewAssignmentId] = useState("");
   const [sharedPreview, setSharedPreview] = useState(null);
   const [shareToken] = useState(readTrainingProgramShareToken);
   const starterPrograms = useMemo(() => buildStarterPrograms(startDate), [startDate]);
@@ -126,6 +263,10 @@ export default function TrainingProgramLibrary({
       ? managedAssignments
       : managedAssignments.filter((assignment) => assignment.status === assignmentStatus),
     [assignmentStatus, managedAssignments]
+  );
+  const previewAssignment = useMemo(
+    () => assignments.find((assignment) => assignment.id === previewAssignmentId) || null,
+    [assignments, previewAssignmentId]
   );
 
   useEffect(() => {
@@ -363,14 +504,23 @@ export default function TrainingProgramLibrary({
     await refresh();
   }
 
-  async function acceptAssignment(assignment) {
+  async function acceptAssignment(assignment, adoptionMode) {
     if (!(await allowed("accept an assigned programme"))) return;
     setBusy(assignment.id);
-    const { data, error } = await acceptTrainingProgramAssignment(assignment.id, activeProfileId);
+    const preparedPlan = adoptionMode === "replace_keep_tasks"
+      ? prepareAssignedProgramAdoption(activePlan, assignment, adoptionMode)
+      : null;
+    const { data, error } = await acceptTrainingProgramAssignment(
+      assignment.id,
+      activeProfileId,
+      { adoptionMode, preparedPlan }
+    );
     setBusy("");
     if (error) return setNotice(message(error));
-    onProgramApplied?.(data, `Accepted “${assignment.program?.title || "programme"}”.`);
-    setNotice(`Accepted “${assignment.program?.title || "programme"}”.`);
+    const title = assignment.program?.title || "programme";
+    onProgramApplied?.(data, `Accepted “${title}”. You can undo this from Build.`);
+    setNotice(`Accepted “${title}”. You can undo this from Build.`);
+    setPreviewAssignmentId("");
     await refresh();
   }
 
@@ -506,7 +656,7 @@ export default function TrainingProgramLibrary({
                       <span>{assignment.completion_mode === "once" ? "Finishes" : assignment.completion_mode === "hold" ? "Holds final week" : "Repeats"}</span>
                     </div>
                     <div className="trainingProgramAssignmentState">
-                      <span className={`trainingProgramStatus ${assignment.status}`}>{ASSIGNMENT_STATUS[assignment.status] || assignment.status}</span>
+                      <span className={`trainingProgramStatus ${assignment.status}`}>{assignment.undone_at ? "Accepted · later undone" : ASSIGNMENT_STATUS[assignment.status] || assignment.status}</span>
                       {assignment.status === "pending" ? <button type="button" disabled={busy === assignment.id} onClick={() => revokeAssignment(assignment)}>Revoke</button> : null}
                     </div>
                     {assignment.message ? <p className="trainingProgramAssignmentMessage">“{assignment.message}”</p> : null}
@@ -530,11 +680,20 @@ export default function TrainingProgramLibrary({
               <button type="button" className="primary" disabled={busy === "share"} onClick={acceptShare}>Use Program</button>
             </div>
           ) : null}
+          {previewAssignment ? (
+            <AssignedProgramPreview
+              assignment={previewAssignment}
+              activePlan={activePlan}
+              busy={busy === previewAssignment.id}
+              onClose={() => setPreviewAssignmentId("")}
+              onAdopt={(adoptionMode) => acceptAssignment(previewAssignment, adoptionMode)}
+            />
+          ) : null}
           {assignments.length ? (
             <div className="trainingProgramGrid">
               {assignments.map((assignment) => (
                 <ProgramCard key={assignment.id} badge="Assigned" program={{ ...assignment.program, current_version_no: assignment.version?.version_no }}>
-                  <button type="button" className="primary" disabled={busy === assignment.id} onClick={() => acceptAssignment(assignment)}>Accept</button>
+                  <button type="button" className="primary" disabled={busy === assignment.id} onClick={() => setPreviewAssignmentId(assignment.id)}>Preview &amp; choose</button>
                   <button type="button" disabled={busy === assignment.id} onClick={async () => { await declineTrainingProgramAssignment(assignment.id); await refresh(); }}>Decline</button>
                 </ProgramCard>
               ))}

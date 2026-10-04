@@ -175,7 +175,7 @@ export async function listManagedTrainingProgramAssignments(familyId) {
 
   const { data: assignments, error } = await supabase
     .from("training_program_assignments")
-    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,message,created_at,responded_at")
+    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,message,adoption_mode,undone_at,created_at,responded_at")
     .eq("assigned_by_family_id", familyId)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -273,9 +273,24 @@ export async function listTrainingProgramAssignments(profileId) {
   };
 }
 
-export async function acceptTrainingProgramAssignment(assignmentId, profileId) {
+export async function acceptTrainingProgramAssignment(
+  assignmentId,
+  profileId,
+  { adoptionMode = "replace", preparedPlan = null } = {}
+) {
   if (!supabase) return unavailable();
   const { data, error } = await supabase.rpc("training_program_accept_assignment", {
+    p_assignment_id: assignmentId,
+    p_profile_id: profileId,
+    p_adoption_mode: adoptionMode,
+    p_prepared_plan: preparedPlan,
+  });
+  return { data, error };
+}
+
+export async function undoTrainingProgramAssignment(assignmentId, profileId) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("training_program_undo_assignment", {
     p_assignment_id: assignmentId,
     p_profile_id: profileId,
   });

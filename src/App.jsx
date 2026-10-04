@@ -130,6 +130,7 @@ import FirstRunTutorial, {
 import PublicSite from "./components/public/PublicSite.jsx";
 import AccountPrivacyPanel from "./components/settings/AccountPrivacyPanel.jsx";
 import { sendWelcomeTutorialEmail } from "./accountLifecycleDb.js";
+import { undoTrainingProgramAssignment } from "./programs/trainingProgramDb.js";
 import {
   addProgramAssessment,
   addProgramPhase,
@@ -1322,6 +1323,7 @@ function SummaryStat({ label, value }) {
 
 function FocusedLogBlock({
   label,
+  programSource = null,
   extraLabel = "",
   onRemoveExtra,
   summary = "",
@@ -1341,7 +1343,7 @@ function FocusedLogBlock({
     : "";
 
   return (
-    <div className={`focusedLogBlock ${open ? "isOpen" : "isCollapsed"} ${stateClass}`}>
+    <div className={`focusedLogBlock ${open ? "isOpen" : "isCollapsed"} ${stateClass}${programSource ? " isProgramAdded" : ""}`}>
       <button
         type="button"
         className="focusedLogBlockSummary"
@@ -1349,6 +1351,9 @@ function FocusedLogBlock({
         aria-expanded={open}
       >
         <div className="focusedLogBlockSummary__copy">
+          {programSource ? (
+            <div className="focusedLogBlockSource">Group Program · {programSource.title || "Assigned Program"}</div>
+          ) : null}
           <div className="focusedLogBlockTitle">{label || "Activity"}</div>
           {summary ? <div className="focusedLogBlockMeta">{summary}</div> : null}
         </div>
@@ -3480,6 +3485,10 @@ useEffect(() => { planRef.current = plan; }, [plan]);
     [plan]
   );
   const planProgramWeeks = useMemo(() => flattenProgramWeeks(planProgram), [planProgram]);
+  const programAdoptionUndo = plan?.meta?.programAdoptionUndo || null;
+  const addedGroupPrograms = Array.isArray(plan?.meta?.programAddOns)
+    ? plan.meta.programAddOns
+    : [];
   const selectedProgramWeek = planProgramWeeks[
     Math.max(0, Math.min(planProgramWeeks.length - 1, planCycleWeekIndex))
   ];
@@ -6046,15 +6055,35 @@ const selectedDayHasHeavyTrainingBlocks =
   }
 
   function acceptRemotelyAppliedTrainingPlan(nextPlan, label = "Training plan applied") {
-    setUndoPlan(plan || null);
-    setUndoLabel(label);
+    if (nextPlan?.meta?.programAdoptionUndo?.assignmentId) {
+      setUndoPlan(null);
+      setUndoLabel("");
+    } else {
+      setUndoPlan(plan || null);
+      setUndoLabel(label);
+    }
     setAndCachePlan(activeProfileId, nextPlan);
     setPlanCycleWeekIndex(0);
   }
 
   async function undoLastPlan() {
-    if (!undoPlan) return;
     if (!(await ensureUnlocked("undo changes"))) return;
+    if (programAdoptionUndo?.assignmentId) {
+      const { data, error } = await undoTrainingProgramAssignment(
+        programAdoptionUndo.assignmentId,
+        activeProfileId
+      );
+      if (error) {
+        window.alert(error.message || "This Program change could not be undone.");
+        return;
+      }
+      setUndoPlan(null);
+      setUndoLabel("");
+      setAndCachePlan(activeProfileId, data);
+      setPlanCycleWeekIndex(0);
+      return;
+    }
+    if (!undoPlan) return;
     const prev = undoPlan;
     setUndoPlan(null);
     setUndoLabel("");
@@ -7166,6 +7195,7 @@ function blankLogForDay() {
         : ({
       id: b.id,
       typeId: b.typeId,
+      programSource: b.programSource || null,
       label: b.label || "",
       note: b.note || "",
 
@@ -7234,6 +7264,7 @@ function ensureBlocksSnapshot(baseLog) {
 
       mergedBlocks.push({
         ...sessionBlock,
+        programSource: pb.programSource || existing?.programSource || null,
         suspendedByRecoveryMode: !!pb.suspendedByRecoveryMode,
         suspendedByRecoveryReason: pb.suspendedByRecoveryReason || "",
         cardio: sessionCardio,
@@ -7262,6 +7293,7 @@ function ensureBlocksSnapshot(baseLog) {
       ...(existing || {}),
       id: pb.id,
       typeId: pb.typeId,
+      programSource: pb.programSource || existing?.programSource || null,
       label: pb.label || (existing && existing.label) || "",
       note:
         typeof pb.note === "string"
@@ -9573,6 +9605,7 @@ const cardioProgress = useMemo(() => {
                       return (
   <FocusedLogBlock
     label={blockLabel}
+    programSource={block.programSource || blockLog.programSource}
     summary={blockSummary}
     open={blockOpen}
     complete={focusState.complete}
@@ -9953,6 +9986,7 @@ const cardioProgress = useMemo(() => {
       return (
         <FocusedLogBlock
           label={label}
+          programSource={block.programSource || blockLog.programSource}
           summary={blockSummary}
           open={blockOpen}
           complete={focusState.complete}
@@ -10081,6 +10115,7 @@ const cardioProgress = useMemo(() => {
       return (
         <FocusedLogBlock
           label={label}
+          programSource={block.programSource || blockLog.programSource}
           summary={blockSummary}
           open={blockOpen}
           complete={focusState.complete}
@@ -10248,6 +10283,7 @@ const cardioProgress = useMemo(() => {
       return (
         <FocusedLogBlock
           label={label}
+          programSource={block.programSource || blockLog.programSource}
           summary={blockSummary}
           open={blockOpen}
           complete={focusState.complete}
@@ -10397,6 +10433,7 @@ const cardioProgress = useMemo(() => {
       return (
           <FocusedLogBlock
             label={label}
+            programSource={block.programSource || blockLog.programSource}
             summary={blockSummary}
             open={blockOpen}
             complete={focusState.complete}
@@ -10482,6 +10519,7 @@ const cardioProgress = useMemo(() => {
       return (
         <FocusedLogBlock
           label={label}
+          programSource={block.programSource || blockLog.programSource}
           summary={blockSummary}
           open={blockOpen}
           complete={focusState.complete}
@@ -11183,14 +11221,32 @@ const cardioProgress = useMemo(() => {
           <span className="pill">
             {planProgramWeeks.length} week{planProgramWeeks.length === 1 ? "" : "s"} · {planProgram.program.phases.length} phase{planProgram.program.phases.length === 1 ? "" : "s"}
           </span>
-          {undoPlan ? (
-            <SecondaryButton className="planProgrammeUndo" onClick={undoLastPlan} title={undoLabel || "Undo recent Program change"}>
-              Undo recent change
-            </SecondaryButton>
+          {undoPlan || programAdoptionUndo?.assignmentId ? (
+            <div className="planProgrammeUndoWrap">
+              <SecondaryButton className="planProgrammeUndo" onClick={undoLastPlan} title={programAdoptionUndo?.programTitle ? `Restore the plan from before “${programAdoptionUndo.programTitle}”` : undoLabel || "Undo recent Program change"}>
+                {programAdoptionUndo?.programTitle ? `Undo “${programAdoptionUndo.programTitle}”` : "Undo recent change"}
+              </SecondaryButton>
+              {programAdoptionUndo?.assignmentId ? <small>Restores your exact previous plan</small> : null}
+            </div>
           ) : null}
           <SecondaryButton onClick={startBlankTrainingProgram}>New blank Program</SecondaryButton>
         </div>
       </div>
+
+      {addedGroupPrograms.length ? (
+        <div className="planAddedPrograms" aria-label="Programs added alongside your personal plan">
+          <strong>Added group Program{addedGroupPrograms.length === 1 ? "" : "s"}</strong>
+          <div>
+            {addedGroupPrograms.map((program) => (
+              <span key={program.id || program.versionId}>
+                {program.title || "Assigned Program"}
+                {program.content?.program?.startDate ? ` · from ${program.content.program.startDate}` : ""}
+              </span>
+            ))}
+          </div>
+          <small>These run on their own schedule beside your personal Program and appear in blue-black on Log days.</small>
+        </div>
+      ) : null}
 
       <div className="planCycleSettings mt12">
         <div className="field">
@@ -15748,6 +15804,23 @@ function StyleTag() {
         box-sizing:border-box;
         text-align:center;
       }
+      .planProgrammeUndoWrap{display:grid;gap:3px;text-align:center}
+      .planProgrammeUndoWrap small{color:#64748b;font-size:9px;font-weight:750}
+      .planAddedPrograms{
+        display:grid;
+        gap:6px;
+        margin-top:12px;
+        padding:10px 12px;
+        border:1px solid #456783;
+        border-left:5px solid #142d42;
+        border-radius:11px;
+        background:linear-gradient(90deg,#eaf2f8,#f7fafc);
+        color:#17344c;
+      }
+      .planAddedPrograms>strong{font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+      .planAddedPrograms>div{display:flex;gap:7px;flex-wrap:wrap}
+      .planAddedPrograms span{padding:5px 8px;border-radius:999px;background:#17344c;color:#fff;font-size:11px;font-weight:850}
+      .planAddedPrograms small{color:#566f84;font-size:10px;font-weight:700}
       .field{min-width:180px}
       /* Log layout – match width with header + top slots */
       .gridLog{
@@ -15966,6 +16039,13 @@ function StyleTag() {
   transition:border-color .18s ease,background .18s ease,opacity .18s ease;
 }
 .focusedLogBlock.isOpen{border-color:rgba(0,174,196,.42)}
+.focusedLogBlock.isProgramAdded{
+  border-color:#335b7c;
+  box-shadow:inset 4px 0 0 #152d42;
+  background:linear-gradient(90deg,#f1f6fa 0,#fff 34%);
+}
+.focusedLogBlock.isProgramAdded.isOpen{border-color:#254d6e}
+.focusedLogBlock.isProgramAdded.isComplete{background:linear-gradient(90deg,#e7f5f3 0,#effff6 34%)}
 .focusedLogBlock.isComplete{
   border-color:rgba(0,172,91,.34);
   background:#effff6;
@@ -15995,6 +16075,15 @@ function StyleTag() {
   cursor:pointer;
 }
 .focusedLogBlockSummary__copy{min-width:0;flex:1}
+.focusedLogBlockSource{
+  margin-bottom:3px;
+  color:#315a7b;
+  font-size:9px;
+  line-height:1.25;
+  font-weight:950;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+}
 .focusedLogBlockTitle{
   overflow-wrap:anywhere;
   white-space:normal;
@@ -16336,6 +16425,10 @@ function StyleTag() {
     white-space:normal;
   }
   .planProgrammeActions .planProgrammeUndo{
+    order:2;
+    width:100%;
+  }
+  .planProgrammeUndoWrap{
     order:2;
     flex:1 0 100%;
   }
