@@ -84,7 +84,7 @@ export function buildActivityCalendarDay({
     // Recovery is a recorded day type even if streak/XP eligibility does not
     // award a completed day. Do not turn that into an empty grey day.
     const respected = completed && blocks.some((block) => block.typeId === "recovery" && block.recoveryDone && !block.cancelled);
-    return { dateYmd, kind: "rest", label: respected ? "Rest respected" : "Recovery day", icon: respected ? "✓" : "○", completed: !!respected, isToday: dateYmd === todayYmd };
+    return { dateYmd, kind: "rest", label: respected ? "Rest respected" : "Recovery day", icon: "○", completed: !!respected, isToday: dateYmd === todayYmd };
   }
 
   if (completed) {

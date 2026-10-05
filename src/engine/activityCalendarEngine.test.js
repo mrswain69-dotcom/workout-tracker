@@ -33,7 +33,7 @@ describe("activityCalendarEngine", () => {
       dateYmd: "2026-10-04",
       log: { blocks: [{ typeId: "recovery", recoveryDone: true }] },
       completed: true,
-    })).toMatchObject({ kind: "rest", icon: "✓", completed: true });
+    })).toMatchObject({ kind: "rest", icon: "○", completed: true });
 
     expect(buildActivityCalendarDay({
       dateYmd: "2026-10-05",
