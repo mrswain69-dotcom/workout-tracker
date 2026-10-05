@@ -3527,8 +3527,10 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   }
   const [isSavingLog, setIsSavingLog] = useState(false);
   const [allLogs, setAllLogs] = useState([]); // for stats
-  const logForDay = dayLogState?.key === dayLogKey
+  const logForDay = dayLogState?.key === dayLogKey && dayLogState.log
     ? dayLogState.log
+    // A pending/failed single-date read must not mask history already loaded
+    // for the calendar, including history that arrives after this state was set.
     : (allLogs || []).find((row) => row.profile_id === activeProfileId && row.date_ymd === selectedDate)?.log || null;
   const [streakScheduleSnapshots, setStreakScheduleSnapshots] = useState([]);
   const [logsReady, setLogsReady] = useState(false);
@@ -4230,15 +4232,15 @@ useEffect(() => {
   if (!family?.id || !activeProfileId || !selectedDate || !plan) return;
 
   const cacheKey = makeLogCacheKey(family.id, activeProfileId, selectedDate);
-  const cachedAtLoadStart = cacheKey
-    ? lastLogByDateRef.current[cacheKey]
-    : undefined;
+  const historyLog = (allLogs || []).find((row) => row.profile_id === activeProfileId && row.date_ymd === selectedDate)?.log;
   const revisionAtLoadStart = cacheKey
     ? logSaveRevisionRef.current.get(cacheKey) || 0
     : 0;
+  const cachedAtLoadStart = cacheKey
+    ? selectDayLogSnapshot({ cached: lastLogByDateRef.current[cacheKey], remote: historyLog, localRevision: revisionAtLoadStart })
+    : historyLog;
 
-  const historyLog = (allLogs || []).find((row) => row.profile_id === activeProfileId && row.date_ymd === selectedDate)?.log;
-  setLogForDay(cachedAtLoadStart || historyLog || null);
+  setLogForDay(cachedAtLoadStart || null);
   let cancelled = false;
 
   const reqId = ++loadDayLogReqRef.current;
@@ -4270,8 +4272,8 @@ useEffect(() => {
 
     if (error) {
       console.error("getLog failed", error);
-      if (liveCached) {
-        setLogForDay(liveCached);
+      if (liveCached || cachedAtLoadStart) {
+        setLogForDay(liveCached || cachedAtLoadStart);
       } else if (!editedWhileLoading && !cachedAtLoadStart) {
         setLogForDay(null);
       }
@@ -4288,7 +4290,7 @@ useEffect(() => {
     // overlapping the write can still contain an older snapshot.
     const rawLatest = hasPendingLocalEdit
       ? (liveCached || fromDb || null)
-      : selectDayLogSnapshot({ cached: liveCached, remote: fromDb, localRevision: liveRevision });
+      : selectDayLogSnapshot({ cached: liveCached || cachedAtLoadStart, remote: fromDb, localRevision: liveRevision });
 
     // Snap the log to the *current* plan structure for this weekday so:
     // - blocks always line up with the active plan
@@ -4318,8 +4320,8 @@ useEffect(() => {
     const liveCached = cacheKey
       ? lastLogByDateRef.current[cacheKey]
       : undefined;
-    if (liveCached) {
-      setLogForDay(liveCached);
+    if (liveCached || cachedAtLoadStart) {
+      setLogForDay(liveCached || cachedAtLoadStart);
     } else if (!cachedAtLoadStart) {
       setLogForDay(null);
     }

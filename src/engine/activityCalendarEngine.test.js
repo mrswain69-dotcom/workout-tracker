@@ -58,4 +58,16 @@ describe("activityCalendarEngine", () => {
     expect(days[0].dateYmd).toBe("2026-09-29");
     expect(days.at(-1).dateYmd).toBe("2026-10-05");
   });
+
+  it("shows recorded recovery blue even when it does not qualify as a completed streak day", () => {
+    expect(buildActivityCalendarDay({
+      dateYmd: "2026-10-04",
+      log: { blocks: [{ typeId: "recovery", recoveryDone: true, recoveryMode: "light" }] },
+      completed: false,
+    })).toMatchObject({ kind: "rest", icon: "○", completed: false });
+    expect(buildActivityCalendarDay({ log: { blocks: [{ typeId: "recovery" }] } }))
+      .toMatchObject({ kind: "rest", icon: "○" });
+    expect(buildActivityCalendarDay({ log: { blocks: [{ typeId: "recovery", cancelled: true }] } }).kind).toBe("cancelled");
+    expect(buildActivityCalendarDay({ log: { blocks: [{ typeId: "recovery" }, { typeId: "strength" }] } }).kind).toBe("none");
+  });
 });

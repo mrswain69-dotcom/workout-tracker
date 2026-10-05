@@ -77,11 +77,14 @@ export function buildActivityCalendarDay({
     };
   }
 
-  const respectedRest = completed && blocks.some((block) =>
-    block.typeId === "recovery" && block.recoveryDone && !block.isProfileRecoveryBlock
+  const recoveryDay = blocks.some((block) =>
+    block.typeId === "recovery" && !block.cancelled && !block.isProfileRecoveryBlock
   ) && blocks.every((block) => block.cancelled || block.typeId === "recovery");
-  if (respectedRest) {
-    return { dateYmd, kind: "rest", label: "Rest respected", icon: "✓", completed: true, isToday: dateYmd === todayYmd };
+  if (recoveryDay) {
+    // Recovery is a recorded day type even if streak/XP eligibility does not
+    // award a completed day. Do not turn that into an empty grey day.
+    const respected = completed && blocks.some((block) => block.typeId === "recovery" && block.recoveryDone && !block.cancelled);
+    return { dateYmd, kind: "rest", label: respected ? "Rest respected" : "Recovery day", icon: respected ? "✓" : "○", completed: !!respected, isToday: dateYmd === todayYmd };
   }
 
   if (completed) {
