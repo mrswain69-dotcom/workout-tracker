@@ -160,15 +160,17 @@ export async function assignTrainingProgramToMembers({
   startDate,
   completionMode = "repeat",
   recipientCanEdit = true,
+  recipientCanCopy = true,
   message = "",
 }) {
   if (!supabase) return unavailable();
-  const { data, error } = await supabase.rpc("training_program_assign_members", {
+  const { data, error } = await supabase.rpc("training_program_assign_members_with_permissions", {
     p_program_id: programId,
     p_membership_ids: [...new Set((membershipIds || []).filter(Boolean))],
     p_start_date: startDate,
     p_completion_mode: completionMode,
     p_recipient_can_edit: !!recipientCanEdit,
+    p_recipient_can_copy: !!recipientCanCopy,
     p_message: message,
   });
   return { data, error };
@@ -180,7 +182,7 @@ export async function listManagedTrainingProgramAssignments(familyId) {
 
   const { data: assignments, error } = await supabase
     .from("training_program_assignments")
-    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,message,adoption_mode,undone_at,removed_at,replaces_assignment_id,replacement_adoption_mode,created_at,responded_at")
+    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,recipient_can_copy,share_adherence,share_assessments,message,adoption_mode,undone_at,removed_at,replaces_assignment_id,replacement_adoption_mode,created_at,responded_at")
     .eq("assigned_by_family_id", familyId)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -263,7 +265,7 @@ export async function listTrainingProgramAssignments(profileId) {
 
   let query = supabase
     .from("training_program_assignments")
-    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,message,replaces_assignment_id,replacement_adoption_mode,created_at")
+    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,recipient_can_copy,share_adherence,share_assessments,message,replaces_assignment_id,replacement_adoption_mode,created_at")
     .eq("status", "pending")
     .order("created_at", { ascending: false });
   const filters = [`target_profile_id.eq.${profileId}`];
@@ -300,14 +302,16 @@ export async function listTrainingProgramAssignments(profileId) {
 export async function acceptTrainingProgramAssignment(
   assignmentId,
   profileId,
-  { adoptionMode = "replace", preparedPlan = null } = {}
+  { adoptionMode = "replace", preparedPlan = null, shareAdherence = false, shareAssessments = false } = {}
 ) {
   if (!supabase) return unavailable();
-  const { data, error } = await supabase.rpc("training_program_accept_assignment", {
+  const { data, error } = await supabase.rpc("training_program_accept_with_sharing", {
     p_assignment_id: assignmentId,
     p_profile_id: profileId,
     p_adoption_mode: adoptionMode,
     p_prepared_plan: preparedPlan,
+    p_share_adherence: !!shareAdherence,
+    p_share_assessments: !!shareAssessments,
   });
   return { data, error };
 }

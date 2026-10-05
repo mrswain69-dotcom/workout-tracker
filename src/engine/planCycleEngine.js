@@ -72,6 +72,7 @@ export function normaliseProgramAssessment(assessment, index = 0) {
     title: cleanText(assessment?.title) || `Assessment ${index + 1}`,
     assessmentTemplateId: cleanText(assessment?.assessmentTemplateId),
     required: assessment?.required === true,
+    ...(assessment?.assessmentDefinition ? { assessmentDefinition: assessment.assessmentDefinition } : {}),
   };
 }
 
@@ -655,5 +656,17 @@ export function prepareAssignedProgramAdoption(currentPlan, assignment, adoption
     ...imported,
     program: { ...imported.program, phases },
     blocksByWeekday: phases[0].weeks[0].blocksByWeekday,
+  };
+}
+
+
+export function updateEditableProgramAddOn(plan, addOnId, content) {
+  const addons = Array.isArray(plan?.meta?.programAddOns) ? plan.meta.programAddOns : [];
+  const addon = addons.find((row) => row.id === addOnId);
+  if (!addon) throw new Error("That add-on is no longer attached.");
+  if (addon.recipientCanEdit === false) throw new Error("This add-on must be followed as supplied.");
+  return {
+    ...plan,
+    meta: { ...plan.meta, programAddOns: addons.map((row) => row.id === addOnId ? { ...row, content: extractShareablePlanContent(content) } : row) },
   };
 }

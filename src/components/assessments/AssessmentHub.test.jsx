@@ -192,6 +192,14 @@ async function renderHub(db, props = {}) {
 afterEach(cleanup);
 
 describe("AssessmentHub", () => {
+  it("starts a due programme checkpoint with a persistent checkpoint link", async () => {
+    const db = mockDb();
+    db.listProgramCheckpoints = vi.fn(async () => ({ data: [{ id: "checkpoint-1", title: "Phase benchmark", phase_name: "Build", timing: "before", assessment_template_id: "a1", due_date: "2026-09-09" }], error: null }));
+    await renderHub(db);
+    fireEvent.click(await screen.findByRole("button", { name: "Start checkpoint" }));
+    await waitFor(() => expect(db.createAssessmentRun).toHaveBeenCalledWith("f1", expect.objectContaining({ programCheckpointId: "checkpoint-1", assessmentTemplateId: "a1" })));
+  });
+
   it("shows the deliberate pre-seed empty state without writing history", async () => {
     const db = mockDb({
       library: {

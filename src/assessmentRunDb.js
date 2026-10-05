@@ -84,6 +84,7 @@ export async function createAssessmentRun(familyId, run = {}) {
       template_version: positiveInt(run.templateVersion, 1),
       template_snapshot: jsonObject(run.templateSnapshot),
       notes: run.notes || "",
+      ...(run.programCheckpointId ? { program_checkpoint_id: run.programCheckpointId } : {}),
     })
     .select("*")
     .single();
