@@ -36,17 +36,13 @@ export function buildActivityCalendarDay({
   dateYmd = "",
   todayYmd = "",
   log = null,
-  plannedBlocks = [],
-  hasPlanSchedule = false,
   recoveryMode = "",
   completed = false,
 } = {}) {
   const blocks = physicalBlocks(log?.blocks);
-  const planned = physicalBlocks(plannedBlocks).filter((block) => !block.cancelled);
   const mode = text(recoveryMode || log?.meta?.profileRecoveryMode).toLowerCase();
   const streakSaved = !!log?.meta?.streakSaved;
   const allCancelled = blocks.length > 0 && blocks.every((block) => !!block.cancelled);
-  const hasActiveLoggedBlock = blocks.some((block) => !block.cancelled);
 
   if (streakSaved) {
     return {
@@ -81,6 +77,13 @@ export function buildActivityCalendarDay({
     };
   }
 
+  const respectedRest = completed && blocks.some((block) =>
+    block.typeId === "recovery" && block.recoveryDone && !block.isProfileRecoveryBlock
+  ) && blocks.every((block) => block.cancelled || block.typeId === "recovery");
+  if (respectedRest) {
+    return { dateYmd, kind: "rest", label: "Rest respected", icon: "✓", completed: true, isToday: dateYmd === todayYmd };
+  }
+
   if (completed) {
     return {
       dateYmd,
@@ -92,22 +95,11 @@ export function buildActivityCalendarDay({
     };
   }
 
-  if (hasPlanSchedule && !planned.length && !hasActiveLoggedBlock) {
-    return {
-      dateYmd,
-      kind: "rest",
-      label: "Planned rest day",
-      icon: "–",
-      completed: true,
-      isToday: dateYmd === todayYmd,
-    };
-  }
-
   return {
     dateYmd,
     kind: "none",
     label: dateYmd === todayYmd ? "Today" : "No completed activity",
-    icon: "",
+    icon: "–",
     completed: false,
     isToday: dateYmd === todayYmd,
   };
@@ -122,7 +114,7 @@ export function shiftActivityCalendarDate(value, days) {
 }
 
 export function buildRecentActivityCalendarDays(todayYmd, count = 14, getDayState = null) {
-  const size = Math.max(1, Math.min(31, Number(count) || 14));
+  const size = Math.max(1, Math.min(366, Number(count) || 14));
   return Array.from({ length: size }, (_, index) => {
     const dateYmd = shiftActivityCalendarDate(todayYmd, index - size + 1);
     return typeof getDayState === "function"

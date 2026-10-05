@@ -29,6 +29,7 @@ describe("PerformanceDashboard recent activity calendar", () => {
       label: index === 13 ? "Plan completed" : "No completed activity",
       icon: index === 13 ? "✓" : "",
       isToday: index === 13,
+      earnedXp: index === 13 ? 125 : 0,
     }));
 
     render(
@@ -44,6 +45,12 @@ describe("PerformanceDashboard recent activity calendar", () => {
     const coach = screen.getByText("Today’s opportunity is clear.").closest("section");
     const history = screen.getByRole("region", { name: "Recent plan history" });
     expect(coach?.nextElementSibling).toBe(history);
+    expect(history.querySelector("svg")).toBeNull();
+    expect(history.querySelector(".dashboardHistoryDay.is-today .dashboardHistoryDay__xp").textContent).toBe("125XP");
+    const strip = history.querySelector(".dashboardHistory__days");
+    strip.scrollBy = vi.fn();
+    fireEvent.click(screen.getByRole("button", { name: "Earlier plan history" }));
+    expect(strip.scrollBy).toHaveBeenCalledWith({ left: -strip.clientWidth, behavior: "smooth" });
     fireEvent.click(screen.getByRole("button", { name: "2026-10-14. Plan completed" }));
     expect(onOpenHistoryDate).toHaveBeenCalledWith("2026-10-14");
   });

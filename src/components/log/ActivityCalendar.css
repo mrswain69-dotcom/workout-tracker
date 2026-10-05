@@ -13,6 +13,7 @@
 .activityCalendar__day.is-selected{outline:2px solid #111827;outline-offset:1px}
 .activityCalendar__day.is-today{border-color:#0f172a}
 .activityCalendar__day.is-complete{background:#dcfce7;color:#166534}
+.activityCalendar__day.is-none{background:#f1f5f9;color:#64748b}
 .activityCalendar__day.is-rest{background:#dbeafe;color:#1d4ed8}
 .activityCalendar__day.is-illness{background:#ffedd5;color:#c2410c}
 .activityCalendar__day.is-cancelled{background:#fee2e2;color:#b91c1c}

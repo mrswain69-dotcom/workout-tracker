@@ -27,7 +27,13 @@ describe("activityCalendarEngine", () => {
       dateYmd: "2026-10-04",
       hasPlanSchedule: true,
       plannedBlocks: [],
-    }).kind).toBe("rest");
+    })).toMatchObject({ kind: "none", icon: "–", completed: false });
+
+    expect(buildActivityCalendarDay({
+      dateYmd: "2026-10-04",
+      log: { blocks: [{ typeId: "recovery", recoveryDone: true }] },
+      completed: true,
+    })).toMatchObject({ kind: "rest", icon: "✓", completed: true });
 
     expect(buildActivityCalendarDay({
       dateYmd: "2026-10-05",
