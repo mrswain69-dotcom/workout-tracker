@@ -1,0 +1,122 @@
+-- Run on a migrated database. Every fixture and write is rolled back.
+begin;
+do $$
+declare
+  coach_family uuid; coach_user uuid; athlete_family uuid; athlete_user uuid;
+  coach_profile uuid; athlete_profile uuid; team uuid; member uuid;
+  programme uuid; version_one uuid; version_two uuid; original_assignment uuid;
+  next_offer uuid; update_offer uuid; addon_assignment uuid; addon_offer uuid;
+  content jsonb := '{"version":5,"activityTypes":[],"blocksByWeekday":{"Mon":[],"Tue":[],"Wed":[],"Thu":[],"Fri":[],"Sat":[],"Sun":[]},"program":{"schemaVersion":1,"name":"Fixture programme","startDate":"2026-10-05","completionMode":"repeat","phases":[{"id":"phase","name":"Phase","weeks":[{"id":"week","name":"Week","blocksByWeekday":{"Mon":[],"Tue":[],"Wed":[],"Thu":[],"Fri":[],"Sat":[],"Sun":[]}}]}]}}';
+  original_plan jsonb; adopted_plan jsonb; addon_plan jsonb; current_plan jsonb;
+  state text; denied boolean; log_id uuid; fixture_log jsonb := '{"blocks":[{"id":"logged","typeId":"cardio","cardio":{"durationMin":"20"}}]}';
+begin
+  select id,owner_user_id into coach_family,coach_user from public.families order by created_at limit 1;
+  select id,owner_user_id into athlete_family,athlete_user from public.families where owner_user_id <> coach_user order by created_at limit 1;
+  if athlete_family is null then raise exception 'Two existing account families are required for this rollback test'; end if;
+  original_plan := content || '{"meta":{"privateFixture":"retained","claimedRewards":["fixture-reward"]}}'::jsonb;
+  insert into public.profiles(family_id,name,plan_json) values(coach_family,'Fixture coach',content) returning id into coach_profile;
+  insert into public.profiles(family_id,name,plan_json) values(athlete_family,'Fixture athlete',original_plan) returning id into athlete_profile;
+  insert into public.groups(name,created_by_family_id) values('Fixture assignment team',coach_family) returning id into team;
+  insert into public.group_memberships(group_id,family_id,profile_id,role,nickname) values(team,coach_family,coach_profile,'admin','Coach');
+  insert into public.group_memberships(group_id,family_id,profile_id,role,nickname) values(team,athlete_family,athlete_profile,'member','Athlete') returning id into member;
+  insert into public.training_programs(owner_family_id,title) values(coach_family,'Fixture programme') returning id into programme;
+  insert into public.training_program_versions(program_id,version_no,content_json,created_by_family_id) values(programme,1,content,coach_family) returning id into version_one;
+  insert into public.training_program_versions(program_id,version_no,content_json,created_by_family_id) values(programme,2,jsonb_set(content,'{program,name}','"Updated fixture"'),coach_family) returning id into version_two;
+  update public.training_programs set current_version_id=version_two,current_version_no=2 where id=programme;
+  insert into public.logs(family_id,profile_id,date_ymd,log_json) values(athlete_family,athlete_profile,'2026-10-01',fixture_log) returning id into log_id;
+  insert into public.training_program_assignments(program_id,version_id,assigned_by_family_id,target_membership_id,start_date)
+    values(programme,version_one,coach_family,member,'2026-10-05') returning id into original_assignment;
+
+  perform set_config('request.jwt.claim.sub',coach_user::text,true);
+  if not public.training_program_reschedule_assignment(original_assignment,'2026-10-08','once','Adjusted') then raise exception 'Pending reschedule failed'; end if;
+  if (select start_date from public.training_program_assignments where id=original_assignment) <> '2026-10-05'::date then raise exception 'Schedule was not aligned to Monday'; end if;
+  denied := false;
+  begin perform public.training_program_accept_assignment(original_assignment,athlete_profile,'replace',null);
+  exception when others then denied := true; end;
+  if not denied then raise exception 'Coach changed a recipient plan without acceptance'; end if;
+
+  perform set_config('request.jwt.claim.sub',athlete_user::text,true);
+  denied := false;
+  begin perform public.training_program_reschedule_assignment(original_assignment,'2026-10-12','repeat','');
+  exception when others then denied := true; end;
+  if not denied then raise exception 'Recipient managed a coach assignment'; end if;
+  adopted_plan := public.training_program_accept_assignment(original_assignment,athlete_profile);
+  perform set_config('request.jwt.claim.sub',coach_user::text,true);
+  select active_state into state from public.training_program_assignment_states(coach_family,'2026-10-05') where assignment_id=original_assignment;
+  if state <> 'active' then raise exception 'Accepted programme was not active: %',state; end if;
+  select active_state into state from public.training_program_assignment_states(coach_family,'2026-10-04') where assignment_id=original_assignment;
+  if state <> 'scheduled' then raise exception 'Scheduled programme state failed'; end if;
+  select active_state into state from public.training_program_assignment_states(coach_family,'2026-10-12') where assignment_id=original_assignment;
+  if state <> 'finished' then raise exception 'Run-once finish state failed'; end if;
+  if public.training_program_reschedule_assignment(original_assignment,'2026-10-12','repeat','') then raise exception 'Accepted programme was silently rescheduled'; end if;
+
+  update_offer := public.training_program_offer_replacement(original_assignment,programme,'2026-10-05','repeat','Latest version');
+  if (select plan_json from public.profiles where id=athlete_profile) is distinct from adopted_plan then raise exception 'Offer changed active plan'; end if;
+  if (select version_id from public.training_program_assignments where id=update_offer) <> version_two then raise exception 'Offer did not use current version'; end if;
+  denied := false;
+  begin perform public.training_program_offer_replacement(original_assignment,programme,'2026-10-05','repeat','Duplicate');
+  exception when others then denied := true; end;
+  if not denied then raise exception 'Duplicate pending offer allowed'; end if;
+  perform set_config('request.jwt.claim.sub',athlete_user::text,true);
+  perform public.training_program_decline_assignment(update_offer);
+  if (select plan_json from public.profiles where id=athlete_profile) is distinct from adopted_plan then raise exception 'Declining changed active plan'; end if;
+  perform set_config('request.jwt.claim.sub',coach_user::text,true);
+  update_offer := public.training_program_offer_replacement(original_assignment,programme,'2026-10-05','repeat','Try latest');
+  perform set_config('request.jwt.claim.sub',athlete_user::text,true);
+  denied := false;
+  begin perform public.training_program_accept_assignment(update_offer,athlete_profile,'add',null);
+  exception when others then denied := true; end;
+  if not denied then raise exception 'Main-programme update became an add-on'; end if;
+  current_plan := public.training_program_accept_assignment(update_offer,athlete_profile,'replace',null);
+  if current_plan #>> '{meta,activeProgramSource,assignmentId}' <> update_offer::text then raise exception 'Replacement did not become active'; end if;
+  if public.training_program_undo_assignment(update_offer,athlete_profile) is distinct from adopted_plan then raise exception 'Replacement undo lost original plan'; end if;
+  perform set_config('request.jwt.claim.sub',coach_user::text,true);
+  select active_state into state from public.training_program_assignment_states(coach_family,'2026-10-05') where assignment_id=update_offer;
+  if state <> 'undone' then raise exception 'Undo state failed'; end if;
+
+  insert into public.training_program_assignments(program_id,version_id,assigned_by_family_id,target_membership_id,start_date)
+    values(programme,version_one,coach_family,member,'2026-10-05') returning id into addon_assignment;
+  perform set_config('request.jwt.claim.sub',athlete_user::text,true);
+  addon_plan := public.training_program_accept_assignment(addon_assignment,athlete_profile,'add',null);
+  perform set_config('request.jwt.claim.sub',coach_user::text,true);
+  update_offer := public.training_program_offer_replacement(original_assignment,programme,'2026-10-05','repeat','Main update with add-on');
+  perform set_config('request.jwt.claim.sub',athlete_user::text,true);
+  current_plan := public.training_program_accept_assignment(update_offer,athlete_profile,'replace',null);
+  if current_plan #> '{meta,programAddOns}' is distinct from addon_plan #> '{meta,programAddOns}' then raise exception 'Main update discarded the independent add-on'; end if;
+  if public.training_program_undo_assignment(update_offer,athlete_profile) is distinct from addon_plan then raise exception 'Main update with add-on undo failed'; end if;
+  perform set_config('request.jwt.claim.sub',coach_user::text,true);
+  addon_offer := public.training_program_offer_replacement(addon_assignment,programme,'2026-10-05','hold','Updated add-on');
+  perform set_config('request.jwt.claim.sub',athlete_user::text,true);
+  current_plan := public.training_program_accept_assignment(addon_offer,athlete_profile,'add',null);
+  if jsonb_array_length(current_plan #> '{meta,programAddOns}') <> 1 then raise exception 'Replacement broke add-on limit'; end if;
+  if current_plan #>> '{meta,programAddOns,0,id}' <> addon_offer::text then raise exception 'Wrong add-on replaced'; end if;
+  if current_plan->'program' is distinct from addon_plan->'program' then raise exception 'Add-on update changed main programme'; end if;
+  if current_plan #>> '{meta,privateFixture}' <> 'retained' then raise exception 'Private metadata lost'; end if;
+  perform set_config('request.jwt.claim.sub',coach_user::text,true);
+  next_offer := public.training_program_offer_replacement(addon_offer,programme,'2026-10-12','repeat','Second update');
+  if (select replaces_assignment_id from public.training_program_assignments where id=next_offer) <> addon_offer then raise exception 'Repeated update references an obsolete assignment'; end if;
+  perform set_config('request.jwt.claim.sub',athlete_user::text,true);
+  perform public.training_program_accept_assignment(next_offer,athlete_profile,'add',null);
+  if public.training_program_undo_assignment(next_offer,athlete_profile) is distinct from current_plan then raise exception 'Repeated update undo failed'; end if;
+  if public.training_program_undo_assignment(addon_offer,athlete_profile) is distinct from addon_plan then raise exception 'Add-on undo did not restore exact plan'; end if;
+  perform set_config('request.jwt.claim.sub',coach_user::text,true);
+  select active_state into state from public.training_program_assignment_states(coach_family,'2026-10-12') where assignment_id=addon_assignment;
+  if state <> 'active' then raise exception 'Original repeating add-on not restored'; end if;
+  denied := false;
+  begin perform public.training_program_assignment_states(athlete_family,'2026-10-05');
+  exception when others then denied := true; end;
+  if not denied then raise exception 'Cross-family status disclosure'; end if;
+  update public.group_memberships set status='removed' where id=member;
+  select active_state into state from public.training_program_assignment_states(coach_family,'2026-10-05') where assignment_id=addon_assignment;
+  if state <> 'unavailable' then raise exception 'Removed member still shares active status'; end if;
+  denied := false;
+  begin perform public.training_program_offer_replacement(addon_assignment,programme,'2026-10-05','repeat','');
+  exception when others then denied := true; end;
+  if not denied then raise exception 'Former member can still be managed'; end if;
+  if (select log_json from public.logs where id=log_id) is distinct from fixture_log then raise exception 'Logged history changed'; end if;
+  if has_function_privilege('anon','public.training_program_offer_replacement(uuid,uuid,date,text,text)','execute')
+    or has_function_privilege('authenticated','private.training_program_accept_assignment_original(uuid,uuid,text,jsonb)','execute') then raise exception 'Function privilege leak'; end if;
+end;
+$$;
+select 'Assignment lifecycle, cross-account authorisation, replacement, add-on limit, exact undo and log-preservation checks passed' as result;
+rollback;

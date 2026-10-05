@@ -29,6 +29,8 @@ import {
   previewTrainingProgramShare,
   readTrainingProgramShareToken,
   revokeTrainingProgramAssignment,
+  rescheduleTrainingProgramAssignment,
+  offerTrainingProgramReplacement,
   saveTrainingProgram,
 } from "./trainingProgramDb.js";
 import "./TrainingProgramLibrary.css";
@@ -48,6 +50,14 @@ const ASSIGNMENT_STATUS = {
   accepted: "Accepted",
   declined: "Declined",
   revoked: "Revoked",
+  active: "Active",
+  scheduled: "Scheduled",
+  finished: "Finished",
+  holding: "Holding final week",
+  inactive: "No longer active",
+  undone: "Undone",
+  removed: "Add-on removed",
+  unavailable: "No longer shared",
 };
 
 function displayDate(value) {
@@ -121,10 +131,13 @@ function AssignedProgramPreview({
   const activeAddOnCount = Array.isArray(activePlan?.meta?.programAddOns)
     ? activePlan.meta.programAddOns.length
     : 0;
-  const canAddAnotherProgram = activeAddOnCount < 1;
+  const replacesAddOn = assignment.replacement_adoption_mode === "add";
+  const replacesBase = !!assignment.replacement_adoption_mode && !replacesAddOn;
+  const canAddAnotherProgram = activeAddOnCount < 1 || replacesAddOn;
+  const choices = ADOPTION_CHOICES.filter((choice) => replacesAddOn ? choice.id === "add" : !replacesBase || choice.id !== "add");
   const [weekIndex, setWeekIndex] = useState(0);
   const [adoptionMode, setAdoptionMode] = useState(() => (
-    canAddAnotherProgram ? "add" : "replace"
+    assignment.replacement_adoption_mode || (canAddAnotherProgram ? "add" : "replace")
   ));
   const content = useMemo(
     () => ensurePlanProgram(assignment.version?.content_json || {}),
@@ -149,6 +162,9 @@ function AssignedProgramPreview({
 
       {assignment.message ? (
         <div className="assignedProgramCoachMessage"><strong>Coach note</strong><span>“{assignment.message}”</span></div>
+      ) : null}
+      {assignment.replaces_assignment_id ? (
+        <div className="assignedProgramInfo">This is an update or replacement offer. Your current programme stays in place until you apply it. {replacesAddOn ? "Only the assigned add-on is replaced; your personal plan stays." : "You can undo after applying it."}</div>
       ) : null}
 
       <div className="assignedProgramWeekNav">
@@ -189,7 +205,7 @@ function AssignedProgramPreview({
             You already have one Program running alongside your base plan. Remove it from Build before adding a different one alongside.
           </div>
         ) : null}
-        {ADOPTION_CHOICES.map((choice) => (
+        {choices.map((choice) => (
           <label
             key={choice.id}
             className={`assignedProgramChoice${adoptionMode === choice.id ? " selected" : ""}${choice.id === "add" && !canAddAnotherProgram ? " disabled" : ""}`}
@@ -203,15 +219,15 @@ function AssignedProgramPreview({
               onChange={() => setAdoptionMode(choice.id)}
             />
             <span>
-              <strong>{choice.title}{choice.badge ? <em>{choice.badge}</em> : null}</strong>
-              <small>{choice.description}</small>
+              <strong>{replacesAddOn ? "Replace my assigned add-on" : choice.title}{choice.badge && !replacesAddOn ? <em>{choice.badge}</em> : null}</strong>
+              <small>{replacesAddOn ? "Replace the earlier assigned add-on. Your personal programme stays in place." : choice.description}</small>
             </span>
           </label>
         ))}
       </fieldset>
 
       {adoptionMode === "replace" ? (
-        <div className="assignedProgramWarning">This replaces your whole current Program. You can undo afterwards to restore it exactly.</div>
+        <div className="assignedProgramWarning">{replacesBase ? "This replaces your assigned main programme. Any additional programme stays in place. You can undo afterwards." : "This replaces your whole current Program. You can undo afterwards to restore it exactly."}</div>
       ) : adoptionMode === "replace_keep_tasks" ? (
         <div className="assignedProgramWarning">Your current task blocks stay; all other current Program blocks are replaced. You can undo afterwards.</div>
       ) : (
@@ -253,6 +269,7 @@ export default function TrainingProgramLibrary({
   const [selectedMembershipIds, setSelectedMembershipIds] = useState([]);
   const [assignmentMessage, setAssignmentMessage] = useState("");
   const [assignmentStatus, setAssignmentStatus] = useState("all");
+  const [assignmentEdit, setAssignmentEdit] = useState(null);
   const [startDate, setStartDate] = useState(todayMonday());
   const [completionMode, setCompletionMode] = useState("repeat");
   const [busy, setBusy] = useState("");
@@ -276,7 +293,9 @@ export default function TrainingProgramLibrary({
   const visibleManagedAssignments = useMemo(
     () => assignmentStatus === "all"
       ? managedAssignments
-      : managedAssignments.filter((assignment) => assignment.status === assignmentStatus),
+      : managedAssignments.filter((assignment) => ["active", "scheduled", "finished", "holding", "inactive", "removed", "undone", "unavailable"].includes(assignmentStatus)
+        ? assignment.active_state === assignmentStatus
+        : assignment.status === assignmentStatus),
     [assignmentStatus, managedAssignments]
   );
   const previewAssignment = useMemo(
@@ -420,7 +439,7 @@ export default function TrainingProgramLibrary({
     });
     setBusy("");
     if (error) return setNotice(message(error));
-    setNotice(`Saved a new version of “${program.title}”. Existing recipients stay on their frozen version.`);
+    setNotice(`Saved a new version of “${program.title}”. Existing recipients stay on their frozen version until you offer it using Replace / update in Assignments sent.`);
     await refresh();
   }
 
@@ -517,6 +536,32 @@ export default function TrainingProgramLibrary({
     if (error) return setNotice(message(error));
     setNotice(data ? "The pending assignment was revoked." : "That assignment is no longer pending and was not changed.");
     await refresh();
+  }
+
+  function editAssignment(assignment, action) {
+    setAssignmentEdit({ id: assignment.id, action, status: assignment.status, startDate: assignment.start_date,
+      completionMode: assignment.completion_mode, message: assignment.message || "",
+      programId: programs.some((program) => program.id === assignment.program_id) ? assignment.program_id : programs[0]?.id || "" });
+    setNotice("");
+  }
+
+  async function saveAssignmentEdit(event) {
+    event.preventDefault();
+    const edit = assignmentEdit;
+    if (!edit || !(await allowed("manage a Program assignment"))) return;
+    setBusy(edit.id);
+    try {
+      const options = { assignmentId: edit.id, startDate: normaliseProgramStartDate(edit.startDate), completionMode: edit.completionMode, message: edit.message.trim() };
+      const result = edit.action === "reschedule" && edit.status === "pending"
+        ? await rescheduleTrainingProgramAssignment(options)
+        : await offerTrainingProgramReplacement({ ...options, programId: edit.action === "replace" ? edit.programId : null });
+      if (result.error) throw result.error;
+      if (!result.data) throw new Error("That assignment has changed. Refresh and try again.");
+      setAssignmentEdit(null);
+      setNotice(edit.action === "reschedule" && edit.status === "pending" ? "Pending assignment rescheduled." : "Offer sent. The athlete’s current programme stays active until they accept.");
+      await refresh();
+    } catch (error) { setNotice(message(error)); }
+    finally { setBusy(""); }
   }
 
   async function acceptAssignment(assignment, adoptionMode) {
@@ -653,9 +698,10 @@ export default function TrainingProgramLibrary({
             <div className="trainingProgramAssignmentHistoryHeading">
               <div>
                 <h3 id="assignment-history-title">Assignments sent</h3>
-                <p className="muted">Track responses and withdraw invitations that have not been accepted.</p>
+                <p className="muted">Track responses, check active programmes and offer changes without overwriting an athlete’s plan.</p>
               </div>
-              <label>Status<select value={assignmentStatus} onChange={(event) => setAssignmentStatus(event.target.value)}><option value="all">All</option><option value="pending">Awaiting response</option><option value="accepted">Accepted</option><option value="declined">Declined</option><option value="revoked">Revoked</option></select></label>
+              <button type="button" disabled={!!busy} onClick={async () => { setBusy("refresh-status"); try { await refresh(); } catch (error) { setNotice(message(error)); } finally { setBusy(""); } }}>Refresh status</button>
+              <label>Status<select value={assignmentStatus} onChange={(event) => setAssignmentStatus(event.target.value)}><option value="all">All</option><option value="pending">Awaiting response</option><option value="accepted">All accepted</option><option value="active">Active</option><option value="scheduled">Scheduled</option><option value="finished">Finished</option><option value="holding">Holding final week</option><option value="inactive">No longer active</option><option value="undone">Undone</option><option value="removed">Add-on removed</option><option value="unavailable">No longer shared</option><option value="declined">Declined</option><option value="revoked">Revoked</option></select></label>
             </div>
             {visibleManagedAssignments.length ? (
               <div className="trainingProgramAssignmentList">
@@ -671,9 +717,26 @@ export default function TrainingProgramLibrary({
                       <span>{assignment.completion_mode === "once" ? "Finishes" : assignment.completion_mode === "hold" ? "Holds final week" : "Repeats"}</span>
                     </div>
                     <div className="trainingProgramAssignmentState">
-                      <span className={`trainingProgramStatus ${assignment.status}`}>{assignment.removed_at ? "Accepted · add-on removed" : assignment.undone_at ? "Accepted · later undone" : ASSIGNMENT_STATUS[assignment.status] || assignment.status}</span>
-                      {assignment.status === "pending" ? <button type="button" disabled={busy === assignment.id} onClick={() => revokeAssignment(assignment)}>Revoke</button> : null}
+                      <span className={`trainingProgramStatus ${assignment.active_state || assignment.status}`}>{ASSIGNMENT_STATUS[assignment.active_state] || (assignment.removed_at ? "Add-on removed" : assignment.undone_at ? "Undone" : ASSIGNMENT_STATUS[assignment.status])}{assignment.replaces_assignment_id && assignment.status === "pending" ? " · update offer" : ""}</span>
+                      {assignment.status === "pending" ? <button type="button" disabled={!!busy} onClick={() => revokeAssignment(assignment)}>Revoke</button> : null}
+                      {assignment.status === "pending" || ["active", "scheduled", "holding", "finished"].includes(assignment.active_state) ? (
+                        <>
+                          <button type="button" disabled={!!busy} onClick={() => editAssignment(assignment, "reschedule")}>Reschedule</button>
+                          <button type="button" disabled={!!busy || !programs.length} onClick={() => editAssignment(assignment, "replace")}>Replace / update</button>
+                        </>
+                      ) : null}
                     </div>
+                    {assignmentEdit?.id === assignment.id ? (
+                      <form className="trainingProgramAssignmentEdit" onSubmit={saveAssignmentEdit}>
+                        <h4>{assignmentEdit.action === "replace" ? "Offer a replacement or latest version" : "Reschedule assignment"}</h4>
+                        <p>{assignment.status === "accepted" ? "The athlete must accept this offer before their current programme changes." : "Pending invitations can be changed before acceptance."}</p>
+                        {assignmentEdit.action === "replace" ? <label>Programme / latest version<select value={assignmentEdit.programId} onChange={(event) => setAssignmentEdit({ ...assignmentEdit, programId: event.target.value })}>{programs.map((program) => <option key={program.id} value={program.id}>{program.title} · Version {program.current_version_no}</option>)}</select></label> : null}
+                        <label>New start date<input type="date" required value={assignmentEdit.startDate} onChange={(event) => setAssignmentEdit({ ...assignmentEdit, startDate: event.target.value })} /></label>
+                        <label>After the final week<select value={assignmentEdit.completionMode} onChange={(event) => setAssignmentEdit({ ...assignmentEdit, completionMode: event.target.value })}><option value="repeat">Repeat</option><option value="once">Finish</option><option value="hold">Hold final week</option></select></label>
+                        <label>Coach note<textarea maxLength={500} value={assignmentEdit.message} onChange={(event) => setAssignmentEdit({ ...assignmentEdit, message: event.target.value })} /></label>
+                        <div><button type="button" disabled={!!busy} onClick={() => setAssignmentEdit(null)}>Cancel</button><button type="submit" className="primary" disabled={!!busy || !assignmentEdit.startDate}>{busy === assignment.id ? "Saving…" : assignmentEdit.action === "reschedule" && assignment.status === "pending" ? "Save schedule" : "Send offer"}</button></div>
+                      </form>
+                    ) : null}
                     {assignment.message ? <p className="trainingProgramAssignmentMessage">“{assignment.message}”</p> : null}
                   </article>
                 ))}
@@ -697,6 +760,7 @@ export default function TrainingProgramLibrary({
           ) : null}
           {previewAssignment ? (
             <AssignedProgramPreview
+              key={previewAssignment.id}
               assignment={previewAssignment}
               activePlan={activePlan}
               busy={busy === previewAssignment.id}
@@ -707,7 +771,7 @@ export default function TrainingProgramLibrary({
           {assignments.length ? (
             <div className="trainingProgramGrid">
               {assignments.map((assignment) => (
-                <ProgramCard key={assignment.id} badge="Assigned" program={{ ...assignment.program, current_version_no: assignment.version?.version_no }}>
+                <ProgramCard key={assignment.id} badge={assignment.replaces_assignment_id ? "Update offer" : "Assigned"} program={{ ...assignment.program, current_version_no: assignment.version?.version_no }}>
                   <button type="button" className="primary" disabled={busy === assignment.id} onClick={() => setPreviewAssignmentId(assignment.id)}>Preview &amp; choose</button>
                   <button type="button" disabled={busy === assignment.id} onClick={async () => { await declineTrainingProgramAssignment(assignment.id); await refresh(); }}>Decline</button>
                 </ProgramCard>
