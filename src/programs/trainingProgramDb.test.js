@@ -19,6 +19,8 @@ import {
   removeTrainingProgramAddOn,
   revokeTrainingProgramAssignment,
   undoTrainingProgramAssignment,
+  rescheduleTrainingProgramAssignment,
+  offerTrainingProgramReplacement,
 } from "./trainingProgramDb.js";
 
 function queryChain(data = []) {
@@ -39,9 +41,16 @@ function queryChain(data = []) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mock.rpc.mockResolvedValue({ data: [], error: null });
 });
 
 describe("coach Program assignment DB adapter", () => {
+  it("reschedules pending invitations and sends replacement offers through scoped RPCs", async () => {
+    await rescheduleTrainingProgramAssignment({ assignmentId: "a1", startDate: "2026-10-12", completionMode: "once", message: "New start" });
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_reschedule_assignment", { p_assignment_id: "a1", p_start_date: "2026-10-12", p_completion_mode: "once", p_message: "New start" });
+    await offerTrainingProgramReplacement({ assignmentId: "a1", programId: "p2", startDate: "2026-10-19", completionMode: "hold" });
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_offer_replacement", { p_assignment_id: "a1", p_program_id: "p2", p_start_date: "2026-10-19", p_completion_mode: "hold", p_message: "" });
+  });
   it("assigns a frozen Program version to unique selected membership IDs", async () => {
     mock.rpc.mockResolvedValue({ data: 2, error: null });
 

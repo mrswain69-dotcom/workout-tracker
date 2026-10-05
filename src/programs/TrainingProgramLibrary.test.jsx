@@ -24,6 +24,8 @@ vi.mock("./trainingProgramDb.js", () => ({
   previewTrainingProgramShare: vi.fn(),
   readTrainingProgramShareToken: vi.fn(() => ""),
   revokeTrainingProgramAssignment: vi.fn(),
+  rescheduleTrainingProgramAssignment: vi.fn(),
+  offerTrainingProgramReplacement: vi.fn(),
   saveTrainingProgram: vi.fn(),
 }));
 
@@ -99,6 +101,8 @@ beforeEach(() => {
   programDb.assignTrainingProgramToMembers.mockResolvedValue({ data: 1, error: null });
   programDb.revokeTrainingProgramAssignment.mockResolvedValue({ data: true, error: null });
   programDb.acceptTrainingProgramAssignment.mockResolvedValue({ data: { version: 5 }, error: null });
+  programDb.rescheduleTrainingProgramAssignment.mockResolvedValue({ data: true, error: null });
+  programDb.offerTrainingProgramReplacement.mockResolvedValue({ data: "offer-1", error: null });
 });
 
 afterEach(() => cleanup());
@@ -125,6 +129,38 @@ function renderLibrary(props = {}) {
 }
 
 describe("coach/client Program management", () => {
+  it("reschedules pending invitations without replacing an athlete plan", async () => {
+    programDb.listManagedTrainingProgramAssignments.mockResolvedValue({ data: [{ ...assignedProgram, status: "pending", recipient: { nickname: "Rocket" } }], error: null });
+    renderLibrary();
+    fireEvent.click(await screen.findByRole("button", { name: "Reschedule" }));
+    fireEvent.change(screen.getByLabelText("New start date"), { target: { value: "2026-10-14" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save schedule" }));
+    await waitFor(() => expect(programDb.rescheduleTrainingProgramAssignment).toHaveBeenCalledWith(expect.objectContaining({ assignmentId: assignedProgram.id, startDate: "2026-10-12" })));
+    expect(programDb.offerTrainingProgramReplacement).not.toHaveBeenCalled();
+    expect(programDb.acceptTrainingProgramAssignment).not.toHaveBeenCalled();
+  });
+
+  it("offers a latest version for an active assignment, leaving it active until acceptance", async () => {
+    programDb.listManagedTrainingProgramAssignments.mockResolvedValue({ data: [{ ...assignedProgram, status: "accepted", active_state: "active", recipient: { nickname: "Rocket" } }], error: null });
+    renderLibrary();
+    expect(await screen.findByText("Active")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Replace / update" }));
+    expect(screen.getByText("The athlete must accept this offer before their current programme changes.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+    await waitFor(() => expect(programDb.offerTrainingProgramReplacement).toHaveBeenCalledWith(expect.objectContaining({ assignmentId: assignedProgram.id, programId: "program-1" })));
+    expect(programDb.acceptTrainingProgramAssignment).not.toHaveBeenCalled();
+  });
+
+  it("updates an existing add-on without offering to overwrite the personal plan", async () => {
+    programDb.listTrainingProgramAssignments.mockResolvedValue({ data: [{ ...assignedProgram, replaces_assignment_id: "old-addon", replacement_adoption_mode: "add" }], error: null });
+    renderLibrary({ activePlan: { meta: { programAddOns: [{ id: "old-addon" }] } } });
+    fireEvent.click(await screen.findByRole("tab", { name: /Shared & assigned/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview & choose" }));
+    expect(screen.getAllByRole("radio")).toHaveLength(1);
+    expect(screen.getByRole("radio", { name: /Replace my assigned add-on/ }).disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Apply this choice" }));
+    await waitFor(() => expect(programDb.acceptTrainingProgramAssignment).toHaveBeenCalledWith(assignedProgram.id, "profile-1", { adoptionMode: "add", preparedPlan: null }));
+  });
   it("assigns the current frozen version to selected team members", async () => {
     renderLibrary();
     expect(await screen.findByText("Two-week match preparation")).toBeTruthy();
