@@ -63,12 +63,13 @@ describe("coach Program assignment DB adapter", () => {
       message: "Build steadily",
     });
 
-    expect(mock.rpc).toHaveBeenCalledWith("training_program_assign_members", {
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_assign_members_with_permissions", {
       p_program_id: "program-1",
       p_membership_ids: ["member-1", "member-2"],
       p_start_date: "2026-10-05",
       p_completion_mode: "hold",
       p_recipient_can_edit: true,
+      p_recipient_can_copy: true,
       p_message: "Build steadily",
     });
     expect(result.data).toBe(2);
@@ -116,11 +117,13 @@ describe("coach Program assignment DB adapter", () => {
       preparedPlan,
     });
 
-    expect(mock.rpc).toHaveBeenCalledWith("training_program_accept_assignment", {
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_accept_with_sharing", {
       p_assignment_id: "assignment-1",
       p_profile_id: "profile-1",
       p_adoption_mode: "replace_keep_tasks",
       p_prepared_plan: preparedPlan,
+      p_share_adherence: false,
+      p_share_assessments: false,
     });
   });
 

@@ -127,6 +127,9 @@ import SessionLogger from "./components/sessions/SessionLogger.jsx";
 import AssessmentTemplateLibrary from "./components/assessments/AssessmentTemplateLibrary.jsx";
 import AssessmentHub from "./components/assessments/AssessmentHub.jsx";
 import ProgressDashboard from "./components/progress/ProgressDashboard.jsx";
+import ProgramNotifications from "./programs/ProgramNotifications.jsx";
+import ProgramCheckpointEditor from "./programs/ProgramCheckpointEditor.jsx";
+import { listRecipientProgramControls } from "./programs/programWorkflowDb.js";
 import PerformanceDashboard from "./components/dashboard/PerformanceDashboard.jsx";
 import ConnectionsSettings from "./components/settings/ConnectionsSettings.jsx";
 import LogVerificationSummary from "./components/verification/LogVerificationSummary.jsx";
@@ -139,8 +142,10 @@ import { sendWelcomeTutorialEmail } from "./accountLifecycleDb.js";
 import {
   removeTrainingProgramAddOn,
   undoTrainingProgramAssignment,
+  saveTrainingProgram,
 } from "./programs/trainingProgramDb.js";
 import {
+  extractShareablePlanContent,
   addProgramAssessment,
   addProgramPhase,
   duplicateProgramWeek,
@@ -156,6 +161,7 @@ import {
   resolvePlanForDate,
   setPlanProgramWeek,
   updatePlanProgramSettings,
+  updateEditableProgramAddOn,
   updateProgramPhase,
 } from "./engine/planCycleEngine.js";
 const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
@@ -3487,15 +3493,36 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const [planWeekday, setPlanWeekday] = useState("Mon");
   const [planCycleWeekIndex, setPlanCycleWeekIndex] = useState(0);
   const [planViewMode, setPlanViewMode] = useState("edit"); // "edit" | "clean"
+  const [editingAddOnId, setEditingAddOnId] = useState("");
+  const [copyingAddOnId, setCopyingAddOnId] = useState("");
+  const [addOnCopyNotice, setAddOnCopyNotice] = useState("");
+  const editingAddOn = (plan?.meta?.programAddOns || []).find((row) => row.id === editingAddOnId);
+  const editorSourcePlan = editingAddOn?.content || plan;
+  useEffect(() => { setEditingAddOnId(""); setPlanCycleWeekIndex(0); }, [activeProfileId]);
   const planEditorPlan = useMemo(
-    () => (plan ? getPlanEditorWeek(plan, planCycleWeekIndex) : null),
-    [plan, planCycleWeekIndex]
+    () => (editorSourcePlan ? getPlanEditorWeek(editorSourcePlan, planCycleWeekIndex) : null),
+    [editorSourcePlan, planCycleWeekIndex]
   );
   const planProgram = useMemo(
-    () => ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() }),
-    [plan]
+    () => ensurePlanProgram(editorSourcePlan || defaultPlanForFamily(), { todayYmd: getTodayYMD() }),
+    [editorSourcePlan]
   );
   const planProgramWeeks = useMemo(() => flattenProgramWeeks(planProgram), [planProgram]);
+  const [programLibrarySection, setProgramLibrarySection] = useState("mine");
+  const [programControlState, setProgramControlState] = useState({ profileId: "", rows: [] });
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeProfileId || !family?.id) return;
+    listRecipientProgramControls(activeProfileId).then((r) => { if (!cancelled) setProgramControlState({ profileId: activeProfileId, rows: r.data || [] }); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeProfileId, family?.id, plan?.meta?.activeProgramSource?.assignmentId]);
+  const mainProgramSource = plan?.meta?.activeProgramSource;
+  const mainProgramControl = programControlState.profileId === activeProfileId ? programControlState.rows.find((r) => r.assignment_id === mainProgramSource?.assignmentId) : null;
+  const baseProgramLocked = mainProgramSource?.kind === "assignment" && (mainProgramSource.recipientCanEdit === false || mainProgramControl?.can_edit === false || (mainProgramSource.recipientCanEdit === undefined && !mainProgramControl));
+
+  const editAddOnControl = programControlState.profileId === activeProfileId ? programControlState.rows.find((r) => r.assignment_id === editingAddOnId) : null;
+  const mainProgramLocked = editingAddOn ? editingAddOn.recipientCanEdit === false || editAddOnControl?.can_edit === false || (editingAddOn.recipientCanEdit === undefined && !editAddOnControl) : baseProgramLocked;
+
   const programAdoptionUndo = plan?.meta?.programAdoptionUndo || null;
   const addedGroupPrograms = Array.isArray(plan?.meta?.programAddOns)
     ? plan.meta.programAddOns
@@ -3505,9 +3532,9 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   ];
 
   useEffect(() => {
-    const weekCount = plan ? flattenProgramWeeks(plan).length : 1;
+    const weekCount = editorSourcePlan ? flattenProgramWeeks(editorSourcePlan).length : 1;
     if (planCycleWeekIndex >= weekCount) setPlanCycleWeekIndex(Math.max(0, weekCount - 1));
-  }, [plan?.program?.phases, planCycleWeekIndex]);
+  }, [editorSourcePlan?.program?.phases, planCycleWeekIndex]);
 
     // V3: blocks for the currently selected day on the PLAN tab
   const blocksForSelectedPlanDay = useMemo(() => {
@@ -6191,6 +6218,15 @@ const selectedDayHasHeavyTrainingBlocks =
       async function savePlan(nextPlan) {
     if (!(await ensureUnlocked("save changes"))) return;
 
+    if (mainProgramLocked) { window.alert("This programme must be followed as supplied. You can undo it, or use a new personal plan."); return; }
+
+    if (editingAddOn && tab === "plan" && planWorkspaceView === "build") {
+      const next = updateEditableProgramAddOn(plan, editingAddOn.id, normalisePlanForRuntime(nextPlan));
+      const { error } = await upsertProfilePlan(family.id, activeProfileId, next);
+      if (error) { window.alert(error.message || "Add-on changes could not be saved."); throw error; }
+      setAndCachePlan(activeProfileId, next);
+      return;
+    }
     // Normalise once so DB + cache both store the same canonical shape
     const normalised = normalisePlanForRuntime({
       ...nextPlan,
@@ -6201,12 +6237,10 @@ const selectedDayHasHeavyTrainingBlocks =
       },
     });
 
-    // Update in-memory state + localStorage cache
-    setAndCachePlan(activeProfileId, normalised);
-
-    // Persist to Supabase
     if (!family?.id || !activeProfileId) return;
-    await upsertProfilePlan(family.id, activeProfileId, normalised);
+    const { error } = await upsertProfilePlan(family.id, activeProfileId, normalised);
+    if (error) { window.alert(error.message || "Plan changes could not be saved."); throw error; }
+    setAndCachePlan(activeProfileId, normalised);
   }
 
   // Save ONLY meta fields to the profile plan without requiring the PIN unlock.
@@ -6554,11 +6588,9 @@ if (!didClaim) {
     setPlanCycleWeekIndex(Math.max(0, Math.min(firstGlobalIndex, flattenProgramWeeks(nextPlan).length - 1)));
   }
 
-  async function addAssessmentCheckpoint(timing) {
+  async function addAssessmentCheckpoint(assessment) {
     if (!selectedProgramWeek) return;
-    const title = window.prompt(`${timing === "after" ? "End" : "Start"}-of-phase assessment name:`);
-    if (!title?.trim()) return;
-    await savePlan(addProgramAssessment(planProgram, selectedProgramWeek.phaseIndex, { title, timing }));
+    await savePlan(addProgramAssessment(planProgram, selectedProgramWeek.phaseIndex, assessment));
   }
 
   async function deleteAssessmentCheckpoint(assessmentId) {
@@ -6568,11 +6600,11 @@ if (!didClaim) {
 
   // Always work on a plan that has blocksByWeekday initialised
   function getPlanWithBlocks() {
-    return ensureBlocksByWeekday(planEditorPlan || getPlanEditorWeek(plan || defaultPlanForFamily(), planCycleWeekIndex));
+    return ensureBlocksByWeekday(planEditorPlan || getPlanEditorWeek(editorSourcePlan || defaultPlanForFamily(), planCycleWeekIndex));
   }
 
   async function savePlanEditorWeek(nextEditorPlan) {
-    const base = ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
+    const base = ensurePlanProgram(editorSourcePlan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
     const nextPlan = setPlanProgramWeek(base, planCycleWeekIndex, {
       blocksByWeekday: nextEditorPlan?.blocksByWeekday || {},
     });
@@ -9410,6 +9442,7 @@ const cardioProgress = useMemo(() => {
 </h1>
 
     <div className="header-right">
+      <ProgramNotifications familyId={family?.id} profileId={activeProfileId} onOpen={(notification) => { setProgramLibrarySection(notification.audience === "coach" ? "mine" : "shared"); setPlanWorkspaceView("library"); setTab("plan"); }} />
       <div className="selectWide">
         <Select
           value={activeProfileId}
@@ -11314,7 +11347,8 @@ const cardioProgress = useMemo(() => {
     <Card className="pad" style={{ gridColumn: "1 / -1" }}>
       <div className="rowBetween" style={{ gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div className="h2">Training programme</div>
+          <div className="h2">{editingAddOn ? `Edit add-on: ${editingAddOn.title}` : "Training programme"}</div>
+          {editingAddOn ? <SecondaryButton onClick={() => { setEditingAddOnId(""); setPlanCycleWeekIndex(0); }}>Back to my main programme</SecondaryButton> : null}
           <div className="muted mt4">
             Build phases and changing weeks once. The right week appears automatically from the start date.
           </div>
@@ -11345,6 +11379,17 @@ const cardioProgress = useMemo(() => {
                   {program.title || "Assigned Program"}
                   {program.content?.program?.startDate ? ` · from ${program.content.program.startDate}` : ""}
                 </span>
+                {program.recipientCanEdit !== false ? <SecondaryButton onClick={() => { setEditingAddOnId(program.id); setPlanCycleWeekIndex(0); }}>Edit add-on</SecondaryButton> : <span className="pill">Follow as supplied</span>}
+                {program.recipientCanCopy !== false ? <SecondaryButton disabled={!!copyingAddOnId} onClick={async () => {
+                  if (!(await ensureUnlocked("save an assigned programme copy"))) return;
+                  setCopyingAddOnId(program.id); setAddOnCopyNotice("");
+                  try {
+                    const result = await saveTrainingProgram({ familyId: family.id, creatorProfileId: activeProfileId, title: (program.title || "Assigned programme") + " (my copy)", content: extractShareablePlanContent(program.content), changeNote: "Personal copy of an assigned programme" });
+                    if (result.error) throw result.error;
+                    setAddOnCopyNotice("Personal copy saved to My Programs.");
+                  } catch (error) { setAddOnCopyNotice(error.message || "The copy could not be saved."); }
+                  finally { setCopyingAddOnId(""); }
+                }}>{copyingAddOnId === program.id ? "Saving…" : "Save personal copy"}</SecondaryButton> : null}
                 <SecondaryButton
                   className="planAddedProgramRemove"
                   disabled={!!removingProgramAddOnId}
@@ -11355,10 +11400,13 @@ const cardioProgress = useMemo(() => {
               </div>
             ))}
           </div>
+          {addOnCopyNotice ? <p role="status">{addOnCopyNotice}</p> : null}
           <small>These run on their own schedule beside your personal Program and appear in blue-black on Log days.</small>
         </div>
       ) : null}
 
+      {mainProgramLocked ? <p className="programWorkflowCard">Follow as supplied · Editing is disabled for this assigned programme. Logging, undo and switching to a personal programme remain available.</p> : null}
+      <fieldset disabled={mainProgramLocked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <div className="planCycleSettings mt12">
         <div className="field">
           <div className="label">Programme name</div>
@@ -11450,31 +11498,12 @@ const cardioProgress = useMemo(() => {
         ) : null}
       </div>
 
-      <div className="panel mt12">
-        <div className="rowBetween" style={{ gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <div className="h3">Assessment checkpoints</div>
-            <div className="muted mt4">Optional before/after measures for this phase.</div>
-          </div>
-          <div className="planCheckpointActions">
-            <SecondaryButton onClick={() => addAssessmentCheckpoint("before")}>Add before</SecondaryButton>
-            <SecondaryButton onClick={() => addAssessmentCheckpoint("after")}>Add after</SecondaryButton>
-          </div>
-        </div>
-        {selectedProgramWeek?.phase?.assessments?.length ? (
-          <div className="stack mt8">
-            {selectedProgramWeek.phase.assessments.map((assessment) => (
-              <div className="rowBetween" key={assessment.id}>
-                <span><span className="pill">{assessment.timing}</span> {assessment.title}</span>
-                <SecondaryButton onClick={() => deleteAssessmentCheckpoint(assessment.id)}>Remove</SecondaryButton>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      <ProgramCheckpointEditor familyId={family?.id} phase={selectedProgramWeek?.phase} onAdd={addAssessmentCheckpoint} onRemove={deleteAssessmentCheckpoint} disabled={mainProgramLocked} />
+      </fieldset>
     </Card>
     {/* LEFT COLUMN: Day selector + inline blocks */}
     <Card className="pad planSide" ref={planRef}>
+    <fieldset disabled={mainProgramLocked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <div className="h2">Edit {selectedProgramWeek?.week?.name || `Week ${planCycleWeekIndex + 1}`}</div>
       <div className="muted mt8">
         Select a weekday, then add or edit blocks. A day has no type — it’s
@@ -12183,6 +12212,7 @@ const cardioProgress = useMemo(() => {
           </PrimaryButton>
         </div>
       </div>
+    </fieldset>
     </Card>
 
     {/* RIGHT COLUMN: selected week overview + block type guidance */}
@@ -12263,9 +12293,11 @@ const cardioProgress = useMemo(() => {
   ) : (
   <React.Suspense fallback={<div className="panel mt16">Loading Program Library…</div>}>
     <TrainingProgramLibrary
+      key={activeProfileId + ":" + programLibrarySection}
+      initialSection={programLibrarySection}
       familyId={family?.id || ""}
       activeProfileId={activeProfileId}
-      activePlan={planProgram}
+      activePlan={ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() })}
       authorizeMutation={(reason) => ensureUnlocked(reason)}
       onProgramApplied={(nextPlan, label) => {
         if (nextPlan) acceptRemotelyAppliedTrainingPlan(nextPlan, label);

@@ -244,6 +244,7 @@ export async function startAssessmentRun({
   dateYmd,
   library,
   db,
+  programCheckpointId = null,
   startedAt = new Date().toISOString(),
 }) {
   if (!familyId) throw new Error("A family is required to start an Assessment.");
@@ -262,6 +263,7 @@ export async function startAssessmentRun({
       templateVersion: snapshot.template.version,
       templateSnapshot: snapshot,
       notes: "",
+      ...(programCheckpointId ? { programCheckpointId } : {}),
     }),
     "Could not start Assessment"
   );

@@ -3,6 +3,8 @@ import * as assessmentDefinitionDb from "../../assessmentDb.js";
 import * as assessmentRunDb from "../../assessmentRunDb.js";
 import * as assessmentScheduleDb from "../../assessmentScheduleDb.js";
 import { buildAssessmentScheduleStatuses } from "../../engine/assessmentScheduleEngine.js";
+import { listProgramCheckpoints } from "../../programs/programWorkflowDb.js";
+import { programCheckpointStatus } from "../../programs/programCheckpointStatus.js";
 import AssessmentRunner from "./AssessmentRunner.jsx";
 import AssessmentHistory from "./AssessmentHistory.jsx";
 import {
@@ -23,6 +25,7 @@ const defaultDb = {
   ...assessmentDefinitionDb,
   ...assessmentRunDb,
   ...assessmentScheduleDb,
+  listProgramCheckpoints,
 };
 
 function cleanText(value, fallback = "") {
@@ -116,6 +119,7 @@ export default function AssessmentHub({
   const [library, setLibrary] = useState(() => emptyAssessmentLibrary());
   const [runs, setRuns] = useState([]);
   const [completedRuns, setCompletedRuns] = useState([]);
+  const [checkpoints, setCheckpoints] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [mode, setMode] = useState("run");
   const [runState, setRunState] = useState(null);
@@ -130,13 +134,14 @@ export default function AssessmentHub({
       setRuns([]);
       setCompletedRuns([]);
       setSchedules([]);
+      setCheckpoints([]);
       return;
     }
 
     setLoading(true);
     setError("");
     try {
-      const [libraryResult, runsResult, completedRunsResult, schedulesResult] = await Promise.all([
+      const [libraryResult, runsResult, completedRunsResult, schedulesResult, checkpointsResult] = await Promise.all([
         dbApi.loadAssessmentLibrary(familyId),
         dbApi.listAssessmentRuns(familyId, {
           profileId,
@@ -152,6 +157,7 @@ export default function AssessmentHub({
           profileId,
           activeOnly: true,
         }),
+        dbApi.listProgramCheckpoints ? dbApi.listProgramCheckpoints(familyId, profileId) : Promise.resolve({ data: [], error: null }),
       ]);
       const libraryError = resultError(
         libraryResult,
@@ -177,6 +183,8 @@ export default function AssessmentHub({
       setLibrary(normaliseAssessmentLibrary(libraryResult?.data || {}));
       setRuns(runsResult?.data || []);
       setCompletedRuns(completedRunsResult?.data || []);
+      if (checkpointsResult.error) throw checkpointsResult.error;
+      setCheckpoints(checkpointsResult.data || []);
       setSchedules(schedulesResult?.data || []);
     } catch (loadError) {
       setError(loadError?.message || String(loadError));
@@ -248,14 +256,15 @@ export default function AssessmentHub({
     }
   };
 
-  const start = (templateId) =>
+  const start = (templateId, programCheckpointId = null, checkpointLibrary = null) =>
     perform(async () => {
       const started = await startAssessmentRun({
         familyId,
         profileId,
         templateId,
         dateYmd: todayYmd,
-        library,
+        programCheckpointId,
+        library: checkpointLibrary || library,
         db: dbApi,
       });
       const next = {
@@ -375,6 +384,18 @@ export default function AssessmentHub({
       {error ? <div role="alert" className="assessment-hub__error">{error}</div> : null}
       {status ? <div role="status" className="assessment-hub__status">{status}</div> : null}
 
+      {checkpoints.length ? <section aria-label="Programme assessment checkpoints">
+        <h3>Programme checkpoints</h3>
+        <p>Phase boundaries from your active programmes. Complete each checkpoint using its linked Assessment.</p>
+        <div className="assessment-hub__grid">{checkpoints.map((cp) => {
+          const status = programCheckpointStatus(cp, [...completedRuns, ...runs], todayYmd);
+          return <article className={`assessment-hub__schedule assessment-hub__schedule--${status.state}`} key={cp.id}>
+            <span className="assessment-hub__schedule-state">{status.state.replace("_", " ")}</span>
+            <h3>{cp.title}</h3><p>{cp.phase_name} · {cp.timing} · Due {formatScheduleDate(cp.due_date)}</p>
+            {status.state === "completed" ? <p>Completed {formatScheduleDate(status.run.date_ymd)} · Linked to your programme</p> : <button type="button" disabled={busy || loading || status.state === "upcoming"} onClick={() => status.run ? resume(status.run.id) : start(cp.assessment_template_id, cp.id, cp.definition_json?.templates?.length ? cp.definition_json : null)}>{status.run ? "Resume checkpoint" : "Start checkpoint"}</button>}
+          </article>;
+        })}</div>
+      </section> : null}
       {scheduleStatuses.length ? (
         <>
           <div className="assessment-hub__section-title">Scheduled benchmarks</div>

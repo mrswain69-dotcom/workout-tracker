@@ -13,4 +13,4 @@ The migration adds scoped RPCs and a replacement relationship. Existing acceptan
 
 The rollback-only SQL test exercises coach and athlete identities, unauthorised management, version offers, decline, exact undo, add-on replacement, status boundaries and log preservation. It uses temporary fixture records in existing account families and leaves no changes behind.
 
-Next: recipient editing/copy permissions and notifications, then connect programme checkpoints to assessment scheduling and build privacy-controlled adherence reports. Direct clients without team membership and bulk version offers are not included in this phase.
+Recipient permissions, in-app notifications, linked assessment checkpoints and opt-in coach reporting are now implemented; see program-coaching-workflow.md. Direct clients without team membership and bulk version offers remain outside this phase.

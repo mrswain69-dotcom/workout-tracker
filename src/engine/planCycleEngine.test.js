@@ -16,6 +16,7 @@ import {
   resolvePlanForDate,
   setPlanProgramWeek,
   updatePlanProgramSettings,
+  updateEditableProgramAddOn,
 } from "./planCycleEngine.js";
 
 const blankDays = () => ({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] });
@@ -249,5 +250,29 @@ describe("planCycleEngine Program model", () => {
     ]);
     expect(adopted.meta.avatarId).toBe("mine");
     expect(adopted.meta.programAddOns).toBeUndefined();
+  });
+});
+
+
+describe("frozen programme Assessments", () => {
+  it("retains issued definitions while normalising checkpoints", () => {
+    const definition = { template: { name: "Sprint" }, tests: [{ name: "40m" }] };
+    const input = { program: { phases: [{ weeks: [{}], assessments: [{ id: "cp", title: "Sprint", assessmentTemplateId: "real-template", assessmentDefinition: definition }] }] } };
+    expect(ensurePlanProgram(input).program.phases[0].assessments[0].assessmentDefinition).toEqual(definition);
+  });
+});
+
+describe("editing a permitted assigned add-on", () => {
+  it("preserves the personal programme, metadata and source identity", () => {
+    const base = { ...legacy(), meta: { avatarId: "private", programAddOns: [{ id: "a", recipientCanEdit: true, content: legacy() }] } };
+    const edited = ensurePlanProgram(legacy(), { name: "Edited team plan" });
+    const next = updateEditableProgramAddOn(base, "a", edited);
+    expect(next.blocksByWeekday).toBe(base.blocksByWeekday);
+    expect(next.meta.avatarId).toBe("private");
+    expect(next.meta.programAddOns).toHaveLength(1);
+    expect(next.meta.programAddOns[0].id).toBe("a");
+    expect(next.meta.programAddOns[0].content.program.name).toBe("Edited team plan");
+    expect(next.meta.programAddOns[0].content.meta).toBeUndefined();
+    expect(() => updateEditableProgramAddOn({ ...base, meta: { programAddOns: [{ id: "a", recipientCanEdit: false }] } }, "a", edited)).toThrow("followed as supplied");
   });
 });

@@ -3,6 +3,12 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("./programWorkflowDb.js", () => ({
+  listRecipientProgramControls: vi.fn(async () => ({ data: [], error: null })),
+  setProgramReporting: vi.fn(async () => ({ data: true, error: null })),
+  setProgramPermissions: vi.fn(async () => ({ data: true, error: null })),
+  getProgramCoachReport: vi.fn(async () => ({ data: {}, error: null })),
+}));
 vi.mock("../db.js", () => ({ listPlanTemplates: vi.fn() }));
 vi.mock("../groups/groupDb.js", () => ({
   listGroupDirectory: vi.fn(),
@@ -129,6 +135,25 @@ function renderLibrary(props = {}) {
 }
 
 describe("coach/client Program management", () => {
+  it("sends follow-as-supplied permissions and optional sharing independently", async () => {
+    renderLibrary();
+    fireEvent.click(await screen.findByRole("button", { name: "Assign" }));
+    fireEvent.change(screen.getByLabelText("Recipient permissions"), { target: { value: "follow" } });
+    fireEvent.click(await screen.findByText("Rocket"));
+    fireEvent.click(screen.getByRole("button", { name: "Assign to 1" }));
+    await waitFor(() => expect(programDb.assignTrainingProgramToMembers).toHaveBeenCalledWith(expect.objectContaining({ recipientCanEdit: false, recipientCanCopy: false })));
+  });
+  it("includes the recipient's explicit reporting choices in acceptance", async () => {
+    programDb.listTrainingProgramAssignments.mockResolvedValue({ data: [{ ...assignedProgram, recipient_can_edit: false, recipient_can_copy: false }], error: null });
+    renderLibrary();
+    fireEvent.click(await screen.findByRole("tab", { name: /Shared & assigned/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview & choose" }));
+    expect(screen.getByText(/Follow as supplied:/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Share programme adherence/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply this choice" }));
+    await waitFor(() => expect(programDb.acceptTrainingProgramAssignment).toHaveBeenCalledWith(assignedProgram.id, "profile-1", expect.objectContaining({ shareAdherence: true, shareAssessments: false })));
+  });
+
   it("reschedules pending invitations without replacing an athlete plan", async () => {
     programDb.listManagedTrainingProgramAssignments.mockResolvedValue({ data: [{ ...assignedProgram, status: "pending", recipient: { nickname: "Rocket" } }], error: null });
     renderLibrary();
@@ -159,7 +184,7 @@ describe("coach/client Program management", () => {
     expect(screen.getAllByRole("radio")).toHaveLength(1);
     expect(screen.getByRole("radio", { name: /Replace my assigned add-on/ }).disabled).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Apply this choice" }));
-    await waitFor(() => expect(programDb.acceptTrainingProgramAssignment).toHaveBeenCalledWith(assignedProgram.id, "profile-1", { adoptionMode: "add", preparedPlan: null }));
+    await waitFor(() => expect(programDb.acceptTrainingProgramAssignment).toHaveBeenCalledWith(assignedProgram.id, "profile-1", { adoptionMode: "add", preparedPlan: null, shareAdherence: false, shareAssessments: false }));
   });
   it("assigns the current frozen version to selected team members", async () => {
     renderLibrary();
@@ -181,6 +206,7 @@ describe("coach/client Program management", () => {
       startDate: expect.any(String),
       completionMode: "repeat",
       recipientCanEdit: true,
+      recipientCanCopy: true,
       message: "Complete this before Sunday",
     }));
   });
@@ -222,7 +248,7 @@ describe("coach/client Program management", () => {
     await waitFor(() => expect(programDb.acceptTrainingProgramAssignment).toHaveBeenCalledWith(
       "assignment-incoming",
       "profile-1",
-      { adoptionMode: "add", preparedPlan: null }
+      { adoptionMode: "add", preparedPlan: null, shareAdherence: false, shareAssessments: false }
     ));
     expect(onProgramApplied).toHaveBeenCalledWith(
       { version: 5 },

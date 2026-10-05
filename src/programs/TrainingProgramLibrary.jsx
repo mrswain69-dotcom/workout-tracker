@@ -34,6 +34,9 @@ import {
   saveTrainingProgram,
 } from "./trainingProgramDb.js";
 import "./TrainingProgramLibrary.css";
+import ProgramRecipientControls from "./ProgramRecipientControls.jsx";
+import ProgramCoachReports from "./ProgramCoachReports.jsx";
+import { setProgramPermissions, listRecipientProgramControls } from "./programWorkflowDb.js";
 
 function todayMonday() {
   const now = new Date();
@@ -135,6 +138,8 @@ function AssignedProgramPreview({
   const replacesBase = !!assignment.replacement_adoption_mode && !replacesAddOn;
   const canAddAnotherProgram = activeAddOnCount < 1 || replacesAddOn;
   const choices = ADOPTION_CHOICES.filter((choice) => replacesAddOn ? choice.id === "add" : !replacesBase || choice.id !== "add");
+  const [shareAdherence, setShareAdherence] = useState(false);
+  const [shareAssessments, setShareAssessments] = useState(false);
   const [weekIndex, setWeekIndex] = useState(0);
   const [adoptionMode, setAdoptionMode] = useState(() => (
     assignment.replacement_adoption_mode || (canAddAnotherProgram ? "add" : "replace")
@@ -167,6 +172,13 @@ function AssignedProgramPreview({
         <div className="assignedProgramInfo">This is an update or replacement offer. Your current programme stays in place until you apply it. {replacesAddOn ? "Only the assigned add-on is replaced; your personal plan stays." : "You can undo after applying it."}</div>
       ) : null}
 
+      <div className="assignedProgramInfo">{assignment.recipient_can_edit === false ? "Follow as supplied: assigned content cannot be edited while attached." : "You may edit your active copy."} {assignment.recipient_can_copy === false ? "Saving a reusable copy is not allowed." : "Saving a personal copy is allowed."}</div>
+      <div className="programWorkflowCard">
+        <strong>Optional coach reporting</strong>
+        <p>Your private notes and unrelated workouts stay private. Change sharing later in Shared &amp; assigned.</p>
+        <label className="programWorkflowCheck"><input type="checkbox" checked={shareAdherence} onChange={(e) => setShareAdherence(e.target.checked)} />Share programme adherence with my coach</label>
+        <label className="programWorkflowCheck"><input type="checkbox" checked={shareAssessments} onChange={(e) => setShareAssessments(e.target.checked)} />Share programme checkpoint results with my coach</label>
+      </div>
       <div className="assignedProgramWeekNav">
         <label>
           Preview week
@@ -238,7 +250,7 @@ function AssignedProgramPreview({
         <p>{hasExistingPlan ? "Your current plan is backed up before this change." : "This becomes your first active Program."}</p>
         <div>
           <button type="button" onClick={onClose}>Cancel</button>
-          <button type="button" className="primary" disabled={busy} onClick={() => onAdopt(adoptionMode)}>
+          <button type="button" className="primary" disabled={busy} onClick={() => onAdopt(adoptionMode, { shareAdherence, shareAssessments })}>
             {busy ? "Applying…" : "Apply this choice"}
           </button>
         </div>
@@ -251,11 +263,12 @@ export default function TrainingProgramLibrary({
   familyId,
   activeProfileId,
   activePlan,
+  initialSection = "mine",
   authorizeMutation,
   onProgramApplied,
   onStarterApplied,
 }) {
-  const [section, setSection] = useState("mine");
+  const [section, setSection] = useState(initialSection);
   const [programs, setPrograms] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [managedAssignments, setManagedAssignments] = useState([]);
@@ -267,6 +280,8 @@ export default function TrainingProgramLibrary({
   const [targetGroupId, setTargetGroupId] = useState("");
   const [assignmentProgramId, setAssignmentProgramId] = useState("");
   const [selectedMembershipIds, setSelectedMembershipIds] = useState([]);
+  const [permission, setPermission] = useState("adapt_copy");
+  const [recipientControls, setRecipientControls] = useState([]);
   const [assignmentMessage, setAssignmentMessage] = useState("");
   const [assignmentStatus, setAssignmentStatus] = useState("all");
   const [assignmentEdit, setAssignmentEdit] = useState(null);
@@ -309,12 +324,13 @@ export default function TrainingProgramLibrary({
 
   const refresh = useCallback(async () => {
     if (!familyId || !activeProfileId) return;
-    const [owned, incoming, managed, memberships, legacyTemplates] = await Promise.all([
+    const [owned, incoming, managed, memberships, legacyTemplates, controls] = await Promise.all([
       listOwnedTrainingPrograms(familyId),
       listTrainingProgramAssignments(activeProfileId),
       listManagedTrainingProgramAssignments(familyId),
       listProfileGroups(activeProfileId),
       listPlanTemplates(familyId),
+      listRecipientProgramControls(activeProfileId),
     ]);
     if (owned.error || incoming.error || managed.error || memberships.error || legacyTemplates.error) {
       setNotice(message(owned.error || incoming.error || managed.error || memberships.error || legacyTemplates.error));
@@ -347,6 +363,7 @@ export default function TrainingProgramLibrary({
       }
     }
 
+    setRecipientControls(controls.data || []);
     setPrograms(nextPrograms);
     setAssignments(incoming.data || []);
     setManagedAssignments(managed.data || []);
@@ -400,7 +417,11 @@ export default function TrainingProgramLibrary({
     return authorizeMutation ? authorizeMutation(reason) : true;
   }
 
+  const source = activePlan?.meta?.activeProgramSource;
+  const noCopy = source?.kind === "assignment" && (source.recipientCanCopy === false || recipientControls.find((c) => c.assignment_id === source.assignmentId)?.can_copy === false);
+
   async function saveNewProgram() {
+    if (noCopy) return setNotice("The coach has not allowed saving this assigned programme as a reusable copy.");
     if (!activePlan || !title.trim() || !(await allowed("save a programme"))) return;
     setBusy("save");
     setNotice("");
@@ -419,6 +440,7 @@ export default function TrainingProgramLibrary({
   }
 
   async function saveNewVersion(program) {
+    if (noCopy) return setNotice("The coach has not allowed copying this programme.");
     if (!activePlan || !(await allowed("save a new programme version"))) return;
     setBusy(program.id);
     const { error } = await saveTrainingProgram({
@@ -513,7 +535,8 @@ export default function TrainingProgramLibrary({
       membershipIds: selectedMembershipIds,
       startDate,
       completionMode,
-      recipientCanEdit: true,
+      recipientCanEdit: permission !== "follow",
+      recipientCanCopy: permission === "adapt_copy",
       message: assignmentMessage.trim(),
     });
     setBusy("");
@@ -564,7 +587,7 @@ export default function TrainingProgramLibrary({
     finally { setBusy(""); }
   }
 
-  async function acceptAssignment(assignment, adoptionMode) {
+  async function acceptAssignment(assignment, adoptionMode, sharing = {}) {
     if (!(await allowed("accept an assigned programme"))) return;
     setBusy(assignment.id);
     const preparedPlan = adoptionMode === "replace_keep_tasks"
@@ -573,7 +596,7 @@ export default function TrainingProgramLibrary({
     const { data, error } = await acceptTrainingProgramAssignment(
       assignment.id,
       activeProfileId,
-      { adoptionMode, preparedPlan }
+      { adoptionMode, preparedPlan, ...sharing }
     );
     setBusy("");
     if (error) return setNotice(message(error));
@@ -613,12 +636,13 @@ export default function TrainingProgramLibrary({
         <button type="button" role="tab" aria-selected={section === "mine"} className={section === "mine" ? "active" : ""} onClick={() => setSection("mine")}>My Programs</button>
         <button type="button" role="tab" aria-selected={section === "shared"} className={section === "shared" ? "active" : ""} onClick={() => setSection("shared")}>Shared &amp; assigned{assignments.length ? ` (${assignments.length})` : ""}</button>
         <button type="button" role="tab" aria-selected={section === "starters"} className={section === "starters" ? "active" : ""} onClick={() => setSection("starters")}>Starter Programs</button>
+        <button type="button" role="tab" aria-selected={section === "reports"} className={section === "reports" ? "active" : ""} onClick={() => setSection("reports")}>Coach reports</button>
         <button type="button" role="tab" aria-selected={section === "discover"} className={section === "discover" ? "active" : ""} onClick={() => setSection("discover")}>Discover</button>
       </div>
 
       {notice ? <div className="trainingProgramNotice" role="status">{notice}</div> : null}
 
-      {section !== "discover" ? (
+      {section !== "discover" && section !== "reports" ? (
         <div className="trainingProgramControls">
           <label>Starts Monday<input type="date" value={startDate} onChange={(event) => setStartDate(normaliseProgramStartDate(event.target.value))} /></label>
           <label>At the end<select value={completionMode} onChange={(event) => setCompletionMode(event.target.value)}><option value="repeat">Repeat</option><option value="once">Finish</option><option value="hold">Hold final week</option></select></label>
@@ -630,7 +654,7 @@ export default function TrainingProgramLibrary({
           <div className="trainingProgramCreate">
             <label>Name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} /></label>
             <label>Description<input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1200} placeholder="Who this is for and what it develops" /></label>
-            <button type="button" className="primary" disabled={busy === "save" || !title.trim()} onClick={saveNewProgram}>Save active Program</button>
+            <button type="button" className="primary" disabled={busy === "save" || !title.trim() || noCopy} onClick={saveNewProgram}>Save active Program</button>
           </div>
 
           <div className="trainingProgramSection">
@@ -640,7 +664,7 @@ export default function TrainingProgramLibrary({
                 {programs.map((program) => (
                   <ProgramCard key={program.id} program={program} badge={program.legacy_plan_template_id ? "Moved from saved plans" : "Private"}>
                     <button type="button" className="primary" disabled={busy === program.id} onClick={() => useProgram(program)}>Use</button>
-                    <button type="button" disabled={busy === program.id} onClick={() => saveNewVersion(program)}>Save new version</button>
+                    <button type="button" disabled={busy === program.id || noCopy} onClick={() => saveNewVersion(program)}>Save new version</button>
                     <button type="button" disabled={busy === program.id} onClick={() => shareProgram(program)}>Copy private link</button>
                     <button type="button" disabled={busy === program.id} onClick={() => openAssignmentComposer(program)}>Assign</button>
                     <button type="button" disabled={busy === program.id} onClick={async () => { if (window.confirm(`Archive “${program.title}”?`)) { await archiveTrainingProgram(program.id); await refresh(); } }}>Archive</button>
@@ -663,6 +687,7 @@ export default function TrainingProgramLibrary({
 
               <div className="trainingProgramAssignmentFields">
                 <label>Team<select value={targetGroupId} onChange={(event) => setTargetGroupId(event.target.value)}>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
+                <label>Recipient permissions<select value={permission} onChange={(e) => setPermission(e.target.value)}><option value="adapt_copy">Edit and save a personal copy</option><option value="adapt">Edit active copy only</option><option value="follow">Follow as supplied</option></select></label>
                 <label>Message (optional)<textarea value={assignmentMessage} onChange={(event) => setAssignmentMessage(event.target.value)} maxLength={500} placeholder="Add context, targets or a welcome note" /></label>
               </div>
 
@@ -688,7 +713,7 @@ export default function TrainingProgramLibrary({
               {!directoryLoading && !assignableMembers.length ? <p className="muted">There are no other active members in this team yet.</p> : null}
 
               <div className="trainingProgramAssignmentFooter">
-                <p>Recipients get this frozen version and may adapt their own active copy. Your later edits will not overwrite their plan.</p>
+                <p>Recipients see the permissions before accepting. Reporting is optional and private until they choose to share.</p>
                 <button type="button" className="primary" disabled={busy === "assign-members" || !selectedMembershipIds.length} onClick={assignSelectedMembers}>Assign to {selectedMembershipIds.length || 0}</button>
               </div>
             </section>
@@ -718,7 +743,7 @@ export default function TrainingProgramLibrary({
                     </div>
                     <div className="trainingProgramAssignmentState">
                       <span className={`trainingProgramStatus ${assignment.active_state || assignment.status}`}>{ASSIGNMENT_STATUS[assignment.active_state] || (assignment.removed_at ? "Add-on removed" : assignment.undone_at ? "Undone" : ASSIGNMENT_STATUS[assignment.status])}{assignment.replaces_assignment_id && assignment.status === "pending" ? " · update offer" : ""}</span>
-                      {assignment.status === "pending" ? <button type="button" disabled={!!busy} onClick={() => revokeAssignment(assignment)}>Revoke</button> : null}
+                      {assignment.status === "pending" ? <><button type="button" disabled={!!busy} onClick={() => revokeAssignment(assignment)}>Revoke</button><label>Permissions<select disabled={!!busy} value={assignment.recipient_can_edit === false ? "follow" : assignment.recipient_can_copy === false ? "adapt" : "adapt_copy"} onChange={async (e) => { if (!(await allowed("change pending assignment permissions"))) return; setBusy(assignment.id); try { const r = await setProgramPermissions(assignment.id, e.target.value !== "follow", e.target.value === "adapt_copy"); if (r.error || !r.data) throw r.error || new Error("Assignment is no longer pending."); await refresh(); setNotice("Invitation permissions updated. The recipient was notified."); } catch (error) { setNotice(message(error)); } finally { setBusy(""); } }}><option value="adapt_copy">Edit and copy</option><option value="adapt">Edit only</option><option value="follow">Follow as supplied</option></select></label></> : null}
                       {assignment.status === "pending" || ["active", "scheduled", "holding", "finished"].includes(assignment.active_state) ? (
                         <>
                           <button type="button" disabled={!!busy} onClick={() => editAssignment(assignment, "reschedule")}>Reschedule</button>
@@ -746,9 +771,12 @@ export default function TrainingProgramLibrary({
         </>
       ) : null}
 
+      {section === "reports" ? <ProgramCoachReports key={activeProfileId} assignments={managedAssignments} groups={groups} /> : null}
+
       {section === "shared" ? (
         <div className="trainingProgramSection">
           <h3>Shared &amp; assigned</h3>
+          <ProgramRecipientControls key={activeProfileId + assignments.length} profileId={activeProfileId} />
           {sharedPreview ? (
             <div className="trainingProgramShared">
               <div>
@@ -765,7 +793,7 @@ export default function TrainingProgramLibrary({
               activePlan={activePlan}
               busy={busy === previewAssignment.id}
               onClose={() => setPreviewAssignmentId("")}
-              onAdopt={(adoptionMode) => acceptAssignment(previewAssignment, adoptionMode)}
+              onAdopt={(adoptionMode, sharing) => acceptAssignment(previewAssignment, adoptionMode, sharing)}
             />
           ) : null}
           {assignments.length ? (
