@@ -8,7 +8,18 @@ import * as db from "./db.js";
 vi.mock("./db.js", async (importOriginal) => {
   const original = await importOriginal();
   const block = { id: "strength", typeId: "strength", label: "Shoulders and Triceps", movements: [{ id: "press", name: "Shoulder Press", sets: 3, trackWeight: true, reps: "12" }] };
-  const plan = { version: 3, blocksByWeekday: Object.fromEntries(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => [day, [block]])) };
+  const blocksByWeekday = Object.fromEntries(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => [day, [block]]));
+  const plan = {
+    version: 5,
+    blocksByWeekday,
+    program: {
+      version: 1,
+      name: "Test program",
+      startDate: "2026-09-28",
+      completionMode: "repeat",
+      phases: [{ id: "phase", name: "Main phase", weeks: [{ id: "week", name: "Week 1", blocksByWeekday }] }],
+    },
+  };
   return {
     ...original,
     isSupabaseReady: () => true,
@@ -39,18 +50,25 @@ async function ready() {
   return result;
 }
 
-function dateInput() { return document.querySelector('.logDateControls input[type="date"]') || document.querySelector('input[type="date"]'); }
+function dateButton() {
+  return document.querySelector(".activityCalendar__trigger");
+}
+
+function chooseDate(dateYmd) {
+  fireEvent.click(dateButton());
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${dateYmd}\\.`) }));
+}
 
 describe("actual Log navigation", () => {
   it("restores the Log date and keeps typed reps/weight when leaving and returning", async () => {
     const first = await ready();
-    expect(dateInput().value).toBe("2026-10-01");
+    expect(dateButton().textContent).toContain("01/10/2026");
     const fields = screen.getAllByRole("spinbutton");
     fireEvent.change(fields[0], { target: { value: "12" } });
     fireEvent.change(fields[1], { target: { value: "22.5" } });
-    fireEvent.change(dateInput(), { target: { value: "2026-10-02" } });
+    chooseDate("2026-10-02");
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe(""));
-    fireEvent.change(dateInput(), { target: { value: "2026-10-01" } });
+    chooseDate("2026-10-01");
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("12"));
     expect(screen.getAllByRole("spinbutton")[1].value).toBe("22.5");
     await waitFor(() => expect(db.upsertLog).toHaveBeenCalled(), { timeout: 2000 });
@@ -59,7 +77,7 @@ describe("actual Log navigation", () => {
     // The browser refresh should restore the tab, date and saved activity.
     first.unmount();
     await ready();
-    expect(dateInput().value).toBe("2026-10-01");
+    expect(dateButton().textContent).toContain("01/10/2026");
     expect(screen.getByRole("button", { name: "Log" }).className).toContain("active");
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("12"));
     expect(screen.getAllByRole("spinbutton")[1].value).toBe("22.5");
@@ -83,10 +101,10 @@ describe("actual Log navigation", () => {
     expect(screen.getByText("Dips")).toBeTruthy();
     expect(screen.queryByText("Untitled strength block")).toBeNull();
     await waitFor(() => expect(finish).toBeTypeOf("function"));
-    fireEvent.change(dateInput(), { target: { value: "2026-10-02" } });
+    chooseDate("2026-10-02");
     await act(async () => finish());
     expect(screen.queryByText("Extra arms")).toBeNull();
-    fireEvent.change(dateInput(), { target: { value: "2026-10-01" } });
+    chooseDate("2026-10-01");
     await screen.findByText("Extra arms");
     const summary = screen.getByRole("button", { name: /Shoulders and Triceps/ });
     if (summary.getAttribute("aria-expanded") === "false") fireEvent.click(summary);

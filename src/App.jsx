@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
 import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
 import MovementCompletion from "./components/log/MovementCompletion.jsx";
+import ActivityCalendar from "./components/log/ActivityCalendar.jsx";
 import { movementEntriesComplete } from "./engine/movementEntryCompletion.js";
 import { mapProfileHistoryRows } from "./engine/profileHistoryRows.js";
 import {
@@ -59,6 +60,10 @@ import {
   buildRewardsRoadmap,
   getNextAvatarReward,
 } from "./engine/dashboardEngine.js";
+import {
+  buildActivityCalendarDay,
+  buildRecentActivityCalendarDays,
+} from "./engine/activityCalendarEngine.js";
 import {
   getAccountHydrationPhase,
   runAccountLoadWithRetry,
@@ -3207,6 +3212,7 @@ export default function App() {
     catch { return { tab: "dashboard", date: ymd(new Date()) }; }
   });
   const [tab, setTab] = useState(() => providerReturn ? "connections" : initialNavigation.tab);
+  const [progressInitialView, setProgressInitialView] = useState("dashboard");
 
   useEffect(() => {
     if (providerReturn) clearProviderReturnFromUrl();
@@ -5687,6 +5693,66 @@ const selectedDayStatus = useMemo(() => {
   // Log exists but completely empty
   return isToday ? "amber" : "grey";
 }, [selectedDate, allLogs, todayYmd]);
+
+const calendarLogsByDate = useMemo(() => {
+  const rows = new Map();
+  for (const row of Array.isArray(allLogs) ? allLogs : []) {
+    const date = String(row?.date_ymd || row?.date || "");
+    if (date) rows.set(date, row?.log || row?.log_json || null);
+  }
+  return rows;
+}, [allLogs]);
+
+const getActivityCalendarDay = useCallback((dateYmd) => {
+  const log = calendarLogsByDate.get(dateYmd) || null;
+  const recoveryPeriod = getProfileRecoveryModeForDate(
+    profileRecoveryPeriods,
+    activeProfileId,
+    dateYmd,
+    todayYmd
+  );
+  const recoveryMode = normaliseProfileRecoveryMode(
+    recoveryPeriod?.mode || log?.meta?.profileRecoveryMode
+  );
+  const datePlan = plan ? resolvePlanForDate(plan, dateYmd) : null;
+  const weekday = weekdayFromYMD(dateYmd);
+  const baseBlocks = datePlan
+    ? getDayActivitiesForWeekday(datePlan, weekday) || []
+    : [];
+  const plannedBlocks = applyProfileRecoveryModeToPlannedBlocks(baseBlocks, {
+    profileId: activeProfileId,
+    dateYmd,
+    mode: recoveryMode,
+  });
+  let completed = isDayGreen(log);
+
+  if (completed && hasRecoveryDoneForLog(log) && !isProfileRecoveryModeLog(log)) {
+    const eligibility = getRecoveryEligibilityForDateApp(allLogs, dateYmd);
+    if (!eligibility?.qualifies) completed = false;
+  }
+
+  return buildActivityCalendarDay({
+    dateYmd,
+    todayYmd,
+    log,
+    plannedBlocks,
+    hasPlanSchedule: !!recoveryMode || (!!datePlan && planHasBlocks(datePlan)),
+    recoveryMode,
+    completed,
+  });
+}, [
+  activeProfileId,
+  allLogs,
+  calendarLogsByDate,
+  plan,
+  profileRecoveryPeriods,
+  todayYmd,
+]);
+
+const dashboardCalendarDays = useMemo(
+  () => buildRecentActivityCalendarDays(todayYmd, 14, getActivityCalendarDay),
+  [getActivityCalendarDay, todayYmd]
+);
 
 const currentPlanStreak = useMemo(() => {
   return workoutStreak.currentDays;
@@ -9459,6 +9525,7 @@ const cardioProgress = useMemo(() => {
             motivationLine={motivationLine}
             healthTip={healthTip}
             bodyReadiness={bodyReadiness}
+            historyDays={dashboardCalendarDays}
             onOpenLog={() => {
               setSelectedDate(todayYmd);
               setTab("log");
@@ -9468,7 +9535,18 @@ const cardioProgress = useMemo(() => {
               setSelectedDate(todayYmd);
               setTab("log");
             }}
-            onOpenProgress={() => setTab("stats")}
+            onOpenProgress={() => {
+              setProgressInitialView("dashboard");
+              setTab("stats");
+            }}
+            onOpenVerification={() => {
+              setProgressInitialView("verification");
+              setTab("stats");
+            }}
+            onOpenHistoryDate={(dateYmd) => {
+              setSelectedDate(dateYmd);
+              setTab("log");
+            }}
             onOpenRewards={() => setTab("rewards")}
             onOpenGroups={() => setShowGroups(true)}
             onOpenConnections={() => setTab("connections")}
@@ -9483,22 +9561,12 @@ const cardioProgress = useMemo(() => {
                 <div className="rowLeft">
                   <div className="field">
                     <div className="label">Date</div>
-                    <input
-  type="date"
-  value={selectedDate}
-  onChange={(e) => setSelectedDate(e.target.value)}
-  onKeyDown={(e) => {
-    if (
-      e.key === "ArrowUp" ||
-      e.key === "ArrowDown" ||
-      e.key === "PageUp" ||
-      e.key === "PageDown"
-    ) {
-      e.preventDefault();
-    }
-  }}
-  className="input"
-/>
+                    <ActivityCalendar
+                      value={selectedDate}
+                      todayYmd={todayYmd}
+                      onChange={setSelectedDate}
+                      getDayState={getActivityCalendarDay}
+                    />
                   </div>
                 </div>
 
@@ -9564,7 +9632,10 @@ const cardioProgress = useMemo(() => {
                   )}
                   logJson={logForDay}
                   onAutoPopulationChanged={() => setExternalLogRevision((value) => value + 1)}
-                  onOpenProgress={() => setTab("stats")}
+                  onOpenProgress={() => {
+                    setProgressInitialView("verification");
+                    setTab("stats");
+                  }}
                 />
 
                                {/* --- V3 block-based logging panels --- */}
@@ -11197,6 +11268,7 @@ const cardioProgress = useMemo(() => {
             referenceDate={getTodayYMD()}
             summaryStats={stats}
             recordStats={records}
+            initialView={progressInitialView}
             onOpenAssessments={() => setTab("assessments")}
           />
         )}

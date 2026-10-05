@@ -57,6 +57,23 @@ function dbApi(overrides = {}) {
 afterEach(() => cleanup());
 
 describe("ProgressDashboard Stage 4 shell", () => {
+  it("opens directly on Activity Verification when requested by the Log page", async () => {
+    render(
+      <ProgressDashboard
+        familyId="family-1"
+        profileId="profile-wilf"
+        logs={[]}
+        referenceDate="2026-09-10"
+        initialView="verification"
+        dbApi={dbApi()}
+      />
+    );
+
+    const verificationTab = screen.getByRole("button", { name: "Activity Verification" });
+    expect(verificationTab.getAttribute("aria-current")).toBe("page");
+    expect(screen.queryByText("Your progress dashboard")).toBeNull();
+  });
+
   it("renders the real zero-history state without inventing Session or Assessment results", async () => {
     const api = dbApi();
     render(
