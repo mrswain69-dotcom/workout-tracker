@@ -254,55 +254,54 @@ export default function LogVerificationSummary({
   const [autoError, setAutoError] = useState("");
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState("");
-  const appliedProfileRef = useRef("");
+  const onChangedRef = useRef(onAutoPopulationChanged);
+  onChangedRef.current = onAutoPopulationChanged;
 
   useEffect(() => {
     let active = true;
-    if (!profileId || typeof api.applyRecentVerifiedAutoPopulation !== "function") return () => { active = false; };
-    if (appliedProfileRef.current === profileId) return () => { active = false; };
-    appliedProfileRef.current = profileId;
-    setChecking(true);
+    setData(null);
+    setChecking(false);
     setCheckError("");
-    Promise.resolve(api.applyRecentVerifiedAutoPopulation(profileId))
-      .then((result) => {
+    if (!profileId) return () => { active = false; };
+    setLoading(true);
+    let timeoutId;
+    const bounded = (promise) => Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("Verification is taking longer than expected. Your Log is still available.")), 15000);
+      }),
+    ]).finally(() => clearTimeout(timeoutId));
+    async function check() {
+      try {
+        const result = await bounded(api.loadVerifiedActivityData(profileId));
         if (!active) return;
         if (result?.error) throw result.error;
-        const summary = result?.data || {};
-        const changed = Number(summary.logsChanged || 0) > 0 || Number(summary.fieldsFilled || 0) > 0 || Number(summary.extraBlocksCreated || 0) > 0;
-        // Always reload after matching finishes. The first evidence read may
-        // have completed before a newly-added verification link was available.
-        setRefreshKey((value) => value + 1);
-        if (changed) {
-          onAutoPopulationChanged?.(summary);
-        }
-      })
-      .catch((error) => {
-        if (active) setCheckError(error?.message || "Verification could not be checked right now.");
-      })
-      .finally(() => {
-        if (active) setChecking(false);
-      });
-    return () => { active = false; };
-  }, [api, onAutoPopulationChanged, profileId]);
-
-  useEffect(() => {
-    let active = true;
-    if (!profileId) {
-      setData(null);
-      return () => { active = false; };
-    }
-    setLoading(true);
-    Promise.resolve(api.loadVerifiedActivityData(profileId))
-      .then((result) => {
+        const evidence = result?.data || null;
+        setData(evidence);
+        setLoading(false);
+        // Discovery is silent. Never run the matching service for an athlete
+        // without an active source (retained evidence may still be displayed).
+        if (!evidence?.connections?.some((row) => row.status === "active") ||
+            typeof api.applyRecentVerifiedAutoPopulation !== "function") return;
+        setChecking(true);
+        const matched = await bounded(api.applyRecentVerifiedAutoPopulation(profileId));
         if (!active) return;
-        if (!result?.error) setData(result?.data || null);
-      })
-      .catch(() => {
-        if (active) setData(null);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+        if (matched?.error) throw matched.error;
+        const summary = matched?.data || {};
+        const refreshed = await bounded(api.loadVerifiedActivityData(profileId));
+        if (!active) return;
+        if (refreshed?.error) throw refreshed.error;
+        setData(refreshed?.data || evidence);
+        if (Number(summary.logsChanged || 0) > 0 || Number(summary.fieldsFilled || 0) > 0 || Number(summary.extraBlocksCreated || 0) > 0) {
+          onChangedRef.current?.(summary);
+        }
+      } catch (error) {
+        if (active) setCheckError(error?.message || "Verification could not be checked right now.");
+      } finally {
+        if (active) { setLoading(false); setChecking(false); }
+      }
+    }
+    void check();
     return () => { active = false; };
   }, [api, profileId, refreshKey]);
 
@@ -327,7 +326,7 @@ export default function LogVerificationSummary({
     }
   }
 
-  if ((loading && !data) || (checking && model.overallStatus === "none")) {
+  if (checking && model.connectedCount && model.overallStatus === "none") {
     return (
       <section className="log-verification log-verification--checking" role="status" aria-live="polite">
         <div className="log-verification__checking">
@@ -356,7 +355,7 @@ export default function LogVerificationSummary({
           <small>{expanded ? "Hide verification detail" : "Tap for verification detail"}</small>
         </span>
         <span className="log-verification__counts">
-          {checking ? (
+          {checking || loading ? (
             <span className="log-verification__checkingInline" role="status">
               <span className="log-verification__spinner" aria-hidden="true" />
               Checking

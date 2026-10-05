@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { loadVerifiedActivityData } from "../../verifiedActivityDb.js";
 import { listProfileGroups } from "../../groups/groupDb.js";
 import { listAssessmentSchedules } from "../../assessmentScheduleDb.js";
@@ -42,15 +42,16 @@ function shortDayParts(value) {
   };
 }
 
-function SmallCalendarIcon() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true">
-      <path d="M5 2.5v3M15 2.5v3M3.5 7.5h13M4 4.5h12a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z" />
-    </svg>
-  );
-}
-
 function RecentActivityCalendar({ days = [], onOpenDate = null }) {
+  const stripRef = useRef(null);
+  const latestDate = Array.isArray(days) ? days.at(-1)?.dateYmd : "";
+  useEffect(() => {
+    if (stripRef.current) stripRef.current.scrollLeft = stripRef.current.scrollWidth;
+  }, [latestDate]);
+  function move(direction) {
+    const strip = stripRef.current;
+    if (strip) strip.scrollBy({ left: direction * strip.clientWidth, behavior: "smooth" });
+  }
   if (!Array.isArray(days) || !days.length) return null;
   return (
     <section className="dashboardHistory" aria-label="Recent plan history">
@@ -59,9 +60,12 @@ function RecentActivityCalendar({ days = [], onOpenDate = null }) {
           <div className="dashboardCard__kicker">RECENT RHYTHM</div>
           <h3>Plan history</h3>
         </div>
-        <span>Today is always last</span>
+        <div className="dashboardHistory__navigation">
+          <button type="button" aria-label="Earlier plan history" onClick={() => move(-1)}>‹</button>
+          <button type="button" aria-label="Later plan history" onClick={() => move(1)}>›</button>
+        </div>
       </div>
-      <div className="dashboardHistory__days">
+      <div className="dashboardHistory__days" ref={stripRef} tabIndex={0} aria-label="Scrollable plan history">
         {days.map((item) => {
           const date = shortDayParts(item.dateYmd);
           const label = `${item.dateYmd}. ${item.label || "No completed activity"}`;
@@ -76,11 +80,11 @@ function RecentActivityCalendar({ days = [], onOpenDate = null }) {
             >
               <span className="dashboardHistoryDay__weekday">{item.isToday ? "TODAY" : date.weekday}</span>
               <span className="dashboardHistoryDay__date">
-                <SmallCalendarIcon />
                 <strong>{date.day}</strong>
                 <small>{date.month}</small>
               </span>
-              <span className="dashboardHistoryDay__state" aria-hidden="true">{item.icon || "·"}</span>
+              <span className="dashboardHistoryDay__state" aria-hidden="true">{item.icon || "–"}</span>
+              <span className="dashboardHistoryDay__xp" title="Earned XP, excluding reward bonus XP"><strong>{Math.max(0, Math.round(Number(item.earnedXp) || 0))}</strong><small>XP</small></span>
             </button>
           );
         })}
@@ -304,7 +308,7 @@ export default function PerformanceDashboard({
         )}
       </section>
 
-      <RecentActivityCalendar days={historyDays} onOpenDate={onOpenHistoryDate} />
+      <RecentActivityCalendar key={profileId} days={historyDays} onOpenDate={onOpenHistoryDate} />
 
       <section className="dashboardMetricGrid" aria-label="Current performance summary">
         <Metric

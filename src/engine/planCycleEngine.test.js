@@ -27,6 +27,21 @@ const legacy = () => ({
 });
 
 describe("planCycleEngine Program model", () => {
+  it("preserves historical weekly schedules during automatic migration", () => {
+    const plan = ensurePlanProgram(legacy(), { todayYmd: "2026-10-05" });
+    expect(plan.program.startDate).toBe("2026-10-05");
+    expect(resolvePlanForDate(plan, "2026-10-01").blocksByWeekday.Mon[0].id).toBe("monday");
+    expect(getPlanProgramWeekIndex(plan, "2026-10-01").status).toBe("active");
+  });
+
+  it("honours explicit start dates after migrating a weekly schedule", () => {
+    const migrated = ensurePlanProgram(legacy(), { todayYmd: "2026-10-05" });
+    const scheduled = updatePlanProgramSettings(migrated, { startDate: "2026-10-12" });
+    expect(getPlanProgramWeekIndex(scheduled, "2026-10-01").status).toBe("before_start");
+    const imported = prepareImportedPlanContent(migrated, { startDate: "2026-10-12" });
+    expect(getPlanProgramWeekIndex(imported, "2026-10-01").status).toBe("before_start");
+  });
+
   it("converts an existing weekly plan into a one-week Program without losing IDs", () => {
     const result = ensurePlanProgram(legacy(), { startDate: "2026-10-01" });
     expect(result.program.startDate).toBe("2026-09-28");

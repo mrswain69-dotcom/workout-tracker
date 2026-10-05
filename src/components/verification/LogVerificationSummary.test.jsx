@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import LogVerificationSummary, { buildLogVerificationModel } from "./LogVerificationSummary.jsx";
+
+afterEach(cleanup);
 
 function data() {
   return {
@@ -49,6 +51,36 @@ function data() {
 }
 
 describe("LogVerificationSummary", () => {
+  it("silently skips matching for profiles without a verification source", async () => {
+    const api = {
+      loadVerifiedActivityData: vi.fn(async () => ({ data: { connections: [] }, error: null })),
+      applyRecentVerifiedAutoPopulation: vi.fn(),
+    };
+    const view = render(<LogVerificationSummary profileId="wilf" api={api} />);
+    expect(view.container.textContent).toBe("");
+    await waitFor(() => expect(api.loadVerifiedActivityData).toHaveBeenCalledTimes(1));
+    expect(api.applyRecentVerifiedAutoPopulation).not.toHaveBeenCalled();
+    expect(view.container.textContent).toBe("");
+  });
+
+  it("finishes checking across parent rerenders and calls the latest callback", async () => {
+    let finish;
+    const api = {
+      loadVerifiedActivityData: vi.fn(async () => ({ data: data(), error: null })),
+      applyRecentVerifiedAutoPopulation: vi.fn(() => new Promise((resolve) => { finish = resolve; })),
+    };
+    const first = vi.fn();
+    const latest = vi.fn();
+    const props = { profileId: "paul", dateYmd: "2026-09-15", manualLogId: "log-1", blocks: [{ id: "strength-1", typeId: "strength" }], api };
+    const view = render(<LogVerificationSummary {...props} onAutoPopulationChanged={first} />);
+    await screen.findByText("Checking");
+    view.rerender(<LogVerificationSummary {...props} onAutoPopulationChanged={latest} />);
+    await act(async () => finish({ data: { logsChanged: 1 } }));
+    await waitFor(() => expect(view.container.textContent).not.toContain("Checking"));
+    expect(api.applyRecentVerifiedAutoPopulation).toHaveBeenCalledTimes(1);
+    expect(latest).toHaveBeenCalledTimes(1);
+    expect(first).not.toHaveBeenCalled();
+  });
   it("shows matching progress and performs a final evidence refresh", async () => {
     let finishMatch;
     const matching = new Promise((resolve) => { finishMatch = resolve; });

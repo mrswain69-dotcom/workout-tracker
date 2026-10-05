@@ -147,6 +147,13 @@ export function ensurePlanProgram(plan = {}, options = {}) {
   const completionMode = PLAN_COMPLETION_MODES.includes(plan?.program?.completionMode)
     ? plan.program.completionMode
     : legacyCompletionMode;
+  // Weekly plans predate programme scheduling: migrating one must not hide its
+  // historical days behind the date on which the user first opens the new UI.
+  const legacyWeeklySchedule = !options.startDate && (
+    plan?.program?.legacyWeeklySchedule === true ||
+    (!plan?.program && !plan?.cycle && Object.values(plan?.blocksByWeekday || {})
+      .some((blocks) => Array.isArray(blocks) && blocks.length > 0))
+  );
   const program = {
     schemaVersion: PLAN_PROGRAM_VERSION,
     name: cleanText(plan?.program?.name) || cleanText(plan?.cycle?.name) || cleanText(options.name) || "My training programme",
@@ -156,6 +163,7 @@ export function ensurePlanProgram(plan = {}, options = {}) {
       fallbackStart
     ),
     completionMode,
+    ...(legacyWeeklySchedule ? { legacyWeeklySchedule: true } : {}),
     phases,
   };
 
@@ -202,7 +210,12 @@ export function getPlanProgramWeekIndex(plan, targetYmd) {
   if (!target || !start) return { index: 0, status: "active", cycleNumber: 1 };
 
   const dayOffset = Math.floor((target.getTime() - start.getTime()) / 86400000);
-  if (dayOffset < 0) return { index: -1, status: "before_start", cycleNumber: 0 };
+  if (dayOffset < 0) {
+    if (normalised.program.legacyWeeklySchedule && weekCount === 1 && normalised.program.completionMode === "repeat") {
+      return { index: 0, status: "active", cycleNumber: 1 };
+    }
+    return { index: -1, status: "before_start", cycleNumber: 0 };
+  }
 
   const absoluteWeek = Math.floor(dayOffset / 7);
   if (absoluteWeek < weekCount) {
@@ -469,6 +482,7 @@ export function updatePlanProgramSettings(plan, patch = {}) {
         ? normalised.program.startDate
         : normaliseProgramStartDate(patch.startDate, normalised.program.startDate),
       completionMode,
+      legacyWeeklySchedule: patch.startDate === undefined && normalised.program.legacyWeeklySchedule === true,
     },
   };
 }

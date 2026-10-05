@@ -5714,16 +5714,6 @@ const getActivityCalendarDay = useCallback((dateYmd) => {
   const recoveryMode = normaliseProfileRecoveryMode(
     recoveryPeriod?.mode || log?.meta?.profileRecoveryMode
   );
-  const datePlan = plan ? resolvePlanForDate(plan, dateYmd) : null;
-  const weekday = weekdayFromYMD(dateYmd);
-  const baseBlocks = datePlan
-    ? getDayActivitiesForWeekday(datePlan, weekday) || []
-    : [];
-  const plannedBlocks = applyProfileRecoveryModeToPlannedBlocks(baseBlocks, {
-    profileId: activeProfileId,
-    dateYmd,
-    mode: recoveryMode,
-  });
   let completed = isDayGreen(log);
 
   if (completed && hasRecoveryDoneForLog(log) && !isProfileRecoveryModeLog(log)) {
@@ -5735,8 +5725,6 @@ const getActivityCalendarDay = useCallback((dateYmd) => {
     dateYmd,
     todayYmd,
     log,
-    plannedBlocks,
-    hasPlanSchedule: !!recoveryMode || (!!datePlan && planHasBlocks(datePlan)),
     recoveryMode,
     completed,
   });
@@ -5744,14 +5732,20 @@ const getActivityCalendarDay = useCallback((dateYmd) => {
   activeProfileId,
   allLogs,
   calendarLogsByDate,
-  plan,
   profileRecoveryPeriods,
   todayYmd,
 ]);
 
 const dashboardCalendarDays = useMemo(
-  () => buildRecentActivityCalendarDays(todayYmd, 14, getActivityCalendarDay),
-  [getActivityCalendarDay, todayYmd]
+  () => {
+    const earnedByDate = new Map();
+    for (const row of xpDebugRows || []) {
+      earnedByDate.set(row.date, (earnedByDate.get(row.date) || 0) + safeNumber(row.earnedXp));
+    }
+    return buildRecentActivityCalendarDays(todayYmd, 90, getActivityCalendarDay)
+      .map((day) => ({ ...day, earnedXp: earnedByDate.get(day.dateYmd) || 0 }));
+  },
+  [getActivityCalendarDay, todayYmd, xpDebugRows]
 );
 
 const currentPlanStreak = useMemo(() => {
