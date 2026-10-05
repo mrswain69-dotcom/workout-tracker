@@ -39,6 +39,7 @@ beforeEach(() => {
   localStorage.clear(); sessionStorage.clear();
   sessionStorage.setItem("wt_log_navigation_v1", JSON.stringify({ tab: "log", date: "2026-10-01" }));
   vi.mocked(db.getLog).mockReset().mockResolvedValue({ data: null });
+  vi.mocked(db.listLogs).mockReset().mockResolvedValue({ data: [] });
   vi.mocked(db.upsertLog).mockReset().mockImplementation(async (_f, _p, _d, log) => ({ data: { log_json: log } }));
   window.scrollTo = vi.fn();
 });
@@ -60,6 +61,35 @@ function chooseDate(dateYmd) {
 }
 
 describe("actual Log navigation", () => {
+  it.each(["calendar", "dashboard"])("keeps saved historical sets visible after a failed date refresh from %s", async (source) => {
+    const saved = { blocks: [{ id: "strength", typeId: "strength", label: "Shoulders and Triceps", movements: [{ id: "press", name: "Shoulder Press", sets: 3, trackWeight: true }], sets: { press: [{ reps: "18", weight: "25" }] } }] };
+    vi.mocked(db.listLogs).mockResolvedValue({ data: [{ profile_id: "paul", date_ymd: "2026-10-02", log_json: saved }] });
+    let finish;
+    vi.mocked(db.getLog).mockImplementation(async (_f, _p, date) => date === "2026-10-02"
+      ? new Promise((resolve) => { finish = resolve; })
+      : { data: null });
+    await ready();
+    if (source === "dashboard") {
+      fireEvent.click(screen.getByRole("button", { name: "Dashboard" }));
+      fireEvent.click(await screen.findByRole("button", { name: /^2026-10-02\./ }));
+    } else chooseDate("2026-10-02");
+    await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("18"));
+    expect(screen.getAllByRole("spinbutton")[1].value).toBe("25");
+    await act(async () => finish({ data: null, error: new Error("Temporary date read failure") }));
+    expect(screen.getAllByRole("spinbutton")[0].value).toBe("18");
+  });
+
+  it("hydrates the visible date when history arrives after an empty date read", async () => {
+    const saved = { blocks: [{ id: "strength", typeId: "strength", sets: { press: [{ reps: "21", weight: "30" }] } }] };
+    let finishHistory;
+    vi.mocked(db.listLogs).mockImplementation(() => new Promise((resolve) => { finishHistory = resolve; }));
+    render(<App />);
+    await waitFor(() => expect(db.getLog).toHaveBeenCalledWith("family", "paul", "2026-10-01"));
+    await act(async () => finishHistory({ data: [{ profile_id: "paul", date_ymd: "2026-10-01", log_json: saved }] }));
+    await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("21"));
+    expect(screen.getAllByRole("spinbutton")[1].value).toBe("30");
+  });
+
   it("restores the Log date and keeps typed reps/weight when leaving and returning", async () => {
     const first = await ready();
     expect(dateButton().textContent).toContain("01/10/2026");

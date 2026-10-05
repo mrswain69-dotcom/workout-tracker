@@ -39,7 +39,7 @@ describe("Rewards roadmap and log input reliability", () => {
     expect(app).toContain("const hasPendingLocalEdit =");
     expect(app).toContain("liveRevision > persistedRevision");
     expect(app).toContain("? (liveCached || fromDb || null)");
-    expect(app).toContain("selectDayLogSnapshot({ cached: liveCached, remote: fromDb, localRevision: liveRevision })");
+    expect(app).toContain("selectDayLogSnapshot({ cached: liveCached || cachedAtLoadStart, remote: fromDb, localRevision: liveRevision })");
     expect(app).toContain("logPersistedRevisionRef.current.set(cacheKey, revision)");
   });
 
