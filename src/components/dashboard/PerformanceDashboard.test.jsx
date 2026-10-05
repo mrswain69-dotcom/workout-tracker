@@ -36,6 +36,7 @@ describe("PerformanceDashboard recent activity calendar", () => {
       <PerformanceDashboard
         profileId="profile-1"
         todayYmd="2026-10-14"
+        weekSummary={{ xp: 0, lastWeekXp: 1250 }}
         todayBlocks={[{ id: "strength-1", typeId: "strength", label: "Strength" }]}
         historyDays={days}
         onOpenHistoryDate={onOpenHistoryDate}
@@ -45,6 +46,9 @@ describe("PerformanceDashboard recent activity calendar", () => {
     const coach = screen.getByText("Today’s opportunity is clear.").closest("section");
     const history = screen.getByRole("region", { name: "Recent plan history" });
     expect(coach?.nextElementSibling).toBe(history);
+    const xpCard = screen.getByText("Last week").closest(".dashboardMetric");
+    expect(xpCard.textContent).toContain("This week0 XP");
+    expect(xpCard.textContent).toContain("Last week1,250 XP");
     expect(history.querySelector("svg")).toBeNull();
     expect(history.querySelector(".dashboardHistoryDay.is-today .dashboardHistoryDay__xp").textContent).toBe("125XP");
     const strip = history.querySelector(".dashboardHistory__days");

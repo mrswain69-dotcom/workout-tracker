@@ -78,6 +78,11 @@
 .dashboardMetric__label{font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#64748b}
 .dashboardMetric__value{margin-top:5px;font-size:23px;font-weight:900;letter-spacing:-.03em;color:#0f172a}
 .dashboardMetric__note{margin-top:3px;font-size:12px;color:#64748b}
+.dashboardMetric__weekXp{display:grid;gap:5px}
+.dashboardMetric__weekXp>div{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:3px 6px}
+.dashboardMetric__weekXp span{font-size:10px;font-weight:700;letter-spacing:0;color:#64748b}
+.dashboardMetric__weekXp strong{font-size:18px;white-space:nowrap}
+.dashboardMetric__weekXp small{font-size:8px;letter-spacing:0}
 .dashboardGrid{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));

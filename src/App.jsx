@@ -63,6 +63,7 @@ import {
 import {
   buildActivityCalendarDay,
   buildRecentActivityCalendarDays,
+  shiftActivityCalendarDate,
 } from "./engine/activityCalendarEngine.js";
 import {
   getAccountHydrationPhase,
@@ -5884,12 +5885,19 @@ const todayPlanStatus = useMemo(() => {
 }, [allLogs, todayYmd]);
 
 const dashboardWeekSummary = useMemo(
-  () =>
-    buildDashboardWeekSummary({
+  () => {
+    const current = buildDashboardWeekSummary({
       xpRows: xpDebugRows,
       logs: allLogs,
       referenceDate: todayYmd,
-    }),
+    });
+    const previous = buildDashboardWeekSummary({
+      xpRows: xpDebugRows,
+      logs: allLogs,
+      referenceDate: shiftActivityCalendarDate(current.startDate, -1),
+    });
+    return { ...current, lastWeekXp: previous.earnedXp };
+  },
   [xpDebugRows, allLogs, todayYmd]
 );
 

@@ -322,8 +322,13 @@ export default function PerformanceDashboard({
           note="Following the plan"
         />
         <Metric
-          label="Earned XP this week"
-          value={(weekSummary?.xp || 0).toLocaleString("en-GB")}
+          label="Earned XP"
+          value={(
+            <div className="dashboardMetric__weekXp">
+              <div><span>This week</span><strong>{(weekSummary?.xp || 0).toLocaleString("en-GB")} <small>XP</small></strong></div>
+              <div><span>Last week</span><strong>{(weekSummary?.lastWeekXp || 0).toLocaleString("en-GB")} <small>XP</small></strong></div>
+            </div>
+          )}
           note={`${Math.max(0, Number(totalXp) || 0).toLocaleString("en-GB")} XP total`}
         />
         <Metric
