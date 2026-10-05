@@ -401,6 +401,10 @@ const PROGRESS_VIEWS = [
   ["autobiography", "Autobiography"],
 ];
 
+function normaliseProgressView(value) {
+  return PROGRESS_VIEWS.some(([key]) => key === value) ? value : "dashboard";
+}
+
 function ProgressDisclosure({
   kicker,
   title,
@@ -541,6 +545,7 @@ export default function ProgressDashboard({
   onOpenAssessments = null,
   summaryStats = null,
   recordStats = null,
+  initialView = "dashboard",
   dbApi = DEFAULT_DB_API,
 }) {
   const [remoteData, setRemoteData] = useState(() => emptyRemoteData());
@@ -548,10 +553,14 @@ export default function ProgressDashboard({
   const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [trainingRangeKey, setTrainingRangeKey] = useState("recent28");
-  const [progressView, setProgressView] = useState("dashboard");
+  const [progressView, setProgressView] = useState(() => normaliseProgressView(initialView));
   const [verificationData, setVerificationData] = useState(null);
   const resolvedReferenceDate = referenceDate || todayYmd();
   const resolvedMonthName = monthName(resolvedReferenceDate);
+
+  useEffect(() => {
+    setProgressView(normaliseProgressView(initialView));
+  }, [initialView]);
 
   useEffect(() => {
     setVerificationData(null);
@@ -659,8 +668,8 @@ export default function ProgressDashboard({
 
   useEffect(() => {
     setTrainingRangeKey("recent28");
-    setProgressView("dashboard");
-  }, [profileId]);
+    setProgressView(normaliseProgressView(initialView));
+  }, [initialView, profileId]);
 
   const assessmentProgress = useMemo(
     () =>

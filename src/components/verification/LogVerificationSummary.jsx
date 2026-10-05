@@ -252,6 +252,8 @@ export default function LogVerificationSummary({
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoBusy, setAutoBusy] = useState("");
   const [autoError, setAutoError] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState("");
   const appliedProfileRef = useRef("");
 
   useEffect(() => {
@@ -259,17 +261,27 @@ export default function LogVerificationSummary({
     if (!profileId || typeof api.applyRecentVerifiedAutoPopulation !== "function") return () => { active = false; };
     if (appliedProfileRef.current === profileId) return () => { active = false; };
     appliedProfileRef.current = profileId;
+    setChecking(true);
+    setCheckError("");
     Promise.resolve(api.applyRecentVerifiedAutoPopulation(profileId))
       .then((result) => {
-        if (!active || result?.error) return;
+        if (!active) return;
+        if (result?.error) throw result.error;
         const summary = result?.data || {};
         const changed = Number(summary.logsChanged || 0) > 0 || Number(summary.fieldsFilled || 0) > 0 || Number(summary.extraBlocksCreated || 0) > 0;
+        // Always reload after matching finishes. The first evidence read may
+        // have completed before a newly-added verification link was available.
+        setRefreshKey((value) => value + 1);
         if (changed) {
-          setRefreshKey((value) => value + 1);
           onAutoPopulationChanged?.(summary);
         }
       })
-      .catch(() => null);
+      .catch((error) => {
+        if (active) setCheckError(error?.message || "Verification could not be checked right now.");
+      })
+      .finally(() => {
+        if (active) setChecking(false);
+      });
     return () => { active = false; };
   }, [api, onAutoPopulationChanged, profileId]);
 
@@ -315,7 +327,17 @@ export default function LogVerificationSummary({
     }
   }
 
-  if (loading || model.overallStatus === "none") return null;
+  if ((loading && !data) || (checking && model.overallStatus === "none")) {
+    return (
+      <section className="log-verification log-verification--checking" role="status" aria-live="polite">
+        <div className="log-verification__checking">
+          <span className="log-verification__spinner" aria-hidden="true" />
+          <span><strong>Checking activity verification…</strong><small>Looking for connected activity and new matches.</small></span>
+        </div>
+      </section>
+    );
+  }
+  if (model.overallStatus === "none") return null;
   if (!model.connectedCount && !model.hasEvidence) return null;
 
   const overall = statusCopy(model.overallStatus);
@@ -334,7 +356,12 @@ export default function LogVerificationSummary({
           <small>{expanded ? "Hide verification detail" : "Tap for verification detail"}</small>
         </span>
         <span className="log-verification__counts">
-          {model.verifiedCount}/{model.rows.length}
+          {checking ? (
+            <span className="log-verification__checkingInline" role="status">
+              <span className="log-verification__spinner" aria-hidden="true" />
+              Checking
+            </span>
+          ) : `${model.verifiedCount}/${model.rows.length}`}
         </span>
       </button>
 
@@ -373,6 +400,7 @@ export default function LogVerificationSummary({
             );
           })}
           {autoError ? <div className="log-verification__error" role="alert">{autoError}</div> : null}
+          {checkError ? <div className="log-verification__error" role="alert">{checkError}</div> : null}
           <div className="log-verification__footer">
             <span>Verification does not add bonus XP or overwrite manual entries. Automatic fills are provenance-tracked and reversible.</span>
             {typeof onOpenProgress === "function" ? (

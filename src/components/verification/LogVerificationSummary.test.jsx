@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import LogVerificationSummary, { buildLogVerificationModel } from "./LogVerificationSummary.jsx";
 
@@ -49,6 +49,30 @@ function data() {
 }
 
 describe("LogVerificationSummary", () => {
+  it("shows matching progress and performs a final evidence refresh", async () => {
+    let finishMatch;
+    const matching = new Promise((resolve) => { finishMatch = resolve; });
+    const api = {
+      applyRecentVerifiedAutoPopulation: vi.fn(() => matching),
+      loadVerifiedActivityData: vi.fn(async () => ({ data: data(), error: null })),
+    };
+
+    render(
+      <LogVerificationSummary
+        profileId="paul"
+        dateYmd="2026-09-15"
+        manualLogId="log-1"
+        blocks={[{ id: "strength-1", typeId: "strength", label: "Gym" }]}
+        api={api}
+      />
+    );
+
+    expect(await screen.findByText("Checking")).toBeTruthy();
+    finishMatch({ data: { logsChanged: 0 }, error: null });
+    await waitFor(() => expect(screen.queryByText("Checking")).toBeNull());
+    await waitFor(() => expect(api.loadVerifiedActivityData).toHaveBeenCalledTimes(2));
+  });
+
   it("rolls verified cardio and session-level strength evidence into a quiet block summary", () => {
     const model = buildLogVerificationModel({
       data: data(),

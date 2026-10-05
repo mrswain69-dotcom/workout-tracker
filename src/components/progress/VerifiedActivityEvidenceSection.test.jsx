@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import VerifiedActivityEvidenceSection, { groupManualMatchCandidates } from "./VerifiedActivityEvidenceSection.jsx";
 
@@ -147,7 +147,10 @@ describe("VerifiedActivityEvidenceSection", () => {
   });
 
   it("offers a recent live-recorded unmatched sport as a dated Log block", async () => {
-    const add = vi.fn(async () => ({ data: { requestedOutcome: "created" }, error: null }));
+    let finishAdd;
+    const add = vi.fn(() => new Promise((resolve) => {
+      finishAdd = () => resolve({ data: { requestedOutcome: "created" }, error: null });
+    }));
     const today = new Date().toISOString().slice(0, 10);
     const api = emptyApi({
       loadVerifiedActivityData: vi.fn(async () => ({
@@ -160,6 +163,9 @@ describe("VerifiedActivityEvidenceSection", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Not linked/i }));
     fireEvent.click(screen.getByRole("button", { name: "Add to Log on recorded date" }));
     await waitFor(() => expect(add).toHaveBeenCalledWith("paul", "verified-1"));
+    expect(screen.getByText("Adding to the Log and checking verification…")).toBeTruthy();
+    expect(document.querySelectorAll(".verified-action-spinner").length).toBeGreaterThan(0);
+    await act(async () => finishAdd());
     expect((await screen.findByRole("status")).textContent).toContain(`Activity added to the Log for ${today}.`);
   });
 

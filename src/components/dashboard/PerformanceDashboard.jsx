@@ -30,6 +30,72 @@ function blockLabel(block) {
   );
 }
 
+function shortDayParts(value) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))
+    ? new Date(`${value}T00:00:00.000Z`)
+    : null;
+  if (!date || Number.isNaN(date.getTime())) return { day: "", month: "", weekday: "" };
+  return {
+    day: String(date.getUTCDate()).padStart(2, "0"),
+    month: new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(date).toUpperCase(),
+    weekday: new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" }).format(date).toUpperCase(),
+  };
+}
+
+function SmallCalendarIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M5 2.5v3M15 2.5v3M3.5 7.5h13M4 4.5h12a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z" />
+    </svg>
+  );
+}
+
+function RecentActivityCalendar({ days = [], onOpenDate = null }) {
+  if (!Array.isArray(days) || !days.length) return null;
+  return (
+    <section className="dashboardHistory" aria-label="Recent plan history">
+      <div className="dashboardHistory__head">
+        <div>
+          <div className="dashboardCard__kicker">RECENT RHYTHM</div>
+          <h3>Plan history</h3>
+        </div>
+        <span>Today is always last</span>
+      </div>
+      <div className="dashboardHistory__days">
+        {days.map((item) => {
+          const date = shortDayParts(item.dateYmd);
+          const label = `${item.dateYmd}. ${item.label || "No completed activity"}`;
+          return (
+            <button
+              type="button"
+              key={item.dateYmd}
+              className={`dashboardHistoryDay is-${item.kind || "none"}${item.isToday ? " is-today" : ""}`}
+              aria-label={label}
+              title={item.label || "No completed activity"}
+              onClick={() => onOpenDate?.(item.dateYmd)}
+            >
+              <span className="dashboardHistoryDay__weekday">{item.isToday ? "TODAY" : date.weekday}</span>
+              <span className="dashboardHistoryDay__date">
+                <SmallCalendarIcon />
+                <strong>{date.day}</strong>
+                <small>{date.month}</small>
+              </span>
+              <span className="dashboardHistoryDay__state" aria-hidden="true">{item.icon || "·"}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="dashboardHistory__legend" aria-label="Plan history colour key">
+        <span className="is-complete">Complete</span>
+        <span className="is-rest">Rest</span>
+        <span className="is-illness">Illness</span>
+        <span className="is-cancelled">Cancelled</span>
+        <span className="is-streak-saver">Streak saver</span>
+      </div>
+    </section>
+  );
+}
+
 function Metric({ label, value, note = "" }) {
   return (
     <div className="dashboardMetric">
@@ -68,10 +134,13 @@ export default function PerformanceDashboard({
   motivationLine = "",
   healthTip = "",
   bodyReadiness = null,
+  historyDays = [],
   onOpenLog,
   onOpenPlan,
   onLogExtra,
   onOpenProgress,
+  onOpenVerification,
+  onOpenHistoryDate,
   onOpenRewards,
   onOpenGroups,
   onOpenConnections,
@@ -235,6 +304,8 @@ export default function PerformanceDashboard({
         )}
       </section>
 
+      <RecentActivityCalendar days={historyDays} onOpenDate={onOpenHistoryDate} />
+
       <section className="dashboardMetricGrid" aria-label="Current performance summary">
         <Metric
           label="Today"
@@ -364,7 +435,7 @@ export default function PerformanceDashboard({
               {verifiedSummary.lastSync ? ` · synced ${formatDateTime(verifiedSummary.lastSync)}` : ""}
             </div>
             <div className="dashboardCard__actions">
-              <ActionButton onClick={onOpenProgress}>View Verified Activity</ActionButton>
+              <ActionButton onClick={onOpenVerification || onOpenProgress}>View Verified Activity</ActionButton>
               <ActionButton onClick={onOpenConnections}>Connections</ActionButton>
             </div>
           </article>

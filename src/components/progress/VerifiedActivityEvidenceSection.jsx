@@ -260,6 +260,7 @@ export default function VerifiedActivityEvidenceSection({
   const [busy, setBusy] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionNotice, setActionNotice] = useState("");
+  const [actionFeedbackActivityId, setActionFeedbackActivityId] = useState("");
   const [syncNotice, setSyncNotice] = useState("");
   const [nowTick, setNowTick] = useState(Date.now());
   const [candidatesByActivity, setCandidatesByActivity] = useState({});
@@ -371,6 +372,7 @@ export default function VerifiedActivityEvidenceSection({
     setBusy(`${actionName}:${activityId}`);
     setActionError("");
     setActionNotice("");
+    setActionFeedbackActivityId(activityId);
     try {
       const result = await action();
       const message = typeof successMessage === "function" ? successMessage(result) : successMessage;
@@ -444,6 +446,16 @@ export default function VerifiedActivityEvidenceSection({
               {Number.isFinite(Number(activity.manualLink?.match_confidence)) ? <div><span>Match confidence</span><strong>{Math.round(Number(activity.manualLink.match_confidence) * 100)}%</strong></div> : null}
             </div>
 
+            {actionFeedbackActivityId === activity.id && (busy === `add:${activity.id}` || actionError || actionNotice) ? (
+              <div
+                className={`verified-action-feedback${actionError ? " is-error" : actionNotice ? " is-success" : ""}`}
+                aria-live="polite"
+              >
+                {busy === `add:${activity.id}` ? <span className="verified-action-spinner" aria-hidden="true" /> : null}
+                <span>{busy === `add:${activity.id}` ? "Adding to the Log and checking verification…" : actionError || actionNotice}</span>
+              </div>
+            ) : null}
+
             {linked ? (
               <div className="verified-detail-actions">
                 <button
@@ -478,7 +490,9 @@ export default function VerifiedActivityEvidenceSection({
                         ? `This activity is already in the Log for ${activity.localDateYmd}.`
                         : `Activity added to the Log for ${activity.localDateYmd}.`)}
                     >
-                      {busy === `add:${activity.id}` ? "Adding…" : "Add to Log on recorded date"}
+                      {busy === `add:${activity.id}` ? (
+                        <><span className="verified-action-spinner" aria-hidden="true" />Adding…</>
+                      ) : "Add to Log on recorded date"}
                     </button>
                     <button
                       type="button"
