@@ -1,6 +1,8 @@
 # Personal programme management
 
-Plans → Program Library → My Programs → Manage opens Details, Version history and Sharing links.
+Plans → Program Library → My Programs → View details opens a focused popup with Details, Version history and Sharing links. Cards have a single entry action. The popup closes with Close, Escape or a backdrop click, keeps keyboard focus inside while open and returns focus to the opener.
+
+Details starts with the current frozen version and a week preview. All seven days remain in one horizontal scroll row on desktop and mobile. Use, duplicate, sharing, assignment and archive/restore actions live here; metadata editing and saving the active plan as a new version are expandable. Each action has an explanation in the expandable help section. Duplicate/restore forms scroll into view and receive focus. The sharing creator is grouped separately from existing links, and each existing link has its own expandable expiry editor.
 
 Details edits name, description, purpose, sport, difficulty, age band, equipment and tags. Metadata edits do not create or rewrite immutable versions and do not change active plans. An updated-at check rejects stale saves from another tab.
 

@@ -1,5 +1,22 @@
 .trainingProgramCreate{grid-template-columns:repeat(2,minmax(0,1fr))}
-.programManager{margin-top:12px;padding:12px;border:1px solid var(--border,#ccd9cf);border-radius:12px;background:var(--card,#fff);min-width:0}
+.programManager{margin:0;padding:18px;background:var(--card,#fff);min-width:0}
+.programDetailsDialog.trainingProgramLibrary{padding:0;width:min(1180px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;box-sizing:border-box;border:1px solid #b9cec3;border-radius:16px;color:#16352c;background:#fff;box-shadow:0 20px 80px #10241a40}
+.programDetailsDialog::backdrop{background:#0c211aaa;backdrop-filter:blur(3px)}
+.programDetailsDialog .programManager>.programManagerHeading{position:sticky;top:-18px;z-index:1;padding:8px 0;background:var(--card,#fff)}
+.programActionHelp,.programMetadata,.programSaveVersion{margin:14px 0;padding:10px 0;border-top:1px solid var(--border,#d9e1e7)}
+.programManager summary{cursor:pointer;font-weight:700;line-height:1.5}
+.programManager summary:focus-visible,.programManager button:focus-visible,.assignedProgramDays:focus-visible{outline:3px solid #eaaa64;outline-offset:3px}
+.programActionHelp dl{display:grid;grid-template-columns:minmax(100px,160px) 1fr;gap:8px 12px;font-size:13px;line-height:1.5}
+.programActionHelp dt{font-weight:700}.programActionHelp dd{margin:0}
+.programCurrentVersion{margin-top:14px}
+.programMetadata .programDetailsForm{margin-top:12px}
+.programSaveVersion label{max-width:600px;margin:10px 0}
+.programVersionPreview .assignedProgramDays,.assignedProgramPreview .assignedProgramDays{grid-template-columns:repeat(7,minmax(150px,1fr));overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding-bottom:10px}
+.programVersionPreview .assignedProgramDay,.assignedProgramPreview .assignedProgramDay{scroll-snap-align:start}
+.programLinkCreate{display:grid;grid-template-columns:minmax(160px,1fr) minmax(120px,.6fr) auto;gap:10px;align-items:end;padding:12px;border:1px solid #c9dbcf;border-radius:12px;background:#f4f9f5}
+.programLinkCreate h4{grid-column:1/-1}
+.programLinkExpiry form{display:flex;gap:8px;align-items:end;margin-top:8px}
+.programLinkExpiry input{max-width:120px}
 .programManagerHeading,.programManagerActions,.programManagerTabs{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .programManagerHeading h3,.programHistory p,.programManager h4{margin:0}
 .programManagerTabs{justify-content:flex-start;margin:12px 0}
@@ -17,4 +34,4 @@
 .programArchive{margin-top:14px}
 .programArchive summary{cursor:pointer;font-weight:600;padding:8px 0}
 .programArchive .trainingProgramGrid{margin-top:8px}
-@media(max-width:540px){.trainingProgramCreate{grid-template-columns:minmax(0,1fr)}.programDetailsForm{grid-template-columns:minmax(0,1fr)}.programDetailsForm label:nth-child(2){grid-column:auto}.programManager{padding:10px}.programManagerActions>label{flex:1 1 120px}.programManagerTabs button{flex:1 1 90px}}
+@media(max-width:540px){.trainingProgramCreate{grid-template-columns:minmax(0,1fr)}.programDetailsForm{grid-template-columns:minmax(0,1fr)}.programDetailsForm label:nth-child(2){grid-column:auto}.programManager{padding:12px}.programDetailsDialog.trainingProgramLibrary{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.programManagerActions>label{flex:1 1 120px}.programManagerTabs button{flex:1 1 90px}.programLinkCreate{grid-template-columns:minmax(0,1fr)}.programActionHelp dl{grid-template-columns:1fr;gap:4px}.programActionHelp dd{margin-bottom:8px}}

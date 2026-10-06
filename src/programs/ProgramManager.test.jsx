@@ -14,7 +14,7 @@ import ProgramManager from "./ProgramManager.jsx";
 import * as db from "./programManagementDb.js";
 const days = { Mon: [{ id: "skills", typeId: "session", label: "Ball control" }], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] };
 const content = { activityTypes: [], program: { schemaVersion: 1, name: "Preparation", startDate: "2026-10-05", completionMode: "repeat", phases: [{ id: "phase", name: "Skills", weeks: [{ id: "week", name: "Week 1", blocksByWeekday: days }], assessments: [] }] } };
-const program = { id: "p1", title: "Preparation", updated_at: "2026-10-06", status: "active", current_version_id: "v2", current_version_no: 2 };
+const program = { id: "p1", title: "Preparation", updated_at: "2026-10-06", status: "active", current_version_id: "v2", current_version_no: 2, current_version: { id: "v2", version_no: 2, content_json: content } };
 const versions = [{ id: "v2", version_no: 2, content_json: content, change_note: "Added skills", created_at: "2026-10-06" }, { id: "v1", version_no: 1, content_json: content, change_note: "Original", created_at: "2026-10-01" }];
 const changed = vi.fn(async () => {});
 beforeEach(() => {
@@ -29,8 +29,30 @@ afterEach(cleanup);
 const show = (authorize = async () => true) => render(<ProgramManager program={program} authorize={authorize} onChanged={changed} onClose={() => {}} />);
 
 describe("saved programme management", () => {
+  it("opens a dialog with the current preview and duplicates without visiting history", async () => {
+    show();
+    expect(screen.getByRole("dialog", { name: "Programme details: Preparation" })).toBeTruthy();
+    expect(screen.getByText("Ball control")).toBeTruthy();
+    expect(db.listProgramHistory).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate current version" }));
+    expect(document.activeElement).toBe(screen.getByLabelText("New programme name"));
+    fireEvent.click(screen.getByRole("button", { name: "Create duplicate" }));
+    await waitFor(() => expect(db.copyProgramVersion).toHaveBeenCalledWith(expect.objectContaining({ versionId: "v2", duplicate: true })));
+  });
+  it("closes on Escape and restores focus to the triggering button", () => {
+    const trigger = document.createElement("button");
+    document.body.appendChild(trigger); trigger.focus();
+    const close = vi.fn();
+    const view = render(<ProgramManager program={program} authorize={async () => true} onChanged={changed} onClose={close} />);
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(close).toHaveBeenCalledOnce();
+    view.unmount();
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
   it("edits metadata with deduplicated tags without creating a content version", async () => {
     show();
+    fireEvent.click(screen.getByText("Edit programme details"));
     expect(db.listProgramHistory).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "New name" } });
     fireEvent.change(screen.getByLabelText("Tags"), { target: { value: " skills, rugby, skills " } });
@@ -62,6 +84,7 @@ describe("saved programme management", () => {
   it("shows failure feedback and leaves the form available for retry", async () => {
     db.updateProgramDetails.mockResolvedValue({ error: new Error("Programme changed elsewhere") });
     show();
+    fireEvent.click(screen.getByText("Edit programme details"));
     fireEvent.click(screen.getByRole("button", { name: "Save details" }));
     await screen.findByText("Programme changed elsewhere");
     expect(screen.getByRole("button", { name: "Save details" }).disabled).toBe(false);
@@ -69,6 +92,7 @@ describe("saved programme management", () => {
   });
   it("respects profile mutation authorization", async () => {
     show(async () => false);
+    fireEvent.click(screen.getByText("Edit programme details"));
     fireEvent.click(screen.getByRole("button", { name: "Save details" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Save details" }).disabled).toBe(false));
     expect(db.updateProgramDetails).not.toHaveBeenCalled();
@@ -80,7 +104,8 @@ describe("saved programme management", () => {
     show();
     fireEvent.click(screen.getByRole("button", { name: "Sharing links" }));
     await screen.findByText(/Active · Use and adapt/);
-    fireEvent.change(screen.getByLabelText("Valid for (days)"), { target: { value: "14" } });
+    fireEvent.click(screen.getByText("Change expiry"));
+    fireEvent.change(screen.getByLabelText("Days from today"), { target: { value: "14" } });
     fireEvent.click(screen.getByRole("button", { name: "Set expiry" }));
     await waitFor(() => expect(db.updateProgramLink).toHaveBeenCalledWith("link1", false, "14"));
     await waitFor(() => expect(screen.getByRole("button", { name: "Revoke" }).disabled).toBe(false));

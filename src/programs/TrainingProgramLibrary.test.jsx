@@ -53,7 +53,8 @@ describe("personal programme management integration", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     renderLibrary();
     await screen.findByText("Two-week match preparation");
-    fireEvent.click(screen.getByRole("button", { name: "Use", exact: true }));
+    fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Use programme", exact: true }));
     expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("base training and task blocks will be replaced"));
     expect(programDb.applyOwnedTrainingProgram).not.toHaveBeenCalled();
   });
@@ -156,7 +157,8 @@ function renderLibrary(props = {}) {
 describe("coach/client Program management", () => {
   it("sends follow-as-supplied permissions and optional sharing independently", async () => {
     renderLibrary();
-    fireEvent.click(await screen.findByRole("button", { name: "Assign" }));
+    fireEvent.click(await screen.findByRole("button", { name: "View details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Assign to team members" }));
     fireEvent.change(screen.getByLabelText("Recipient permissions"), { target: { value: "follow" } });
     fireEvent.click(await screen.findByText("Rocket"));
     fireEvent.click(screen.getByRole("button", { name: "Assign to 1" }));
@@ -210,7 +212,8 @@ describe("coach/client Program management", () => {
     expect(await screen.findByText("Two-week match preparation")).toBeTruthy();
     await waitFor(() => expect(groupDb.listGroupDirectory).toHaveBeenCalledWith("group-1"));
 
-    fireEvent.click(screen.getByRole("button", { name: "Assign" }));
+    fireEvent.click(screen.getByRole("button", { name: "View details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Assign to team members" }));
     expect(await screen.findByRole("heading", { name: /Assign “Two-week match preparation”/ })).toBeTruthy();
     expect(screen.queryByText("Coach")).toBeNull();
     fireEvent.click(screen.getByText("Rocket"));
