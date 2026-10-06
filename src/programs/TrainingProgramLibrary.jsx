@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listPlanTemplates } from "../db.js";
 import { listGroupDirectory, listProfileGroups } from "../groups/groupDb.js";
 import {
@@ -34,6 +34,8 @@ import {
   saveTrainingProgram,
 } from "./trainingProgramDb.js";
 import "./TrainingProgramLibrary.css";
+import ProgramManager from "./ProgramManager.jsx";
+import { restoreArchivedProgram } from "./programManagementDb.js";
 import ProgramRecipientControls from "./ProgramRecipientControls.jsx";
 import ProgramCoachReports from "./ProgramCoachReports.jsx";
 import { setProgramPermissions, listRecipientProgramControls } from "./programWorkflowDb.js";
@@ -269,7 +271,13 @@ export default function TrainingProgramLibrary({
   onStarterApplied,
 }) {
   const [section, setSection] = useState(initialSection);
+  const identity = useRef({ familyId, activeProfileId });
+  identity.current = { familyId, activeProfileId };
+  const refreshRequest = useRef(0);
   const [programs, setPrograms] = useState([]);
+  const [archivedPrograms, setArchivedPrograms] = useState([]);
+  const [manageProgramId, setManageProgramId] = useState("");
+  const [versionNote, setVersionNote] = useState("");
   const [assignments, setAssignments] = useState([]);
   const [managedAssignments, setManagedAssignments] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -324,14 +332,17 @@ export default function TrainingProgramLibrary({
 
   const refresh = useCallback(async () => {
     if (!familyId || !activeProfileId) return;
+    const request = ++refreshRequest.current;
+    const current = () => request === refreshRequest.current && identity.current.familyId === familyId && identity.current.activeProfileId === activeProfileId;
     const [owned, incoming, managed, memberships, legacyTemplates, controls] = await Promise.all([
-      listOwnedTrainingPrograms(familyId),
+      listOwnedTrainingPrograms(familyId, true),
       listTrainingProgramAssignments(activeProfileId),
       listManagedTrainingProgramAssignments(familyId),
       listProfileGroups(activeProfileId),
       listPlanTemplates(familyId),
       listRecipientProgramControls(activeProfileId),
     ]);
+    if (!current()) return;
     if (owned.error || incoming.error || managed.error || memberships.error || legacyTemplates.error) {
       setNotice(message(owned.error || incoming.error || managed.error || memberships.error || legacyTemplates.error));
       return;
@@ -350,11 +361,13 @@ export default function TrainingProgramLibrary({
           content: legacyTemplateToProgramContent(template, todayMonday()),
         }))
       );
+      if (!current()) return;
       const migrationError = results.find((result) => result.error)?.error;
       if (migrationError) {
         setNotice(message(migrationError, "Saved weekly plans could not be moved into My Programs."));
       } else {
-        const reloaded = await listOwnedTrainingPrograms(familyId);
+        const reloaded = await listOwnedTrainingPrograms(familyId, true);
+        if (!current()) return;
         if (reloaded.error) setNotice(message(reloaded.error));
         else nextPrograms = reloaded.data || [];
         setNotice(
@@ -363,8 +376,10 @@ export default function TrainingProgramLibrary({
       }
     }
 
+    if (!current()) return;
     setRecipientControls(controls.data || []);
-    setPrograms(nextPrograms);
+    setPrograms(nextPrograms.filter((p) => p.status !== "archived"));
+    setArchivedPrograms(nextPrograms.filter((p) => p.status === "archived"));
     setAssignments(incoming.data || []);
     setManagedAssignments(managed.data || []);
     const administeredGroups = (memberships.data || []).filter(
@@ -378,7 +393,11 @@ export default function TrainingProgramLibrary({
     ));
   }, [familyId, activeProfileId]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    setPrograms([]); setArchivedPrograms([]); setAssignments([]); setManagedAssignments([]);
+    setManageProgramId(""); setNotice(""); setAssignmentProgramId("");
+  }, [familyId, activeProfileId]);
+  useEffect(() => { refresh().catch((error) => setNotice(message(error))); }, [refresh]);
 
   useEffect(() => {
     let cancelled = false;
@@ -457,7 +476,7 @@ export default function TrainingProgramLibrary({
       tags: program.tags,
       creatorRole: program.creator_role,
       content: extractShareablePlanContent(activePlan),
-      changeNote: "Updated from active programme",
+      changeNote: versionNote.trim() || "Updated from active programme",
     });
     setBusy("");
     if (error) return setNotice(message(error));
@@ -466,6 +485,7 @@ export default function TrainingProgramLibrary({
   }
 
   async function useProgram(program) {
+    if (!window.confirm(`Replace your current base plan with “${program.title}”, version ${program.current_version_no}? Your base training and task blocks will be replaced. Any programme added alongside stays in place. Recorded logs, XP and rewards are retained. This action has no automatic undo; save your current plan to My Programs first if you want to return to it.`)) return;
     if (!(await allowed("use a saved programme"))) return;
     setBusy(program.id);
     const { data, error } = await applyOwnedTrainingProgram({
@@ -654,6 +674,7 @@ export default function TrainingProgramLibrary({
           <div className="trainingProgramCreate">
             <label>Name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} /></label>
             <label>Description<input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1200} placeholder="Who this is for and what it develops" /></label>
+            <label>Version change note<input maxLength={300} value={versionNote} onChange={(e) => setVersionNote(e.target.value)} placeholder="Optional note when saving a new version" /></label>
             <button type="button" className="primary" disabled={busy === "save" || !title.trim() || noCopy} onClick={saveNewProgram}>Save active Program</button>
           </div>
 
@@ -667,12 +688,22 @@ export default function TrainingProgramLibrary({
                     <button type="button" disabled={busy === program.id || noCopy} onClick={() => saveNewVersion(program)}>Save new version</button>
                     <button type="button" disabled={busy === program.id} onClick={() => shareProgram(program)}>Copy private link</button>
                     <button type="button" disabled={busy === program.id} onClick={() => openAssignmentComposer(program)}>Assign</button>
-                    <button type="button" disabled={busy === program.id} onClick={async () => { if (window.confirm(`Archive “${program.title}”?`)) { await archiveTrainingProgram(program.id); await refresh(); } }}>Archive</button>
+                    <button type="button" disabled={!!busy} onClick={() => setManageProgramId(manageProgramId === program.id ? "" : program.id)}>Manage</button>
+                    <button type="button" disabled={!!busy} onClick={async () => { if (!(await allowed("archive a programme")) || !window.confirm(`Archive “${program.title}”? Active plans and assignments are retained. You can restore it from Archived Programs.`)) return; setBusy(program.id); try { const r = await archiveTrainingProgram(program.id); if (r.error || !r.data) throw r.error || new Error("Programme could not be archived."); await refresh(); setNotice("Programme archived. Active plans and assignments are retained."); } catch (error) { setNotice(message(error)); } finally { setBusy(""); } }}>Archive</button>
                   </ProgramCard>
                 ))}
               </div>
             ) : <p className="muted">No reusable Programs saved yet. Save the active Program above or start from a Starter Program.</p>}
           </div>
+
+          {manageProgramId && [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId) ? <ProgramManager key={`${familyId}:${activeProfileId}:${manageProgramId}`} program={[...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)} authorize={allowed} onChanged={refresh} onClose={() => setManageProgramId("")} /> : null}
+          <details className="programArchive"><summary>Archived Programs ({archivedPrograms.length})</summary>
+            <div className="trainingProgramGrid">{archivedPrograms.map((program) => <ProgramCard key={program.id} program={program} badge="Archived">
+              <button type="button" disabled={!!busy} onClick={async () => { if (!(await allowed("restore an archived programme"))) return; setBusy(program.id); try { const r = await restoreArchivedProgram(program.id); if (r.error || !r.data) throw r.error || new Error("Programme could not be restored."); await refresh(); setNotice("Programme restored to My Programs. No active plan was changed."); } catch (error) { setNotice(message(error)); } finally { setBusy(""); } }}>Restore programme</button>
+              <button type="button" disabled={!!busy} onClick={() => setManageProgramId(program.id)}>Manage</button>
+            </ProgramCard>)}</div>
+            {!archivedPrograms.length ? <p className="muted">No archived programmes.</p> : null}
+          </details>
 
           {assignmentProgram ? (
             <section className="trainingProgramAssignmentComposer" aria-labelledby="assignment-composer-title">

@@ -41,4 +41,6 @@ Adherence covers the current attached programme from acceptance, excluding futur
 
 The local agent-browser daemon failed to start; no manual authenticated browser-flow or mobile visual check is claimed.
 
+Personal programme metadata, version history, frozen-version restore/duplicate, archive restore and sharing-link management are now described in [programme management](program-management.md).
+
 Remaining wider roadmap: direct clients outside teams, email notifications, commercial entitlements, public Discover, richer reporting/export and broader device/accessibility verification.

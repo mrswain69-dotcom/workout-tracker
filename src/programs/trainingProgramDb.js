@@ -31,15 +31,16 @@ async function attachCurrentVersions(programs = []) {
   };
 }
 
-export async function listOwnedTrainingPrograms(familyId) {
+export async function listOwnedTrainingPrograms(familyId, includeArchived = false) {
   if (!supabase) return unavailable([]);
   if (!familyId) return { data: [], error: null };
-  const { data, error } = await supabase
+  let query = supabase
     .from("training_programs")
     .select("id,owner_family_id,creator_profile_id,title,description,purpose,sport,difficulty,age_band,equipment,tags,status,creator_role,current_version_no,current_version_id,week_count,phase_count,access_model,marketplace_status,legacy_plan_template_id,created_at,updated_at")
     .eq("owner_family_id", familyId)
-    .eq("status", "active")
     .order("updated_at", { ascending: false });
+  if (!includeArchived) query = query.eq("status", "active");
+  const { data, error } = await query;
   if (error) return { data: [], error };
   return attachCurrentVersions(data || []);
 }

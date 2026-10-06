@@ -40,6 +40,25 @@ import * as groupDb from "../groups/groupDb.js";
 import TrainingProgramLibrary from "./TrainingProgramLibrary.jsx";
 import * as programDb from "./trainingProgramDb.js";
 
+describe("personal programme management integration", () => {
+  it("keeps archived programmes collapsed and separate from assignment choices", async () => {
+    programDb.listOwnedTrainingPrograms.mockResolvedValue({ data: [program, { ...program, id: "archived", title: "Old preparation", status: "archived" }], error: null });
+    renderLibrary();
+    await screen.findByText("Old preparation");
+    expect(document.querySelector(".programArchive").open).toBe(false);
+    expect(screen.getByText("Archived Programs (1)")).toBeTruthy();
+    expect(programDb.listOwnedTrainingPrograms).toHaveBeenCalledWith("family-1", true);
+  });
+  it("allows cancelling replacement before any active plan is written", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderLibrary();
+    await screen.findByText("Two-week match preparation");
+    fireEvent.click(screen.getByRole("button", { name: "Use", exact: true }));
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("base training and task blocks will be replaced"));
+    expect(programDb.applyOwnedTrainingProgram).not.toHaveBeenCalled();
+  });
+});
+
 const program = {
   id: "program-1",
   title: "Two-week match preparation",
