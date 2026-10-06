@@ -140,7 +140,7 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
       {startDate && program.status !== "archived" ? <p className="muted">Using this programme starts it on {dateLabel(startDate)} · {completionMode === "once" ? "Finish after the final week" : completionMode === "hold" ? "Hold the final week" : "Repeat after the final week"}. These options apply when you use the programme.</p> : null}
       {onSaveVersion && program.status !== "archived" ? <details className="programSaveVersion"><summary>Save active plan as a new version</summary><p className="muted">This saves your currently active base plan, which may differ from the preview above.</p><label>Version change note<input maxLength={300} value={versionNote} onChange={(e) => setVersionNote(e.target.value)} placeholder="What has changed?" /></label><button type="button" disabled={working || noCopy} onClick={() => { setNotice(""); onSaveVersion(versionNote); }}>Save new version</button>{noCopy ? <p>The coach has not allowed saving your active assigned programme as a copy.</p> : null}</details> : null}
       <div className="programManagerActions">
-        {onAssign && program.status !== "archived" ? <button type="button" disabled={working} onClick={onAssign}>Assign to team members</button> : null}
+        {onAssign && program.status !== "archived" ? <button type="button" disabled={working} onClick={onAssign}>Assign programme</button> : null}
         {onArchive ? <button type="button" disabled={working} onClick={() => { setNotice(""); onArchive(); }}>{program.status === "archived" ? "Restore programme" : "Archive programme"}</button> : null}
       </div>
     </div> : null}

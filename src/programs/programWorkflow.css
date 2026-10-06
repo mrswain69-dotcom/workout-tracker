@@ -12,3 +12,13 @@
 .programInbox{position:relative}.programInboxPanel{position:absolute;z-index:40;right:0;top:calc(100% + 6px);width:min(390px,calc(100vw - 28px));max-height:65vh;overflow:auto;background:#fff;border:1px solid #c4d6cc;box-shadow:0 8px 28px #173c2829;padding:12px;border-radius:16px;color:#173c28}
 .programInboxPanel h3{margin:0}.programInboxPanel>button{display:grid;gap:4px;width:100%;border-radius:10px;text-align:left;margin-top:8px;font-size:.85rem}.programInboxPanel>button.unread{background:#e8f5ed;border-color:#80b999}.programInboxPanel small{font-weight:450;color:#52675a}
 @media(max-width:520px){.programWorkflowSection{padding:10px}.programWorkflowHeading{gap:8px}.programWorkflowHeading label{min-width:100%;}.programWorkflowSection button{max-width:100%;}.programInboxPanel{position:fixed;left:14px;right:14px;top:110px;width:auto}}
+
+.programClientRow, .programClientLink { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.programClientItem { padding: 12px 0; border-top: 1px solid var(--border, #dce5df); }
+.programClientLink { margin-top: 8px; }
+.programClientLink label { flex: 1 1 220px; min-width: 0; }
+.programClientLink input { width: 100%; box-sizing: border-box; }
+.programClientConsent { margin-top: 12px; }
+
+.programWorkflowSection input:not([type="checkbox"]), .programWorkflowSection textarea { width: 100%; min-width: 0; box-sizing: border-box; background: #fff; color: #16352c; border: 1px solid #c5d6ce; border-radius: 9px; padding: 9px; font: inherit; }
+.programClientRow > div { min-width: 0; overflow-wrap: anywhere; }

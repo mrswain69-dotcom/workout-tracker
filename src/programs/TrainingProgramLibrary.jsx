@@ -32,6 +32,8 @@ import {
   saveTrainingProgram,
 } from "./trainingProgramDb.js";
 import "./TrainingProgramLibrary.css";
+import ProgramClientConnections from "./ProgramClientConnections.jsx";
+import { listCoachClientConnections, assignProgramToClients } from "./coachClientDb.js";
 import ProgramManager from "./ProgramManager.jsx";
 import { restoreArchivedProgram } from "./programManagementDb.js";
 import ProgramRecipientControls from "./ProgramRecipientControls.jsx";
@@ -262,6 +264,7 @@ function AssignedProgramPreview({
 export default function TrainingProgramLibrary({
   familyId,
   activeProfileId,
+  activeProfileName,
   activePlan,
   initialSection = "mine",
   authorizeMutation,
@@ -277,6 +280,8 @@ export default function TrainingProgramLibrary({
   const [manageProgramId, setManageProgramId] = useState("");
   const [assignments, setAssignments] = useState([]);
   const [managedAssignments, setManagedAssignments] = useState([]);
+  const [connections, setConnections] = useState([]);
+  const [recipientType, setRecipientType] = useState("team");
   const [groups, setGroups] = useState([]);
   const [directory, setDirectory] = useState([]);
   const [directoryLoading, setDirectoryLoading] = useState(false);
@@ -310,6 +315,8 @@ export default function TrainingProgramLibrary({
     () => directory.filter((member) => member.membership_id !== targetGroup?.membership?.id),
     [directory, targetGroup?.membership?.id]
   );
+  const directClients = connections.filter((c) => c.coach_family_id === familyId && c.status === "active");
+  const assignableRecipients = recipientType === "clients" ? directClients.map((c) => ({ membership_id: c.id, nickname: c.client_name, role: "client" })) : assignableMembers;
   const visibleManagedAssignments = useMemo(
     () => assignmentStatus === "all"
       ? managedAssignments
@@ -331,17 +338,18 @@ export default function TrainingProgramLibrary({
     if (!familyId || !activeProfileId) return;
     const request = ++refreshRequest.current;
     const current = () => request === refreshRequest.current && identity.current.familyId === familyId && identity.current.activeProfileId === activeProfileId;
-    const [owned, incoming, managed, memberships, legacyTemplates, controls] = await Promise.all([
+    const [owned, incoming, managed, memberships, legacyTemplates, controls, clients] = await Promise.all([
       listOwnedTrainingPrograms(familyId, true),
       listTrainingProgramAssignments(activeProfileId),
       listManagedTrainingProgramAssignments(familyId),
       listProfileGroups(activeProfileId),
       listPlanTemplates(familyId),
       listRecipientProgramControls(activeProfileId),
+      listCoachClientConnections(familyId, activeProfileId),
     ]);
     if (!current()) return;
-    if (owned.error || incoming.error || managed.error || memberships.error || legacyTemplates.error) {
-      setNotice(message(owned.error || incoming.error || managed.error || memberships.error || legacyTemplates.error));
+    if (owned.error || incoming.error || managed.error || memberships.error || legacyTemplates.error || clients.error) {
+      setNotice(message(owned.error || incoming.error || managed.error || memberships.error || legacyTemplates.error || clients.error));
       return;
     }
 
@@ -374,6 +382,7 @@ export default function TrainingProgramLibrary({
     }
 
     if (!current()) return;
+    setConnections(clients.data || []);
     setRecipientControls(controls.data || []);
     setPrograms(nextPrograms.filter((p) => p.status !== "archived"));
     setArchivedPrograms(nextPrograms.filter((p) => p.status === "archived"));
@@ -391,6 +400,7 @@ export default function TrainingProgramLibrary({
   }, [familyId, activeProfileId]);
 
   useEffect(() => {
+    setConnections([]); setGroups([]); setDirectory([]); setSelectedMembershipIds([]); setPreviewAssignmentId(""); setAssignmentEdit(null);
     setPrograms([]); setArchivedPrograms([]); setAssignments([]); setManagedAssignments([]);
     setManageProgramId(""); setNotice(""); setAssignmentProgramId("");
   }, [familyId, activeProfileId]);
@@ -530,10 +540,12 @@ export default function TrainingProgramLibrary({
   }, [assignmentProgramId]);
 
   function openAssignmentComposer(program) {
-    if (!groups.length) {
-      setNotice("Create or administer a team before assigning a Program.");
+    if (!groups.length && !directClients.length) {
+      setSection("clients");
+      setNotice("Connect a client here, or administer a team, before assigning a programme.");
       return;
     }
+    setRecipientType(groups.length ? "team" : "clients");
     setAssignmentProgramId(program.id);
     setAssignmentMessage("");
     setSelectedMembershipIds([]);
@@ -547,33 +559,37 @@ export default function TrainingProgramLibrary({
   }
 
   async function assignSelectedMembers() {
-    if (!assignmentProgram || !targetGroup) return;
+    if (!assignmentProgram || (recipientType === "team" && !targetGroup)) return;
     if (!selectedMembershipIds.length) {
-      setNotice("Select at least one team member.");
+      setNotice("Select at least one recipient.");
       return;
     }
-    if (!(await allowed("assign a Program to selected team members"))) return;
+    if (!(await allowed("assign a Program to selected recipients"))) return;
     setBusy("assign-members");
     setNotice("");
-    const { data, error } = await assignTrainingProgramToMembers({
-      programId: assignmentProgram.id,
-      membershipIds: selectedMembershipIds,
-      startDate,
-      completionMode,
-      recipientCanEdit: permission !== "follow",
-      recipientCanCopy: permission === "adapt_copy",
-      message: assignmentMessage.trim(),
-    });
-    setBusy("");
-    if (error) return setNotice(message(error));
-    const count = Number(data) || 0;
-    setNotice(count
-      ? `Assigned “${assignmentProgram.title}” to ${count} member${count === 1 ? "" : "s"} of ${targetGroup.name}.`
-      : "No new assignments were created. Those members may already have this version pending for that date.");
-    setAssignmentProgramId("");
-    setSelectedMembershipIds([]);
-    setAssignmentMessage("");
-    await refresh();
+    const current = () => identity.current.familyId === familyId && identity.current.activeProfileId === activeProfileId;
+    try {
+      const { data, error } = await (recipientType === "clients" ? assignProgramToClients : assignTrainingProgramToMembers)({
+        programId: assignmentProgram.id,
+        ...(recipientType === "clients" ? { connectionIds: selectedMembershipIds } : { membershipIds: selectedMembershipIds }),
+        startDate,
+        completionMode,
+        recipientCanEdit: permission !== "follow",
+        recipientCanCopy: permission === "adapt_copy",
+        message: assignmentMessage.trim(),
+      });
+      if (!current()) return;
+      if (error) throw error;
+      const count = Number(data) || 0;
+      setNotice(count
+        ? `Assigned “${assignmentProgram.title}” to ${count} ${recipientType === "clients" ? "client" : "member"}${count === 1 ? "" : "s"}${recipientType === "team" ? ` of ${targetGroup.name}` : ""}.`
+        : "No new assignments were created. Those recipients may already have this version pending for that date.");
+      setAssignmentProgramId("");
+      setSelectedMembershipIds([]);
+      setAssignmentMessage("");
+      await refresh();
+    } catch (error) { if (current()) setNotice(message(error)); }
+    finally { if (current()) setBusy(""); }
   }
 
   async function revokeAssignment(assignment) {
@@ -661,13 +677,14 @@ export default function TrainingProgramLibrary({
         <button type="button" role="tab" aria-selected={section === "mine"} className={section === "mine" ? "active" : ""} onClick={() => setSection("mine")}>My Programs</button>
         <button type="button" role="tab" aria-selected={section === "shared"} className={section === "shared" ? "active" : ""} onClick={() => setSection("shared")}>Shared &amp; assigned{assignments.length ? ` (${assignments.length})` : ""}</button>
         <button type="button" role="tab" aria-selected={section === "starters"} className={section === "starters" ? "active" : ""} onClick={() => setSection("starters")}>Starter Programs</button>
+        <button type="button" role="tab" aria-selected={section === "clients"} className={section === "clients" ? "active" : ""} onClick={() => setSection("clients")}>Coaching connections</button>
         <button type="button" role="tab" aria-selected={section === "reports"} className={section === "reports" ? "active" : ""} onClick={() => setSection("reports")}>Coach reports</button>
         <button type="button" role="tab" aria-selected={section === "discover"} className={section === "discover" ? "active" : ""} onClick={() => setSection("discover")}>Discover</button>
       </div>
 
       {notice ? <div className="trainingProgramNotice" role="status">{notice}</div> : null}
 
-      {section !== "discover" && section !== "reports" ? (
+      {section !== "discover" && section !== "reports" && section !== "clients" ? (
         <div className="trainingProgramControls">
           <label>Starts Monday<input type="date" value={startDate} onChange={(event) => setStartDate(normaliseProgramStartDate(event.target.value))} /></label>
           <label>At the end<select value={completionMode} onChange={(event) => setCompletionMode(event.target.value)}><option value="repeat">Repeat</option><option value="once">Finish</option><option value="hold">Hold final week</option></select></label>
@@ -715,7 +732,8 @@ export default function TrainingProgramLibrary({
               </div>
 
               <div className="trainingProgramAssignmentFields">
-                <label>Team<select value={targetGroupId} onChange={(event) => setTargetGroupId(event.target.value)}>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label>
+                <label>Recipients<select value={recipientType} onChange={(e) => { setRecipientType(e.target.value); setSelectedMembershipIds([]); }}><option value="team" disabled={!groups.length}>Team members</option><option value="clients">Direct clients</option></select></label>
+                {recipientType === "team" ? <label>Team<select value={targetGroupId} onChange={(event) => setTargetGroupId(event.target.value)}>{groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</select></label> : null}
                 <label>Recipient permissions<select value={permission} onChange={(e) => setPermission(e.target.value)}><option value="adapt_copy">Edit and save a personal copy</option><option value="adapt">Edit active copy only</option><option value="follow">Follow as supplied</option></select></label>
                 <label>Message (optional)<textarea value={assignmentMessage} onChange={(event) => setAssignmentMessage(event.target.value)} maxLength={500} placeholder="Add context, targets or a welcome note" /></label>
               </div>
@@ -723,23 +741,23 @@ export default function TrainingProgramLibrary({
               <div className="trainingProgramRecipientToolbar">
                 <strong>{selectedMembershipIds.length} selected</strong>
                 <div>
-                  <button type="button" disabled={!assignableMembers.length} onClick={() => setSelectedMembershipIds(assignableMembers.map((member) => member.membership_id))}>Select all</button>
+                  <button type="button" disabled={!assignableRecipients.length} onClick={() => setSelectedMembershipIds(assignableRecipients.map((member) => member.membership_id))}>Select all</button>
                   <button type="button" disabled={!selectedMembershipIds.length} onClick={() => setSelectedMembershipIds([])}>Clear</button>
                 </div>
               </div>
 
-              {directoryLoading ? <p className="muted">Loading team members…</p> : null}
-              {!directoryLoading && assignableMembers.length ? (
+              {recipientType === "team" && directoryLoading ? <p className="muted">Loading team members…</p> : null}
+              {(recipientType === "clients" || !directoryLoading) && assignableRecipients.length ? (
                 <div className="trainingProgramRecipients">
-                  {assignableMembers.map((member) => (
+                  {assignableRecipients.map((member) => (
                     <label key={member.membership_id} className={`trainingProgramRecipient${selectedMembershipIds.includes(member.membership_id) ? " selected" : ""}`}>
                       <input type="checkbox" checked={selectedMembershipIds.includes(member.membership_id)} onChange={() => toggleMembership(member.membership_id)} />
-                      <span><strong>{member.nickname || "Team member"}</strong><small>{member.role === "admin" ? "Team admin" : "Team member"}</small></span>
+                      <span><strong>{member.nickname || "Team member"}</strong><small>{member.role === "client" ? "Connected client" : member.role === "admin" ? "Team admin" : "Team member"}</small></span>
                     </label>
                   ))}
                 </div>
               ) : null}
-              {!directoryLoading && !assignableMembers.length ? <p className="muted">There are no other active members in this team yet.</p> : null}
+              {(recipientType === "clients" || !directoryLoading) && !assignableRecipients.length ? <p className="muted">{recipientType === "clients" ? "Connect a client in Coaching connections first." : "There are no other active members in this team yet."}</p> : null}
 
               <div className="trainingProgramAssignmentFooter">
                 <p>Recipients see the permissions before accepting. Reporting is optional and private until they choose to share.</p>
@@ -763,7 +781,7 @@ export default function TrainingProgramLibrary({
                   <article key={assignment.id} className="trainingProgramAssignmentRow">
                     <div className="trainingProgramAssignmentMain">
                       <strong>{assignment.program?.title || "Archived Program"}</strong>
-                      <span>for {assignment.recipient?.nickname || "Former team member"}</span>
+                      <span>for {assignment.recipient?.nickname || (assignment.client_connection_id ? "Former client" : "Former team member")}</span>
                     </div>
                     <div className="trainingProgramAssignmentDetails">
                       <span>Version {assignment.version?.version_no || "—"}</span>
@@ -799,6 +817,8 @@ export default function TrainingProgramLibrary({
           </section>
         </>
       ) : null}
+
+      {section === "clients" ? <ProgramClientConnections key={`${familyId}:${activeProfileId}`} familyId={familyId} profileId={activeProfileId} profileName={activeProfileName} connections={connections} onChanged={refresh} authorize={allowed} /> : null}
 
       {section === "reports" ? <ProgramCoachReports key={activeProfileId} assignments={managedAssignments} groups={groups} /> : null}
 

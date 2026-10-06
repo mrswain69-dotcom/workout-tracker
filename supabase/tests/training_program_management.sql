@@ -4,7 +4,7 @@ do $$
 declare
   cf uuid; cu uuid; af uuid; au uuid; owner_profile uuid; programme uuid; old_version uuid;
   new_version uuid; duplicate_id uuid; link_id uuid; token uuid; stamp timestamptz;
-  content jsonb; frozen jsonb; denied boolean; template_id uuid; test_id uuid; source_plan jsonb; assigned_profile uuid; assignment_id uuid;
+  content jsonb; frozen jsonb; denied boolean; template_id uuid; test_id uuid; source_plan jsonb; assigned_profile uuid; assignment_id uuid; connection public.training_program_client_connections;
 begin
   select id,owner_user_id into cf,cu from public.families order by created_at limit 1;
   select id,owner_user_id into af,au from public.families where owner_user_id<>cu order by created_at limit 1;
@@ -18,8 +18,12 @@ begin
   content := jsonb_set(content,'{program,phases,0,assessments}',jsonb_build_array(jsonb_build_object('id','before','name','Frozen assessment','timing','before','assessmentTemplateId',template_id)));
   select program_id,version_id into programme,old_version from public.training_program_save(null,cf,owner_profile,'Management fixture','','','football','beginner','teen','{mat}','{skills}','community',content,'First version');
   insert into public.profiles(family_id,name,plan_json) values(af,'Management recipient',content) returning id into assigned_profile;
-  insert into public.training_program_assignments(program_id,version_id,assigned_by_family_id,target_profile_id,status,start_date,completion_mode)
-    values(programme,old_version,cf,assigned_profile,'pending','2026-10-05','repeat') returning id into assignment_id;
+  connection:=public.training_program_invite_client(owner_profile,'Management coach',14);
+  perform set_config('request.jwt.claim.sub',au::text,true);
+  perform public.training_program_accept_client_invite(connection.invite_token,assigned_profile);
+  perform set_config('request.jwt.claim.sub',cu::text,true);
+  insert into public.training_program_assignments(program_id,version_id,assigned_by_family_id,target_profile_id,client_connection_id,status,start_date,completion_mode)
+    values(programme,old_version,cf,assigned_profile,connection.id,'pending','2026-10-05','repeat') returning id into assignment_id;
   select content_json into frozen from public.training_program_versions where id=old_version;
   select plan_json into source_plan from public.profiles where id=owner_profile;
   select updated_at into stamp from public.training_programs where id=programme;

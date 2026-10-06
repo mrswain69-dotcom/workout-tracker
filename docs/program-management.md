@@ -18,4 +18,6 @@ Management RPCs require owner-family access, have fixed empty search paths and a
 
 Verification: UI tests cover metadata, frozen-version preview, duplication/restoration, error feedback, authorization, expiry/revocation, collapsed archives and replacement cancellation. Rollback-only two-account SQL tests cover snapshots after Assessment archival, stale writes, owner/recipient isolation, link-token RLS, revoked-link access, anonymous execute denial, issued-version preservation and unchanged active plans. Existing coaching and assignment SQL suites also pass. Local browser automation failed at daemon startup, including a debug retry, so authenticated visual and physical narrow-device testing remains outstanding.
 
-Next wider roadmap: direct coach clients outside teams, email notifications, public Discover, commercial entitlements, richer reporting/export and device/accessibility verification.
+Direct clients outside teams are now covered by [coaching connections](program-direct-clients.md).
+
+Next wider roadmap: email notifications, public Discover, commercial entitlements, richer reporting/export and device/accessibility verification.

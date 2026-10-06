@@ -7,7 +7,7 @@ export const localWorkflowDate = () => {
 };
 export async function listProgramNotifications(familyId, profileId) {
   if (!supabase) return missing();
-  return supabase.from("training_program_notifications").select("id,assignment_id,profile_id,title,kind,audience,created_at,read_at")
+  return supabase.from("training_program_notifications").select("id,assignment_id,client_connection_id,profile_id,title,kind,audience,created_at,read_at")
     .eq("family_id", familyId).or(`profile_id.eq.${profileId},profile_id.is.null`).order("created_at", { ascending: false }).limit(50);
 }
 export async function readProgramNotification(id) {
