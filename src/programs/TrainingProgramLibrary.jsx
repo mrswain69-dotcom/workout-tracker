@@ -19,8 +19,6 @@ import {
   applyOwnedTrainingProgram,
   archiveTrainingProgram,
   assignTrainingProgramToMembers,
-  buildTrainingProgramShareLink,
-  createTrainingProgramShare,
   declineTrainingProgramAssignment,
   importLegacyTrainingProgramTemplate,
   listManagedTrainingProgramAssignments,
@@ -277,7 +275,6 @@ export default function TrainingProgramLibrary({
   const [programs, setPrograms] = useState([]);
   const [archivedPrograms, setArchivedPrograms] = useState([]);
   const [manageProgramId, setManageProgramId] = useState("");
-  const [versionNote, setVersionNote] = useState("");
   const [assignments, setAssignments] = useState([]);
   const [managedAssignments, setManagedAssignments] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -458,7 +455,7 @@ export default function TrainingProgramLibrary({
     await refresh();
   }
 
-  async function saveNewVersion(program) {
+  async function saveNewVersion(program, changeNote = "") {
     if (noCopy) return setNotice("The coach has not allowed copying this programme.");
     if (!activePlan || !(await allowed("save a new programme version"))) return;
     setBusy(program.id);
@@ -476,12 +473,24 @@ export default function TrainingProgramLibrary({
       tags: program.tags,
       creatorRole: program.creator_role,
       content: extractShareablePlanContent(activePlan),
-      changeNote: versionNote.trim() || "Updated from active programme",
+      changeNote: changeNote.trim() || "Updated from active programme",
     });
     setBusy("");
     if (error) return setNotice(message(error));
     setNotice(`Saved a new version of “${program.title}”. Existing recipients stay on their frozen version until you offer it using Replace / update in Assignments sent.`);
     await refresh();
+  }
+
+  async function changeArchiveStatus(program) {
+    const restoring = program.status === "archived";
+    if (!(await allowed(restoring ? "restore an archived programme" : "archive a programme"))) return;
+    if (!restoring && !window.confirm(`Archive “${program.title}”? Active plans and assignments are retained. You can restore it later.`)) return;
+    setBusy(program.id);
+    try {
+      const r = await (restoring ? restoreArchivedProgram(program.id) : archiveTrainingProgram(program.id));
+      if (r.error || !r.data) throw r.error || new Error("Programme status could not be changed.");
+      await refresh(); setNotice(restoring ? "Programme restored to My Programs. No active plan was changed." : "Programme archived. Active plans and assignments are retained.");
+    } catch (error) { setNotice(message(error)); } finally { setBusy(""); }
   }
 
   async function useProgram(program) {
@@ -513,16 +522,12 @@ export default function TrainingProgramLibrary({
     }
   }
 
-  async function shareProgram(program) {
-    if (!(await allowed("create a private programme link"))) return;
-    setBusy(program.id);
-    const { data, error } = await createTrainingProgramShare(program.id);
-    setBusy("");
-    if (error) return setNotice(message(error));
-    const link = buildTrainingProgramShareLink(data?.share_token);
-    try { await navigator.clipboard.writeText(link); } catch { /* link remains in the notice */ }
-    setNotice(`Private link copied: ${link}`);
-  }
+  useEffect(() => {
+    if (!assignmentProgramId) return;
+    const composer = document.getElementById("assignment-composer-title");
+    composer?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    composer?.focus();
+  }, [assignmentProgramId]);
 
   function openAssignmentComposer(program) {
     if (!groups.length) {
@@ -674,7 +679,6 @@ export default function TrainingProgramLibrary({
           <div className="trainingProgramCreate">
             <label>Name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} /></label>
             <label>Description<input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1200} placeholder="Who this is for and what it develops" /></label>
-            <label>Version change note<input maxLength={300} value={versionNote} onChange={(e) => setVersionNote(e.target.value)} placeholder="Optional note when saving a new version" /></label>
             <button type="button" className="primary" disabled={busy === "save" || !title.trim() || noCopy} onClick={saveNewProgram}>Save active Program</button>
           </div>
 
@@ -684,23 +688,17 @@ export default function TrainingProgramLibrary({
               <div className="trainingProgramGrid">
                 {programs.map((program) => (
                   <ProgramCard key={program.id} program={program} badge={program.legacy_plan_template_id ? "Moved from saved plans" : "Private"}>
-                    <button type="button" className="primary" disabled={busy === program.id} onClick={() => useProgram(program)}>Use</button>
-                    <button type="button" disabled={busy === program.id || noCopy} onClick={() => saveNewVersion(program)}>Save new version</button>
-                    <button type="button" disabled={busy === program.id} onClick={() => shareProgram(program)}>Copy private link</button>
-                    <button type="button" disabled={busy === program.id} onClick={() => openAssignmentComposer(program)}>Assign</button>
-                    <button type="button" disabled={!!busy} onClick={() => setManageProgramId(manageProgramId === program.id ? "" : program.id)}>Manage</button>
-                    <button type="button" disabled={!!busy} onClick={async () => { if (!(await allowed("archive a programme")) || !window.confirm(`Archive “${program.title}”? Active plans and assignments are retained. You can restore it from Archived Programs.`)) return; setBusy(program.id); try { const r = await archiveTrainingProgram(program.id); if (r.error || !r.data) throw r.error || new Error("Programme could not be archived."); await refresh(); setNotice("Programme archived. Active plans and assignments are retained."); } catch (error) { setNotice(message(error)); } finally { setBusy(""); } }}>Archive</button>
+                    <button type="button" className="primary" disabled={!!busy} onClick={() => { setNotice(""); setManageProgramId(program.id); }}>View details</button>
                   </ProgramCard>
                 ))}
               </div>
             ) : <p className="muted">No reusable Programs saved yet. Save the active Program above or start from a Starter Program.</p>}
           </div>
 
-          {manageProgramId && [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId) ? <ProgramManager key={`${familyId}:${activeProfileId}:${manageProgramId}`} program={[...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)} authorize={allowed} onChanged={refresh} onClose={() => setManageProgramId("")} /> : null}
+          {manageProgramId && [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId) ? <ProgramManager key={`${familyId}:${activeProfileId}:${manageProgramId}`} program={[...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)} authorize={allowed} onChanged={refresh} onClose={() => setManageProgramId("")} externalBusy={!!busy} externalNotice={notice} noCopy={noCopy} startDate={startDate} completionMode={completionMode} onStartDateChange={(date) => setStartDate(normaliseProgramStartDate(date))} onCompletionModeChange={setCompletionMode} onUse={() => useProgram([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId))} onSaveVersion={(note) => saveNewVersion(programs.find((p) => p.id === manageProgramId), note)} onAssign={() => { const p = programs.find((p) => p.id === manageProgramId); setManageProgramId(""); openAssignmentComposer(p); }} onArchive={() => changeArchiveStatus([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId))} /> : null}
           <details className="programArchive"><summary>Archived Programs ({archivedPrograms.length})</summary>
             <div className="trainingProgramGrid">{archivedPrograms.map((program) => <ProgramCard key={program.id} program={program} badge="Archived">
-              <button type="button" disabled={!!busy} onClick={async () => { if (!(await allowed("restore an archived programme"))) return; setBusy(program.id); try { const r = await restoreArchivedProgram(program.id); if (r.error || !r.data) throw r.error || new Error("Programme could not be restored."); await refresh(); setNotice("Programme restored to My Programs. No active plan was changed."); } catch (error) { setNotice(message(error)); } finally { setBusy(""); } }}>Restore programme</button>
-              <button type="button" disabled={!!busy} onClick={() => setManageProgramId(program.id)}>Manage</button>
+              <button type="button" disabled={!!busy} onClick={() => { setNotice(""); setManageProgramId(program.id); }}>View details</button>
             </ProgramCard>)}</div>
             {!archivedPrograms.length ? <p className="muted">No archived programmes.</p> : null}
           </details>
@@ -710,7 +708,7 @@ export default function TrainingProgramLibrary({
               <div className="trainingProgramAssignmentHeading">
                 <div>
                   <span className="pill">Frozen version {assignmentProgram.current_version_no}</span>
-                  <h3 id="assignment-composer-title">Assign “{assignmentProgram.title}”</h3>
+                  <h3 id="assignment-composer-title" tabIndex={-1}>Assign “{assignmentProgram.title}”</h3>
                   <p>Choose who should receive this Program. Nothing is added to their active plan until they accept it.</p>
                 </div>
                 <button type="button" onClick={() => setAssignmentProgramId("")}>Cancel</button>
