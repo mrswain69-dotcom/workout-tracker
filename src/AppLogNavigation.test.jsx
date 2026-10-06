@@ -25,17 +25,23 @@ vi.mock("./db.js", async (importOriginal) => {
     isSupabaseReady: () => true,
     getSession: async () => ({ session: { user: { id: "user" } } }),
     getOrCreateFamily: async () => ({ family: { id: "family", welcome_email_sent_at: "2026-10-01" } }),
-    listProfiles: async () => ({ data: [{ id: "paul", name: "Paul", age_group: "adult" }] }),
+    listProfiles: vi.fn(async () => ({ data: [{ id: "paul", name: "Paul", age_group: "adult" }] })),
     listProfileRecoveryPeriods: async () => ({ data: [] }),
-    getProfilePlan: async () => ({ data: { plan_json: plan } }),
-    listProfileStreakScheduleSnapshots: async () => ({ data: [] }),
+    getProfilePlan: vi.fn(async () => ({ data: { plan_json: plan } })),
+    listProfileStreakScheduleSnapshots: vi.fn(async () => ({ data: [] })),
     listLogs: vi.fn(async () => ({ data: [] })),
     getLog: vi.fn(async () => ({ data: null })),
     upsertLog: vi.fn(async (_family, _profile, _date, log) => ({ data: { log_json: log } })),
   };
 });
 
+const defaultPlanRead = vi.mocked(db.getProfilePlan).getMockImplementation();
+
 beforeEach(() => {
+  vi.mocked(db.getProfilePlan).mockReset().mockImplementation(defaultPlanRead);
+  vi.mocked(db.listProfiles).mockClear();
+  vi.mocked(db.listProfiles).mockResolvedValue({ data: [{ id: "paul", name: "Paul", age_group: "adult" }] });
+  vi.mocked(db.listProfileStreakScheduleSnapshots).mockReset().mockResolvedValue({ data: [] });
   localStorage.clear(); sessionStorage.clear();
   sessionStorage.setItem("wt_log_navigation_v1", JSON.stringify({ tab: "log", date: "2026-10-01" }));
   vi.mocked(db.getLog).mockReset().mockResolvedValue({ data: null });
@@ -140,5 +146,96 @@ describe("actual Log navigation", () => {
     if (summary.getAttribute("aria-expanded") === "false") fireEvent.click(summary);
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("12"));
     expect(screen.getAllByRole("spinbutton")[1].value).toBe("22.5");
+  });
+});
+
+
+describe("profile switching", () => {
+  async function twoProfiles() {
+    vi.mocked(db.listProfiles).mockResolvedValue({ data: [
+      { id: "paul", name: "Paul", age_group: "adult" },
+      { id: "xander", name: "Xander", age_group: "child" },
+    ] });
+    await ready();
+    fireEvent.click(screen.getByRole("button", { name: "Dashboard" }));
+  }
+
+  function switchProfile(id) {
+    const selector = Array.from(document.querySelectorAll("select"))
+      .find((select) => Array.from(select.options).some((option) => option.value === "xander"));
+    fireEvent.change(selector, { target: { value: id } });
+  }
+
+  it("waits for the selected profile's streak schedule even after its history arrives", async () => {
+    await twoProfiles();
+    let finishSnapshots;
+    vi.mocked(db.listProfileStreakScheduleSnapshots).mockImplementation((profile) => profile === "xander"
+      ? new Promise((resolve) => { finishSnapshots = resolve; }) : Promise.resolve({ data: [] }));
+    switchProfile("xander");
+    await waitFor(() => expect(finishSnapshots).toBeTypeOf("function"));
+    await waitFor(() => expect(db.listLogs).toHaveBeenCalledWith("family", "xander", 2000));
+    expect(screen.queryByText("Plan history")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("Loading Xander’s data");
+    await act(async () => finishSnapshots({ data: [] }));
+    await screen.findByText("Plan history");
+    expect(screen.queryByText("Loading Xander’s data")).toBeNull();
+  });
+
+  it("keeps the dashboard hidden while history is delayed and shows retry after a failed read", async () => {
+    await twoProfiles();
+    let failHistory;
+    vi.mocked(db.listLogs).mockImplementation((_family, profile) => profile === "xander"
+      ? new Promise((resolve) => { failHistory = resolve; }) : Promise.resolve({ data: [] }));
+    switchProfile("xander");
+    await waitFor(() => expect(failHistory).toBeTypeOf("function"));
+    expect(screen.queryByText("Plan history")).toBeNull();
+    await act(async () => failHistory({ error: new Error("network failed") }));
+    await waitFor(() => expect(db.listLogs.mock.calls.filter((call) => call[1] === "xander").length).toBe(2));
+    await act(async () => failHistory({ error: new Error("network failed") }));
+    await screen.findByRole("button", { name: "Try again" });
+    expect(screen.queryByText("Plan history")).toBeNull();
+    vi.mocked(db.listLogs).mockResolvedValue({ data: [] });
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await screen.findByText("Plan history");
+    expect(screen.getByRole("heading", { name: /^Xander/ })).toBeTruthy();
+  });
+
+  it("waits for the authoritative plan even when a cached plan exists", async () => {
+    await twoProfiles();
+    localStorage.setItem("wt_plan_profile_xander", localStorage.getItem("wt_plan_profile_paul"));
+    let finishPlan;
+    vi.mocked(db.getProfilePlan).mockImplementation((family, profile) => profile === "xander"
+      ? new Promise((resolve) => { finishPlan = resolve; }) : defaultPlanRead(family, profile));
+    switchProfile("xander");
+    await waitFor(() => expect(finishPlan).toBeTypeOf("function"));
+    expect(screen.queryByText("Plan history")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("Loading Xander’s data");
+    await act(async () => finishPlan(await defaultPlanRead("family", "xander")));
+    await screen.findByText("Plan history");
+  });
+
+  it("shows each profile's saved sets after switching back and forth", async () => {
+    const saved = (reps) => ({ blocks: [{ id: "strength", typeId: "strength", sets: { press: [{ reps, weight: "30" }] } }] });
+    vi.mocked(db.listLogs).mockImplementation(async (_family, profile) => ({ data: [
+      { profile_id: profile, date_ymd: "2026-10-01", log_json: saved(profile === "paul" ? "12" : "21") },
+    ] }));
+    await twoProfiles();
+    switchProfile("xander");
+    await screen.findByRole("heading", { name: /^Xander/ });
+    fireEvent.click(screen.getByRole("button", { name: "Log" }));
+    await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("21"));
+    switchProfile("paul");
+    await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("12"));
+    switchProfile("xander");
+    await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("21"));
+  });
+
+  it("does not clear a loaded profile when the existing selection is chosen again", async () => {
+    await twoProfiles();
+    const readCount = db.listLogs.mock.calls.length;
+    switchProfile("paul");
+    await act(async () => {});
+    expect(screen.getByText("Plan history")).toBeTruthy();
+    expect(db.listLogs.mock.calls.length).toBe(readCount);
   });
 });

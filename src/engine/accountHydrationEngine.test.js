@@ -23,6 +23,21 @@ describe("account hydration", () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
+  it("bounds a hung read, retries, and rejects without waiting forever", async () => {
+    vi.useFakeTimers();
+    try {
+      const load = vi.fn(() => new Promise(() => {}));
+      const pending = runAccountLoadWithRetry(load, { timeoutMs: 100, delayMs: 10 });
+      const result = expect(pending).rejects.toThrow("Training data request timed out");
+      await vi.advanceTimersByTimeAsync(210);
+      await result;
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps the dashboard gated until profile, plan and logs are ready", () => {
     const base = {
       authed: true,
@@ -31,9 +46,11 @@ describe("account hydration", () => {
       activeProfileId: "profile-1",
       planReady: true,
       logsReady: true,
+      snapshotsReady: true,
     };
 
     expect(getAccountHydrationPhase(base)).toBe("ready");
+    expect(getAccountHydrationPhase({ ...base, snapshotsReady: false })).toBe("loading");
     expect(getAccountHydrationPhase({ ...base, logsReady: false })).toBe("loading");
     expect(getAccountHydrationPhase({ ...base, planReady: false })).toBe("loading");
     expect(getAccountHydrationPhase({ ...base, accountLoadError: "failed" })).toBe("error");

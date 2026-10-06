@@ -1742,7 +1742,7 @@ function AuthScreen({ onAuthed }) {
   );
 }
 
-function AccountHydrationScreen({ phase, error, onRetry }) {
+function AccountHydrationScreen({ phase, error, onRetry, profileName }) {
   const failed = phase === "error";
 
   return (
@@ -1751,7 +1751,7 @@ function AccountHydrationScreen({ phase, error, onRetry }) {
         <div className="accountHydrationCard" role={failed ? "alert" : "status"}>
           <img className="accountHydrationMark" src="/icons/icon-192.png" alt="" />
           <div className="accountHydrationKicker">WORKOUT TRACKER</div>
-          <h1>{failed ? "Your training data did not load" : "Loading your training history"}</h1>
+          <h1>{failed ? "Your training data did not load" : (profileName ? `Loading ${profileName}’s data…` : "Loading your training history")}</h1>
           <p>
             {failed
               ? error || "The first account load was interrupted. Your saved data has not been changed."
@@ -3401,7 +3401,9 @@ useEffect(() => {
   }, [activeProfileId]);
 
   const [plan, setPlan] = useState(null);
-  const [planReady, setPlanReady] = useState(false);
+  const profileLoadKey = family?.id && activeProfileId ? `${family.id}:${activeProfileId}` : "";
+  const [planReadyKey, setPlanReadyKey] = useState("");
+  const planReady = !!profileLoadKey && planReadyKey === profileLoadKey;
   const [planLoadError, setPlanLoadError] = useState("");
   const planLoadRequestRef = useRef(0);
   
@@ -3561,7 +3563,11 @@ useEffect(() => { planRef.current = plan; }, [plan]);
     // for the calendar, including history that arrives after this state was set.
     : (allLogs || []).find((row) => row.profile_id === activeProfileId && row.date_ymd === selectedDate)?.log || null;
   const [streakScheduleSnapshots, setStreakScheduleSnapshots] = useState([]);
-  const [logsReady, setLogsReady] = useState(false);
+  const [logsReadyKey, setLogsReadyKey] = useState("");
+  const logsReady = !!profileLoadKey && logsReadyKey === profileLoadKey;
+  const [snapshotsReadyKey, setSnapshotsReadyKey] = useState("");
+  const snapshotsReady = !!profileLoadKey && snapshotsReadyKey === profileLoadKey;
+  const [snapshotsLoadError, setSnapshotsLoadError] = useState("");
   const [logsLoadError, setLogsLoadError] = useState("");
   const allLogsLoadRequestRef = useRef(0);
   const [externalLogRevision, setExternalLogRevision] = useState(0);
@@ -4034,11 +4040,13 @@ function toggleLogBlockFocus(blockId) {
     setFamily(null);
     setProfiles([]);
     setPlan(null);
-    setPlanReady(false);
+    setPlanReadyKey("");
     setPlanLoadError("");
     setAllLogs([]);
-    setLogsReady(false);
+    setLogsReadyKey("");
     setLogsLoadError("");
+    setSnapshotsReadyKey("");
+    setSnapshotsLoadError("");
     setLogForDay(null);
     setActiveProfileId("");
     setAccountLoadState("idle");
@@ -4141,8 +4149,10 @@ function toggleLogBlockFocus(blockId) {
     setAccountLoadError("");
     setPlanLoadError("");
     setLogsLoadError("");
-    setPlanReady(false);
-    setLogsReady(false);
+    setSnapshotsLoadError("");
+    setSnapshotsReadyKey("");
+    setPlanReadyKey("");
+    setLogsReadyKey("");
     setAccountLoadRevision((revision) => revision + 1);
   }
 
@@ -4193,7 +4203,7 @@ function toggleLogBlockFocus(blockId) {
   useEffect(() => {
   if (!family?.id || !activeProfileId) {
     allLogsLoadRequestRef.current += 1;
-    setLogsReady(false);
+    setLogsReadyKey("");
     setLogsLoadError("");
     setAllLogs([]);
     return;
@@ -4201,7 +4211,10 @@ function toggleLogBlockFocus(blockId) {
 
   // Important: clear immediately so we don't display previous profile streak/logs
   const requestId = ++allLogsLoadRequestRef.current;
-  setLogsReady(false);
+  let cancelled = false;
+  const isCurrent = () => !cancelled && requestId === allLogsLoadRequestRef.current &&
+    currentLogViewRef.current?.familyId === family.id && currentLogViewRef.current?.profileId === activeProfileId;
+  setLogsReadyKey("");
   setLogsLoadError("");
   setAllLogs([]);
 
@@ -4209,47 +4222,51 @@ function toggleLogBlockFocus(blockId) {
     const { data, error } = await listLogs(family.id, activeProfileId, 2000);
     if (error) throw error;
     return data || [];
-  }).then((data) => {
-    if (requestId !== allLogsLoadRequestRef.current) return;
+  }, { timeoutMs: 15000 }).then((data) => {
+    if (!isCurrent()) return;
 
     const mapped = mapProfileHistoryRows(data, activeProfileId);
 
     setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId));
-    setLogsReady(true);
+    setLogsReadyKey(profileLoadKey);
   }).catch((error) => {
-    if (requestId !== allLogsLoadRequestRef.current) return;
+    if (!isCurrent()) return;
     console.error("listLogs failed", error);
     setLogsLoadError("We couldn’t load this profile’s training history.");
-    setLogsReady(false);
+    setLogsReadyKey("");
   });
+  return () => { cancelled = true; };
 }, [family?.id, activeProfileId, externalLogRevision, accountLoadRevision]);
 
 useEffect(() => {
-  if (!activeProfileId) {
+  if (!activeProfileId || !family?.id) {
     setStreakScheduleSnapshots([]);
+    setSnapshotsReadyKey("");
+    setSnapshotsLoadError("");
     return;
   }
 
   let cancelled = false;
-  listProfileStreakScheduleSnapshots(activeProfileId)
-    .then(({ data, error }) => {
-      if (cancelled) return;
-      if (error) {
-        console.error("listProfileStreakScheduleSnapshots failed", error);
-        setStreakScheduleSnapshots([]);
-        return;
-      }
-      setStreakScheduleSnapshots(data || []);
-    })
-    .catch((error) => {
-      if (!cancelled) {
-        console.error("listProfileStreakScheduleSnapshots failed", error);
-        setStreakScheduleSnapshots([]);
-      }
-    });
+  const isCurrent = () => !cancelled &&
+    currentLogViewRef.current?.familyId === family.id && currentLogViewRef.current?.profileId === activeProfileId;
+  setSnapshotsLoadError("");
+  runAccountLoadWithRetry(async () => {
+    const { data, error } = await listProfileStreakScheduleSnapshots(activeProfileId);
+    if (error) throw error;
+    return data || [];
+  }, { timeoutMs: 15000 }).then((data) => {
+    if (!isCurrent()) return;
+    setStreakScheduleSnapshots(data);
+    setSnapshotsReadyKey(profileLoadKey);
+  }).catch((error) => {
+    if (!isCurrent()) return;
+    console.error("listProfileStreakScheduleSnapshots failed", error);
+    setSnapshotsLoadError("We couldn’t load this profile’s streak schedule.");
+    setSnapshotsReadyKey("");
+  });
 
   return () => { cancelled = true; };
-}, [activeProfileId, externalLogRevision, plan]);
+}, [family?.id, activeProfileId, externalLogRevision, plan, accountLoadRevision]);
 
 
 // --- Load day log ---
@@ -4646,7 +4663,7 @@ const badgeStats = useMemo(() => {
     // We need both a profile and a family to be able to read/write the DB plan
     if (!activeProfileId || !family?.id) {
       planLoadRequestRef.current += 1;
-      setPlanReady(false);
+      setPlanReadyKey("");
       setPlanLoadError("");
       return;
     }
@@ -4654,14 +4671,18 @@ const badgeStats = useMemo(() => {
     const familyId = family.id;
     const profileId = activeProfileId;
     const requestId = ++planLoadRequestRef.current;
-    setPlanReady(false);
+    let cancelled = false;
+    const isCurrent = () => !cancelled && requestId === planLoadRequestRef.current &&
+      currentLogViewRef.current?.familyId === familyId && currentLogViewRef.current?.profileId === profileId;
+    setPlanReadyKey("");
     setPlanLoadError("");
 
 // 1) Try local cached copy first (fast), BUT still fetch DB after (authoritative)
 const cached = getCachedPlan(profileId);
 if (cached) {
   setAndCachePlan(profileId, cached);
-  setPlanReady(true);
+  // Keep the dashboard gated until the authoritative read finishes; cached
+  // plans may be older than edits made on another device.
   // DO NOT return — we still want to fetch the DB plan to catch updates from other devices
 }
 
@@ -4670,8 +4691,8 @@ if (cached) {
       const { data, error } = await getProfilePlan(familyId, profileId);
       if (error) throw error;
       return data || null;
-    }).then(async (data) => {
-      if (requestId !== planLoadRequestRef.current) return;
+    }, { timeoutMs: 15000 }).then(async (data) => {
+      if (!isCurrent()) return;
 
       if (data?.plan_json) {
         const dbPlan = normalisePlanForRuntime(data.plan_json);
@@ -4683,7 +4704,7 @@ if (cached) {
         if (!cached || cachedStr !== dbStr) {
           setAndCachePlan(profileId, dbPlan);
         }
-        setPlanReady(true);
+        setPlanReadyKey(profileLoadKey);
         return;
       }
 
@@ -4697,20 +4718,21 @@ if (cached) {
           nextPlan
         );
         if (saveError) throw saveError;
-        if (requestId !== planLoadRequestRef.current) return;
+        if (!isCurrent()) return;
         setAndCachePlan(profileId, nextPlan);
       }
-      setPlanReady(true);
+      setPlanReadyKey(profileLoadKey);
     }).catch((error) => {
-      if (requestId !== planLoadRequestRef.current) return;
+      if (!isCurrent()) return;
       console.error("getProfilePlan failed", error);
       if (cached) {
-        setPlanReady(true);
+        setPlanReadyKey(profileLoadKey);
         return;
       }
       setPlanLoadError("We couldn’t load this profile’s training program.");
-      setPlanReady(false);
+      setPlanReadyKey("");
     });
+    return () => { cancelled = true; };
   }, [activeProfileId, family?.id, accountLoadRevision]);  // IMPORTANT: do not depend on activeProfile here
 
 
@@ -6097,10 +6119,20 @@ const selectedDayHasHeavyTrainingBlocks =
   }
 
     const handleProfileChange = async (id) => {
+    if (id === activeProfileId || !profiles.some((profile) => profile.id === id)) return;
     const ok = await ensurePinForProfileSwitch();
     if (!ok) return;
 
-    // Clear current view so we don't show previous profile's plan/logs
+    // Reset readiness in the same update as the identity. Late reads are also
+    // guarded against the current render's identity in each loader.
+    setPlanReadyKey("");
+    setLogsReadyKey("");
+    setSnapshotsReadyKey("");
+    setPlanLoadError("");
+    setLogsLoadError("");
+    setSnapshotsLoadError("");
+    setStreakScheduleSnapshots([]);
+    setDayLogState(null);
     setActiveProfileId(id);
     setPlan(null);
     setAllLogs([]);
@@ -9350,16 +9382,18 @@ const cardioProgress = useMemo(() => {
     activeProfileId,
     planReady,
     logsReady,
+    snapshotsReady,
     accountLoadError,
     planLoadError,
-    logsLoadError,
+    logsLoadError: logsLoadError || snapshotsLoadError,
   });
 
   if (accountHydrationPhase !== "ready") {
     return (
       <AccountHydrationScreen
         phase={accountHydrationPhase}
-        error={accountLoadError || planLoadError || logsLoadError}
+        error={accountLoadError || planLoadError || logsLoadError || snapshotsLoadError}
+        profileName={activeProfile?.name}
         onRetry={retryAccountHydration}
       />
     );
