@@ -7,18 +7,28 @@ function wait(ms) {
 
 export async function runAccountLoadWithRetry(
   load,
-  { retries = 1, delayMs = ACCOUNT_LOAD_RETRY_DELAY_MS } = {}
+  { retries = 1, delayMs = ACCOUNT_LOAD_RETRY_DELAY_MS, timeoutMs = 0 } = {}
 ) {
   let lastError = null;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
+    let timer;
     try {
-      return await load(attempt);
+      const pending = Promise.resolve().then(() => load(attempt));
+      if (!timeoutMs) return await pending;
+      return await Promise.race([
+        pending,
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("Training data request timed out")), timeoutMs);
+        }),
+      ]);
     } catch (error) {
       lastError = error;
       if (attempt >= retries) break;
-      await wait(delayMs);
+    } finally {
+      clearTimeout(timer);
     }
+    await wait(delayMs);
   }
 
   throw lastError || new Error("Account data could not be loaded");
@@ -31,6 +41,7 @@ export function getAccountHydrationPhase({
   activeProfileId,
   planReady,
   logsReady,
+  snapshotsReady,
   accountLoadError,
   planLoadError,
   logsLoadError,
@@ -44,7 +55,8 @@ export function getAccountHydrationPhase({
     !familyId ||
     !activeProfileId ||
     !planReady ||
-    !logsReady
+    !logsReady ||
+    !snapshotsReady
   ) {
     return "loading";
   }
