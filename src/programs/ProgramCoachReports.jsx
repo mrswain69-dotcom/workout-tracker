@@ -35,7 +35,7 @@ export default function ProgramCoachReports({ assignments, groups = [], db = get
   async function load() {
     setBusy(true); setError(""); setReports([]);
     try {
-      const selected = eligible.filter((a) => (!programId || a.program_id === programId) && (!teamId || a.recipient?.group_id === teamId)).slice(0, 50);
+      const selected = eligible.filter((a) => (!programId || a.program_id === programId) && (!teamId || (teamId === "direct" ? !!a.client_connection_id : a.recipient?.group_id === teamId))).slice(0, 50);
       const rows = await Promise.all(selected.map(async (a) => { const result = await db(a.id, days); if (result.error) throw result.error; return { assignment: a, report: result.data }; }));
       setReports(rows);
     } catch (e) { setError(e.message || "Reports could not load."); }
@@ -45,14 +45,14 @@ export default function ProgramCoachReports({ assignments, groups = [], db = get
     <h3>Coach reports</h3><p>Recipients choose what to share. Reports cover programme blocks and linked Assessments only. Completion comes from saved logs and is not proof of device verification.</p>
     <div className="programWorkflowHeading">
       <label>Programme<select value={programId} disabled={busy} onChange={(e) => { setProgramId(e.target.value); setReports([]); }}><option value="">All programmes</option>{programmes.map(([id, title]) => <option key={id} value={id}>{title}</option>)}</select></label>
-      <label>Team<select value={teamId} disabled={busy} onChange={(e) => { setTeamId(e.target.value); setReports([]); }}><option value="">All teams</option>{teams.map((id, index) => <option value={id} key={id}>{groups.find((g) => g.id === id)?.name || `Team ${index + 1}`}</option>)}</select></label>
+      <label>Recipients<select value={teamId} disabled={busy} onChange={(e) => { setTeamId(e.target.value); setReports([]); }}><option value="">All recipients</option><option value="direct">Direct clients</option>{teams.map((id, index) => <option value={id} key={id}>{groups.find((g) => g.id === id)?.name || `Team ${index + 1}`}</option>)}</select></label>
       <label>Period<select value={days} disabled={busy} onChange={(e) => { setDays(Number(e.target.value)); setReports([]); }}><option value={28}>Last 4 weeks</option><option value={56}>Last 8 weeks</option><option value={90}>Last 90 days</option></select></label>
       <button type="button" disabled={busy} onClick={load}>{busy ? "Loading reports…" : "Load / refresh reports"}</button>
     </div>
     {error ? <p role="alert">{error}</p> : null}
     {reports.length ? <div className="programWorkflowTable"><table><caption>Programme adherence comparison</caption><thead><tr><th>Athlete</th><th>Programme / version</th><th>Completed / due blocks</th><th>Partial blocks</th><th>Checkpoints completed</th></tr></thead><tbody>
       {reports.map(({ assignment: a, report: r }) => <tr key={a.id}><td>{a.recipient?.nickname || "Athlete"}</td><td>{a.program?.title} · v{a.version?.version_no}</td><td>{!r.adherenceShared ? "Not shared" : !r.attached ? "No longer attached" : `${r.completed} / ${r.planned}${r.excused ? ` · ${r.excused} excused` : ""}`}</td><td>{r.adherenceShared && r.attached ? r.recorded - r.completed : "—"}</td><td>{r.assessmentsShared ? `${r.checkpoints.filter((x) => x.completedDate).length} / ${r.checkpoints.length}` : "Not shared"}</td></tr>)}
-    </tbody></table></div> : <p>Choose a programme or team and load reports. Up to 50 accepted assignments are compared at a time.</p>}
+    </tbody></table></div> : <p>Choose a programme or recipient group and load reports. Up to 50 accepted assignments are compared at a time.</p>}
     {reports.filter((x) => x.report.assessmentsShared).map(({ assignment: a, report: r }) => <details className="programWorkflowCard" key={a.id}>
       <summary>{a.recipient?.nickname || "Athlete"} · {a.program?.title} · Assessment outcomes</summary>
       <div className="programWorkflowTable"><table><caption>Before and after comparable results</caption><thead><tr><th>Phase / Test</th><th>Before</th><th>After</th><th>Change</th></tr></thead><tbody>{checkpointComparisons(r.checkpoints).map((x, i) => <tr key={i}><td>{x.phase} · {x.name}</td><td>{x.before ?? "—"} {x.unit}</td><td>{x.after ?? "—"} {x.unit}</td><td>{x.change === null ? "Not comparable / awaiting result" : `${x.change > 0 ? "+" : ""}${Number(x.change.toFixed(3))} ${x.unit}`}</td></tr>)}</tbody></table></div>

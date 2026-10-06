@@ -9,6 +9,7 @@ vi.mock("./programWorkflowDb.js", () => ({
   setProgramPermissions: vi.fn(async () => ({ data: true, error: null })),
   getProgramCoachReport: vi.fn(async () => ({ data: {}, error: null })),
 }));
+vi.mock("./coachClientDb.js", () => ({ listCoachClientConnections: vi.fn(async () => ({ data: [], error: null })), assignProgramToClients: vi.fn(), readCoachInvite: vi.fn(() => ""), coachInviteUrl: vi.fn(), previewCoachInvite: vi.fn(), inviteCoachClient: vi.fn(), acceptCoachInvite: vi.fn(), disconnectCoachClient: vi.fn() }));
 vi.mock("../db.js", () => ({ listPlanTemplates: vi.fn() }));
 vi.mock("../groups/groupDb.js", () => ({
   listGroupDirectory: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock("./trainingProgramDb.js", () => ({
 }));
 
 import { listPlanTemplates } from "../db.js";
+import * as clientDb from "./coachClientDb.js";
 import * as groupDb from "../groups/groupDb.js";
 import TrainingProgramLibrary from "./TrainingProgramLibrary.jsx";
 import * as programDb from "./trainingProgramDb.js";
@@ -104,6 +106,7 @@ const assignedProgram = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  clientDb.listCoachClientConnections.mockResolvedValue({ data: [], error: null });
   listPlanTemplates.mockResolvedValue({ data: [], error: null });
   programDb.listOwnedTrainingPrograms.mockResolvedValue({ data: [program], error: null });
   programDb.listTrainingProgramAssignments.mockResolvedValue({ data: [], error: null });
@@ -158,7 +161,7 @@ describe("coach/client Program management", () => {
   it("sends follow-as-supplied permissions and optional sharing independently", async () => {
     renderLibrary();
     fireEvent.click(await screen.findByRole("button", { name: "View details" }));
-    fireEvent.click(screen.getByRole("button", { name: "Assign to team members" }));
+    fireEvent.click(screen.getByRole("button", { name: "Assign programme" }));
     fireEvent.change(screen.getByLabelText("Recipient permissions"), { target: { value: "follow" } });
     fireEvent.click(await screen.findByText("Rocket"));
     fireEvent.click(screen.getByRole("button", { name: "Assign to 1" }));
@@ -213,7 +216,7 @@ describe("coach/client Program management", () => {
     await waitFor(() => expect(groupDb.listGroupDirectory).toHaveBeenCalledWith("group-1"));
 
     fireEvent.click(screen.getByRole("button", { name: "View details" }));
-    fireEvent.click(screen.getByRole("button", { name: "Assign to team members" }));
+    fireEvent.click(screen.getByRole("button", { name: "Assign programme" }));
     expect(await screen.findByRole("heading", { name: /Assign “Two-week match preparation”/ })).toBeTruthy();
     expect(screen.queryByText("Coach")).toBeNull();
     fireEvent.click(screen.getByText("Rocket"));
@@ -319,5 +322,33 @@ describe("coach/client Program management", () => {
     expect(screen.getByText(/already have one Program running alongside/)).toBeTruthy();
     expect(screen.getByRole("radio", { name: /Add alongside my plan/ }).disabled).toBe(true);
     expect(screen.getByRole("radio", { name: /Use as my whole plan/ }).checked).toBe(true);
+  });
+});
+
+
+describe("direct client assignments", () => {
+  it("assigns a frozen programme to a consented client without a team", async () => {
+    groupDb.listProfileGroups.mockResolvedValue({ data: [], error: null });
+    clientDb.listCoachClientConnections.mockResolvedValue({ data: [{ id: "connection-1", coach_family_id: "family-1", client_name: "Alex", status: "active" }], error: null });
+    clientDb.assignProgramToClients.mockResolvedValue({ data: 1, error: null });
+    renderLibrary();
+    await screen.findByText("Two-week match preparation");
+    fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Assign programme" }));
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Alex Connected client" }));
+    fireEvent.change(screen.getByLabelText("Recipient permissions"), { target: { value: "follow" } });
+    fireEvent.click(screen.getByRole("button", { name: "Assign to 1" }));
+    await waitFor(() => expect(clientDb.assignProgramToClients).toHaveBeenCalledWith(expect.objectContaining({ connectionIds: ["connection-1"], programId: "program-1", recipientCanEdit: false, recipientCanCopy: false })));
+    expect(programDb.assignTrainingProgramToMembers).not.toHaveBeenCalled();
+    await screen.findByText('Assigned “Two-week match preparation” to 1 client.');
+  });
+  it("directs a coach without recipients to connections", async () => {
+    groupDb.listProfileGroups.mockResolvedValue({ data: [], error: null });
+    renderLibrary();
+    await screen.findByText("Two-week match preparation");
+    fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Assign programme" }));
+    await screen.findByText("Connect a client here, or administer a team, before assigning a programme.");
+    expect(screen.getByRole("heading", { name: "Coaching connections" })).toBeTruthy();
   });
 });

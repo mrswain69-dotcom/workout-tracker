@@ -3511,6 +3511,11 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   );
   const planProgramWeeks = useMemo(() => flattenProgramWeeks(planProgram), [planProgram]);
   const [programLibrarySection, setProgramLibrarySection] = useState("mine");
+  useEffect(() => {
+    if (family?.id && activeProfileId && new URLSearchParams(window.location.search).get("coachInvite")) {
+      setProgramLibrarySection("clients"); setPlanWorkspaceView("library"); setTab("plan");
+    }
+  }, [family?.id, activeProfileId]);
   const [programControlState, setProgramControlState] = useState({ profileId: "", rows: [] });
   useEffect(() => {
     let cancelled = false;
@@ -9476,7 +9481,7 @@ const cardioProgress = useMemo(() => {
 </h1>
 
     <div className="header-right">
-      <ProgramNotifications familyId={family?.id} profileId={activeProfileId} onOpen={(notification) => { setProgramLibrarySection(notification.audience === "coach" ? "mine" : "shared"); setPlanWorkspaceView("library"); setTab("plan"); }} />
+      <ProgramNotifications familyId={family?.id} profileId={activeProfileId} onOpen={(notification) => { setProgramLibrarySection(notification.client_connection_id ? "clients" : notification.audience === "coach" ? "mine" : "shared"); setPlanWorkspaceView("library"); setTab("plan"); }} />
       <div className="selectWide">
         <Select
           value={activeProfileId}
@@ -12329,6 +12334,7 @@ const cardioProgress = useMemo(() => {
     <TrainingProgramLibrary
       key={activeProfileId + ":" + programLibrarySection}
       initialSection={programLibrarySection}
+      activeProfileName={activeProfile?.name || ""}
       familyId={family?.id || ""}
       activeProfileId={activeProfileId}
       activePlan={ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() })}

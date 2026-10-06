@@ -183,7 +183,7 @@ export async function listManagedTrainingProgramAssignments(familyId) {
 
   const { data: assignments, error } = await supabase
     .from("training_program_assignments")
-    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,recipient_can_copy,share_adherence,share_assessments,message,adoption_mode,undone_at,removed_at,replaces_assignment_id,replacement_adoption_mode,created_at,responded_at")
+    .select("id,program_id,version_id,target_profile_id,target_membership_id,client_connection_id,status,start_date,completion_mode,recipient_can_edit,recipient_can_copy,share_adherence,share_assessments,message,adoption_mode,undone_at,removed_at,replaces_assignment_id,replacement_adoption_mode,created_at,responded_at")
     .eq("assigned_by_family_id", familyId)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -192,7 +192,8 @@ export async function listManagedTrainingProgramAssignments(familyId) {
   const programIds = [...new Set(assignments.map((row) => row.program_id).filter(Boolean))];
   const versionIds = [...new Set(assignments.map((row) => row.version_id).filter(Boolean))];
   const membershipIds = [...new Set(assignments.map((row) => row.target_membership_id).filter(Boolean))];
-  const [programResult, versionResult, directoryResult, stateResult] = await Promise.all([
+  const connectionIds = [...new Set(assignments.map((row) => row.client_connection_id).filter(Boolean))];
+  const [programResult, versionResult, directoryResult, stateResult, clientResult] = await Promise.all([
     supabase
       .from("training_programs")
       .select("id,title")
@@ -208,13 +209,15 @@ export async function listManagedTrainingProgramAssignments(familyId) {
           .in("membership_id", membershipIds)
       : Promise.resolve({ data: [], error: null }),
     supabase.rpc("training_program_assignment_states", { p_family_id: familyId, p_reference_date: localDateYmd() }),
+    connectionIds.length ? supabase.from("training_program_client_connections").select("id,client_name").in("id", connectionIds) : Promise.resolve({ data: [], error: null }),
   ]);
-  const relatedError = programResult.error || versionResult.error || directoryResult.error || stateResult.error;
+  const relatedError = programResult.error || versionResult.error || directoryResult.error || stateResult.error || clientResult.error;
   if (relatedError) return { data: [], error: relatedError };
 
   const programs = new Map((programResult.data || []).map((row) => [row.id, row]));
   const versions = new Map((versionResult.data || []).map((row) => [row.id, row]));
   const recipients = new Map((directoryResult.data || []).map((row) => [row.membership_id, row]));
+  const clients = new Map((clientResult.data || []).map((row) => [row.id, { nickname: row.client_name }]));
   const states = new Map((stateResult.data || []).map((row) => [row.assignment_id, row.active_state]));
 
   return {
@@ -223,7 +226,7 @@ export async function listManagedTrainingProgramAssignments(familyId) {
       active_state: states.get(assignment.id) || assignment.status,
       program: programs.get(assignment.program_id) || null,
       version: versions.get(assignment.version_id) || null,
-      recipient: recipients.get(assignment.target_membership_id) || null,
+      recipient: clients.get(assignment.client_connection_id) || recipients.get(assignment.target_membership_id) || null,
     })),
     error: null,
   };
@@ -266,7 +269,7 @@ export async function listTrainingProgramAssignments(profileId) {
 
   let query = supabase
     .from("training_program_assignments")
-    .select("id,program_id,version_id,target_profile_id,target_membership_id,status,start_date,completion_mode,recipient_can_edit,recipient_can_copy,share_adherence,share_assessments,message,replaces_assignment_id,replacement_adoption_mode,created_at")
+    .select("id,program_id,version_id,target_profile_id,target_membership_id,client_connection_id,status,start_date,completion_mode,recipient_can_edit,recipient_can_copy,share_adherence,share_assessments,message,replaces_assignment_id,replacement_adoption_mode,created_at")
     .eq("status", "pending")
     .order("created_at", { ascending: false });
   const filters = [`target_profile_id.eq.${profileId}`];
