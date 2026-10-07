@@ -26,7 +26,7 @@ export function ProgramVersionPreview({ version }) {
 
 const dateLabel = (value) => value ? new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "No expiry";
 
-export default function ProgramManager({ program, authorize, onChanged, onClose, externalBusy = false, externalNotice = "", noCopy = false, startDate, completionMode, onStartDateChange, onCompletionModeChange, onUse, onSaveVersion, onAssign, onArchive, isCurrentVersionActive = false, addAlongsideAvailable = false, keepTasksAvailable = false }) {
+export default function ProgramManager({ program, authorize, onChanged, onClose, externalBusy = false, externalNotice = "", noCopy = false, startDate, completionMode, onStartDateChange, onCompletionModeChange, onUse, onSaveVersion, onAssign, onArchive, isCurrentVersionActive = false, isCurrentVersionAdded = false, addAlongsideAvailable = false, keepTasksAvailable = false, onPublishFree, onUnpublish }) {
   const [tab, setTab] = useState("details");
   const [details, setDetails] = useState({ ...program, description: program.description || "", purpose: program.purpose || "", sport: program.sport || "", difficulty: program.difficulty || "all_levels", age_band: program.age_band || "all_ages", equipment: (program.equipment || []).join(", "), tags: (program.tags || []).join(", ") });
   const [versions, setVersions] = useState([]);
@@ -138,26 +138,38 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
           <p>Choose what should happen to your active plan.</p>
         </div>
         <div className="programUseChoices">
-          <button type="button" className="programUseChoice" disabled={working || !addAlongsideAvailable}>
-            <span><strong>Add alongside my current plan</strong><small>Keep your current base plan and run this as your one additional Program.</small></span>
-            <span className="pill">{addAlongsideAvailable ? "Available" : "Not available yet"}</span>
+          <button type="button" className="programUseChoice" disabled={working || !addAlongsideAvailable || isCurrentVersionAdded} onClick={() => { setNotice(""); onUse("add"); }}>
+            <span><strong>Add alongside my current plan</strong><small>{isCurrentVersionAdded ? "This Program is already running alongside your base plan." : addAlongsideAvailable ? "Keep your current base plan and run this as your one additional Program." : "You already have one Program running alongside your base plan."}</small></span>
+            <span className="pill">{isCurrentVersionAdded ? "Already added" : addAlongsideAvailable ? "Add" : "Unavailable"}</span>
           </button>
-          <button type="button" className="programUseChoice programUseChoicePrimary" disabled={working || isCurrentVersionActive} onClick={() => { setNotice(""); onUse(); }}>
+          <button type="button" className="programUseChoice programUseChoicePrimary" disabled={working || isCurrentVersionActive} onClick={() => { setNotice(""); onUse("replace"); }}>
             <span><strong>Make this my current plan</strong><small>Replace your current base training and Tasks. Logs, XP and any separate add-on stay.</small></span>
             <span className="pill">{isCurrentVersionActive ? "Already active" : "Use"}</span>
           </button>
-          <button type="button" className="programUseChoice" disabled={working || !keepTasksAvailable}>
-            <span><strong>Make this my current plan, but keep my Tasks</strong><small>Replace the training structure while retaining your personal Task blocks.</small></span>
-            <span className="pill">{keepTasksAvailable ? "Available" : "Not available yet"}</span>
+          <button type="button" className="programUseChoice" disabled={working || !keepTasksAvailable || isCurrentVersionActive} onClick={() => { setNotice(""); onUse("replace_keep_tasks"); }}>
+            <span><strong>Make this my current plan, but keep my Tasks</strong><small>{isCurrentVersionActive ? "This Program is already your current base plan." : "Replace the training structure while retaining your personal Task blocks."}</small></span>
+            <span className="pill">{isCurrentVersionActive ? "Already active" : keepTasksAvailable ? "Use + keep Tasks" : "Unavailable"}</span>
           </button>
         </div>
-        {(!addAlongsideAvailable || !keepTasksAvailable) ? <p className="programUseNote">The greyed choices are part of the shared Community/Program adoption flow and will be enabled as that next stage is connected.</p> : null}
       </section> : null}
       <div className="programManagerActions">
         <button type="button" disabled={working || !currentVersion?.id} onClick={() => beginCopy(currentVersion, true)}>Duplicate current version</button>
         <button type="button" disabled={working} onClick={() => { setNotice(""); setTab("links"); }}>Share programme</button>
       </div>
       {startDate && program.status !== "archived" ? <p className="muted">Using this programme starts it on {dateLabel(startDate)} · {completionMode === "once" ? "Finish after the final week" : completionMode === "hold" ? "Hold the final week" : "Repeat after the final week"}. These options apply when you use the programme.</p> : null}
+      {program.status !== "archived" && (onPublishFree || onUnpublish) ? <details className="programCommunityPublish">
+        <summary>Community publishing</summary>
+        <div className="programCommunityPublishBody">
+          <div>
+            <span className="pill">{program.marketplace_status === "published" ? "Live in Community" : "Private"}</span>
+            <strong>{program.marketplace_status === "published" ? "This Program is discoverable for free." : "Publish this saved Program to Community."}</strong>
+            <p>{program.marketplace_status === "published" ? "People can preview and use the current saved version. Removing it from Community stops new discovery but does not remove Programs people already adopted." : "Free publishing comes first. Paid access and creator subscriptions are deliberately not enabled in this stage."}</p>
+          </div>
+          {program.marketplace_status === "published"
+            ? <button type="button" disabled={working} onClick={onUnpublish}>Remove from Community</button>
+            : <button type="button" className="primary" disabled={working || !currentVersion?.id} onClick={onPublishFree}>Publish free</button>}
+        </div>
+      </details> : null}
       {onSaveVersion && program.status !== "archived" ? <details className="programSaveVersion"><summary>Save active plan as a new version</summary><p className="muted">This saves your currently active base plan, which may differ from the preview above.</p><label>Version change note<input maxLength={300} value={versionNote} onChange={(e) => setVersionNote(e.target.value)} placeholder="What has changed?" /></label><button type="button" disabled={working || noCopy} onClick={() => { setNotice(""); onSaveVersion(versionNote); }}>Save new version</button>{noCopy ? <p>The coach has not allowed saving your active assigned programme as a copy.</p> : null}</details> : null}
       <div className="programManagerActions">
         {onAssign && program.status !== "archived" ? <button type="button" disabled={working} onClick={onAssign}>Assign programme</button> : null}
