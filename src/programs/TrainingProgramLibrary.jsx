@@ -600,7 +600,7 @@ export default function TrainingProgramLibrary({
 
   async function publishFree(program) {
     if (!(await allowed("publish a Program to Community"))) return;
-    if (!window.confirm(`Publish “${program.title}” free to Workout Tracker Community? The current saved version will become discoverable to signed-in users.`)) return;
+    if (!window.confirm(`Publish “${program.title}” free to Workout Tracker Community?\n\nThe current saved version becomes visible to signed-in Community users, including its block names, movement/task labels and saved notes. Check that it contains no personal, private or identifying information before publishing.`)) return;
     setBusy(program.id);
     const { data, error } = await publishTrainingProgramFree(program.id);
     setBusy("");
@@ -1016,7 +1016,7 @@ export default function TrainingProgramLibrary({
             </div>
             <div className="communityPrinciples" aria-label="Community principles">
               <span>Free first</span>
-              <span>Creator attribution</span>
+              <span>Creator type shown</span>
               <span>No pay-to-win</span>
             </div>
           </div>
