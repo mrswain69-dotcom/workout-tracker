@@ -141,7 +141,31 @@ const program = {
   description: "Progressive team plan",
   phase_count: 1,
   week_count: 2,
+  current_version_id: "version-4",
   current_version_no: 4,
+  marketplace_status: "not_listed",
+  access_model: "internal",
+  current_version: {
+    id: "version-4",
+    version_no: 4,
+    content_json: {
+      activityTypes: [],
+      program: {
+        name: "Two-week match preparation",
+        startDate: "2026-10-05",
+        completionMode: "repeat",
+        phases: [{
+          id: "phase-owned",
+          name: "Build",
+          weeks: [{
+            id: "week-owned",
+            name: "Week 1",
+            blocksByWeekday: { Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] },
+          }],
+        }],
+      },
+    },
+  },
 };
 const blankDays = () => ({ Mon: [], Tue: [], Wed: [], Thu: [], Fri: [], Sat: [], Sun: [] });
 const assignedProgram = {
