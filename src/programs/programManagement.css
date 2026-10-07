@@ -48,4 +48,12 @@
 .programManager .programUseChoice:disabled small{color:#8b9490}
 .programManager .programUseChoice:disabled .pill{background:#e6e9e8;color:#727b77}
 .programUseNote{margin:9px 0 0;color:#697873;font-size:11px;line-height:1.45}
-@media(max-width:540px){.programManager .programUseChoice{align-items:flex-start}.programUseChoice .pill{flex:0 0 auto}.trainingProgramCreate{grid-template-columns:minmax(0,1fr)}.programDetailsForm{grid-template-columns:minmax(0,1fr)}.programDetailsForm label:nth-child(2){grid-column:auto}.programManager{padding:12px}.programDetailsDialog.trainingProgramLibrary{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.programManagerActions>label{flex:1 1 120px}.programManagerTabs button{flex:1 1 90px}.programLinkCreate{grid-template-columns:minmax(0,1fr)}.programActionHelp dl{grid-template-columns:1fr;gap:4px}.programActionHelp dd{margin-bottom:8px}}
+.programCommunityPublish{margin:14px 0 0;padding:10px 0;border-top:1px solid var(--border,#d9e1e7)}
+.programCommunityPublishBody{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;padding:12px;border:1px solid #c8d8cf;border-radius:12px;background:#f4f9f7}
+.programCommunityPublishBody>div{display:grid;gap:5px;min-width:0}
+.programCommunityPublishBody .pill{justify-self:start;background:#dff8fc;color:#175d6b}
+.programCommunityPublishBody strong{color:#173e35}
+.programCommunityPublishBody p{margin:0;max-width:720px;color:#65766f;font-size:12px;line-height:1.45}
+.programCommunityPublishBody>button{flex:0 0 auto}
+
+@media(max-width:540px){.programCommunityPublishBody{align-items:stretch;flex-direction:column}.programCommunityPublishBody>button{width:100%}.programManager .programUseChoice{align-items:flex-start}.programUseChoice .pill{flex:0 0 auto}.trainingProgramCreate{grid-template-columns:minmax(0,1fr)}.programDetailsForm{grid-template-columns:minmax(0,1fr)}.programDetailsForm label:nth-child(2){grid-column:auto}.programManager{padding:12px}.programDetailsDialog.trainingProgramLibrary{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.programManagerActions>label{flex:1 1 120px}.programManagerTabs button{flex:1 1 90px}.programLinkCreate{grid-template-columns:minmax(0,1fr)}.programActionHelp dl{grid-template-columns:1fr;gap:4px}.programActionHelp dd{margin-bottom:8px}}
