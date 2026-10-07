@@ -56,9 +56,24 @@ describe("personal programme management integration", () => {
     renderLibrary();
     await screen.findByText("Two-week match preparation");
     fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
-    fireEvent.click(screen.getByRole("button", { name: "Use programme", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /Make this my current plan/ }));
     expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("base training and task blocks will be replaced"));
     expect(programDb.applyOwnedTrainingProgram).not.toHaveBeenCalled();
+  });
+  it("shows the full saved Program adoption model and greys choices that are not connected yet", async () => {
+    renderLibrary();
+    await screen.findByText("Two-week match preparation");
+    fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
+    expect(screen.getByRole("button", { name: /Add alongside my current plan/ }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: /Make this my current plan, but keep my Tasks/ }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: /^Make this my current plan/ }).disabled).toBe(false);
+  });
+  it("gives Community Programs a distinct discovery workspace", async () => {
+    renderLibrary();
+    fireEvent.click(await screen.findByRole("tab", { name: "Community" }));
+    expect(screen.getByRole("heading", { name: "Find Programs built for real training" })).toBeTruthy();
+    expect(screen.getByText("Free first")).toBeTruthy();
+    expect(screen.getByText(/No pay-to-win/)).toBeTruthy();
   });
 });
 
