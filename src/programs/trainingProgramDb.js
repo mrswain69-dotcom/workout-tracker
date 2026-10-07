@@ -114,6 +114,65 @@ export async function applyOwnedTrainingProgram({ programId, profileId, startDat
   return { data, error };
 }
 
+export async function publishTrainingProgramFree(programId) {
+  if (!supabase) return unavailable(false);
+  const { data, error } = await supabase.rpc("training_program_publish_free", {
+    p_program_id: programId,
+  });
+  return { data, error };
+}
+
+export async function unpublishTrainingProgram(programId) {
+  if (!supabase) return unavailable(false);
+  const { data, error } = await supabase.rpc("training_program_unpublish", {
+    p_program_id: programId,
+  });
+  return { data, error };
+}
+
+export async function listCommunityTrainingPrograms() {
+  if (!supabase) return unavailable([]);
+  const { data, error } = await supabase.rpc("training_program_list_community");
+  return { data: data || [], error };
+}
+
+export async function previewCommunityTrainingProgram(programId) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("training_program_preview_community", {
+    p_program_id: programId,
+  });
+  return { data: firstRow(data), error };
+}
+
+export async function applyAccessibleTrainingProgram({
+  programId,
+  profileId,
+  startDate,
+  completionMode = "repeat",
+  adoptionMode = "replace",
+  preparedPlan = null,
+}) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("training_program_apply_accessible", {
+    p_program_id: programId,
+    p_profile_id: profileId,
+    p_start_date: startDate,
+    p_completion_mode: completionMode,
+    p_adoption_mode: adoptionMode,
+    p_prepared_plan: preparedPlan,
+  });
+  return { data, error };
+}
+
+export async function removeLibraryTrainingProgramAddOn(profileId, addOnId) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("training_program_remove_library_add_on", {
+    p_profile_id: profileId,
+    p_addon_id: addOnId,
+  });
+  return { data, error };
+}
+
 export async function createTrainingProgramShare(programId, permission = "copy", expiresInDays = 30) {
   if (!supabase) return unavailable();
   const { data, error } = await supabase.rpc("training_program_create_share", {
