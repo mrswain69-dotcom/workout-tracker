@@ -56,7 +56,7 @@ describe("personal programme management integration", () => {
     renderLibrary();
     await screen.findByText("Two-week match preparation");
     fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
-    fireEvent.click(screen.getByRole("button", { name: /Make this my current plan/ }));
+    fireEvent.click(screen.getAllByRole("button").find((button) => button.textContent.includes("Make this my current plan") && !button.textContent.includes("but keep")));
     expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("base training and task blocks will be replaced"));
     expect(programDb.applyOwnedTrainingProgram).not.toHaveBeenCalled();
   });
@@ -66,7 +66,7 @@ describe("personal programme management integration", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
     expect(screen.getByRole("button", { name: /Add alongside my current plan/ }).disabled).toBe(true);
     expect(screen.getByRole("button", { name: /Make this my current plan, but keep my Tasks/ }).disabled).toBe(true);
-    expect(screen.getByRole("button", { name: /^Make this my current plan/ }).disabled).toBe(false);
+    expect(screen.getAllByRole("button").find((button) => button.textContent.includes("Make this my current plan") && !button.textContent.includes("but keep")).disabled).toBe(false);
   });
   it("gives Community Programs a distinct discovery workspace", async () => {
     renderLibrary();
