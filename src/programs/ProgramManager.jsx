@@ -26,7 +26,7 @@ export function ProgramVersionPreview({ version }) {
 
 const dateLabel = (value) => value ? new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "No expiry";
 
-export default function ProgramManager({ program, authorize, onChanged, onClose, externalBusy = false, externalNotice = "", noCopy = false, startDate, completionMode, onStartDateChange, onCompletionModeChange, onUse, onSaveVersion, onAssign, onArchive }) {
+export default function ProgramManager({ program, authorize, onChanged, onClose, externalBusy = false, externalNotice = "", noCopy = false, startDate, completionMode, onStartDateChange, onCompletionModeChange, onUse, onSaveVersion, onAssign, onArchive, isCurrentVersionActive = false, addAlongsideAvailable = false, keepTasksAvailable = false }) {
   const [tab, setTab] = useState("details");
   const [details, setDetails] = useState({ ...program, description: program.description || "", purpose: program.purpose || "", sport: program.sport || "", difficulty: program.difficulty || "all_levels", age_band: program.age_band || "all_ages", equipment: (program.equipment || []).join(", "), tags: (program.tags || []).join(", ") });
   const [versions, setVersions] = useState([]);
@@ -118,7 +118,7 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
     {notice || externalNotice ? <p role="status" className="trainingProgramNotice">{notice || externalNotice}</p> : null}
     {loading ? <p role="status">Loading…</p> : null}
     <details className="programActionHelp"><summary>What do these options do?</summary><dl>
-      <dt>Use programme</dt><dd>Replace your current base training and tasks with this saved version. Your add-on, logs and XP are retained. Save your existing plan first if you want to return to it.</dd>
+      <dt>Use this Program</dt><dd>Choose how this saved version should fit with your active plan. Making it current replaces your base training and tasks while keeping logs, XP and any separate add-on.</dd>
       <dt>Duplicate</dt><dd>Create a separate programme from the selected saved version. Your active plan stays as it is.</dd>
       <dt>Save new version</dt><dd>Save your currently active base plan as a new version of this programme. Existing recipients keep their issued version until they accept an update.</dd>
       <dt>Version history / restore</dt><dd>Preview previous versions or restore an older one as a new latest version. This does not change anyone’s active plan.</dd>
@@ -132,8 +132,28 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
       {currentVersion?.change_note ? <p className="muted">{currentVersion.change_note}</p> : null}
       {currentVersion?.content_json ? <ProgramVersionPreview key={currentVersion.id} version={currentVersion} /> : <p className="muted">The saved preview is unavailable. Close and reopen the programme to retry.</p>}
       {onStartDateChange && program.status !== "archived" ? <div className="trainingProgramControls"><label>Starts Monday<input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} /></label><label>At the end<select value={completionMode} onChange={(e) => onCompletionModeChange(e.target.value)}><option value="repeat">Repeat</option><option value="once">Finish</option><option value="hold">Hold final week</option></select></label></div> : null}
+      {onUse && program.status !== "archived" ? <section className="programUsePanel" aria-label="Use this Program">
+        <div className="programUseHeading">
+          <strong>Use this Program</strong>
+          <p>Choose what should happen to your active plan.</p>
+        </div>
+        <div className="programUseChoices">
+          <button type="button" className="programUseChoice" disabled={working || !addAlongsideAvailable}>
+            <span><strong>Add alongside my current plan</strong><small>Keep your current base plan and run this as your one additional Program.</small></span>
+            <span className="pill">{addAlongsideAvailable ? "Available" : "Not available yet"}</span>
+          </button>
+          <button type="button" className="programUseChoice programUseChoicePrimary" disabled={working || isCurrentVersionActive} onClick={() => { setNotice(""); onUse(); }}>
+            <span><strong>Make this my current plan</strong><small>Replace your current base training and Tasks. Logs, XP and any separate add-on stay.</small></span>
+            <span className="pill">{isCurrentVersionActive ? "Already active" : "Use"}</span>
+          </button>
+          <button type="button" className="programUseChoice" disabled={working || !keepTasksAvailable}>
+            <span><strong>Make this my current plan, but keep my Tasks</strong><small>Replace the training structure while retaining your personal Task blocks.</small></span>
+            <span className="pill">{keepTasksAvailable ? "Available" : "Not available yet"}</span>
+          </button>
+        </div>
+        {(!addAlongsideAvailable || !keepTasksAvailable) ? <p className="programUseNote">The greyed choices are part of the shared Community/Program adoption flow and will be enabled as that next stage is connected.</p> : null}
+      </section> : null}
       <div className="programManagerActions">
-        {onUse && program.status !== "archived" ? <button type="button" className="primary" disabled={working} onClick={() => { setNotice(""); onUse(); }}>Use programme</button> : null}
         <button type="button" disabled={working || !currentVersion?.id} onClick={() => beginCopy(currentVersion, true)}>Duplicate current version</button>
         <button type="button" disabled={working} onClick={() => { setNotice(""); setTab("links"); }}>Share programme</button>
       </div>
