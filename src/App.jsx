@@ -140,6 +140,7 @@ import PublicSite from "./components/public/PublicSite.jsx";
 import AccountPrivacyPanel from "./components/settings/AccountPrivacyPanel.jsx";
 import { sendWelcomeTutorialEmail } from "./accountLifecycleDb.js";
 import {
+  removeLibraryTrainingProgramAddOn,
   removeTrainingProgramAddOn,
   undoTrainingProgramAssignment,
   saveTrainingProgram,
@@ -6233,23 +6234,22 @@ const selectedDayHasHeavyTrainingBlocks =
   async function removeAddedGroupProgram(program) {
     if (!program?.id || removingProgramAddOnId) return;
     const confirmed = window.confirm(
-      `Remove “${program.title || "Assigned Program"}” from alongside your plan?\n\nYour base plan, completed logs, history and XP will stay unchanged.`
+      `Remove “${program.title || "Added Program"}” from alongside your plan?\n\nYour base plan, completed logs, history and XP will stay unchanged.`
     );
     if (!confirmed || !(await ensureUnlocked("remove an added Program"))) return;
 
     setRemovingProgramAddOnId(program.id);
-    const { data, error } = await removeTrainingProgramAddOn(
-      program.id,
-      activeProfileId
-    );
+    const result = program.sourceKind && program.sourceKind !== "assignment"
+      ? await removeLibraryTrainingProgramAddOn(activeProfileId, program.id)
+      : await removeTrainingProgramAddOn(program.id, activeProfileId);
     setRemovingProgramAddOnId("");
-    if (error) {
-      window.alert(error.message || "This added Program could not be removed.");
+    if (result.error) {
+      window.alert(result.error.message || "This added Program could not be removed.");
       return;
     }
     setUndoPlan(null);
     setUndoLabel("");
-    setAndCachePlan(activeProfileId, data);
+    setAndCachePlan(activeProfileId, result.data);
   }
 
       async function savePlan(nextPlan) {
@@ -11410,20 +11410,20 @@ const cardioProgress = useMemo(() => {
 
       {addedGroupPrograms.length ? (
         <div className="planAddedPrograms" aria-label="Programs added alongside your personal plan">
-          <strong>Added group Program{addedGroupPrograms.length === 1 ? "" : "s"}</strong>
+          <strong>Added Program{addedGroupPrograms.length === 1 ? "" : "s"}</strong>
           <div>
             {addedGroupPrograms.map((program) => (
               <div className="planAddedProgram" key={program.id || program.versionId}>
                 <span>
-                  {program.title || "Assigned Program"}
+                  {program.title || "Added Program"}
                   {program.content?.program?.startDate ? ` · from ${program.content.program.startDate}` : ""}
                 </span>
                 {program.recipientCanEdit !== false ? <SecondaryButton onClick={() => { setEditingAddOnId(program.id); setPlanCycleWeekIndex(0); }}>Edit add-on</SecondaryButton> : <span className="pill">Follow as supplied</span>}
-                {program.recipientCanCopy !== false ? <SecondaryButton disabled={!!copyingAddOnId} onClick={async () => {
-                  if (!(await ensureUnlocked("save an assigned programme copy"))) return;
+                {program.recipientCanCopy !== false && program.sourceKind !== "owner" ? <SecondaryButton disabled={!!copyingAddOnId} onClick={async () => {
+                  if (!(await ensureUnlocked("save an added programme copy"))) return;
                   setCopyingAddOnId(program.id); setAddOnCopyNotice("");
                   try {
-                    const result = await saveTrainingProgram({ familyId: family.id, creatorProfileId: activeProfileId, title: (program.title || "Assigned programme") + " (my copy)", content: extractShareablePlanContent(program.content), changeNote: "Personal copy of an assigned programme" });
+                    const result = await saveTrainingProgram({ familyId: family.id, creatorProfileId: activeProfileId, title: (program.title || "Added programme") + " (my copy)", content: extractShareablePlanContent(program.content), changeNote: "Personal copy of an added programme" });
                     if (result.error) throw result.error;
                     setAddOnCopyNotice("Personal copy saved to My Programs.");
                   } catch (error) { setAddOnCopyNotice(error.message || "The copy could not be saved."); }
