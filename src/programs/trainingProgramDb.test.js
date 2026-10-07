@@ -14,13 +14,19 @@ vi.mock("../supabaseClient", () => ({
 
 import {
   acceptTrainingProgramAssignment,
+  applyAccessibleTrainingProgram,
   assignTrainingProgramToMembers,
+  listCommunityTrainingPrograms,
   listManagedTrainingProgramAssignments,
+  previewCommunityTrainingProgram,
+  publishTrainingProgramFree,
+  removeLibraryTrainingProgramAddOn,
   removeTrainingProgramAddOn,
   revokeTrainingProgramAssignment,
   undoTrainingProgramAssignment,
   rescheduleTrainingProgramAssignment,
   offerTrainingProgramReplacement,
+  unpublishTrainingProgram,
 } from "./trainingProgramDb.js";
 
 function queryChain(data = []) {
@@ -142,6 +148,56 @@ describe("coach Program assignment DB adapter", () => {
     expect(mock.rpc).toHaveBeenCalledWith("training_program_remove_add_on", {
       p_assignment_id: "assignment-1",
       p_profile_id: "profile-1",
+    });
+  });
+
+  it("publishes and unpublishes owned Programs through scoped Community RPCs", async () => {
+    mock.rpc.mockResolvedValue({ data: true, error: null });
+    await publishTrainingProgramFree("program-1");
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_publish_free", { p_program_id: "program-1" });
+    await unpublishTrainingProgram("program-1");
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_unpublish", { p_program_id: "program-1" });
+  });
+
+  it("lists and previews only through the Community catalogue RPCs", async () => {
+    mock.rpc.mockResolvedValueOnce({ data: [{ id: "p1" }], error: null });
+    const list = await listCommunityTrainingPrograms();
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_list_community");
+    expect(list.data).toEqual([{ id: "p1" }]);
+
+    mock.rpc.mockResolvedValueOnce({ data: [{ id: "p1", content_json: { program: {} } }], error: null });
+    const preview = await previewCommunityTrainingProgram("p1");
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_preview_community", { p_program_id: "p1" });
+    expect(preview.data.id).toBe("p1");
+  });
+
+  it("uses the accessible adoption RPC for owned and Community Programs", async () => {
+    const preparedPlan = { version: 5, program: { phases: [] } };
+    mock.rpc.mockResolvedValue({ data: { version: 5 }, error: null });
+    await applyAccessibleTrainingProgram({
+      programId: "p1",
+      profileId: "profile-1",
+      startDate: "2026-10-05",
+      completionMode: "hold",
+      adoptionMode: "replace_keep_tasks",
+      preparedPlan,
+    });
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_apply_accessible", {
+      p_program_id: "p1",
+      p_profile_id: "profile-1",
+      p_start_date: "2026-10-05",
+      p_completion_mode: "hold",
+      p_adoption_mode: "replace_keep_tasks",
+      p_prepared_plan: preparedPlan,
+    });
+  });
+
+  it("removes non-assignment add-ons through the library add-on RPC", async () => {
+    mock.rpc.mockResolvedValue({ data: { version: 5 }, error: null });
+    await removeLibraryTrainingProgramAddOn("profile-1", "p1");
+    expect(mock.rpc).toHaveBeenCalledWith("training_program_remove_library_add_on", {
+      p_profile_id: "profile-1",
+      p_addon_id: "p1",
     });
   });
 });
