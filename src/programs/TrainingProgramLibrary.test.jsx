@@ -18,22 +18,26 @@ vi.mock("../groups/groupDb.js", () => ({
 vi.mock("./trainingProgramDb.js", () => ({
   acceptTrainingProgramAssignment: vi.fn(),
   acceptTrainingProgramShare: vi.fn(),
-  applyOwnedTrainingProgram: vi.fn(),
+  applyAccessibleTrainingProgram: vi.fn(),
   archiveTrainingProgram: vi.fn(),
   assignTrainingProgramToMembers: vi.fn(),
   buildTrainingProgramShareLink: vi.fn(),
   createTrainingProgramShare: vi.fn(),
   declineTrainingProgramAssignment: vi.fn(),
   importLegacyTrainingProgramTemplate: vi.fn(),
+  listCommunityTrainingPrograms: vi.fn(),
   listManagedTrainingProgramAssignments: vi.fn(),
   listOwnedTrainingPrograms: vi.fn(),
   listTrainingProgramAssignments: vi.fn(),
+  previewCommunityTrainingProgram: vi.fn(),
   previewTrainingProgramShare: vi.fn(),
+  publishTrainingProgramFree: vi.fn(),
   readTrainingProgramShareToken: vi.fn(() => ""),
   revokeTrainingProgramAssignment: vi.fn(),
   rescheduleTrainingProgramAssignment: vi.fn(),
   offerTrainingProgramReplacement: vi.fn(),
   saveTrainingProgram: vi.fn(),
+  unpublishTrainingProgram: vi.fn(),
 }));
 
 import { listPlanTemplates } from "../db.js";
@@ -57,15 +61,15 @@ describe("personal programme management integration", () => {
     await screen.findByText("Two-week match preparation");
     fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
     fireEvent.click(screen.getAllByRole("button").find((button) => button.textContent.includes("Make this my current plan") && !button.textContent.includes("but keep")));
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("base training and task blocks will be replaced"));
-    expect(programDb.applyOwnedTrainingProgram).not.toHaveBeenCalled();
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("base training and Tasks are replaced"));
+    expect(programDb.applyAccessibleTrainingProgram).not.toHaveBeenCalled();
   });
-  it("shows the full saved Program adoption model and greys choices that are not connected yet", async () => {
+  it("shows the same three adoption choices for saved Programs", async () => {
     renderLibrary();
     await screen.findByText("Two-week match preparation");
     fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
-    expect(screen.getByRole("button", { name: /Add alongside my current plan/ }).disabled).toBe(true);
-    expect(screen.getByRole("button", { name: /Make this my current plan, but keep my Tasks/ }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: /Add alongside my current plan/ }).disabled).toBe(false);
+    expect(screen.getByRole("button", { name: /Make this my current plan, but keep my Tasks/ }).disabled).toBe(false);
     expect(screen.getAllByRole("button").find((button) => button.textContent.includes("Make this my current plan") && !button.textContent.includes("but keep")).disabled).toBe(false);
   });
   it("gives Community Programs a distinct discovery workspace", async () => {
@@ -74,6 +78,60 @@ describe("personal programme management integration", () => {
     expect(screen.getByRole("heading", { name: "Find Programs built for real training" })).toBeTruthy();
     expect(screen.getByText("Free first")).toBeTruthy();
     expect(screen.getByText(/No pay-to-win/)).toBeTruthy();
+    await waitFor(() => expect(programDb.listCommunityTrainingPrograms).toHaveBeenCalled());
+  });
+
+  it("publishes an owned Program free to Community", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    programDb.publishTrainingProgramFree.mockResolvedValue({ data: true, error: null });
+    renderLibrary();
+    await screen.findByText("Two-week match preparation");
+    fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
+    fireEvent.click(screen.getByText("Community publishing"));
+    fireEvent.click(screen.getByRole("button", { name: "Publish free" }));
+    await waitFor(() => expect(programDb.publishTrainingProgramFree).toHaveBeenCalledWith("program-1"));
+  });
+
+  it("previews and adopts a free Community Program alongside the current plan", async () => {
+    const community = {
+      ...program,
+      id: "community-1",
+      title: "Community speed block",
+      sport: "Football",
+      difficulty: "intermediate",
+      current_version_id: "community-v1",
+      current_version_no: 1,
+      marketplace_status: "published",
+      access_model: "free",
+    };
+    const content = {
+      activityTypes: [],
+      program: {
+        name: "Community speed block",
+        startDate: "2026-10-05",
+        completionMode: "repeat",
+        phases: [{ id: "p1", name: "Speed", weeks: [{ id: "w1", name: "Week 1", blocksByWeekday: { ...blankDays(), Mon: [{ id: "s1", typeId: "strength", label: "Acceleration" }] } }] }],
+      },
+    };
+    programDb.listCommunityTrainingPrograms.mockResolvedValue({ data: [community], error: null });
+    programDb.previewCommunityTrainingProgram.mockResolvedValue({ data: { ...community, content_json: content }, error: null });
+    programDb.applyAccessibleTrainingProgram.mockResolvedValue({ data: { ...content, meta: { programAddOns: [{ id: "community-1" }] } }, error: null });
+    const onProgramApplied = vi.fn();
+    renderLibrary({ onProgramApplied });
+
+    fireEvent.click(await screen.findByRole("tab", { name: "Community" }));
+    expect(await screen.findByText("Community speed block")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "View Program" }));
+    expect(await screen.findByRole("dialog", { name: "Community Program: Community speed block" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /Add alongside my current plan/ }).checked).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Apply this choice" }));
+
+    await waitFor(() => expect(programDb.applyAccessibleTrainingProgram).toHaveBeenCalledWith(expect.objectContaining({
+      programId: "community-1",
+      profileId: "profile-1",
+      adoptionMode: "add",
+    })));
+    expect(onProgramApplied).toHaveBeenCalled();
   });
 });
 
@@ -124,6 +182,11 @@ beforeEach(() => {
   clientDb.listCoachClientConnections.mockResolvedValue({ data: [], error: null });
   listPlanTemplates.mockResolvedValue({ data: [], error: null });
   programDb.listOwnedTrainingPrograms.mockResolvedValue({ data: [program], error: null });
+  programDb.listCommunityTrainingPrograms.mockResolvedValue({ data: [], error: null });
+  programDb.previewCommunityTrainingProgram.mockResolvedValue({ data: null, error: null });
+  programDb.publishTrainingProgramFree.mockResolvedValue({ data: true, error: null });
+  programDb.unpublishTrainingProgram.mockResolvedValue({ data: true, error: null });
+  programDb.applyAccessibleTrainingProgram.mockResolvedValue({ data: { version: 5 }, error: null });
   programDb.listTrainingProgramAssignments.mockResolvedValue({ data: [], error: null });
   programDb.listManagedTrainingProgramAssignments.mockResolvedValue({ data: [], error: null });
   groupDb.listProfileGroups.mockResolvedValue({
