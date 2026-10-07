@@ -16,25 +16,30 @@ import {
 import {
   acceptTrainingProgramAssignment,
   acceptTrainingProgramShare,
-  applyOwnedTrainingProgram,
+  applyAccessibleTrainingProgram,
   archiveTrainingProgram,
   assignTrainingProgramToMembers,
   declineTrainingProgramAssignment,
   importLegacyTrainingProgramTemplate,
+  listCommunityTrainingPrograms,
   listManagedTrainingProgramAssignments,
   listOwnedTrainingPrograms,
   listTrainingProgramAssignments,
+  previewCommunityTrainingProgram,
   previewTrainingProgramShare,
+  publishTrainingProgramFree,
   readTrainingProgramShareToken,
   revokeTrainingProgramAssignment,
   rescheduleTrainingProgramAssignment,
   offerTrainingProgramReplacement,
   saveTrainingProgram,
+  unpublishTrainingProgram,
 } from "./trainingProgramDb.js";
 import "./TrainingProgramLibrary.css";
 import ProgramClientConnections from "./ProgramClientConnections.jsx";
 import { listCoachClientConnections, assignProgramToClients } from "./coachClientDb.js";
 import ProgramManager from "./ProgramManager.jsx";
+import CommunityProgramDialog from "./CommunityProgramDialog.jsx";
 import { restoreArchivedProgram } from "./programManagementDb.js";
 import ProgramRecipientControls from "./ProgramRecipientControls.jsx";
 import ProgramCoachReports from "./ProgramCoachReports.jsx";
@@ -301,6 +306,12 @@ export default function TrainingProgramLibrary({
   const [notice, setNotice] = useState("");
   const [previewAssignmentId, setPreviewAssignmentId] = useState("");
   const [sharedPreview, setSharedPreview] = useState(null);
+  const [communityPrograms, setCommunityPrograms] = useState([]);
+  const [communityLoading, setCommunityLoading] = useState(false);
+  const [communityQuery, setCommunityQuery] = useState("");
+  const [communitySport, setCommunitySport] = useState("all");
+  const [communityDifficulty, setCommunityDifficulty] = useState("all");
+  const [communityPreview, setCommunityPreview] = useState(null);
   const [shareToken] = useState(readTrainingProgramShareToken);
   const starterPrograms = useMemo(() => buildStarterPrograms(startDate), [startDate]);
   const targetGroup = useMemo(
@@ -329,6 +340,20 @@ export default function TrainingProgramLibrary({
     () => assignments.find((assignment) => assignment.id === previewAssignmentId) || null,
     [assignments, previewAssignmentId]
   );
+  const communitySports = useMemo(
+    () => [...new Set(communityPrograms.map((program) => program.sport).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [communityPrograms]
+  );
+  const visibleCommunityPrograms = useMemo(() => {
+    const query = communityQuery.trim().toLowerCase();
+    return communityPrograms.filter((program) => {
+      if (communitySport !== "all" && program.sport !== communitySport) return false;
+      if (communityDifficulty !== "all" && program.difficulty !== communityDifficulty) return false;
+      if (!query) return true;
+      const haystack = [program.title, program.description, program.purpose, program.sport, ...(program.tags || [])].join(" ").toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [communityPrograms, communityQuery, communitySport, communityDifficulty]);
 
   useEffect(() => {
     if (activePlan?.program?.name) setTitle(activePlan.program.name);
@@ -405,6 +430,25 @@ export default function TrainingProgramLibrary({
     setManageProgramId(""); setNotice(""); setAssignmentProgramId("");
   }, [familyId, activeProfileId]);
   useEffect(() => { refresh().catch((error) => setNotice(message(error))); }, [refresh]);
+
+  const refreshCommunity = useCallback(async () => {
+    setCommunityLoading(true);
+    const { data, error } = await listCommunityTrainingPrograms();
+    setCommunityLoading(false);
+    if (error) {
+      setNotice(message(error, "Community Programs could not be loaded."));
+      return;
+    }
+    setCommunityPrograms(data || []);
+  }, []);
+
+  useEffect(() => {
+    if (section !== "discover") return;
+    refreshCommunity().catch((error) => {
+      setCommunityLoading(false);
+      setNotice(message(error, "Community Programs could not be loaded."));
+    });
+  }, [section, refreshCommunity]);
 
   useEffect(() => {
     let cancelled = false;
@@ -503,20 +547,87 @@ export default function TrainingProgramLibrary({
     } catch (error) { setNotice(message(error)); } finally { setBusy(""); }
   }
 
-  async function useProgram(program) {
-    if (!window.confirm(`Replace your current base plan with “${program.title}”, version ${program.current_version_no}? Your base training and task blocks will be replaced. Any programme added alongside stays in place. Recorded logs, XP and rewards are retained. This action has no automatic undo; save your current plan to My Programs first if you want to return to it.`)) return;
-    if (!(await allowed("use a saved programme"))) return;
+  function preparedKeepTasksPlan(program) {
+    const version = program.current_version || (program.content_json ? {
+      id: program.current_version_id,
+      version_no: program.current_version_no,
+      content_json: program.content_json,
+    } : null);
+    if (!version?.content_json) return null;
+    return prepareAssignedProgramAdoption(activePlan, {
+      id: `library:${program.id}`,
+      program_id: program.id,
+      version_id: program.current_version_id || version.id,
+      start_date: startDate,
+      completion_mode: completionMode,
+      program: { title: program.title },
+      version,
+    }, "replace_keep_tasks");
+  }
+
+  async function useProgram(program, adoptionMode = "replace", sourceLabel = "saved") {
+    const actionText = adoptionMode === "add"
+      ? `Add “${program.title}” alongside your current plan?`
+      : adoptionMode === "replace_keep_tasks"
+        ? `Make “${program.title}” your current plan while keeping your personal Tasks?`
+        : `Make “${program.title}” your current plan?`;
+    const detailText = adoptionMode === "add"
+      ? "Your base plan, logs, XP and rewards stay unchanged."
+      : adoptionMode === "replace_keep_tasks"
+        ? "Your current training structure is replaced, but your personal Task blocks, logs, XP and any separate add-on stay."
+        : "Your base training and Tasks are replaced. Logs, XP, rewards and any separate add-on stay.";
+    if (!window.confirm(`${actionText}\n\n${detailText}`)) return;
+    if (!(await allowed(`use a ${sourceLabel} programme`))) return;
     setBusy(program.id);
-    const { data, error } = await applyOwnedTrainingProgram({
+    const preparedPlan = adoptionMode === "replace_keep_tasks" ? preparedKeepTasksPlan(program) : null;
+    const { data, error } = await applyAccessibleTrainingProgram({
       programId: program.id,
       profileId: activeProfileId,
       startDate,
       completionMode,
+      adoptionMode,
+      preparedPlan,
     });
     setBusy("");
     if (error) return setNotice(message(error));
-    onProgramApplied?.(data, `“${program.title}” is now active.`);
-    setNotice(`“${program.title}” is now the active programme.`);
+    onProgramApplied?.(data, `“${program.title}” applied`);
+    setCommunityPreview(null);
+    setManageProgramId("");
+    setNotice(adoptionMode === "add"
+      ? `“${program.title}” is now running alongside your current plan.`
+      : `“${program.title}” is now your current Program.`);
+  }
+
+  async function publishFree(program) {
+    if (!(await allowed("publish a Program to Community"))) return;
+    if (!window.confirm(`Publish “${program.title}” free to Workout Tracker Community? The current saved version will become discoverable to signed-in users.`)) return;
+    setBusy(program.id);
+    const { data, error } = await publishTrainingProgramFree(program.id);
+    setBusy("");
+    if (error || !data) return setNotice(message(error, "The Program could not be published."));
+    await refresh();
+    await refreshCommunity();
+    setNotice(`“${program.title}” is live in Community as a free Program.`);
+  }
+
+  async function unpublish(program) {
+    if (!(await allowed("remove a Program from Community"))) return;
+    if (!window.confirm(`Remove “${program.title}” from Community? People who already adopted it keep their Program.`)) return;
+    setBusy(program.id);
+    const { data, error } = await unpublishTrainingProgram(program.id);
+    setBusy("");
+    if (error || !data) return setNotice(message(error, "The Program could not be removed from Community."));
+    await refresh();
+    await refreshCommunity();
+    setNotice(`“${program.title}” is no longer discoverable in Community.`);
+  }
+
+  async function openCommunityProgram(program) {
+    setBusy(`community:${program.id}`);
+    const { data, error } = await previewCommunityTrainingProgram(program.id);
+    setBusy("");
+    if (error || !data) return setNotice(message(error, "That Community Program could not be opened."));
+    setCommunityPreview(data);
   }
 
   async function useStarterProgram(program) {
@@ -712,8 +823,30 @@ export default function TrainingProgramLibrary({
             ) : <p className="muted">No reusable Programs saved yet. Save the active Program above or start from a Starter Program.</p>}
           </div>
 
-          {manageProgramId && [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId) ? <ProgramManager key={`${familyId}:${activeProfileId}:${manageProgramId}`} program={[...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)} authorize={allowed} onChanged={refresh} onClose={() => setManageProgramId("")} externalBusy={!!busy} externalNotice={notice} noCopy={noCopy} startDate={startDate} completionMode={completionMode} onStartDateChange={(date) => setStartDate(normaliseProgramStartDate(date))} onCompletionModeChange={setCompletionMode} isCurrentVersionActive={activePlan?.meta?.activeProgramSource?.programId === manageProgramId && (!activePlan?.meta?.activeProgramSource?.versionId || activePlan?.meta?.activeProgramSource?.versionId === [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)?.current_version_id)} onUse={() => useProgram([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId))} onSaveVersion={(note) => saveNewVersion(programs.find((p) => p.id === manageProgramId), note)} onAssign={() => { const p = programs.find((p) => p.id === manageProgramId); setManageProgramId(""); openAssignmentComposer(p); }} onArchive={() => changeArchiveStatus([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId))} /> : null}
-          <details className="programArchive"><summary>Archived Programs ({archivedPrograms.length})</summary>
+          {manageProgramId && [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId) ? <ProgramManager
+            key={`${familyId}:${activeProfileId}:${manageProgramId}`}
+            program={[...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)}
+            authorize={allowed}
+            onChanged={refresh}
+            onClose={() => setManageProgramId("")}
+            externalBusy={!!busy}
+            externalNotice={notice}
+            noCopy={noCopy}
+            startDate={startDate}
+            completionMode={completionMode}
+            onStartDateChange={(date) => setStartDate(normaliseProgramStartDate(date))}
+            onCompletionModeChange={setCompletionMode}
+            isCurrentVersionActive={activePlan?.meta?.activeProgramSource?.programId === manageProgramId && (!activePlan?.meta?.activeProgramSource?.versionId || activePlan?.meta?.activeProgramSource?.versionId === [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)?.current_version_id)}
+            isCurrentVersionAdded={(activePlan?.meta?.programAddOns || []).some((entry) => entry?.programId === manageProgramId)}
+            addAlongsideAvailable={(activePlan?.meta?.programAddOns || []).length < 1}
+            keepTasksAvailable={true}
+            onUse={(mode) => useProgram([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId), mode)}
+            onSaveVersion={(note) => saveNewVersion(programs.find((p) => p.id === manageProgramId), note)}
+            onAssign={() => { const p = programs.find((p) => p.id === manageProgramId); setManageProgramId(""); openAssignmentComposer(p); }}
+            onArchive={() => changeArchiveStatus([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId))}
+            onPublishFree={() => publishFree(programs.find((p) => p.id === manageProgramId))}
+            onUnpublish={() => unpublish(programs.find((p) => p.id === manageProgramId))}
+          /> : null}          <details className="programArchive"><summary>Archived Programs ({archivedPrograms.length})</summary>
             <div className="trainingProgramGrid">{archivedPrograms.map((program) => <ProgramCard key={program.id} program={program} badge="Archived">
               <button type="button" disabled={!!busy} onClick={() => { setNotice(""); setManageProgramId(program.id); }}>View details</button>
             </ProgramCard>)}</div>
@@ -889,31 +1022,70 @@ export default function TrainingProgramLibrary({
           </div>
           <div className="communityProgramIntro">
             <div>
-              <strong>Community Programs are the next build stage.</strong>
-              <p>We are starting with free publishing and discovery. Verified creators, one-off purchases and creator subscriptions come after quality, safety and entitlement handling are proven.</p>
+              <strong>Free Community Programs are live first.</strong>
+              <p>Browse and use free Programs now. Verified creators, one-off purchases and creator subscriptions come later, after quality, safety and entitlement handling are proven.</p>
             </div>
-            <span className="pill">Foundation in progress</span>
+            <span className="pill">Free Community beta</span>
           </div>
-          <div className="communityRoadmapGrid">
-            <article>
-              <span className="communityStep">01</span>
-              <strong>Browse &amp; filter</strong>
-              <p>Search by sport, purpose, difficulty, age range, equipment and Program length.</p>
-            </article>
-            <article>
-              <span className="communityStep">02</span>
-              <strong>Publish a Program</strong>
-              <p>Choose a saved version, add clear catalogue details and publish it free to the Community.</p>
-            </article>
-            <article>
-              <span className="communityStep">03</span>
-              <strong>Use it your way</strong>
-              <p>Add alongside, make it your current plan, or replace training while keeping personal Tasks.</p>
-            </article>
+
+          <div className="communityBrowseToolbar">
+            <label>Search<input value={communityQuery} onChange={(event) => setCommunityQuery(event.target.value)} placeholder="Football, strength, recovery…" /></label>
+            <label>Sport<select value={communitySport} onChange={(event) => setCommunitySport(event.target.value)}>
+              <option value="all">All sports</option>
+              {communitySports.map((sport) => <option key={sport} value={sport}>{sport}</option>)}
+            </select></label>
+            <label>Difficulty<select value={communityDifficulty} onChange={(event) => setCommunityDifficulty(event.target.value)}>
+              <option value="all">All levels</option>
+              <option value="all_levels">All levels Programs</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select></label>
           </div>
-          <p className="communityIntegrityNote">Community access will never change XP values, badges, verification or competitive rankings.</p>
+
+          {communityLoading ? <p className="communityLoading" role="status">Loading Community Programs…</p> : null}
+          {!communityLoading && visibleCommunityPrograms.length ? <div className="communityProgramGrid">
+            {visibleCommunityPrograms.map((program) => <article key={program.id} className="communityProgramCard">
+              <div className="communityProgramCardTop">
+                <div>
+                  <span className="communityFreeBadge">FREE</span>
+                  <h4>{program.title}</h4>
+                </div>
+                {program.credentials_verified ? <span className="communityVerifiedBadge">Verified creator</span> : <span className="communityCreatorBadge">{String(program.creator_role || "community").toUpperCase()}</span>}
+              </div>
+              {program.description ? <p>{program.description}</p> : null}
+              <div className="communityProgramCardMeta">
+                {program.sport ? <span>{program.sport}</span> : null}
+                <span>{String(program.difficulty || "all_levels").replaceAll("_", " ")}</span>
+                <span>{program.week_count || 1} week{Number(program.week_count) === 1 ? "" : "s"}</span>
+              </div>
+              {program.purpose ? <div className="communityProgramCardPurpose">{program.purpose}</div> : null}
+              <button type="button" className="communityViewProgram" disabled={!!busy} onClick={() => openCommunityProgram(program)}>
+                {busy === `community:${program.id}` ? "Opening…" : "View Program"}
+              </button>
+            </article>)}
+          </div> : null}
+
+          {!communityLoading && !visibleCommunityPrograms.length ? <div className="communityEmptyState">
+            <strong>{communityPrograms.length ? "No Programs match those filters." : "No free Community Programs have been published yet."}</strong>
+            <p>{communityPrograms.length ? "Try a broader search or clear one of the filters." : "Publish a saved Program from My Programs to seed the Community library."}</p>
+          </div> : null}
+
+          <p className="communityIntegrityNote">Community access never changes XP values, badges, verification or competitive rankings.</p>
         </section>
       ) : null}
+
+      {communityPreview ? <CommunityProgramDialog
+        program={communityPreview}
+        activePlan={activePlan}
+        startDate={startDate}
+        completionMode={completionMode}
+        onStartDateChange={(date) => setStartDate(normaliseProgramStartDate(date))}
+        onCompletionModeChange={setCompletionMode}
+        onClose={() => setCommunityPreview(null)}
+        busy={busy === communityPreview.id}
+        onApply={(mode) => useProgram(communityPreview, mode, "Community")}
+      /> : null}
     </section>
   );
 }
