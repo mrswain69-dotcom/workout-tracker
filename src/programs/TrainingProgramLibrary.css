@@ -111,6 +111,50 @@
 .communityRoadmapGrid p{margin:5px 0 0;color:#667783;line-height:1.4;font-size:13px}
 .communityStep{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:24px;padding:0 7px;border-radius:999px;background:#0f2936;color:#67e8f9;font-size:10px;font-weight:900;letter-spacing:.08em}
 .communityIntegrityNote{margin:0;padding:12px 18px;border-top:1px solid #d7e1e8;background:#eef8f4;color:#285b4a;font-size:12px;font-weight:700}
+.communityBrowseToolbar{display:grid;grid-template-columns:minmax(220px,1.5fr) repeat(2,minmax(150px,.75fr));gap:10px;padding:16px 18px 4px;background:#f7fafc}
+.communityBrowseToolbar label{color:#405663}
+.communityLoading{margin:0;padding:22px 18px;color:#5e707b}
+.communityProgramGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px;padding:14px 18px 18px;background:#f7fafc}
+.communityProgramCard{display:flex;flex-direction:column;min-width:0;padding:15px;border:1px solid #d4e0e7;border-radius:14px;background:#fff;box-shadow:0 6px 16px rgba(15,23,42,.05)}
+.communityProgramCardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.communityProgramCardTop>div{min-width:0}
+.communityProgramCard h4{margin:7px 0 0;color:#122b38;font-size:17px;line-height:1.2;overflow-wrap:anywhere}
+.communityProgramCard p{margin:9px 0;color:#60717d;line-height:1.45;font-size:13px}
+.communityFreeBadge,.communityVerifiedBadge,.communityCreatorBadge{display:inline-flex;align-items:center;min-height:22px;padding:3px 7px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.08em}
+.communityFreeBadge{background:#dcfce7;color:#17603b}
+.communityVerifiedBadge{background:#dff8fc;color:#155d6d}
+.communityCreatorBadge{background:#edf2f5;color:#53636d}
+.communityProgramCardMeta{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:9px;color:#60717d;font-size:11px}
+.communityProgramCardMeta span+span:before{content:"·";margin-right:6px}
+.communityProgramCardPurpose{align-self:flex-start;margin-top:10px;padding:5px 8px;border-radius:999px;background:#e8f5f7;color:#225d69;font-size:10px;font-weight:800}
+.trainingProgramLibrary .communityViewProgram{width:100%;margin-top:12px;border-color:#173b48;background:#173b48;color:#effcff;font-weight:800}
+.communityEmptyState{margin:14px 18px 18px;padding:22px;border:1px dashed #9db2bd;border-radius:13px;background:#fff;text-align:center;color:#415965}
+.communityEmptyState p{margin:6px auto 0;max-width:560px;color:#71818a}
+.communityProgramDialog.trainingProgramLibrary{padding:0;width:min(1080px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;box-sizing:border-box;border:1px solid #31505b;border-radius:18px;background:#f7fafc;color:#17313d;box-shadow:0 24px 90px rgba(4,18,25,.45)}
+.communityProgramDialog::backdrop{background:rgba(6,20,27,.75);backdrop-filter:blur(3px)}
+.communityProgramDialogInner{min-width:0}
+.communityProgramDialogHeading{position:sticky;top:0;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:17px 18px;background:linear-gradient(135deg,#111827,#17323b);color:#fff}
+.communityProgramDialogHeading h3{margin:5px 0 0;font-size:22px;line-height:1.1}
+.communityProgramDialogHeading button{flex:0 0 auto;background:#fff;color:#17313d}
+.communityProgramMeta{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;color:#c8d8df;font-size:11px}
+.communityProgramMeta span+span:before{content:"·";margin-right:7px}
+.communityProgramDescription{margin:16px 18px 0;color:#536973;line-height:1.5}
+.communityProgramPurpose{display:inline-flex;margin:10px 18px 0;padding:5px 9px;border-radius:999px;background:#dff8fc;color:#175d6b;font-size:11px;font-weight:800}
+.communityProgramDialog .programVersionPreview{margin:16px 18px 0}
+.communityProgramSchedule{margin:16px 18px 0}
+.communityUseChoices{display:grid;gap:8px;margin:16px 18px 0;padding:0;border:0}
+.communityUseChoices legend{margin-bottom:8px;font-weight:800;color:#17313d}
+.communityUseChoice{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1px solid #cfdae0;border-radius:11px;background:#fff;cursor:pointer}
+.communityUseChoice.selected{border-color:#1a6a78;background:#edf9fb;box-shadow:inset 0 0 0 1px #1a6a78}
+.communityUseChoice.disabled{opacity:.58;cursor:not-allowed}
+.communityUseChoice input{margin-top:3px;flex:0 0 auto}
+.communityUseChoice>span{display:grid;gap:3px;min-width:0}
+.communityUseChoice strong{font-size:14px}
+.communityUseChoice small{color:#677984;line-height:1.4}
+.communityProgramDialogFooter{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:14px 18px;border-top:1px solid #d7e1e8;background:#eef5f7}
+.communityProgramDialogFooter p{margin:0;max-width:620px;color:#526a75;font-size:12px}
+.communityProgramDialogFooter>div{display:flex;gap:8px;flex:0 0 auto}
+
 .trainingProgramLibrary.communityMode>.trainingProgramHeading .pill{background:#e1f7fb;color:#17566a}
 .trainingProgramTabs button.communityTab{border-color:#184a57;background:#143843;color:#dffaff}
 
@@ -125,6 +169,16 @@
   .communityRoadmapGrid{grid-template-columns:1fr;padding:13px}
   .communityProgramHero{padding:18px 15px}
   .communityProgramHero h3{font-size:21px}
+  .communityBrowseToolbar{grid-template-columns:1fr;padding:13px}
+  .communityProgramGrid{grid-template-columns:1fr;padding:12px 13px 15px}
+  .communityEmptyState{margin:12px 13px 15px}
+  .communityProgramDialog.trainingProgramLibrary{width:calc(100vw - 14px);max-width:calc(100vw - 14px);max-height:calc(100dvh - 14px)}
+  .communityProgramDialogHeading{padding:14px}
+  .communityProgramDialog .programVersionPreview,.communityProgramSchedule,.communityUseChoices{margin-left:13px;margin-right:13px}
+  .communityProgramDescription{margin-left:13px;margin-right:13px}
+  .communityProgramPurpose{margin-left:13px}
+  .communityProgramDialogFooter{align-items:stretch;flex-direction:column;padding:13px}
+  .communityProgramDialogFooter>div{display:grid;grid-template-columns:1fr 1fr;width:100%}
   .trainingProgramControls,.trainingProgramCreate,.trainingProgramAssignmentFields{grid-template-columns:1fr}
   .trainingProgramAssignmentComposer{padding:13px}
   .trainingProgramAssignmentHeading,.trainingProgramAssignmentHistoryHeading,.trainingProgramAssignmentFooter{align-items:stretch;flex-direction:column}
