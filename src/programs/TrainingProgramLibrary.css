@@ -3,7 +3,7 @@
 .trainingProgramHeading h2,.trainingProgramSection h3,.trainingProgramCard h4{margin:0}
 .trainingProgramHeading p,.trainingProgramCard p{margin:5px 0 0;color:var(--muted,#64748b)}
 .trainingProgramTabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-bottom:12px;border-bottom:1px solid var(--border,#d9e1e7)}
-.trainingProgramTabs button{min-height:38px;border-radius:999px;padding:8px 14px;font-weight:800;color:var(--muted,#475569)}
+.trainingProgramTabs button{min-height:38px;min-width:0;border-radius:999px;padding:8px 14px;font-weight:800;color:var(--muted,#475569);white-space:normal;overflow-wrap:anywhere;line-height:1.15;text-align:center}
 .trainingProgramTabs button.active{border-color:#0f172a;background:#0f172a;color:#fff}
 .trainingProgramNotice{margin-top:12px;padding:10px 12px;border-radius:10px;background:#eef7ff;color:#17466f;overflow-wrap:anywhere}
 .trainingProgramShared{margin-top:14px;padding:14px;border:1px solid #8fd3b2;border-radius:12px;background:#f1fff8}
@@ -93,13 +93,38 @@
 .assignedProgramInfo{border:1px solid #a8c7dc;background:#edf7fd;color:#244c68}
 .assignedProgramPreviewFooter{align-items:center;margin-top:14px;padding-top:13px;border-top:1px solid #c5d5e1}
 .assignedProgramPreviewFooter>div{display:flex;gap:8px;flex-wrap:wrap}
+.trainingProgramCommunity{margin-top:18px;border-radius:18px;overflow:hidden;border:1px solid #263647;background:#f7fafc;box-shadow:0 12px 28px rgba(15,23,42,.08)}
+.communityProgramHero{padding:22px;background:linear-gradient(135deg,#111827,#172a34 58%,#12392f);color:#f8fafc}
+.communityEyebrow{display:inline-block;font-size:10px;font-weight:900;letter-spacing:.14em;color:#67e8f9}
+.communityProgramHero h3{margin:7px 0 6px;font-size:24px;line-height:1.08}
+.communityProgramHero p{margin:0;max-width:720px;color:#c9d7df;line-height:1.5}
+.communityPrinciples{display:flex;gap:7px;flex-wrap:wrap;margin-top:15px}
+.communityPrinciples span{padding:5px 9px;border:1px solid rgba(103,232,249,.35);border-radius:999px;background:rgba(15,23,42,.35);color:#d9fbff;font-size:11px;font-weight:800}
+.communityProgramIntro{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:17px 18px;border-bottom:1px solid #d7e1e8;background:#fff}
+.communityProgramIntro>div{min-width:0}
+.communityProgramIntro strong{color:#132c3a}
+.communityProgramIntro p{margin:4px 0 0;max-width:760px;color:#61717e;line-height:1.45}
+.communityProgramIntro .pill{flex:0 0 auto;background:#dcfce7;color:#17603b}
+.communityRoadmapGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:16px 18px;background:#f7fafc}
+.communityRoadmapGrid article{min-width:0;padding:14px;border:1px solid #d4e0e7;border-radius:13px;background:#fff}
+.communityRoadmapGrid strong{display:block;margin-top:7px;color:#152c39}
+.communityRoadmapGrid p{margin:5px 0 0;color:#667783;line-height:1.4;font-size:13px}
+.communityStep{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:24px;padding:0 7px;border-radius:999px;background:#0f2936;color:#67e8f9;font-size:10px;font-weight:900;letter-spacing:.08em}
+.communityIntegrityNote{margin:0;padding:12px 18px;border-top:1px solid #d7e1e8;background:#eef8f4;color:#285b4a;font-size:12px;font-weight:700}
+.trainingProgramLibrary.communityMode>.trainingProgramHeading .pill{background:#e1f7fb;color:#17566a}
+.trainingProgramTabs button.communityTab{border-color:#184a57;background:#143843;color:#dffaff}
+
 .trainingProgramComingSoon{margin-top:18px;padding:22px;border:1px dashed #aebdca;border-radius:14px;background:linear-gradient(135deg,#f8fafc,#eef7ff)}
 .trainingProgramComingSoon h3{margin:12px 0 6px}
 .trainingProgramComingSoon p{margin:5px 0;max-width:760px}
 @media(max-width:720px){
   .trainingProgramLibrary{padding:14px}
   .trainingProgramTabs{display:grid;grid-template-columns:1fr 1fr}
-  .trainingProgramTabs button{min-width:0;padding:8px 9px}
+  .trainingProgramTabs button{min-width:0;min-height:50px;padding:8px 9px}
+  .communityProgramIntro{flex-direction:column}
+  .communityRoadmapGrid{grid-template-columns:1fr;padding:13px}
+  .communityProgramHero{padding:18px 15px}
+  .communityProgramHero h3{font-size:21px}
   .trainingProgramControls,.trainingProgramCreate,.trainingProgramAssignmentFields{grid-template-columns:1fr}
   .trainingProgramAssignmentComposer{padding:13px}
   .trainingProgramAssignmentHeading,.trainingProgramAssignmentHistoryHeading,.trainingProgramAssignmentFooter{align-items:stretch;flex-direction:column}

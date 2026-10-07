@@ -34,4 +34,18 @@
 .programArchive{margin-top:14px}
 .programArchive summary{cursor:pointer;font-weight:600;padding:8px 0}
 .programArchive .trainingProgramGrid{margin-top:8px}
-@media(max-width:540px){.trainingProgramCreate{grid-template-columns:minmax(0,1fr)}.programDetailsForm{grid-template-columns:minmax(0,1fr)}.programDetailsForm label:nth-child(2){grid-column:auto}.programManager{padding:12px}.programDetailsDialog.trainingProgramLibrary{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.programManagerActions>label{flex:1 1 120px}.programManagerTabs button{flex:1 1 90px}.programLinkCreate{grid-template-columns:minmax(0,1fr)}.programActionHelp dl{grid-template-columns:1fr;gap:4px}.programActionHelp dd{margin-bottom:8px}}
+.programUsePanel{margin-top:14px;padding:14px;border:1px solid #c8d8cf;border-radius:13px;background:#f7faf8}
+.programUseHeading{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.programUseHeading strong{font-size:15px;color:#163e2c}
+.programUseHeading p{margin:0;color:var(--muted,#64748b);font-size:12px}
+.programUseChoices{display:grid;gap:8px;margin-top:10px}
+.programManager .programUseChoice{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:11px 12px;text-align:left;border-radius:11px;background:#fff}
+.programUseChoice>span:first-child{display:grid;gap:3px;min-width:0}
+.programUseChoice strong{font-size:14px;overflow-wrap:anywhere}
+.programUseChoice small{font-size:12px;line-height:1.35;color:var(--muted,#64748b);overflow-wrap:anywhere}
+.programManager .programUseChoicePrimary:not(:disabled){border-color:#245f50;background:#eff8f3}
+.programManager .programUseChoice:disabled{opacity:1;background:#f4f5f5;color:#7b8581;border-color:#d9dfdc;cursor:not-allowed}
+.programManager .programUseChoice:disabled small{color:#8b9490}
+.programManager .programUseChoice:disabled .pill{background:#e6e9e8;color:#727b77}
+.programUseNote{margin:9px 0 0;color:#697873;font-size:11px;line-height:1.45}
+@media(max-width:540px){.programManager .programUseChoice{align-items:flex-start}.programUseChoice .pill{flex:0 0 auto}.trainingProgramCreate{grid-template-columns:minmax(0,1fr)}.programDetailsForm{grid-template-columns:minmax(0,1fr)}.programDetailsForm label:nth-child(2){grid-column:auto}.programManager{padding:12px}.programDetailsDialog.trainingProgramLibrary{width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.programManagerActions>label{flex:1 1 120px}.programManagerTabs button{flex:1 1 90px}.programLinkCreate{grid-template-columns:minmax(0,1fr)}.programActionHelp dl{grid-template-columns:1fr;gap:4px}.programActionHelp dd{margin-bottom:8px}}

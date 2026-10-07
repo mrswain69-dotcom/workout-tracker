@@ -664,7 +664,7 @@ export default function TrainingProgramLibrary({
   }
 
   return (
-    <section className="trainingProgramLibrary">
+    <section className={`trainingProgramLibrary${section === "discover" ? " communityMode" : ""}`}>
       <div className="trainingProgramHeading">
         <div>
           <h2>Program Library</h2>
@@ -679,7 +679,7 @@ export default function TrainingProgramLibrary({
         <button type="button" role="tab" aria-selected={section === "starters"} className={section === "starters" ? "active" : ""} onClick={() => setSection("starters")}>Starter Programs</button>
         <button type="button" role="tab" aria-selected={section === "clients"} className={section === "clients" ? "active" : ""} onClick={() => setSection("clients")}>Coaching connections</button>
         <button type="button" role="tab" aria-selected={section === "reports"} className={section === "reports" ? "active" : ""} onClick={() => setSection("reports")}>Coach reports</button>
-        <button type="button" role="tab" aria-selected={section === "discover"} className={section === "discover" ? "active" : ""} onClick={() => setSection("discover")}>Discover</button>
+        <button type="button" role="tab" aria-selected={section === "discover"} className={section === "discover" ? "active communityTab" : ""} onClick={() => setSection("discover")}>Community</button>
       </div>
 
       {notice ? <div className="trainingProgramNotice" role="status">{notice}</div> : null}
@@ -712,7 +712,7 @@ export default function TrainingProgramLibrary({
             ) : <p className="muted">No reusable Programs saved yet. Save the active Program above or start from a Starter Program.</p>}
           </div>
 
-          {manageProgramId && [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId) ? <ProgramManager key={`${familyId}:${activeProfileId}:${manageProgramId}`} program={[...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)} authorize={allowed} onChanged={refresh} onClose={() => setManageProgramId("")} externalBusy={!!busy} externalNotice={notice} noCopy={noCopy} startDate={startDate} completionMode={completionMode} onStartDateChange={(date) => setStartDate(normaliseProgramStartDate(date))} onCompletionModeChange={setCompletionMode} onUse={() => useProgram([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId))} onSaveVersion={(note) => saveNewVersion(programs.find((p) => p.id === manageProgramId), note)} onAssign={() => { const p = programs.find((p) => p.id === manageProgramId); setManageProgramId(""); openAssignmentComposer(p); }} onArchive={() => changeArchiveStatus([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId))} /> : null}
+          {manageProgramId && [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId) ? <ProgramManager key={`${familyId}:${activeProfileId}:${manageProgramId}`} program={[...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)} authorize={allowed} onChanged={refresh} onClose={() => setManageProgramId("")} externalBusy={!!busy} externalNotice={notice} noCopy={noCopy} startDate={startDate} completionMode={completionMode} onStartDateChange={(date) => setStartDate(normaliseProgramStartDate(date))} onCompletionModeChange={setCompletionMode} isCurrentVersionActive={activePlan?.meta?.activeProgramSource?.programId === manageProgramId && (!activePlan?.meta?.activeProgramSource?.versionId || activePlan?.meta?.activeProgramSource?.versionId === [...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)?.current_version_id)} onUse={() => useProgram([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId))} onSaveVersion={(note) => saveNewVersion(programs.find((p) => p.id === manageProgramId), note)} onAssign={() => { const p = programs.find((p) => p.id === manageProgramId); setManageProgramId(""); openAssignmentComposer(p); }} onArchive={() => changeArchiveStatus([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId))} /> : null}
           <details className="programArchive"><summary>Archived Programs ({archivedPrograms.length})</summary>
             <div className="trainingProgramGrid">{archivedPrograms.map((program) => <ProgramCard key={program.id} program={program} badge="Archived">
               <button type="button" disabled={!!busy} onClick={() => { setNotice(""); setManageProgramId(program.id); }}>View details</button>
@@ -874,12 +874,45 @@ export default function TrainingProgramLibrary({
       ) : null}
 
       {section === "discover" ? (
-        <div className="trainingProgramComingSoon">
-          <span className="pill">Later phase</span>
-          <h3>Discover public Programs</h3>
-          <p>Free community Programs, verified creator Programs, purchases and creator subscriptions will live here once the private library and coaching workflow are stable.</p>
-          <p className="muted">Access method will never change XP, badges or competitive rankings.</p>
-        </div>
+        <section className="trainingProgramCommunity" aria-labelledby="community-programs-title">
+          <div className="communityProgramHero">
+            <div>
+              <span className="communityEyebrow">WORKOUT TRACKER COMMUNITY</span>
+              <h3 id="community-programs-title">Find Programs built for real training</h3>
+              <p>Discover useful Programs from athletes, coaches and creators without turning Workout Tracker into a social feed.</p>
+            </div>
+            <div className="communityPrinciples" aria-label="Community principles">
+              <span>Free first</span>
+              <span>Creator attribution</span>
+              <span>No pay-to-win</span>
+            </div>
+          </div>
+          <div className="communityProgramIntro">
+            <div>
+              <strong>Community Programs are the next build stage.</strong>
+              <p>We are starting with free publishing and discovery. Verified creators, one-off purchases and creator subscriptions come after quality, safety and entitlement handling are proven.</p>
+            </div>
+            <span className="pill">Foundation in progress</span>
+          </div>
+          <div className="communityRoadmapGrid">
+            <article>
+              <span className="communityStep">01</span>
+              <strong>Browse &amp; filter</strong>
+              <p>Search by sport, purpose, difficulty, age range, equipment and Program length.</p>
+            </article>
+            <article>
+              <span className="communityStep">02</span>
+              <strong>Publish a Program</strong>
+              <p>Choose a saved version, add clear catalogue details and publish it free to the Community.</p>
+            </article>
+            <article>
+              <span className="communityStep">03</span>
+              <strong>Use it your way</strong>
+              <p>Add alongside, make it your current plan, or replace training while keeping personal Tasks.</p>
+            </article>
+          </div>
+          <p className="communityIntegrityNote">Community access will never change XP values, badges, verification or competitive rankings.</p>
+        </section>
       ) : null}
     </section>
   );
