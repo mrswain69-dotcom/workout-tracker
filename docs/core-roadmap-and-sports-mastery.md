@@ -87,3 +87,11 @@ Collections awaiting artwork show a clear coming-soon message and retain session
 Next artwork batches: Basketball and Tennis, followed by the remaining configured mastery sports. Sport recognition/category expansion still requires a historical compatibility review. Pack 16 and Body Intelligence follow in the sequence above; the Locker refresh stays last.
 
 Validation: 1,184 tests across 196 files, production build, complete published-avatar PNG inventory and dependency audit passed. Original RGBA portraits are preserved; there are no XP map, database or reward-value changes. Physical-device and authenticated visual checks remain outstanding. Generation brief: `docs/rugby-avatar-artwork.md`.
+
+### Paired sport-avatar production brief (8 October 2026)
+
+The user's updated direction is two equally prestigious male/female versions at every avatar tier, earned together through one unchanged unlock. Prestige should follow the established football kit/accessory/award story, ending with formal sport honours; recolours or additional glow are insufficient. Yoga uses non-competitive practice recognition. Martial Arts artwork must not imply a real belt qualification.
+
+Canonical handoff: `docs/avatar-production/paired-sport-avatar-briefs.md` and its JSON prompt source. All thirteen configured sports are covered: 104 tier briefs, 208 final portrait slots. The helper `scripts/sport_avatar_prompt.py` prints one ready-to-use prompt or the target inventory without generating images. `production-status.json` starts every paired slot as not started.
+
+The first production step after switching to Light is the Football Bronze male/female pilot pair. Review the formal Unreal pair next, then finish Football, Rugby and Cricket before the remaining sport batches. Preserve legacy files and reward keys; the variant toggle is future integration work. No paired artwork or toggle is delivered by this brief-only update. Locker remains last in the roadmap.

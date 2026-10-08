@@ -1,0 +1,1671 @@
+{
+  "version": "1.0",
+  "brief": "paired-sport-avatar-briefs.json",
+  "updated": "2026-10-08",
+  "assets": [
+    {
+      "sport": "football",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "football",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/football_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "rugby",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/rugby_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "cricket",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/cricket_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "basketball",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/basketball_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "tennis",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/tennis_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "badminton",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/badminton_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "netball",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/netball_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "hockey",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/hockey_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "fencing",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/fencing_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "martial_arts",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/martial_arts_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "yoga",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/yoga_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "indoor_rowing",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/indoor_rowing_unreal_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "bronze",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_bronze_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "bronze",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_bronze_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "silver",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_silver_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "silver",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_silver_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "gold",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_gold_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "gold",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_gold_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "platinum",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_platinum_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "platinum",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_platinum_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "diamond",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_diamond_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "diamond",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_diamond_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "elite",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_elite_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "elite",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_elite_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "champion",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_champion_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "champion",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_champion_female_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "unreal",
+      "variant": "male",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_unreal_male_v2.png",
+      "notes": ""
+    },
+    {
+      "sport": "outdoor_rowing",
+      "tier": "unreal",
+      "variant": "female",
+      "status": "not_started",
+      "final_path": "public/avatars/sport/outdoor_rowing_unreal_female_v2.png",
+      "notes": ""
+    }
+  ]
+}
