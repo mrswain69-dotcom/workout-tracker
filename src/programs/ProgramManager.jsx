@@ -4,6 +4,7 @@ import { ensurePlanProgram, flattenProgramWeeks } from "../engine/planCycleEngin
 import { buildTrainingProgramShareLink, createTrainingProgramShare } from "./trainingProgramDb.js";
 import { commaList, copyProgramVersion, listProgramHistory, listProgramLinks, updateProgramDetails, updateProgramLink } from "./programManagementDb.js";
 import "./programManagement.css";
+import { setCommunityCopyPermission } from "./communityDiscoveryDb.js";
 
 export function ProgramVersionPreview({ version }) {
   const [weekIndex, setWeekIndex] = useState(0);
@@ -44,6 +45,7 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
   const dialog = useRef(null);
   const copyForm = useRef(null);
   const [versionNote, setVersionNote] = useState("");
+  const [allowCommunityCopy, setAllowCommunityCopy] = useState(program.community_allow_copy !== false);
   const working = busy || externalBusy;
   const currentVersion = program.current_version;
   const mounted = useRef(true);
@@ -164,10 +166,15 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
             <span className="pill">{program.marketplace_status === "published" ? "Live in Community" : "Private"}</span>
             <strong>{program.marketplace_status === "published" ? "This Program is discoverable for free." : "Publish this saved Program to Community."}</strong>
             <p>{program.marketplace_status === "published" ? "People can preview and use the current saved version. Removing it from Community stops new discovery but does not remove Programs people already adopted." : "Share this programme for people to preview, use and adapt. Your published creator bio will appear alongside it."}</p>
+            {program.community_suspended ? <p>Community publishing is paused while this programme is reviewed.</p> : null}
+            {program.community_origin_program_id ? <p>This is a personal Community adaptation. It can be used privately but cannot be republished as your own.</p> : null}
+            <label className="programWorkflowCheck"><input type="checkbox" disabled={working} checked={allowCommunityCopy} onChange={(e) => setAllowCommunityCopy(e.target.checked)} />Allow personal library copies from Community</label>
+            <p>This controls new reusable copies. Existing copies stay available, and people can still use and adjust the programme in their active plan.</p>
+            <button type="button" disabled={working} onClick={() => mutate(() => setCommunityCopyPermission(program.id, allowCommunityCopy), "Community copy permission saved.")}>Save copy permission</button>
           </div>
           {program.marketplace_status === "published"
             ? <button type="button" disabled={working} onClick={onUnpublish}>Remove from Community</button>
-            : <button type="button" className="primary" disabled={working || !currentVersion?.id} onClick={onPublishFree}>Publish free</button>}
+            : <button type="button" className="primary" disabled={working || !currentVersion?.id || program.community_suspended || !!program.community_origin_program_id} onClick={onPublishFree}>Publish free</button>}
         </div>
       </details> : null}
       {onSaveVersion && program.status !== "archived" ? <details className="programSaveVersion"><summary>Save active plan as a new version</summary><p className="muted">This saves your currently active base plan, which may differ from the preview above.</p><label>Version change note<input maxLength={300} value={versionNote} onChange={(e) => setVersionNote(e.target.value)} placeholder="What has changed?" /></label><button type="button" disabled={working || noCopy} onClick={() => { setNotice(""); onSaveVersion(versionNote); }}>Save new version</button>{noCopy ? <p>The coach has not allowed saving your active assigned programme as a copy.</p> : null}</details> : null}

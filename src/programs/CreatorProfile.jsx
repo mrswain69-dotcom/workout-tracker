@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { creatorFileUrl, creatorVerified, getCreator, listCreatorRequests, reviewerAccess, reviewCreatorRequest, saveCreator, submitCreatorRequest, uploadCreatorFile } from "./creatorDb.js";
 import "./creatorProfile.css";
+import { CommunityReportForm } from "./CommunityTools.jsx";
 const categories = ["Strength & conditioning", "Sport skills", "Endurance", "Mobility & recovery", "Rehabilitation", "Yoga & wellbeing", "Youth training", "General fitness"];
 export function VerifiedCreatorMark({ creator, verified = creatorVerified(creator) }) {
   return verified ? <span className="creatorVerified" title="Creator identity and listed qualifications reviewed. Experience is self-declared; individual programmes are not certified."><span aria-hidden="true">✓</span> Verified creator</span> : null;
@@ -24,9 +25,10 @@ export function CreatorBiography({ creator }) {
     {creator.website ? <a href={creator.website} target="_blank" rel="noopener noreferrer">Visit creator website</a> : null}
   </div>;
 }
-export function CreatorProfileDialog({ id, programmes = [], onClose, onProgram }) {
+export function CreatorProfileDialog({ id, programmes = [], onClose, onProgram, profileId, authorize }) {
   const ref = useRef(null);
   const [creator, setCreator] = useState(null), [error, setError] = useState("");
+  const [reporting, setReporting] = useState(false);
   useEffect(() => {
     let alive = true;
     getCreator(id).then((r) => { if (alive) { if (r.error || !r.data) setError(r.error?.message || "This creator profile is unavailable."); else setCreator(r.data); } }).catch((e) => { if (alive) setError(e.message); });
@@ -36,7 +38,7 @@ export function CreatorProfileDialog({ id, programmes = [], onClose, onProgram }
     ref.current?.querySelector("button")?.focus();
     return () => { alive = false; document.body.style.overflow = overflow; previous?.focus?.(); };
   }, [id]);
-  return createPortal(<dialog ref={ref} className="creatorDialog" aria-label="Creator biography" onCancel={(e) => { e.preventDefault(); onClose(); }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}><div className="creatorDialogInner"><button type="button" className="creatorClose" onClick={onClose}>Close</button>{error ? <p role="alert">{error}</p> : creator ? <><CreatorBiography creator={creator} /><h4>Programmes by {creator.display_name}</h4>{programmes.filter((p) => p.creator_id === id).map((p) => <button type="button" className="creatorProgramme" key={p.id} onClick={() => onProgram(p)}><strong>{p.title}</strong><span>{p.week_count} weeks · {p.sport || p.purpose || "Training"}</span></button>)}</> : <p role="status">Loading creator profile…</p>}</div></dialog>, document.body);
+  return createPortal(<dialog ref={ref} className="creatorDialog" aria-label="Creator biography" onCancel={(e) => { e.preventDefault(); onClose(); }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}><div className="creatorDialogInner"><button type="button" className="creatorClose" onClick={onClose}>Close</button>{error ? <p role="alert">{error}</p> : creator ? <><CreatorBiography creator={creator} />{profileId ? <><button type="button" onClick={() => setReporting(!reporting)}>Report creator</button>{reporting ? <CommunityReportForm profileId={profileId} target={{ creatorId: id, name: creator.display_name }} authorize={authorize} onClose={() => setReporting(false)} /> : null}</> : null}<h4>Programmes by {creator.display_name}</h4>{programmes.filter((p) => p.creator_id === id).map((p) => <button type="button" className="creatorProgramme" key={p.id} onClick={() => onProgram(p)}><strong>{p.title}</strong><span>{p.week_count} weeks · {p.sport || p.purpose || "Training"}</span></button>)}</> : <p role="status">Loading creator profile…</p>}</div></dialog>, document.body);
 }
 const csv = (value) => value.split(",").map((v) => v.trim()).filter(Boolean);
 const empty = (name) => ({ display_name: name || "", headline: "", bio: "", experience: "", years_experience: "", role: "community", categories: [], tags: [], qualifications: [], website: "", photo_path: "", published: false });

@@ -36,7 +36,7 @@ export async function listOwnedTrainingPrograms(familyId, includeArchived = fals
   if (!familyId) return { data: [], error: null };
   let query = supabase
     .from("training_programs")
-    .select("id,owner_family_id,creator_profile_id,title,description,purpose,sport,difficulty,age_band,equipment,tags,status,creator_role,current_version_no,current_version_id,week_count,phase_count,access_model,marketplace_status,legacy_plan_template_id,created_at,updated_at")
+    .select("id,owner_family_id,creator_profile_id,title,description,purpose,sport,difficulty,age_band,equipment,tags,status,creator_role,current_version_no,current_version_id,week_count,phase_count,access_model,marketplace_status,legacy_plan_template_id,community_allow_copy,community_suspended,community_origin_program_id,created_at,updated_at")
     .eq("owner_family_id", familyId)
     .order("updated_at", { ascending: false });
   if (!includeArchived) query = query.eq("status", "active");
