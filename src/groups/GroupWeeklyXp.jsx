@@ -224,7 +224,7 @@ function XpEvidenceDialog({ row, period, onClose }) {
   );
 }
 
-export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGroupChanged, onOpenIdentity }) {
+export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGroupChanged, onOpenIdentity, directory = [] }) {
   const [mode, setMode] = useState("current");
   const [historyIndex, setHistoryIndex] = useState(0);
   const [data, setData] = useState(null);
@@ -259,7 +259,14 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
 
   const history = Array.isArray(data?.history) ? data.history : [];
   const period = mode === "history" ? history[historyIndex] || history[0] || null : data?.current || null;
-  const rows = Array.isArray(period?.rows) ? period.rows : [];
+  const rows = useMemo(() => {
+    const cosmetics = new Map(directory.map(member => [member.membership_id, member]));
+    return (Array.isArray(period?.rows) ? period.rows : []).map(row => ({
+      ...row,
+      sport_avatar_appearance: cosmetics.get(row.membership_id)?.avatar_id === row.avatar_id
+        ? cosmetics.get(row.membership_id)?.sport_avatar_appearance : null,
+    }));
+  }, [period, directory]);
   const scope = data?.scopeMode || group?.xp_history_scope || "group_start";
 
   const weekButtons = useMemo(

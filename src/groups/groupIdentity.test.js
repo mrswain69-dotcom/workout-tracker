@@ -20,3 +20,8 @@ describe("Group Stage 2 competitive identity", () => {
     expect(groupAvatarFrameClass({ avatarFrame: "prestige_red", avatarFramesEnabled: false })).toBe("");
   });
 });
+
+it("uses a validated paired appearance in group displays with the same identity", () => {
+  expect(resolveGroupAvatar("sport_avatar_football_gold", {edition:"paired_v2",variant:"female"}).imgSrc).toBe("/avatars/sport/football_gold_female_v2.png");
+  expect(resolveGroupAvatar("sport_avatar_football_gold").imgSrc).toBe("/avatars/sport/football_gold.png");
+});

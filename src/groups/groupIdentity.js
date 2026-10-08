@@ -1,10 +1,11 @@
+import { resolveAvatarIdentity } from "../config/avatarIdentity";
 import { AVATAR_PACKS } from "../config/avatars";
 
 const xpAvatarMap = new Map(
   AVATAR_PACKS.flatMap((pack) => pack.avatars || []).map((avatar) => [avatar.id, avatar])
 );
 
-export function resolveGroupAvatar(avatarId) {
+export function resolveGroupAvatar(avatarId, appearance) {
   const id = typeof avatarId === "string" ? avatarId : "";
   if (!id) return { id: "", label: "Athlete", emoji: "🙂", imgSrc: "" };
 
@@ -18,17 +19,8 @@ export function resolveGroupAvatar(avatarId) {
     };
   }
 
-  if (id.startsWith("sport_avatar_")) {
-    const slug = id.slice("sport_avatar_".length);
-    if (slug) {
-      return {
-        id,
-        label: "Sport Mastery avatar",
-        emoji: "",
-        imgSrc: `/avatars/sport/${slug}.png`,
-      };
-    }
-  }
+  const identity = resolveAvatarIdentity(id, appearance);
+  if (identity?.imgSrc) return { id, label: identity.label, emoji: "", imgSrc: identity.imgSrc };
 
   return { id, label: "Athlete", emoji: "🙂", imgSrc: "" };
 }

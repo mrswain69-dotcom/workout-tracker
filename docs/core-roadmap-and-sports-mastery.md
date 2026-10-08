@@ -95,3 +95,7 @@ The user's updated direction is two equally prestigious male/female versions at 
 Canonical handoff: `docs/avatar-production/paired-sport-avatar-briefs.md` and its JSON prompt source. All thirteen configured sports are covered: 104 tier briefs, 208 final portrait slots. The helper `scripts/sport_avatar_prompt.py` prints one ready-to-use prompt or the target inventory without generating images. `production-status.json` starts every paired slot as not started.
 
 The first production step after switching to Light is the Football Bronze male/female pilot pair. Review the formal Unreal pair next, then finish Football, Rugby and Cricket before the remaining sport batches. Preserve legacy files and reward keys; the variant toggle is future integration work. No paired artwork or toggle is delivered by this brief-only update. Locker remains last in the roadmap.
+
+### Football paired collection (8 October 2026)
+
+The first complete paired sport collection ships all sixteen Football portraits through Unreal. Male/female previews are cosmetic choices on the same earned identity, with explicit application, persisted appearance and shared group cosmetics. Existing equipped originals remain until users choose the new artwork. See `avatar-production/football-paired-release.md`. The other twelve sports remain in the production queue; this release does not mark them complete.

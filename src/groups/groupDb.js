@@ -70,7 +70,7 @@ export async function listGroupDirectory(groupId) {
   if (!groupId) return { data: [], error: null };
   const { data, error } = await supabase
     .from("group_member_directory")
-    .select("membership_id,group_id,nickname,role,avatar_id,avatar_frame,avatar_frames_enabled,xp_evidence_visible,competition_excluded,competition_exclusion_label,joined_at,updated_at")
+    .select("membership_id,group_id,nickname,role,avatar_id,sport_avatar_appearance,avatar_frame,avatar_frames_enabled,xp_evidence_visible,competition_excluded,competition_exclusion_label,joined_at,updated_at")
     .eq("group_id", groupId)
     .order("joined_at", { ascending: true });
   return { data: data || [], error };

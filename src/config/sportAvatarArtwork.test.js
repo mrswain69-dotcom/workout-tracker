@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { SPORT_MASTERY_PACKS } from "./badges";
-import { SPORT_AVATAR_ARTWORK_READY, hasSportAvatarArtwork, sportAvatarArtworkSrc } from "./sportAvatarArtwork";
+import { SPORT_AVATAR_ARTWORK_READY, PAIRED_SPORT_AVATAR_ARTWORK_READY, hasSportAvatarArtwork, sportAvatarArtworkSrc } from "./sportAvatarArtwork";
 import { resolveAvatarIdentity } from "./avatarIdentity";
 
 const tiers = ["bronze", "silver", "gold", "platinum", "diamond", "elite", "champion", "unreal"];
@@ -44,5 +44,30 @@ describe("sport avatar artwork releases", () => {
       expect(words).toBeGreaterThanOrEqual(30);
       expect(words).toBeLessThanOrEqual(70);
     }
+  });
+});
+
+describe("paired appearances", () => {
+  it("ships both complete collections without splitting rewards or thresholds", () => {
+    for (const sport of PAIRED_SPORT_AVATAR_ARTWORK_READY) for (const tier of tiers) {
+      const original = resolveAvatarIdentity(`sport_avatar_${sport}_${tier}`);
+      for (const variant of ["male", "female"]) {
+        const paired = resolveAvatarIdentity(original.id, { edition: "paired_v2", variant });
+        expect(paired.id).toBe(original.id);
+        expect(paired.unlockSource).toEqual(original.unlockSource);
+        expect(paired.imgSrc).toBe(`/avatars/sport/${sport}_${tier}_${variant}_v2.png`);
+        const png = readFileSync(new URL(`../../public${paired.imgSrc}`, import.meta.url));
+        expect(png.subarray(0,8).toString("hex")).toBe("89504e470d0a1a0a");
+        expect(png[25]).toBe(6);
+        expect(png.readUInt32BE(16)).toBeGreaterThanOrEqual(1000);
+      }
+    }
+  });
+  it("retains originals and rejects incomplete or invalid variant paths", () => {
+    for (const appearance of [undefined, {variant:"female"}, {edition:"paired_v2",variant:"../x"}]) {
+      expect(sportAvatarArtworkSrc("football","bronze",appearance)).toBe("/avatars/sport/football_bronze.png");
+    }
+    expect(sportAvatarArtworkSrc("rugby","bronze",{edition:"paired_v2",variant:"female"})).toBe("/avatars/sport/rugby_bronze.png");
+    expect(sportAvatarArtworkSrc("football","../x")).toBeNull();
   });
 });

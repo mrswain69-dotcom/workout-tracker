@@ -96,6 +96,7 @@ export default function AvatarIdentityView({
             <p className="avatarIdentitySubtitle">{identity.subtitle || identity.collection}</p>
             <div className="avatarIdentityTags">
               <span>{identity.collection}</span>
+              {identity.appearance ? <span>{identity.appearance.variant === "female" ? "Female" : "Male"} appearance</span> : null}
               {!isGroup
                 ? (identity.traits || []).map((trait) => <span key={trait}>{trait}</span>)
                 : null}

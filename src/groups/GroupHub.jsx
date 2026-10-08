@@ -87,7 +87,7 @@ export function buildGroupJoinLink(joinCode) {
 }
 
 function MemberIdentity({ member, isSelf = false, onOpen = null }) {
-  const avatar = resolveGroupAvatar(member?.avatar_id);
+  const avatar = resolveGroupAvatar(member?.avatar_id, member?.sport_avatar_appearance);
   const frameClass = groupAvatarFrameClass({
     avatarFrame: member?.avatar_frame,
     avatarFramesEnabled: member?.avatar_frames_enabled,
@@ -154,7 +154,7 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
     if (!resolvedMember.avatar_id && directoryMember?.avatar_id) {
       resolvedMember.avatar_id = directoryMember.avatar_id;
     }
-    const identity = resolveAvatarIdentity(resolvedMember.avatar_id);
+    const identity = resolveAvatarIdentity(resolvedMember.avatar_id, directoryMember?.avatar_id === resolvedMember.avatar_id ? directoryMember.sport_avatar_appearance : resolvedMember.sport_avatar_appearance);
     if (!identity || !selectedGroup?.id || !resolvedMember.membership_id) return;
     setMemberIdentity({ member: resolvedMember, identity, loading: true, stats: null, error: "" });
     const { data, error: statsError } = await loadGroupAvatarIdentityStats(
@@ -590,8 +590,8 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                     </label>
                   </div>
 
-                  <GroupWeeklyXp group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} onOpenIdentity={openMemberIdentity} />
-                  <GroupConsistency group={selectedGroup} membership={ownMembership} onOpenIdentity={openMemberIdentity} />
+                  <GroupWeeklyXp group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} onOpenIdentity={openMemberIdentity} directory={directory} />
+                  <GroupConsistency group={selectedGroup} membership={ownMembership} onOpenIdentity={openMemberIdentity} directory={directory} />
                   <GroupChallenges group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} />
 
                   {isAdmin ? (
