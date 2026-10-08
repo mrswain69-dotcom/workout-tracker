@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ProgramVersionPreview } from "./ProgramManager.jsx";
+import { CommunityProgramTools } from "./CommunityTools.jsx";
 
 const choices = [
   {
@@ -26,6 +27,9 @@ function label(value) {
 
 export default function CommunityProgramDialog({
   program,
+  profileId,
+  authorize,
+  onCopied,
   activePlan,
   startDate,
   completionMode,
@@ -92,6 +96,8 @@ export default function CommunityProgramDialog({
         {program.purpose ? <div className="communityProgramPurpose">{program.purpose}</div> : null}
 
         <ProgramVersionPreview version={version} />
+
+        {profileId ? <CommunityProgramTools key={program.id} profileId={profileId} program={program} authorize={authorize} onCopied={onCopied} /> : null}
 
         <div className="trainingProgramControls communityProgramSchedule">
           <label>Starts Monday<input type="date" value={startDate} onChange={(event) => onStartDateChange(event.target.value)} /></label>
