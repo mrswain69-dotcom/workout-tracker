@@ -1,3 +1,5 @@
+import { sportsMasteryState } from "./engine/sportsMasteryProgression.js";
+import SportsMasteryMilestones from "./components/rewards/SportsMasteryMilestones.jsx";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
@@ -3036,6 +3038,9 @@ function getHighestClaimedTierIndex(card, claimedRewardsSet) {
 }
 
 function getBadgeCardState(card, badgeStats, claimedRewardsSet) {
+  if (card.badgeGroup === "sport_mastery") {
+    return sportsMasteryState(card, getByPath({ stats: badgeStats }, card.statKey), claimedRewardsSet);
+  }
   const value = getByPath({ stats: badgeStats }, card.statKey);
   const tiers = Array.isArray(card?.tiers) ? card.tiers : [];
 
@@ -6397,6 +6402,13 @@ const selectedDayHasHeavyTrainingBlocks =
 
   async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
   if (!rewardKey) return false;
+  if (rewardKey.startsWith("badge_sport_")) {
+    const latestClaims = new Set(normaliseClaimedRewards(planRef.current?.meta).map(item => item.key));
+    const eligible = sportMasteryBadgeCards.some(card =>
+      getBadgeCardState(card, badgeStats, latestClaims).nextClaimable?.key === rewardKey
+    );
+    if (!eligible) return false;
+  }
 
   // Prevent double-click farming before React/state catches up
   if (rewardClaimLockRef.current.has(rewardKey)) {
@@ -12602,7 +12614,7 @@ const cardioProgress = useMemo(() => {
   const state = getBadgeCardState(card, badgeStats, claimedRewardsSet);
 
   const showInCurrentView =
-    badgeView === "all" || state.highestEarnedIndex >= 0;
+    badgeView === "all" || state.highestEarnedIndex >= 0 || (card.badgeGroup === "sport_mastery" && state.currentTier);
 
   if (!showInCurrentView) return null;
 
@@ -12627,9 +12639,11 @@ const cardioProgress = useMemo(() => {
   // - claimed tiers => show full-colour layers
   const layers = [];
 
-  if (state.highestEarnedIndex >= 0) {
-    card.tiers.slice(0, state.highestEarnedIndex + 1).forEach((tier, idx) => {
-      const isClaimedLayer = claimedTierIndex >= idx;
+  if (state.highestEarnedIndex >= 0 || (card.badgeGroup === "sport_mastery" && state.currentTier)) {
+    (card.badgeGroup === "sport_mastery" && state.stage !== "foundation"
+      ? [state.currentTier]
+      : card.tiers.slice(0, Math.max(state.highestEarnedIndex, card.badgeGroup === "sport_mastery" ? state.highestClaimedIndex : -1) + 1)).forEach((tier, idx) => {
+      const isClaimedLayer = claimedRewardsSet.has(tier.key);
 
       layers.push(
         <img
@@ -12664,7 +12678,7 @@ const cardioProgress = useMemo(() => {
 
   const sportProgressPct =
     card.badgeGroup === "sport_mastery"
-      ? getSportBadgeProgressPct(card, badgeStats)
+      ? state.progressPct
       : 0;
 
   return (
@@ -12672,7 +12686,7 @@ const cardioProgress = useMemo(() => {
       key={card.id}
       className={
         "panel badgeCard " +
-        state.status +
+        (card.badgeGroup === "sport_mastery" ? "sportMasteryCard " : "") + state.status +
         (lastClaimedKey === badgeKeyForFlash ? " flash" : "") +
         (state.status === "claimed" ? " lit" : "")
       }
@@ -12758,7 +12772,7 @@ if (!didClaim) {
     kind: "badge",
     stage: "shake",
     title: "Badge claimed!",
-    desc: `${card.title} unlocked`,
+    desc: `${card.title}${state.nextClaimable?.star ? ` · Unreal star ${state.nextClaimable.star}` : " unlocked"}`,
     badgeKey: badgeKeyToClaim,
     emoji: "🏅",
     xpAward: xpReward,
@@ -12784,13 +12798,20 @@ if (!didClaim) {
   }, 260);
 }}
             >
-              Claim
+              {state.nextClaimable?.star ? `Claim star ${state.nextClaimable.star}` : "Claim"}
             </button>
           ) : (
             <div className="pill">{badgeStatusLabel(state.status)}</div>
           )}
         </div>
       </div>
+
+      {card.badgeGroup === "sport_mastery" && state.stars > 0 && (
+        <div className="sportMasteryStars" aria-label={`${state.stars} Unreal stars claimed`}>
+          <span aria-hidden="true">{"★".repeat(Math.min(state.stars, 8))}{state.stars > 8 ? ` +${state.stars - 8}` : ""}</span>
+          <span className="mini">{state.stars} Unreal {state.stars === 1 ? "star" : "stars"}</span>
+        </div>
+      )}
 
             <div className="badgeDesc">
         {card.desc && (
@@ -12802,7 +12823,7 @@ if (!didClaim) {
         {card.badgeGroup === "sport_mastery" && (
           <div className="sportBadgeMiniMeta">
             <div className="sportBadgeMiniMetaRow">
-              <span className="sportBadgeMiniLabel">Sessions</span>
+              <span className="sportBadgeMiniLabel">Counted sessions</span>
               <span className="sportBadgeMiniValue">
                 {safeNumber(badgeStats?.sportMastery?.[card.sportKey]?.sessions)}
               </span>
@@ -12819,7 +12840,7 @@ if (!didClaim) {
             {!!state.nextTier && (
               <div className="sportBadgeProgressWrap">
                 <div className="sportBadgeProgressTop">
-                  <span>Progress to {state.nextTier.tier}</span>
+                  <span>Progress to {state.nextTier.star ? `Unreal star ${state.nextTier.star}` : state.nextTier.tier}</span>
                   <span>{sportProgressPct}%</span>
                 </div>
                 <div className="sportBadgeProgressBar">
@@ -12852,6 +12873,9 @@ if (!didClaim) {
         </div>
       </div>
 
+      {card.badgeGroup === "sport_mastery" ? (
+        <SportsMasteryMilestones state={state} claimedKeys={claimedRewardsSet} />
+      ) : (
       <div className="badgeTierGrid">
         {card.tiers.map((tier, idx) => {
           const tierName =
@@ -12877,6 +12901,7 @@ if (!didClaim) {
           );
         })}
       </div>
+      )}
     </div>
   );
 })}
@@ -14748,6 +14773,18 @@ function StyleTag() {
   width:calc(var(--badge-size) + 40px);
   height:var(--badge-size);
 }
+
+.sportMasteryCard .wtBadge{ width:calc(var(--badge-size) + 48px); }
+.sportMasteryCard .wtBadgeBgLayer{ transform:translateX(calc(var(--layerIndex) * 12px)); }
+.sportMasteryCard .wtBadgeForeground{ transform:translateX(calc(var(--frontOffset) * .5454545)); }
+.sportMasteryAchievements{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.sportMasteryStars{ display:flex; align-items:center; justify-content:center; gap:8px; color:#f3c857; margin-top:8px; flex-wrap:wrap; }
+.sportMasteryStars > span:first-child{ letter-spacing:3px; font-size:22px; }
+.sportMasteryHistory{ margin-top:12px; }
+.sportMasteryHistory summary{ cursor:pointer; font-weight:650; padding:8px 0; }
+.sportMasteryMilestones .badgeTierGrid{ grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); }
+.sportMasteryCard .badgeMid{ gap:8px; flex-wrap:wrap; }
+@media (prefers-reduced-motion:reduce){ .sportMasteryCard *{ animation:none !important; transition:none !important; } }
 
 .wtBadgeBgLayer{
   position:absolute;

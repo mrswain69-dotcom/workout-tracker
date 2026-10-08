@@ -1,3 +1,5 @@
+import { SPORT_MASTERY_TIERS } from "../engine/sportsMasteryProgression.js";
+
 // src/config/badges.js
 // Badge ecosystem config (V2).
 // - Plaque is NOT an SVG: tier label remains UI pill.
@@ -84,13 +86,7 @@ const REP_TIERS = [
   { tier: "diamond", threshold: 25, xp: 80, hidden: true },
 ];
 
-const SPORT_MASTERY_TIERS = [
-  { tier: "bronze", threshold: 1, xp: 20 },
-  { tier: "silver", threshold: 5, xp: 30 },
-  { tier: "gold", threshold: 15, xp: 45 },
-  { tier: "platinum", threshold: 40, xp: 65 },
-  { tier: "diamond", threshold: 80, xp: 90 },
-];
+
 
 export const SPORT_MASTERY_PACKS = {
   football: {
@@ -899,7 +895,7 @@ function addSportMasteryBadges() {
 
     const idPrefix = `badge_sport_${sportKey}_mastery`;
     const title = `${pack.label} Mastery`;
-    const desc = `Sessions completed in ${pack.label}`;
+    const desc = `Counted ${pack.label} sessions · maximum one per day`;
     const family = pack.family;
     const iconFile = pack.iconFile;
 
@@ -935,7 +931,7 @@ function addSportMasteryBadges() {
 
           const remaining = Math.max(0, nextTier.threshold - v);
 
-          return `${v} ${pack.label} session${v === 1 ? "" : "s"} across ${days} day${days === 1 ? "" : "s"} — ${remaining} more to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.${lastDate ? ` Last logged ${lastDate}.` : ""}`;
+          return `${v} counted ${pack.label} sessions — ${remaining} more for ${nextTier.star ? `Unreal star ${nextTier.star}` : nextTier.tier.toUpperCase()}${nextTier.xp ? ` and +${nextTier.xp} XP` : ""}.${lastDate ? ` Last logged ${lastDate}.` : ""}`;
         },
       },
       tierDefs

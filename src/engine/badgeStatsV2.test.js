@@ -131,3 +131,9 @@ describe("badgeStatsV2 structured Session integration", () => {
     expect(stats.recovery.recommendation.reasons.consecutiveTrainingBefore).toBe(2);
   });
 });
+
+it("counts each sport once per day across duplicate rows and excludes future days", () => {
+  const block = footballSessionBlock({completed:true});
+  const stats = buildBadgeStatsV2({allLogs:[row("2026-09-08",block),row("2026-09-07",block),row("2026-09-08",block),row("2026-09-09",block)],todayYmd:"2026-09-08",isAdult:false});
+  expect(stats.sportMastery.football).toEqual({sessions:2,days:2,lastDate:"2026-09-08"});
+});

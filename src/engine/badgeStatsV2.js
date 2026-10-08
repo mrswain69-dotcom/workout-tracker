@@ -848,6 +848,7 @@ const lastStrengthScoreByMovement = new Map();
   // Sport mastery (Phase B)
   // -----------------------------
   const sportMastery = createEmptySportMasteryBucket();
+  const countedSportDates = new Set();
 
   // -----------------------------
   // Cardio stats
@@ -914,11 +915,16 @@ greenByDate.set(dateStr, isStreakCountingDay(log));
     // Count max 1 session per sport per day.
     const sportKeysForDay = getSportKeysForLog(log);
     for (const sportKey of sportKeysForDay) {
-      if (!sportMastery[sportKey]) continue;
+      if (!sportMastery[sportKey] || dateStr > today) continue;
+      const countedKey = `${dateStr}:${sportKey}`;
+      if (countedSportDates.has(countedKey)) continue;
+      countedSportDates.add(countedKey);
 
       sportMastery[sportKey].sessions += 1;
       sportMastery[sportKey].days += 1;
-      sportMastery[sportKey].lastDate = dateStr;
+      if (!sportMastery[sportKey].lastDate || dateStr > sportMastery[sportKey].lastDate) {
+        sportMastery[sportKey].lastDate = dateStr;
+      }
     }
 
     for (const b of blocks) {
