@@ -42,7 +42,7 @@ export function sportsMasteryState(card, sessionCount, claimedKeys = new Set()) 
   const displayIndex = Math.max(highestEarnedIndex, highestClaimedIndex, stars ? 8 : -1);
   const stage = displayIndex >= 7 ? "unreal" : displayIndex >= 4 ? "prestige" : "foundation";
   const visibleTiers = stage === "unreal" ? tiers.slice(8) : stage === "prestige" ? tiers.slice(5, 8) : tiers.slice(0, 5);
-  const nextTier = tiers.find(tier => value < tier.threshold && !claimedKeys.has(tier.key)) || nextStar;
+  const nextTier = tiers[displayIndex + 1] || nextStar;
   const currentTier = tiers[displayIndex] || null;
   const floor = nextTier.star ? nextTier.threshold - UNREAL_STAR_INTERVAL :
     tiers[Math.max(0, tiers.indexOf(nextTier) - 1)]?.threshold || 0;
