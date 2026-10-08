@@ -22,3 +22,9 @@
 
 .programWorkflowSection input:not([type="checkbox"]), .programWorkflowSection textarea { width: 100%; min-width: 0; box-sizing: border-box; background: #fff; color: #16352c; border: 1px solid #c5d6ce; border-radius: 9px; padding: 9px; font: inherit; }
 .programClientRow > div { min-width: 0; overflow-wrap: anywhere; }
+
+/* Compact header inbox, aligned with Settings and Sign out. */
+.brandActions{flex-shrink:0;align-items:center}
+.programInbox{flex-shrink:0}
+.programInbox .programInboxTrigger{position:relative;width:44px;height:44px;padding:0;border-radius:14px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.programInboxBadge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:#174538;color:#fff;font-size:10px;line-height:18px;text-align:center;border:1px solid #fff;pointer-events:none}
