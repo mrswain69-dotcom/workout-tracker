@@ -26,6 +26,8 @@
 .masteryDetailsDialog{width:min(1000px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);border:1px solid #cbd5e1;border-radius:18px;padding:0;background:linear-gradient(145deg,#101b32,#0a1224 60%,#14102c);color:#f7fbff;overflow:auto;box-shadow:0 22px 70px #0004}
 .masteryDetailsDialog::backdrop{background:#030814c2;backdrop-filter:blur(6px)}
 .masteryDetailsDialog .muted{color:#b8c6dc}
+.masteryDetailsDialog .masteryNote{font-size:13px;line-height:1.6;color:#cbd5e1;background:transparent;border:0;padding:0;overflow-wrap:anywhere}
+.masteryComplete{font-size:13px;text-align:center;color:var(--muted,#64748b);padding:24px 8px}
 .masteryDetailsDialog .masteryStage:nth-child(1){border-top-color:#ddaa5570}
 .masteryDetailsDialog .masteryStage:nth-child(2){border-top-color:#77e8ff70}
 .masteryDetailsDialog .masteryStage:nth-child(3){border-top-color:#bf87ff70}

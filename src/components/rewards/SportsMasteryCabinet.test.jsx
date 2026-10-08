@@ -59,3 +59,32 @@ it("closes Details after a successful claim so the reward celebration is visible
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button",{name:"Claim Bronze"}));
   await waitFor(()=>expect(screen.queryByRole("dialog")).toBeNull());
 });
+
+import { performanceBadgeState } from "../../engine/performanceBadgeProgression.js";
+function showPerformance(card, value, claims = new Set()) {
+  return render(<SportsMasteryCabinet card={card} state={performanceBadgeState(card,value,claims)} claimedKeys={claims}
+    onClaim={vi.fn().mockResolvedValue(true)} faceText="5K" progressText="Best 5K: 25:00."
+    requirementText={tier=>`${tier.threshold} ${card.comparator === "lte" ? "seconds or faster" : "sets"} · +${tier.xp} XP`}/>);
+}
+it("gives performance badges the same cabinet and a Diamond completion state",()=>{
+  const card=BADGE_CARDS.find(c=>c.statKey==="stats.lifts.totalSets");
+  showPerformance(card,card.tiers[4].threshold);
+  expect(screen.getByText("Collection complete")).toBeTruthy();
+  expect(within(screen.getByLabelText("Earlier earned badges")).getAllByRole("button")).toHaveLength(4);
+  fireEvent.click(screen.getByRole("button",{name:"Details"}));
+  const dialog=screen.getByRole("dialog");
+  expect(within(dialog).getByText("All five tiers achieved.")).toBeTruthy();
+  expect(within(dialog).queryByText(/next stage unlocks/)).toBeNull();
+  expect(within(dialog).queryByText(/counted sessions/)).toBeNull();
+  expect(within(dialog).getAllByText(/sets ·/).length).toBe(5);
+});
+it("shows pace requirements and correct earned status in the popup",()=>{
+  const card=BADGE_CARDS.find(c=>c.comparator==="lte");
+  showPerformance(card,card.tiers[2].threshold);
+  fireEvent.click(screen.getByRole("button",{name:"Details"}));
+  const dialog=screen.getByRole("dialog");
+  expect(within(dialog).getByLabelText(/Gold: .*earned/)).toBeTruthy();
+  expect(within(dialog).getByLabelText(/Platinum: .*locked/)).toBeTruthy();
+  expect(within(dialog).getByText("Best 5K: 25:00.")).toBeTruthy();
+  expect(within(dialog).queryByRole("progressbar")).toBeNull();
+});
