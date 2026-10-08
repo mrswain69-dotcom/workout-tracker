@@ -10,13 +10,14 @@ export async function listAvatarSelectionPeriods(profileId) {
   return { data: data || [], error };
 }
 
-export async function setProfileAvatarIdentity(profileId, avatarId) {
+export async function setProfileAvatarIdentity(profileId, avatarId, appearance = null) {
   if (!supabase || !profileId || !avatarId) {
     return { data: null, error: new Error("Avatar selection is unavailable") };
   }
-  const { data, error } = await supabase.rpc("set_profile_avatar_identity", {
+  const { data, error } = await supabase.rpc("set_profile_avatar_appearance", {
     p_profile_id: profileId,
     p_avatar_id: avatarId,
+    p_appearance: appearance,
   });
   return { data, error };
 }

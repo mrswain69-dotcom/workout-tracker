@@ -84,3 +84,12 @@ describe("AvatarIdentityView", () => {
     expect(screen.getByText(/workout history.*stay private/i)).toBeTruthy();
   });
 });
+
+it("shows the chosen football appearance and equips it only on request", () => {
+  const onSelect = vi.fn();
+  render(<AvatarIdentityView identity={{...identity, id:"sport_avatar_football_bronze", label:"Football Bronze", imgSrc:"/avatars/sport/football_bronze_female_v2.png", appearance:{edition:"paired_v2",variant:"female"}}} onSelect={onSelect} onClose={() => {}} />);
+  expect(screen.getByText("Female appearance")).toBeTruthy();
+  expect(onSelect).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", {name:"Use this avatar"}));
+  expect(onSelect).toHaveBeenCalledOnce();
+});

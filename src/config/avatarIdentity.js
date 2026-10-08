@@ -1,4 +1,4 @@
-import { sportAvatarArtworkSrc } from "./sportAvatarArtwork";
+import { sportAvatarArtworkSrc, sportAvatarAppearance } from "./sportAvatarArtwork";
 import { SPORT_MASTERY_PACKS } from "./badges";
 import { AVATAR_PACKS } from "./avatars";
 import { AVATAR_STORY_PROFILES } from "./avatarStories";
@@ -72,7 +72,7 @@ const XP_IDENTITIES = new Map(
   )
 );
 
-function sportIdentity(avatarId) {
+function sportIdentity(avatarId, appearance) {
   if (!avatarId?.startsWith("sport_avatar_")) return null;
   const tier = SPORT_TIERS.find((candidate) => avatarId.endsWith(`_${candidate.key}`));
   if (!tier) return null;
@@ -86,7 +86,8 @@ function sportIdentity(avatarId) {
     id: avatarId,
     label,
     subtitle: `${sport.label} Mastery`,
-    imgSrc: sportAvatarArtworkSrc(sportKey, tier.key),
+    imgSrc: sportAvatarArtworkSrc(sportKey, tier.key, appearance),
+    appearance: sportAvatarAppearance(sportKey, appearance),
     collectionKey: `sport_mastery_${sportKey}`,
     collection: `${sport.label} Mastery`,
     story: AVATAR_STORY_PROFILES[avatarId]?.story || `${label} represents the hours when technique becomes instinct. Earned through repeated ${sport.label.toLowerCase()} sessions, this avatar stands for showing up, learning from every attempt, and staying composed under pressure. It marks an athlete who builds mastery through patient practice rather than shortcuts.`,
@@ -99,10 +100,10 @@ function sportIdentity(avatarId) {
   };
 }
 
-export function resolveAvatarIdentity(avatarId) {
+export function resolveAvatarIdentity(avatarId, appearance) {
   const id = typeof avatarId === "string" ? avatarId.trim() : "";
   if (!id) return null;
-  return XP_IDENTITIES.get(id) || sportIdentity(id) || null;
+  return XP_IDENTITIES.get(id) || sportIdentity(id, appearance) || null;
 }
 
 export function listAvatarIdentities() {

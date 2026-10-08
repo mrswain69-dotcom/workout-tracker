@@ -1,4 +1,4 @@
-import { hasSportAvatarArtwork, sportAvatarArtworkSrc } from "./config/sportAvatarArtwork";
+import { hasSportAvatarArtwork, sportAvatarArtworkSrc, PAIRED_SPORT_AVATAR_ARTWORK_READY } from "./config/sportAvatarArtwork";
 import { loadVerifiedActivityData } from "./verifiedActivityDb.js";
 import { buildPerformanceEvidence, performanceEvidenceForCard } from "./engine/performanceBadgeEvidence.js";
 import { performanceBadgeState } from "./engine/performanceBadgeProgression.js";
@@ -2918,8 +2918,8 @@ function getSportAvatarKey(sportKey, prestigeKey) {
   return `sport_avatar_${sportKey}_${prestigeKey}`;
 }
 
-function getSportAvatarImageSrc(sportKey, prestigeKey) {
-  return sportAvatarArtworkSrc(sportKey, prestigeKey);
+function getSportAvatarImageSrc(sportKey, prestigeKey, appearance) {
+  return sportAvatarArtworkSrc(sportKey, prestigeKey, appearance);
 }
 
 function getSportAvatarXpForKey(key) {
@@ -3348,6 +3348,7 @@ useEffect(() => {
   const accountLoadRequestRef = useRef(0);
   const [showGroups, setShowGroups] = useState(false);
   const [avatarIdentityModal, setAvatarIdentityModal] = useState(null);
+  const avatarIdentityRequestRef = useRef(0);
   const [avatarIdentitySelecting, setAvatarIdentitySelecting] = useState(false);
 
   const [family, setFamily] = useState(null);
@@ -4824,6 +4825,13 @@ const unlockedAvatarPacksSet = useMemo(() => {
 const selectedAvatarId =
   typeof plan?.meta?.avatarId === "string" ? plan.meta.avatarId : "";
 
+const equippedSportAvatarAppearance = plan?.meta?.sportAvatarAppearance || null;
+const [sportAvatarPreview, setSportAvatarPreview] = useState(null);
+const previewVariant = sportAvatarPreview?.profileId === activeProfileId
+  ? sportAvatarPreview.variant : (["male", "female"].includes(equippedSportAvatarAppearance?.variant) ? equippedSportAvatarAppearance.variant : "male");
+const pairedPreviewAppearance = { edition: "paired_v2", variant: previewVariant };
+const selectedIdentityImage = resolveAvatarIdentity(selectedAvatarId, equippedSportAvatarAppearance)?.imgSrc;
+
 const sportAvatarSeries = useMemo(() => {
   const sportStats = badgeStats?.sportMastery || {};
 
@@ -4872,16 +4880,17 @@ const sportAvatarSeries = useMemo(() => {
           prestigeLabel: tier.label,
           threshold: tier.threshold,
           xp: tier.xp,
-          imgSrc: getSportAvatarImageSrc(sportKey, tier.key),
+          imgSrc: getSportAvatarImageSrc(sportKey, tier.key, pairedPreviewAppearance),
+          appearance: PAIRED_SPORT_AVATAR_ARTWORK_READY.includes(sportKey) ? pairedPreviewAppearance : null,
           claimed,
           unlockedBySessions,
           claimable: hasSportAvatarArtwork(sportKey) && unlockedBySessions && !claimed,
-          selected: selectedAvatarId === avatarKey,
+          selected: selectedAvatarId === avatarKey && selectedIdentityImage === getSportAvatarImageSrc(sportKey, tier.key, pairedPreviewAppearance),
         };
       }),
     };
   });
-}, [badgeStats, claimedRewardsSet, selectedAvatarId]);
+}, [badgeStats, claimedRewardsSet, selectedAvatarId, previewVariant, selectedIdentityImage]);
 
 const headerAvatar = useMemo(() => {
   // 1) Existing XP avatar packs
@@ -4913,7 +4922,7 @@ const headerAvatar = useMemo(() => {
         return {
           id: selectedAvatarId,
           label: `${pack.label} ${tier.label}`,
-          imgSrc: getSportAvatarImageSrc(remainder, tier.key),
+          imgSrc: getSportAvatarImageSrc(remainder, tier.key, equippedSportAvatarAppearance),
         };
       }
     }
@@ -4922,6 +4931,8 @@ const headerAvatar = useMemo(() => {
   return null;
 }, [
   selectedAvatarId,
+  equippedSportAvatarAppearance?.edition,
+  equippedSportAvatarAppearance?.variant,
   unlockedAvatarPacksArr.join("|"),
   xp,
   claimedRewardsNorm,
@@ -6326,32 +6337,47 @@ const selectedDayHasHeavyTrainingBlocks =
     return queued;
   }
 
-  async function selectAvatar(avatarId) {
+  async function selectAvatar(avatarId, appearance = null) {
     if (!family?.id || !activeProfileId || !avatarId) return false;
-    const current = plan || buildDefaultPlan();
-    const next = normalisePlanForRuntime({
-      ...current,
-      meta: { ...(current.meta || {}), avatarId },
-    });
-    setAndCachePlan(activeProfileId, next);
-    const { error } = await setProfileAvatarIdentity(activeProfileId, avatarId);
-    if (error) {
-      setAndCachePlan(activeProfileId, current);
-      setClaimModal({ title: "Avatar not changed", desc: error.message || "Please try again." });
-      return false;
-    }
-    return true;
+    const profileId = activeProfileId;
+    const familyId = family.id;
+    const persistSelection = async () => {
+      if (activeHistoryIdentityRef.current.profileId !== profileId) return false;
+      const current = planRef.current || buildDefaultPlan();
+      const next = normalisePlanForRuntime({
+        ...current,
+        meta: { ...(current.meta || {}), avatarId, sportAvatarAppearance: appearance },
+      });
+      setAndCachePlan(profileId, next);
+      const { data, error } = await setProfileAvatarIdentity(profileId, avatarId, appearance);
+      if (activeHistoryIdentityRef.current.profileId !== profileId) return !error;
+      if (error) {
+        const { data: refreshed } = await getProfilePlan(familyId, profileId);
+        if (activeHistoryIdentityRef.current.profileId !== profileId) return false;
+        setAndCachePlan(profileId, refreshed?.plan_json || current);
+        setClaimModal({ title: "Avatar not changed", desc: error.message || "Please try again." });
+        return false;
+      }
+      if (data?.plan_json) setAndCachePlan(profileId, data.plan_json);
+      return true;
+    };
+    const queued = planMetaSaveQueueRef.current.then(persistSelection, persistSelection);
+    planMetaSaveQueueRef.current = queued.then(() => undefined, () => undefined);
+    return queued;
   }
 
-  async function openPersonalAvatarIdentity(avatarId = selectedAvatarId) {
-    const identity = resolveAvatarIdentity(avatarId);
+  async function openPersonalAvatarIdentity(avatarId = selectedAvatarId, appearance = equippedSportAvatarAppearance) {
+    const identity = resolveAvatarIdentity(avatarId, appearance);
     if (!identity || !activeProfileId || !family?.id) return;
-    setAvatarIdentityModal({ mode: "personal", identity, loading: true, stats: null, error: "" });
+    const requestId = ++avatarIdentityRequestRef.current;
+    const profileId = activeProfileId;
+    setAvatarIdentityModal({ mode: "personal", profileId, identity, loading: true, stats: null, error: "" });
     const [periodResult, assessmentResult, groupAwardResult] = await Promise.all([
       listAvatarSelectionPeriods(activeProfileId),
       loadCompletedAssessmentHistory(family.id, activeProfileId),
       listProfileGroupAwards(activeProfileId),
     ]);
+    if (avatarIdentityRequestRef.current !== requestId || activeHistoryIdentityRef.current.profileId !== profileId) return;
     const loadError = periodResult.error || assessmentResult.error || groupAwardResult.error;
     const packUnlockedAt = plan?.meta?.avatarPackUnlocks?.[identity.collectionKey] || null;
     const sportClaim = normaliseClaimedRewards(plan?.meta).find((claim) => claim?.key === avatarId);
@@ -6366,6 +6392,7 @@ const selectedDayHasHeavyTrainingBlocks =
     });
     setAvatarIdentityModal({
       mode: "personal",
+      profileId,
       identity,
       loading: false,
       error: loadError?.message || "",
@@ -6374,11 +6401,12 @@ const selectedDayHasHeavyTrainingBlocks =
   }
 
   async function applyAvatarFromIdentity() {
-    const avatarId = avatarIdentityModal?.identity?.id;
-    if (!avatarId || avatarIdentitySelecting || avatarId === selectedAvatarId) return;
+    const identity = avatarIdentityModal?.identity;
+    const avatarId = identity?.id;
+    if (!avatarId || avatarIdentityModal?.profileId !== activeProfileId || avatarIdentitySelecting || (avatarId === selectedAvatarId && identity.imgSrc === selectedIdentityImage)) return;
     setAvatarIdentitySelecting(true);
-    await selectAvatar(avatarId);
-    setAvatarIdentitySelecting(false);
+    try { await selectAvatar(avatarId, identity.appearance); }
+    finally { setAvatarIdentitySelecting(false); }
   }
 
   async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
@@ -9551,7 +9579,7 @@ const cardioProgress = useMemo(() => {
   </React.Suspense>
 )}
 
-{avatarIdentityModal ? (
+{avatarIdentityModal && avatarIdentityModal.profileId === activeProfileId ? (
   <AvatarIdentityView
     mode={avatarIdentityModal.mode}
     identity={avatarIdentityModal.identity}
@@ -9560,10 +9588,10 @@ const cardioProgress = useMemo(() => {
     trackedSince={avatarIdentityModal.stats?.trackingStartedAt || AVATAR_IDENTITY_TRACKING_RELEASED_AT}
     loading={avatarIdentityModal.loading}
     error={avatarIdentityModal.error}
-    isSelected={avatarIdentityModal.identity?.id === selectedAvatarId}
+    isSelected={avatarIdentityModal.identity?.id === selectedAvatarId && avatarIdentityModal.identity?.imgSrc === selectedIdentityImage}
     selectionBusy={avatarIdentitySelecting}
     onSelect={avatarIdentityModal.mode === "personal" ? applyAvatarFromIdentity : null}
-    onClose={() => setAvatarIdentityModal(null)}
+    onClose={() => { avatarIdentityRequestRef.current += 1; setAvatarIdentityModal(null); }}
   />
 ) : null}
 
@@ -12874,6 +12902,21 @@ const cardioProgress = useMemo(() => {
                       </div>
                     </div>
 
+                    {PAIRED_SPORT_AVATAR_ARTWORK_READY.includes(series.sportKey) ? (
+                      <div className="sportAvatarAppearancePicker mt12">
+                        <div className="mini muted">Preview appearance · use an unlocked identity to equip it</div>
+                        <div className="sportAvatarAppearanceButtons" role="group" aria-label={`${series.sportLabel} avatar appearance`}>
+                          {["male", "female"].map(variant => (
+                            <button key={variant} type="button" className="btn btn-secondary"
+                              aria-pressed={previewVariant === variant}
+                              onClick={() => setSportAvatarPreview({ profileId: activeProfileId, variant })}>
+                              {variant === "male" ? "Male" : "Female"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
                     {series.nextPrestige ? (
                       <div className="sportAvatarProgressWrap mt12">
                         <div className="sportAvatarProgressTop">
@@ -12935,7 +12978,7 @@ const cardioProgress = useMemo(() => {
                                   "btn btn-secondary"
                                 }
                                 onClick={async () => {
-                                  await openPersonalAvatarIdentity(avatar.id);
+                                  await openPersonalAvatarIdentity(avatar.id, avatar.appearance);
                                 }}
                               >
                                 View identity

@@ -2,7 +2,7 @@ import React from "react";
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
 
 export function GroupAvatar({ member, className = "groupXpAvatar" }) {
-  const avatar = resolveGroupAvatar(member?.avatar_id);
+  const avatar = resolveGroupAvatar(member?.avatar_id, member?.sport_avatar_appearance);
   const frameClass = groupAvatarFrameClass({
     avatarFrame: member?.avatar_frame,
     avatarFramesEnabled: member?.avatar_frames_enabled,
