@@ -103,3 +103,9 @@ The first complete paired sport collection ships all sixteen Football portraits 
 ### Remaining paired-avatar batches — Sol Light handoff (8 October 2026)
 
 Twelve collections remain, 192 portraits total. Produce one sixteen-image sport batch at a time: Rugby, Cricket, Basketball, Tennis, Badminton, Netball, Hockey, Fencing, Martial Arts, Indoor Rowing, Outdoor Rowing, then Yoga. Each collection has five manageable passes with a saved checkpoint after every pair. `avatar-production/remaining-sport-avatar-batches.md` and its JSON queue include art references, resume instructions and the required allowlist/default-path integration for sports beyond Football. Use `avatar-production/sol-light-production-handoff.md` after the user selects Sol Light. This planning update generates no new artwork.
+
+### Rugby paired collection (8 October 2026)
+
+All sixteen Rugby v2 portraits are complete, from junior Bronze to formal Unreal, with equivalent male/female kit and original awards. The existing selector now supports Rugby, retaining original equipped artwork until an explicit choice. Owner-only persisted cosmetics and group displays reuse the same logical rewards, thresholds, XP and identity periods. See `avatar-production/rugby-paired-release.md` and `rugby-production-record.json` for validation and generation provenance.
+
+Football and Rugby are complete; eleven sports / 176 portraits remain. Cricket is the next production batch. Pack 16, Body Intelligence and the later Locker refresh remain separate roadmap stages.
