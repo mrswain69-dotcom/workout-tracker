@@ -1,6 +1,6 @@
 # Remaining sport-avatar batches — Sol Light handoff
 
-8 October 2026. Football's sixteen paired portraits and persisted selector are live. The production inventory has **192 remaining portraits: twelve sports, eight tiers, two appearances**. The latest main branch also contains the header notification bell update; start from current main to preserve other work.
+8 October 2026. Football and Rugby each have sixteen paired portraits and a persisted selector. The production inventory has **176 remaining portraits: eleven sports, eight tiers, two appearances**. Cricket is next. The latest main branch also contains the header notification bell update; start from current main to preserve other work.
 
 ## Production sequence
 
@@ -8,7 +8,7 @@ Each numbered row is one independently resumable and releasable collection. Fini
 
 | Batch | Sport | Portraits | Formal Unreal honour |
 | --- | --- | ---: | --- |
-| 1 | Rugby | 16 | One original polished silver player-of-the-year honour with a stylised oval-ball motif. |
+| 1 | Rugby — complete | 16 | One original polished silver player-of-the-year honour with a stylised oval-ball motif. |
 | 2 | Cricket | 16 | One original overall-cricketer-of-the-year honour. |
 | 3 | Basketball | 16 | One original gold basketball career-excellence/MVP honour; one ring as a secondary detail. |
 | 4 | Tennis | 16 | One original crystal-and-gold year-end/career-excellence tennis honour. |
@@ -44,7 +44,7 @@ For each later tier, reference that variant's own Bronze anchor; use its Unreal 
 ## Checkpoints and cost control
 
 - Read shared rules and the current sport's structured brief once; compose individual prompts with `scripts/sport_avatar_prompt.py`. Other sports' full text need not be loaded for each image.
-- Generate only the active collection. No speculative reruns, contact sheets, unrelated art or automatic expansion to all 192 slots.
+- Generate only the active collection. No speculative reruns, contact sheets, unrelated art or automatic expansion to all remaining slots.
 - After each pair, copy checked assets into their exact v2 filenames, update `production-status.json`, and commit/sync a working branch so an interrupted session resumes from saved work. Record output dimensions, references and any revision reason. Keep generation originals available.
 - Reuse completed, approved assets. Regenerate only a specific failed portrait with a recorded reason; keep its paired counterpart as a consistency reference.
 - Record a sport as released only after all sixteen assets and its integration checks pass. Summarise the completed batch, the remaining count and exact next sport on handoff.
@@ -55,7 +55,7 @@ For each later tier, reference that variant's own Bronze anchor; use its Unreal 
 Football established the appearance system. Extend it rather than rebuilding it:
 
 1. Add the completed sport to `PAIRED_SPORT_AVATAR_ARTWORK_READY` in `src/config/sportAvatarArtwork.js`; extend `hasSportAvatarArtwork` to recognise either a completed legacy or paired collection, and add it to the legacy-ready list only if complete legacy files really exist. For sports with no legacy collection, make the resolver default to the ready male v2 portrait when no paired preference exists; keep existing Football/Cricket/Rugby legacy defaults intact. Reuse one earned logical identity for both appearances.
-2. Ship an additive Supabase migration expanding the supported sport IDs in `set_profile_avatar_appearance`. Its current allowlist accepts Football only. Preserve owner, already-claimed reward, variant validation, empty search path, sanitized appearance and atomic history handling. Update local migration/tests and deploy the schema before clients can select that sport.
+2. Ship an additive Supabase migration expanding the supported sport IDs in `set_profile_avatar_appearance`. Its current allowlist accepts Football and Rugby. Preserve owner, already-claimed reward, variant validation, empty search path, sanitized appearance and atomic history handling. Update local migration/tests and deploy the schema before clients can select that sport.
 3. Check header, dashboard, identity dialogs and current group member/weekly XP/consistency displays. When a recorded historical identity differs from today's directory identity, retain its established fallback behaviour. Keep `avatarId`, thresholds, reward values, XP maps and existing selection periods unchanged.
 4. Check all sixteen actual PNGs, valid/invalid paths, legacy fallback, no extra claim/XP on switching, and rollback-tested owner/unlock/group-sync/history behaviour. Run the UTC test suite and production build after code changes; verify the narrow selector and dialog layout.
 5. Sync latest main, preserve concurrent work, use the existing GitHub/Vercel workflow, and verify the live asset hashes and app deployment. Existing originals are retained.
@@ -64,6 +64,6 @@ For new sports without legacy artwork, test both the paired selector and the def
 
 ## Scope after these batches
 
-The twelve paired sport collections complete this artwork programme. Pack 16 at 22,000 XP, Body Intelligence education, later programme improvements and the Locker refresh remain their own roadmap stages. This handoff does not start those tasks.
+The eleven remaining paired sport collections complete this artwork programme. Pack 16 at 22,000 XP, Body Intelligence education, later programme improvements and the Locker refresh remain their own roadmap stages. This handoff does not start those tasks.
 
 Machine-readable queue: `remaining-sport-avatar-batches.json`. Ready-to-paste production instruction: `sol-light-production-handoff.md`.

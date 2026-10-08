@@ -85,10 +85,12 @@ describe("AvatarIdentityView", () => {
   });
 });
 
-it("shows the chosen football appearance and equips it only on request", () => {
+it.each(["football", "rugby"])("shows the chosen %s appearance and equips it only on request", (sport) => {
   const onSelect = vi.fn();
-  render(<AvatarIdentityView identity={{...identity, id:"sport_avatar_football_bronze", label:"Football Bronze", imgSrc:"/avatars/sport/football_bronze_female_v2.png", appearance:{edition:"paired_v2",variant:"female"}}} onSelect={onSelect} onClose={() => {}} />);
+  render(<AvatarIdentityView identity={{...identity, id:`sport_avatar_${sport}_bronze`, label:`${sport} Bronze`, imgSrc:`/avatars/sport/${sport}_bronze_female_v2.png`, appearance:{edition:"paired_v2",variant:"female"}}} onSelect={onSelect} onClose={() => {}} />);
   expect(screen.getByText("Female appearance")).toBeTruthy();
+  expect(screen.getByRole("dialog").querySelector(".avatarIdentityArtwork img").getAttribute("src"))
+    .toBe(`/avatars/sport/${sport}_bronze_female_v2.png`);
   expect(onSelect).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", {name:"Use this avatar"}));
   expect(onSelect).toHaveBeenCalledOnce();

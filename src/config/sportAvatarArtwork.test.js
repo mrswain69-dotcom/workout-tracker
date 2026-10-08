@@ -67,7 +67,7 @@ describe("paired appearances", () => {
     for (const appearance of [undefined, {variant:"female"}, {edition:"paired_v2",variant:"../x"}]) {
       expect(sportAvatarArtworkSrc("football","bronze",appearance)).toBe("/avatars/sport/football_bronze.png");
     }
-    expect(sportAvatarArtworkSrc("rugby","bronze",{edition:"paired_v2",variant:"female"})).toBe("/avatars/sport/rugby_bronze.png");
+    expect(sportAvatarArtworkSrc("cricket","bronze",{edition:"paired_v2",variant:"female"})).toBe("/avatars/sport/cricket_bronze.png");
     expect(sportAvatarArtworkSrc("football","../x")).toBeNull();
   });
 });

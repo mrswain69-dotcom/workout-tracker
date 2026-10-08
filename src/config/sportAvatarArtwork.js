@@ -1,7 +1,7 @@
 // Publish a sport collection only when all eight portrait assets are finished.
 // Session progress and historical reward keys remain independent of artwork.
 export const SPORT_AVATAR_ARTWORK_READY = ["football", "cricket", "rugby"];
-export const PAIRED_SPORT_AVATAR_ARTWORK_READY = ["football"];
+export const PAIRED_SPORT_AVATAR_ARTWORK_READY = ["football", "rugby"];
 const TIERS = ["bronze", "silver", "gold", "platinum", "diamond", "elite", "champion", "unreal"];
 
 export function sportAvatarAppearance(sportKey, appearance) {

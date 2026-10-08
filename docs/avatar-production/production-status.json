@@ -137,7 +137,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_bronze_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -145,7 +145,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_bronze_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -153,7 +153,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_silver_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -161,7 +161,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_silver_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -169,7 +169,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_gold_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -177,7 +177,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_gold_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -185,7 +185,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_platinum_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -193,7 +193,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_platinum_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -201,7 +201,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_diamond_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -209,7 +209,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_diamond_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -217,7 +217,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_elite_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -225,7 +225,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_elite_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -233,7 +233,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_champion_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -241,7 +241,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_champion_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -249,7 +249,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_unreal_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "rugby",
@@ -257,7 +257,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/rugby_unreal_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: rugby-production-record.json. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
     },
     {
       "sport": "cricket",

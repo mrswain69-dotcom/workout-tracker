@@ -4,10 +4,11 @@
   "brief": "paired-sport-avatar-briefs.json",
   "inventory": "production-status.json",
   "completed_sports": [
-    "football"
+    "football",
+    "rugby"
   ],
-  "remaining_sports": 12,
-  "remaining_assets": 192,
+  "remaining_sports": 11,
+  "remaining_assets": 176,
   "production_mode": "Sol Light selected by user before image production; do not substitute another model silently",
   "collection_size": 16,
   "variants": [
@@ -70,7 +71,7 @@
       "sport": "rugby",
       "label": "Rugby",
       "assets": 16,
-      "release_state": "queued",
+      "release_state": "released",
       "brief_key": "rugby",
       "final_honour": "One original polished silver player-of-the-year honour with a stylised oval-ball motif.",
       "filename_template": "public/avatars/sport/rugby_{tier}_{variant}_v2.png",

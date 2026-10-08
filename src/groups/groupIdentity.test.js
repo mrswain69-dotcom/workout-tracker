@@ -25,3 +25,11 @@ it("uses a validated paired appearance in group displays with the same identity"
   expect(resolveGroupAvatar("sport_avatar_football_gold", {edition:"paired_v2",variant:"female"}).imgSrc).toBe("/avatars/sport/football_gold_female_v2.png");
   expect(resolveGroupAvatar("sport_avatar_football_gold").imgSrc).toBe("/avatars/sport/football_gold.png");
 });
+
+it("shares Rugby's selected appearance and retains its legacy default", () => {
+  for (const variant of ["male", "female"]) {
+    expect(resolveGroupAvatar("sport_avatar_rugby_unreal", {edition:"paired_v2",variant}).imgSrc)
+      .toBe(`/avatars/sport/rugby_unreal_${variant}_v2.png`);
+  }
+  expect(resolveGroupAvatar("sport_avatar_rugby_unreal").imgSrc).toBe("/avatars/sport/rugby_unreal.png");
+});
