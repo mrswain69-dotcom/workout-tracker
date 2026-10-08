@@ -1,6 +1,38 @@
 // Character-specific lore. Each entry deliberately describes what this
 // character does, practises and believes rather than repeating a pack template.
 export const AVATAR_STORY_PROFILES = {
+  sport_avatar_rugby_bronze: {
+    story: "Bronze brings a steady pair of hands to every training session. Catching drills, simple passes and balanced footwork build confidence one repetition at a time. When a teammate makes a mistake, Bronze offers the ball again and keeps the practice moving.",
+    traits: ["Patient", "Encouraging", "Dependable"],
+  },
+  sport_avatar_rugby_silver: {
+    story: "Silver watches the space before watching the ball. Passing practice and quick support runs teach this athlete how to arrive where a teammate needs help. Clear communication matters as much as speed, and Silver makes sure nobody has to face a difficult play alone.",
+    traits: ["Aware", "Supportive", "Clear"],
+  },
+  sport_avatar_rugby_gold: {
+    story: "Gold carries momentum with control. Strong footwork, careful changes of direction and secure ball handling turn effort into useful metres. Every training run has a purpose, and Gold knows that the best break is one the whole team can follow together.",
+    traits: ["Powerful", "Controlled", "Selfless"],
+  },
+  sport_avatar_rugby_platinum: {
+    story: "Platinum makes difficult passes look calm. Hours of catching, scanning and repeating the basics create reliable technique under pressure. This athlete welcomes feedback, adjusts quickly and trusts the next attempt, proving that precision grows through practice rather than one perfect performance.",
+    traits: ["Precise", "Adaptable", "Composed"],
+  },
+  sport_avatar_rugby_diamond: {
+    story: "Diamond reads the game a moment ahead. Training combines quick decisions with dependable handling and patient communication. When pressure rises, this captain slows the noise, finds the useful option and helps teammates trust their preparation instead of rushing the next move.",
+    traits: ["Thoughtful", "Reliable", "Calm"],
+  },
+  sport_avatar_rugby_elite: {
+    story: "Elite brings disciplined energy to the hardest practice days. Strength, balance and skilful handling are built together, with recovery treated as part of the work. This athlete raises the standard through consistent habits and gives teammates the encouragement to reach it too.",
+    traits: ["Disciplined", "Balanced", "Energising"],
+  },
+  sport_avatar_rugby_champion: {
+    story: "Champion measures leadership by the confidence of the team. Repeated sessions sharpen timing, support lines and communication, but listening remains the strongest skill. Whether training goes smoothly or falls apart, Champion gathers everyone, resets the plan and returns to the next useful repetition.",
+    traits: ["Respectful", "Resilient", "Inclusive"],
+  },
+  sport_avatar_rugby_unreal: {
+    story: "Unreal makes long practice history visible in every composed movement. Handling, awareness and support have become instinct through patient repetition. The brightest kit never replaces the basics: this athlete still listens, still learns and still makes room for someone taking their first pass.",
+    traits: ["Skilful", "Humble", "Committed"],
+  },
   emoji_rocket: {
     story: "Rocket loves the moment a difficult goal finally leaves the launchpad. Every session is a countdown built from careful preparation, brave effort and one more controlled burst. Rocket reminds the team that ambitious journeys begin with small checks completed properly.",
     traits: ["Ambitious", "Prepared", "Brave"],

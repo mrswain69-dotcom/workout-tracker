@@ -9,6 +9,7 @@ Updated 8 October 2026. This reconciles the live programme/Community build with 
 3. Continue XP avatar artwork from Pack 16 (22,000 XP), following the canonical post-10k specification: exactly eight finished assets per configured pack.
 4. Body Intelligence: short illustrated lessons on movement anatomy, joints/supporting structures, balance, training principles/recovery, energy systems and nutrition. Content needs appropriate primary references and age-appropriate explanations before publication. No supplement dosing or education XP policy is established by this change.
 5. Later programme improvements: email notifications, richer report exports, commercial entitlements and broader device/accessibility checks. Community publishing, discovery, saved programmes, copying, helpful voting, reports/moderation and creator bios/verification already have implementations.
+6. Locker/customisation refresh (after the core stages above): replace the Shop name, expand earned sound themes and cosmetic personalisation, with previews and accessibility controls.
 
 ## Badge audit findings
 
@@ -63,3 +64,26 @@ Validation: 1,168 tests across 194 files, production build, badge asset inventor
 Supersedes the Diamond-only performance limit above: all 64 performance cards now have Pro, Champion, Elite and Unreal, followed by ten zero-XP stars. Existing five-tier targets/rewards remain stable. Pace ceilings use sourced road-running/long-course-swimming references where comparable, and labelled app targets elsewhere. Session Builder and Pace Improvement switch to repeat qualifying days after their existing Diamond requirement. See `docs/performance-prestige-and-verification.md` for the complete target table, benchmark sources and verification rules.
 
 A small gold star at the trophy peak represents supporting linked provider evidence, independently of progression stars. Details include verification status and a collapsed list of contributing log days with direct navigation. Source evidence cannot verify manually entered strength set/rep/weight values. Reward maps are shared with the existing XP services; no database migration or leaderboard rule change is required.
+
+### Locker refresh — queued after the core roadmap
+
+Proposed name: **Locker**, because this is a place to choose earned sounds and appearance rather than a purchasing economy. The current Shop contains Classic, Arcade and Chill victory sound themes; it has no checkout. Keep its existing unlocks and stored selections compatible.
+
+Planned scope:
+- More short sound themes for workout completion, badge claims and milestones, with a preview button before selection. Separate celebration and timer sounds so practical cues stay recognisable.
+- Earned avatar frames, profile titles, accent themes and optional celebration effects, with a live preview using the user's avatar.
+- Saved personalisation presets, clear equipped/available/locked states and a concise explanation of each unlock requirement.
+- Independent sound volume and mute controls, reduced-motion support and equivalent visual cues. Respect browser audio restrictions and avoid downloading every sound at page load.
+- No spending or subtracting ranking XP, no paid performance advantages, and no changes to existing badge qualifications. Final unlock thresholds and sound assets will be reviewed in this phase.
+
+Inspiration: Fortnite's Locker groups cosmetic choices including emotes and music; Garmin Connect uses earned badges and challenge milestones. Adopt the useful collection/preview and achievement patterns, without introducing a paid item-shop economy. Sources: https://www.fortnite.com/news/stw-locker-blog-1 and https://www.garmin.com/en-US/blog/general/garmin-connect-challenges/ .
+
+### Sport avatar batch 1 — Rugby (8 October 2026)
+
+Rugby now joins Football and Cricket with eight finished transparent portraits, character-specific stories and traits, and the existing identity/selection workflow. Avatar thresholds remain 40/80/120/160/200/240/280/320 counted sessions (Bronze/Silver/Gold/Platinum/Diamond/Elite/Champion/Unreal). Avatar rewards and their historical keys are unchanged. There is no Pro avatar in the existing eight-tier avatar ladder; badge progression remains separate.
+
+Collections awaiting artwork show a clear coming-soon message and retain session progress. They do not request missing portraits or offer new claims before their collection is ready. Previously recorded reward keys remain stored. Portraits load lazily in the collection; the original generated alpha is preserved.
+
+Next artwork batches: Basketball and Tennis, followed by the remaining configured mastery sports. Sport recognition/category expansion still requires a historical compatibility review. Pack 16 and Body Intelligence follow in the sequence above; the Locker refresh stays last.
+
+Validation: 1,184 tests across 196 files, production build, complete published-avatar PNG inventory and dependency audit passed. Original RGBA portraits are preserved; there are no XP map, database or reward-value changes. Physical-device and authenticated visual checks remain outstanding. Generation brief: `docs/rugby-avatar-artwork.md`.

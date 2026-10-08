@@ -1,3 +1,4 @@
+import { hasSportAvatarArtwork, sportAvatarArtworkSrc } from "./config/sportAvatarArtwork";
 import { loadVerifiedActivityData } from "./verifiedActivityDb.js";
 import { buildPerformanceEvidence, performanceEvidenceForCard } from "./engine/performanceBadgeEvidence.js";
 import { performanceBadgeState } from "./engine/performanceBadgeProgression.js";
@@ -2918,7 +2919,7 @@ function getSportAvatarKey(sportKey, prestigeKey) {
 }
 
 function getSportAvatarImageSrc(sportKey, prestigeKey) {
-  return `/avatars/sport/${sportKey}_${prestigeKey}.png`;
+  return sportAvatarArtworkSrc(sportKey, prestigeKey);
 }
 
 function getSportAvatarXpForKey(key) {
@@ -4850,6 +4851,7 @@ const sportAvatarSeries = useMemo(() => {
     return {
       sportKey,
       sportLabel: pack.label,
+      artworkReady: hasSportAvatarArtwork(sportKey),
       sessions,
       days,
       lastDate,
@@ -4873,7 +4875,7 @@ const sportAvatarSeries = useMemo(() => {
           imgSrc: getSportAvatarImageSrc(sportKey, tier.key),
           claimed,
           unlockedBySessions,
-          claimable: unlockedBySessions && !claimed,
+          claimable: hasSportAvatarArtwork(sportKey) && unlockedBySessions && !claimed,
           selected: selectedAvatarId === avatarKey,
         };
       }),
@@ -4907,7 +4909,7 @@ const headerAvatar = useMemo(() => {
 
       const pack = SPORT_MASTERY_PACKS[remainder];
 
-      if (pack) {
+      if (pack && hasSportAvatarArtwork(remainder)) {
         return {
           id: selectedAvatarId,
           label: `${pack.label} ${tier.label}`,
@@ -6516,6 +6518,9 @@ function playRewardSound() {
 
 async function claimSportAvatarReward(avatarKey, title, triggerEl) {
   if (!avatarKey) return;
+  const reward = sportAvatarSeries.flatMap(series => series.avatars)
+    .find(avatar => avatar.key === avatarKey);
+  if (!reward?.claimable) return;
   if (claimedRewardsSet.has(avatarKey)) return;
 
   const tileEl =
@@ -12892,7 +12897,7 @@ const cardioProgress = useMemo(() => {
                       </div>
                     )}
 
-                    <div className="sportAvatarMiniGrid mt12">
+                    {series.artworkReady ? <div className="sportAvatarMiniGrid mt12">
                       {series.avatars.map((avatar) => (
                         <div
                           key={avatar.key}
@@ -12909,6 +12914,8 @@ const cardioProgress = useMemo(() => {
                               src={avatar.imgSrc}
                               alt={`${avatar.sportLabel} ${avatar.prestigeLabel}`}
                               className="sportAvatarMiniImg"
+                              loading="lazy"
+                              decoding="async"
                             />
                           </div>
 
@@ -12955,7 +12962,7 @@ const cardioProgress = useMemo(() => {
                           </div>
                         </div>
                       ))}
-                    </div>
+                    </div> : <p className="muted mt12">Avatar artwork coming soon. Your counted sessions continue to build mastery.</p>}
                   </div>
                 ))}
               </div>

@@ -1,3 +1,4 @@
+import { sportAvatarArtworkSrc } from "./sportAvatarArtwork";
 import { SPORT_MASTERY_PACKS } from "./badges";
 import { AVATAR_PACKS } from "./avatars";
 import { AVATAR_STORY_PROFILES } from "./avatarStories";
@@ -85,11 +86,11 @@ function sportIdentity(avatarId) {
     id: avatarId,
     label,
     subtitle: `${sport.label} Mastery`,
-    imgSrc: `/avatars/sport/${sportKey}_${tier.key}.png`,
+    imgSrc: sportAvatarArtworkSrc(sportKey, tier.key),
     collectionKey: `sport_mastery_${sportKey}`,
     collection: `${sport.label} Mastery`,
-    story: `${label} represents the hours when technique becomes instinct. Earned through repeated ${sport.label.toLowerCase()} sessions, this avatar stands for showing up, learning from every attempt, and staying composed under pressure. It marks an athlete who builds mastery through patient practice rather than shortcuts.`,
-    traits: ["Committed", "Technical", "Composed"],
+    story: AVATAR_STORY_PROFILES[avatarId]?.story || `${label} represents the hours when technique becomes instinct. Earned through repeated ${sport.label.toLowerCase()} sessions, this avatar stands for showing up, learning from every attempt, and staying composed under pressure. It marks an athlete who builds mastery through patient practice rather than shortcuts.`,
+    traits: AVATAR_STORY_PROFILES[avatarId]?.traits || ["Committed", "Technical", "Composed"],
     unlockSource: {
       type: "sport_mastery",
       label: `${tier.sessions} counted ${sport.label} sessions`,
