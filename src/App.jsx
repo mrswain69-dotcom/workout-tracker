@@ -1,5 +1,6 @@
 import { sportsMasteryState } from "./engine/sportsMasteryProgression.js";
-import SportsMasteryMilestones from "./components/rewards/SportsMasteryMilestones.jsx";
+import SportsMasteryCabinet from "./components/rewards/SportsMasteryCabinet.jsx";
+import { claimMasterySequence } from "./engine/masteryClaimSequence.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
@@ -6450,6 +6451,37 @@ const selectedDayHasHeavyTrainingBlocks =
 }
 
 
+  async function claimMasteryCabinet(card, element) {
+    const profileAtStart = activeProfileId;
+    const isCurrentProfile = () => currentLogViewRef.current?.profileId === profileAtStart;
+    const getClaims = () => new Set(normaliseClaimedRewards(planRef.current?.meta).map(item => item.key));
+    const liveState = getBadgeCardState(card, badgeStats, getClaims());
+    if (!liveState.nextClaimable) return false;
+    const rewards = liveState.nextClaimable.star ? [liveState.nextClaimable] :
+      card.tiers.filter(tier => liveState.value >= tier.threshold && !getClaims().has(tier.key));
+    const rect = element?.closest(".masteryCabinet")?.getBoundingClientRect() || element?.getBoundingClientRect();
+    const xpFrom = xp;
+    playBuildUpSound?.();
+    const result = await claimMasterySequence({ rewards, isCurrentProfile,
+      isClaimed: key => getClaims().has(key), claimOne: key => claimRewardKey(key, getTodayYMD()) });
+    if (!isCurrentProfile()) return false;
+    setXp(computeXpFromLogs(allLogs, planRef.current));
+    if (!result.complete) return false;
+    if (!result.claimed.length) return true;
+    const last = result.claimed[result.claimed.length - 1];
+    const xpReward = result.claimed.reduce((total, reward) => total + safeNumber(reward.xp), 0);
+    setLastClaimedKey(last.key);
+    setTimeout(() => setLastClaimedKey(""), 900);
+    setClaimModal({ kind: "badge", stage: "shake", title: last.star ? "Unreal star claimed!" : "Badge claimed!",
+      desc: `${card.title}${last.star ? ` · Unreal star ${last.star}` : ` · ${last.tier.toUpperCase()}`}`,
+      badgeKey: last.key, emoji: last.star ? "⭐" : "🏅", xpAward: xpReward, xpFrom, xpTo: xpFrom + xpReward,
+      fromRect: rect ? { x: rect.left, y: rect.top, w: rect.width, h: rect.height } : null,
+      confetti: Array.from({ length: 18 }, (_, i) => ({ id: i, x: Math.random()*140-70, y: Math.random()*80-110, r: Math.random()*360, d: 700+Math.random()*450 })) });
+    setTimeout(() => { if (!isCurrentProfile()) return; playRewardSound?.(); playSparkleSound?.(); setClaimModal(previous => previous ? {...previous, stage:"boom"} : previous); }, 260);
+    return true;
+  }
+
+
 function playRewardSound() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -12618,6 +12650,13 @@ const cardioProgress = useMemo(() => {
 
   if (!showInCurrentView) return null;
 
+  if (card.badgeGroup === "sport_mastery") {
+    return <SportsMasteryCabinet key={`${activeProfileId}:${card.id}`} card={card} state={state}
+      claimedKeys={claimedRewardsSet} lastDate={badgeStats?.sportMastery?.[card.sportKey]?.lastDate}
+      flash={lastClaimedKey.startsWith(`badge_sport_${card.sportKey}_mastery_`)}
+      onClaim={element => claimMasteryCabinet(card, element)} />;
+  }
+
   const badgeKeyForFlash = state.nextClaimable?.key || card.id;
   const nextClaimableTier = state.nextClaimable;
   const earnedTier = state.currentTier;
@@ -12873,9 +12912,6 @@ if (!didClaim) {
         </div>
       </div>
 
-      {card.badgeGroup === "sport_mastery" ? (
-        <SportsMasteryMilestones state={state} claimedKeys={claimedRewardsSet} />
-      ) : (
       <div className="badgeTierGrid">
         {card.tiers.map((tier, idx) => {
           const tierName =
@@ -12901,7 +12937,6 @@ if (!didClaim) {
           );
         })}
       </div>
-      )}
     </div>
   );
 })}

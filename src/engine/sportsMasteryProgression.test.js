@@ -58,3 +58,10 @@ describe("sports mastery prestige and repeated Unreal", () => {
     expect(BADGE_XP_BY_KEY[unrealStarKey("football",1)]).toBeUndefined();
   });
 });
+
+it("keeps the next target beyond the historical best after log edits", () => {
+  const state=sportsMasteryState(card,0,new Set([card.tiers[4].key]));
+  expect(state.currentTier.tier).toBe("diamond");
+  expect(state.nextTier.tier).toBe("pro");
+  expect(state.progressPct).toBe(0);
+});

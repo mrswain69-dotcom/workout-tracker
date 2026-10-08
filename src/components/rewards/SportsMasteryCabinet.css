@@ -1,0 +1,56 @@
+.masteryCabinet{display:flex;flex-direction:column;gap:8px;min-width:0;padding:14px!important;align-self:start}
+.masteryCabinet h3{font-size:16px;font-weight:800;margin:0}
+.masteryPrevious{display:flex;flex-wrap:wrap;gap:3px;min-height:36px;align-items:start}
+.masteryPrevious button,.masteryArtButton{border:0;background:transparent;padding:0;cursor:pointer;color:inherit}
+.masteryPrevious button{border-radius:5px}
+.masteryShelf{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.masteryCurrent,.masteryTarget{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0}
+.masteryBadgeArt{--trophy-size:clamp(90px,12vw,140px);display:block;position:relative;width:var(--trophy-size);height:calc(var(--trophy-size) + 10px);max-width:100%}
+.masteryBadgeShell{width:100%;height:var(--trophy-size);object-fit:contain;display:block}
+.masteryBadgeSport{position:absolute;top:30%;left:10%;width:80%;font-size:clamp(9px,1vw,12px);font-weight:900;line-height:1.05;color:rgba(255,255,255,.22);text-align:center;text-transform:uppercase;overflow-wrap:anywhere}
+.masteryBadgeIcon{position:absolute;left:21%;top:25%;width:58%;height:58%;object-fit:contain;filter:drop-shadow(0 4px 7px #0007)}
+.masteryBadgeTier{position:absolute;bottom:0;left:50%;transform:translateX(-50%);padding:2px 8px;border-radius:6px;background:#101827;color:#f7c85d;font-size:11px;font-weight:900;white-space:nowrap;text-transform:uppercase;line-height:1.2}
+.masteryBadgeArt--muted{filter:grayscale(1);opacity:.42}
+.masteryBadgeArt--tiny{--trophy-size:32px;height:34px}
+.masteryBadgeArt--tiny .masteryBadgeIcon{top:23%}
+.masteryLocked{font-size:12px;color:var(--muted,#64748b);line-height:1.5}
+.masteryEmpty{height:calc(clamp(90px,12vw,140px) + 10px);display:flex;flex-direction:column;justify-content:center;text-align:center;color:var(--muted,#64748b);font-size:13px}
+.masteryEarnedStars{color:#d89d13;letter-spacing:2px;text-align:center;overflow-wrap:anywhere;font-size:19px;max-width:100%}
+.masteryStarTarget{display:flex;flex-direction:column;align-items:center;justify-content:center;height:calc(clamp(90px,12vw,140px) + 10px);border:0;background:transparent;cursor:pointer;color:#94a3b8;min-width:0}
+.masteryStarTarget>span:first-child{font-size:70px;line-height:1.2;opacity:.5}
+.masteryStarTarget--ready{color:#d89d13}
+.masteryStarTarget--ready>span:first-child{opacity:1}
+.masteryStarTarget>span:last-child{font-size:12px}
+.masteryClaim{white-space:normal;min-height:34px;padding:6px 12px!important;font-size:12px!important;max-width:100%}
+.masteryDetailsButton{align-self:center;border:0;background:transparent;text-decoration:underline;text-underline-offset:3px;color:inherit;cursor:pointer;padding:7px 12px;min-height:36px;font-size:12px}
+.masteryDetailsDialog{width:min(1000px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);border:1px solid #cbd5e1;border-radius:18px;padding:0;background:linear-gradient(145deg,#101b32,#0a1224 60%,#14102c);color:#f7fbff;overflow:auto;box-shadow:0 22px 70px #0004}
+.masteryDetailsDialog::backdrop{background:#030814c2;backdrop-filter:blur(6px)}
+.masteryDetailsDialog .muted{color:#b8c6dc}
+.masteryDetailsDialog .masteryStage:nth-child(1){border-top-color:#ddaa5570}
+.masteryDetailsDialog .masteryStage:nth-child(2){border-top-color:#77e8ff70}
+.masteryDetailsDialog .masteryStage:nth-child(3){border-top-color:#bf87ff70}
+.masteryDetailsInner{padding:22px}
+.masteryDetailsInner>header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.masteryDetailsInner h2{font-size:22px;margin:0}
+.masteryDetailsOverview{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:24px;margin-bottom:22px}
+.masteryDetailsOverview .masteryBadgeArt{--trophy-size:180px}
+.masteryDetailsOverview progress{width:100%;accent-color:#f59e0b;height:10px}
+.masteryDetailsCount{margin-top:0;font-size:16px}
+.masteryDetailsCount strong{font-size:28px}
+.masteryDetailsDialog .masteryStage{margin:20px 0;padding-top:16px;border-top:1px solid #cbd5e166}
+.masteryDetailsDialog .masteryStage h3{font-size:16px;margin:0 0 12px}
+.masteryDetailsDialog .masteryMilestoneGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.masteryDetailsDialog .masteryMilestone{position:relative;border:1px solid #ffffff24;border-radius:10px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;min-width:0;background:transparent}
+.masteryMilestone .masteryBadgeArt{--trophy-size:96px}
+.masteryMilestone strong{font-size:14px}
+.masteryMilestone small{font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.masteryMilestone--claimed{border-color:#86ad93!important}
+.masteryMilestoneStatus{position:absolute;top:5px;right:5px;font-size:11px;opacity:0;background:#101b32;padding:2px 5px;border-radius:4px;pointer-events:none}
+.masteryMilestone:hover .masteryMilestoneStatus,.masteryMilestone:focus .masteryMilestoneStatus{opacity:1}
+.masteryCabinet button:focus-visible,.masteryMilestone:focus-visible{outline:2px solid #f59e0b;outline-offset:3px}
+@media(max-width:600px){.masteryDetailsDialog{width:calc(100vw - 12px);max-height:calc(100dvh - 12px);border-radius:12px}.masteryDetailsInner{padding:14px}.masteryDetailsOverview{grid-template-columns:110px minmax(0,1fr);gap:12px}.masteryDetailsOverview .masteryBadgeArt{--trophy-size:110px}.masteryDetailsInner h2{font-size:18px}.masteryDetailsDialog .masteryMilestoneGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.masteryCabinet *{transition:none!important;animation:none!important}}
+
+.masteryCabinet--flash{animation:masteryCabinetFlash .85s ease}
+@keyframes masteryCabinetFlash{50%{box-shadow:0 0 0 2px #f59e0b77,0 6px 24px #f59e0b22}}
+@media(prefers-reduced-motion:reduce){.masteryCabinet--flash{animation:none}}

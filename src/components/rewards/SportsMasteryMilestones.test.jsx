@@ -7,16 +7,20 @@ import { sportsMasteryState } from "../../engine/sportsMasteryProgression.js";
 import SportsMasteryMilestones from "./SportsMasteryMilestones.jsx";
 afterEach(cleanup);
 const card=BADGE_CARDS.find(c=>c.sportKey==="football");
-it("shows compact prestige milestones with the complete history collapsed",()=>{
-  const claims=new Set(card.tiers.slice(0,5).map(t=>t.key));
-  render(<SportsMasteryMilestones state={sportsMasteryState(card,80,claims)} claimedKeys={claims}/>);
-  expect(screen.getByText("◆ Diamond achieved")).toBeTruthy();
-  expect(screen.getByText("Achievement history and counting rules").closest("details").open).toBe(false);
-  expect(screen.getAllByText("Pro")).toHaveLength(2);
+function show(sessions,claims=new Set()) { render(<SportsMasteryMilestones card={card} state={sportsMasteryState(card,sessions,claims)} claimedKeys={claims}/>); }
+it("does not mount prestige or Unreal details before Diamond",()=>{
+  show(79); expect(screen.getByRole("region",{name:"Bronze to Diamond"})).toBeTruthy();
+  for(const name of ["Pro","Champion","Elite","Unreal"]) expect(screen.queryByText(name)).toBeNull();
+  expect(screen.queryByRole("region",{name:"Pro to Elite"})).toBeNull();
 });
-it("shows Unreal and the repeat rule after Elite",()=>{
-  const claims=new Set(card.tiers.slice(0,8).map(t=>t.key));
-  render(<SportsMasteryMilestones state={sportsMasteryState(card,240,claims)} claimedKeys={claims}/>);
-  expect(screen.getByText("Elite achieved")).toBeTruthy();
+it("separates foundation and prestige at Diamond, keeping Unreal hidden",()=>{
+  show(80); expect(screen.getByRole("region",{name:"Pro to Elite"})).toBeTruthy();
+  expect(screen.getAllByText("Pro").length).toBeGreaterThan(0); expect(screen.queryByText("Unreal")).toBeNull();
+});
+it("reveals the separate Unreal stage only at Elite",()=>{
+  show(240); expect(screen.getByRole("region",{name:"Unreal"})).toBeTruthy();
   expect(screen.getByText(/every further 80/)).toBeTruthy();
+});
+it("retains a legitimately claimed prestige stage after editing logs",()=>{
+  show(0,new Set([card.tiers[7].key])); expect(screen.getByRole("region",{name:"Unreal"})).toBeTruthy();
 });
