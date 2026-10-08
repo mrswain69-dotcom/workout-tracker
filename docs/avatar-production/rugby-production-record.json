@@ -123,6 +123,38 @@
       ],
       "review": "Agent inspected: sport, identity, kit, award count, framing and alpha",
       "generated_at": "2026-10-08T22:40:16.744Z"
+    },
+    "platinum_male": {
+      "path": "public/avatars/sport/rugby_platinum_male_v2.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "sha256": "72d66edb7c5e4295c2cbb5584c7bbedd5cf2b2d9bc55ae1ccb47cc3623864039",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional male Rugby athlete for the Platinum tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: medium brown skin, short textured black hair, brown eyes. Established adult athlete, approximately 23\u201330; progression through kit and awards, not enlarged muscles. Collection palette: cream and deep burgundy; gradually refined gold edging; midnight navy/gold champion kit; formal burgundy-accented navy. This tier's outfit below determines the current colours. Outfit: Refined club kit with clean side seams and small abstract captain marker. Equipment: Oval rugby ball without prominent American-football laces; rugby shirt, shorts, long socks and studded boots. No American-football helmets or shoulder pads. Award: Medium club knockout cup with two handles. Pose: Composed ball-carry stance, cup beside the boots. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve the same athlete's face, skin tone and hair identity within each variant across its eight-tier ladder, allowing the planned progression in age and presentation.\n\nSport-specific constraints: Replace the recolour-led direction of the first rugby batch with a kit-and-awards story. Use the existing portraits for rendering finish only; paired v2 must look like one athlete developing through each ladder. World Rugby player-of-the-year awards inspire the formal final stage; the trophy design is original.\nImages 1/2 are his own junior/adult face anchors; create the same athlete about 25 in PLAYING KIT, no suit. Image 3 is prior playing-kit finish. Platinum's premium club rugby shirt has cream main panels, burgundy shoulders and side seams, restrained gold piping and one tiny abstract diamond-shaped captain marker with no text. Cream shorts, upgraded matching socks/boots. Hold one smooth oval rugby ball securely at the hip. ONE medium silver club knockout cup with gold two-handles beside the boots, no oval-ball sculpture. Entire feet/trophy inside square transparent canvas.",
+      "references": [
+        "/workspace/scratch/9a67ab8401a0/workout-tracker/public/avatars/sport/rugby_bronze_male_v2.png",
+        "/workspace/scratch/9a67ab8401a0/workout-tracker/public/avatars/sport/rugby_unreal_male_v2.png",
+        "/workspace/scratch/9a67ab8401a0/workout-tracker/public/avatars/sport/rugby_gold_male_v2.png"
+      ],
+      "review": "Agent inspected: sport, identity, kit, award count, framing and alpha",
+      "generated_at": "2026-10-08T22:42:27.346Z"
+    },
+    "platinum_female": {
+      "path": "public/avatars/sport/rugby_platinum_female_v2.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "sha256": "39c818b6389f3d1e96b924fef95ef58f6558a02bfc2aa290a3dcb8d99881121c",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional female Rugby athlete for the Platinum tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: medium brown skin, brown eyes, dark hair tied back. Established adult athlete, approximately 23\u201330; progression through kit and awards, not enlarged muscles. Collection palette: cream and deep burgundy; gradually refined gold edging; midnight navy/gold champion kit; formal burgundy-accented navy. This tier's outfit below determines the current colours. Outfit: Refined club kit with clean side seams and small abstract captain marker. Equipment: Oval rugby ball without prominent American-football laces; rugby shirt, shorts, long socks and studded boots. No American-football helmets or shoulder pads. Award: Medium club knockout cup with two handles. Pose: Composed ball-carry stance, cup beside the boots. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve the same athlete's face, skin tone and hair identity within each variant across its eight-tier ladder, allowing the planned progression in age and presentation.\n\nSport-specific constraints: Replace the recolour-led direction of the first rugby batch with a kit-and-awards story. Use the existing portraits for rendering finish only; paired v2 must look like one athlete developing through each ladder. World Rugby player-of-the-year awards inspire the formal final stage; the trophy design is original.\nImages 1/2 are her own Rugby identity anchors; same adult athlete about 25, dark ponytail and warm medium-brown complexion. Image 3 is matching Platinum male kit/award: match cream-fronted shirt with burgundy shoulders/sides and restrained gold piping, abstract tiny diamond captain marker, cream shorts, socks and boots exactly. One smooth oval Rugby ball at hip, ONE medium silver knockout cup with gold handles and dark plinth beside boots. No suit, no additional awards. Full figure inside transparent canvas.",
+      "references": [
+        "/workspace/scratch/9a67ab8401a0/workout-tracker/public/avatars/sport/rugby_bronze_female_v2.png",
+        "/workspace/scratch/9a67ab8401a0/workout-tracker/public/avatars/sport/rugby_unreal_female_v2.png",
+        "/workspace/scratch/9a67ab8401a0/workout-tracker/public/avatars/sport/rugby_platinum_male_v2.png"
+      ],
+      "review": "Agent inspected: sport, identity, kit, award count, framing and alpha",
+      "generated_at": "2026-10-08T22:42:27.346Z"
     }
   }
 }
