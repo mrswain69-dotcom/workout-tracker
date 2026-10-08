@@ -39,6 +39,7 @@ import "./TrainingProgramLibrary.css";
 import ProgramClientConnections from "./ProgramClientConnections.jsx";
 import { listCoachClientConnections, assignProgramToClients } from "./coachClientDb.js";
 import ProgramManager from "./ProgramManager.jsx";
+import CreatorProfileEditor, { CreatorProfileDialog, VerifiedCreatorMark } from "./CreatorProfile.jsx";
 import CommunityProgramDialog from "./CommunityProgramDialog.jsx";
 import { restoreArchivedProgram } from "./programManagementDb.js";
 import ProgramRecipientControls from "./ProgramRecipientControls.jsx";
@@ -163,7 +164,7 @@ function AssignedProgramPreview({
     <section className="assignedProgramPreview" aria-labelledby="assigned-program-preview-title">
       <div className="assignedProgramPreviewHeading">
         <div>
-          <span className="pill">Assigned frozen version {assignment.version?.version_no || "—"}</span>
+          <span className="pill">Assigned version {assignment.version?.version_no || "—"}</span>
           <h3 id="assigned-program-preview-title">Preview “{assignment.program?.title || "Assigned Program"}”</h3>
           <p>
             Starts {displayDate(assignment.start_date)} · {assignment.completion_mode === "once" ? "finishes after its final week" : assignment.completion_mode === "hold" ? "holds its final week" : "repeats after its final week"}
@@ -312,6 +313,8 @@ export default function TrainingProgramLibrary({
   const [communitySport, setCommunitySport] = useState("all");
   const [communityDifficulty, setCommunityDifficulty] = useState("all");
   const [communityPreview, setCommunityPreview] = useState(null);
+  const [creatorId, setCreatorId] = useState(() => { const id = new URLSearchParams(window.location.search).get("creator"); return /^[0-9a-f-]{36}$/i.test(id || "") ? id : ""; });
+  const [creatorCategory, setCreatorCategory] = useState("all");
   const [shareToken] = useState(readTrainingProgramShareToken);
   const starterPrograms = useMemo(() => buildStarterPrograms(startDate), [startDate]);
   const targetGroup = useMemo(
@@ -349,11 +352,12 @@ export default function TrainingProgramLibrary({
     return communityPrograms.filter((program) => {
       if (communitySport !== "all" && program.sport !== communitySport) return false;
       if (communityDifficulty !== "all" && program.difficulty !== communityDifficulty) return false;
+      if (creatorCategory !== "all" && !(program.creator_categories || []).includes(creatorCategory)) return false;
       if (!query) return true;
-      const haystack = [program.title, program.description, program.purpose, program.sport, ...(program.tags || [])].join(" ").toLowerCase();
+      const haystack = [program.title, program.description, program.purpose, program.sport, program.creator_name, program.creator_headline, ...(program.creator_tags || []), ...(program.creator_categories || []), ...(program.tags || [])].join(" ").toLowerCase();
       return haystack.includes(query);
     });
-  }, [communityPrograms, communityQuery, communitySport, communityDifficulty]);
+  }, [communityPrograms, communityQuery, communitySport, communityDifficulty, creatorCategory]);
 
   useEffect(() => {
     if (activePlan?.program?.name) setTitle(activePlan.program.name);
@@ -505,7 +509,7 @@ export default function TrainingProgramLibrary({
     });
     setBusy("");
     if (error) return setNotice(message(error));
-    setNotice("Active programme saved to My Programs as a reusable frozen version.");
+    setNotice("Active programme saved to My Programs.");
     await refresh();
   }
 
@@ -531,7 +535,7 @@ export default function TrainingProgramLibrary({
     });
     setBusy("");
     if (error) return setNotice(message(error));
-    setNotice(`Saved a new version of “${program.title}”. Existing recipients stay on their frozen version until you offer it using Replace / update in Assignments sent.`);
+    setNotice(`Saved a new version of “${program.title}”. Existing recipients stay on their issued version until you offer it using Replace / update in Assignments sent.`);
     await refresh();
   }
 
@@ -771,7 +775,7 @@ export default function TrainingProgramLibrary({
     setBusy("");
     if (error) return setNotice(message(error));
     onProgramApplied?.(data, "Shared programme applied");
-    setNotice("The shared frozen version is now active. Personal rewards and history were preserved.");
+    setNotice("The shared version is now active. Personal rewards and history were preserved.");
   }
 
   return (
@@ -779,9 +783,9 @@ export default function TrainingProgramLibrary({
       <div className="trainingProgramHeading">
         <div>
           <h2>Program Library</h2>
-          <p>Create, reuse and privately share complete Programs without mixing them into the active builder.</p>
+          <p>Build your training plan, save programmes to use again, and find programmes from the Community.</p>
         </div>
-        <span className="pill">Private foundation</span>
+
       </div>
 
       <div className="trainingProgramTabs" role="tablist" aria-label="Program Library sections">
@@ -790,12 +794,13 @@ export default function TrainingProgramLibrary({
         <button type="button" role="tab" aria-selected={section === "starters"} className={section === "starters" ? "active" : ""} onClick={() => setSection("starters")}>Starter Programs</button>
         <button type="button" role="tab" aria-selected={section === "clients"} className={section === "clients" ? "active" : ""} onClick={() => setSection("clients")}>Coaching connections</button>
         <button type="button" role="tab" aria-selected={section === "reports"} className={section === "reports" ? "active" : ""} onClick={() => setSection("reports")}>Coach reports</button>
+        <button type="button" role="tab" aria-selected={section === "creator"} className={section === "creator" ? "active" : ""} onClick={() => setSection("creator")}>My creator profile</button>
         <button type="button" role="tab" aria-selected={section === "discover"} className={section === "discover" ? "active communityTab" : ""} onClick={() => setSection("discover")}>Community</button>
       </div>
 
       {notice ? <div className="trainingProgramNotice" role="status">{notice}</div> : null}
 
-      {section !== "discover" && section !== "reports" && section !== "clients" ? (
+      {section !== "discover" && section !== "reports" && section !== "clients" && section !== "creator" ? (
         <div className="trainingProgramControls">
           <label>Starts Monday<input type="date" value={startDate} onChange={(event) => setStartDate(normaliseProgramStartDate(event.target.value))} /></label>
           <label>At the end<select value={completionMode} onChange={(event) => setCompletionMode(event.target.value)}><option value="repeat">Repeat</option><option value="once">Finish</option><option value="hold">Hold final week</option></select></label>
@@ -963,7 +968,7 @@ export default function TrainingProgramLibrary({
             <div className="trainingProgramShared">
               <div>
                 <strong>Shared with you: {sharedPreview.title}</strong>
-                <div className="muted">Version {sharedPreview.version_no} · {sharedPreview.week_count} weeks · frozen copy</div>
+                <div className="muted">Version {sharedPreview.version_no} · {sharedPreview.week_count} weeks · saved copy</div>
               </div>
               <button type="button" className="primary" disabled={busy === "share"} onClick={acceptShare}>Use Program</button>
             </div>
@@ -1012,20 +1017,20 @@ export default function TrainingProgramLibrary({
             <div>
               <span className="communityEyebrow">WORKOUT TRACKER COMMUNITY</span>
               <h3 id="community-programs-title">Find Programs built for real training</h3>
-              <p>Discover useful Programs from athletes, coaches and creators without turning Workout Tracker into a social feed.</p>
+              <p>Discover useful Programs from athletes, coaches and creators for your goals, interests and experience level.</p>
             </div>
             <div className="communityPrinciples" aria-label="Community principles">
-              <span>Free first</span>
-              <span>Creator type shown</span>
-              <span>No pay-to-win</span>
+              <span>Free programmes</span>
+              <span>Meet the creators</span>
+              <span>Make it your own</span>
             </div>
           </div>
           <div className="communityProgramIntro">
             <div>
-              <strong>Free Community Programs are live first.</strong>
-              <p>Browse and use free Programs now. Verified creators, one-off purchases and creator subscriptions come later, after quality, safety and entitlement handling are proven.</p>
+              <strong>Find the right programme for you.</strong>
+              <p>Browse free programmes, learn about their creators and choose how they fit into your training plan.</p>
             </div>
-            <span className="pill">Free Community beta</span>
+            <span className="pill">Community programmes</span>
           </div>
 
           <div className="communityBrowseToolbar">
@@ -1043,6 +1048,8 @@ export default function TrainingProgramLibrary({
             </select></label>
           </div>
 
+          <label className="communityCreatorFilter">Creator specialism<select value={creatorCategory} onChange={(e) => setCreatorCategory(e.target.value)}><option value="all">All specialisms</option>{[...new Set(communityPrograms.flatMap((p) => p.creator_categories || []))].sort().map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+
           {communityLoading ? <p className="communityLoading" role="status">Loading Community Programs…</p> : null}
           {!communityLoading && visibleCommunityPrograms.length ? <div className="communityProgramGrid">
             {visibleCommunityPrograms.map((program) => <article key={program.id} className="communityProgramCard">
@@ -1051,8 +1058,9 @@ export default function TrainingProgramLibrary({
                   <span className="communityFreeBadge">FREE</span>
                   <h4>{program.title}</h4>
                 </div>
-                {program.credentials_verified ? <span className="communityVerifiedBadge">Verified creator</span> : <span className="communityCreatorBadge">{String(program.creator_role || "community").toUpperCase()}</span>}
+                {program.credentials_verified ? <VerifiedCreatorMark verified /> : <span className="communityCreatorBadge">{String(program.creator_role || "community").toUpperCase()}</span>}
               </div>
+              {program.creator_id ? <button type="button" className="creatorLink" onClick={() => setCreatorId(program.creator_id)}>By {program.creator_name} · View creator bio</button> : <p className="muted">Creator bio not yet available</p>}
               {program.description ? <p>{program.description}</p> : null}
               <div className="communityProgramCardMeta">
                 {program.sport ? <span>{program.sport}</span> : null}
@@ -1068,14 +1076,17 @@ export default function TrainingProgramLibrary({
 
           {!communityLoading && !visibleCommunityPrograms.length ? <div className="communityEmptyState">
             <strong>{communityPrograms.length ? "No Programs match those filters." : "No free Community Programs have been published yet."}</strong>
-            <p>{communityPrograms.length ? "Try a broader search or clear one of the filters." : "Publish a saved Program from My Programs to seed the Community library."}</p>
+            <p>{communityPrograms.length ? "Try a broader search or clear one of the filters." : "Be the first to share a programme: open its details in My Programs and choose Publish free."}</p>
           </div> : null}
 
-          <p className="communityIntegrityNote">Community access never changes XP values, badges, verification or competitive rankings.</p>
+
         </section>
       ) : null}
 
+      {section === "creator" ? <CreatorProfileEditor key={activeProfileId} profileId={activeProfileId} profileName={activeProfileName} authorize={allowed} onChanged={refreshCommunity} /> : null}
+      {creatorId ? <CreatorProfileDialog key={creatorId} id={creatorId} programmes={communityPrograms} onClose={() => { setCreatorId(""); const url = new URL(window.location.href); url.searchParams.delete("creator"); window.history.replaceState(null, "", url); }} onProgram={(p) => { setCreatorId(""); openCommunityProgram(p); }} /> : null}
       {communityPreview ? <CommunityProgramDialog
+        onCreator={(id) => { setCommunityPreview(null); setCreatorId(id); }}
         program={communityPreview}
         activePlan={activePlan}
         startDate={startDate}

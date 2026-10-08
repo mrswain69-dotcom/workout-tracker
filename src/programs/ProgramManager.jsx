@@ -123,7 +123,7 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
       <dt>Save new version</dt><dd>Save your currently active base plan as a new version of this programme. Existing recipients keep their issued version until they accept an update.</dd>
       <dt>Version history / restore</dt><dd>Preview previous versions or restore an older one as a new latest version. This does not change anyone’s active plan.</dd>
       <dt>Assign</dt><dd>Invite selected team members to follow this programme, with the permissions you choose.</dd>
-      <dt>Sharing links</dt><dd>Share a frozen version for preview or use and adaptation. Link expiry and revocation prevent future access; adopted plans stay available.</dd>
+      <dt>Sharing links</dt><dd>Share a saved version for preview or use and adaptation. Link expiry and revocation prevent future access; adopted plans stay available.</dd>
       <dt>Archive / restore programme</dt><dd>Move a programme out of the main library or bring it back. Its active plans and assignments are retained.</dd>
       <dt>Save details</dt><dd>Update the name and catalogue information without rewriting saved training versions.</dd>
     </dl></details>
@@ -163,7 +163,7 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
           <div>
             <span className="pill">{program.marketplace_status === "published" ? "Live in Community" : "Private"}</span>
             <strong>{program.marketplace_status === "published" ? "This Program is discoverable for free." : "Publish this saved Program to Community."}</strong>
-            <p>{program.marketplace_status === "published" ? "People can preview and use the current saved version. Removing it from Community stops new discovery but does not remove Programs people already adopted." : "Free publishing comes first. Paid access and creator subscriptions are deliberately not enabled in this stage."}</p>
+            <p>{program.marketplace_status === "published" ? "People can preview and use the current saved version. Removing it from Community stops new discovery but does not remove Programs people already adopted." : "Share this programme for people to preview, use and adapt. Your published creator bio will appear alongside it."}</p>
           </div>
           {program.marketplace_status === "published"
             ? <button type="button" disabled={working} onClick={onUnpublish}>Remove from Community</button>
@@ -188,7 +188,7 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
       <button className="primary" type="submit" disabled={working || details.title.trim().length < 2 || commaList(details.equipment).length > 20 || commaList(details.tags).length > 20}>{busy ? "Saving…" : "Save details"}</button>
     </form></details> : null}
     {tab === "history" && !loading ? <div className="programHistory">
-      <p className="muted">Versions stay frozen. Restoring creates a new latest version; recipients keep their issued version until they accept an update.</p>
+      <p className="muted">Saved versions stay unchanged. Restoring creates a new latest version; recipients keep their issued version until they accept an update.</p>
       {versions.map((version) => <article key={version.id}>
         <div className="programManagerHeading"><strong>Version {version.version_no}{version.id === program.current_version_id ? " · Current" : ""}</strong><small>{dateLabel(version.created_at)}</small></div>
         <p>{version.change_note || "No change note"}</p>

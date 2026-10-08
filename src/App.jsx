@@ -3513,8 +3513,8 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const planProgramWeeks = useMemo(() => flattenProgramWeeks(planProgram), [planProgram]);
   const [programLibrarySection, setProgramLibrarySection] = useState("mine");
   useEffect(() => {
-    if (family?.id && activeProfileId && new URLSearchParams(window.location.search).get("coachInvite")) {
-      setProgramLibrarySection("clients"); setPlanWorkspaceView("library"); setTab("plan");
+    if (family?.id && activeProfileId && (new URLSearchParams(window.location.search).get("coachInvite") || new URLSearchParams(window.location.search).get("creator"))) {
+      setProgramLibrarySection(new URLSearchParams(window.location.search).get("creator") ? "discover" : "clients"); setPlanWorkspaceView("library"); setTab("plan");
     }
   }, [family?.id, activeProfileId]);
   const [programControlState, setProgramControlState] = useState({ profileId: "", rows: [] });

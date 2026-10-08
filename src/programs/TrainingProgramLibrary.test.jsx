@@ -76,8 +76,8 @@ describe("personal programme management integration", () => {
     renderLibrary();
     fireEvent.click(await screen.findByRole("tab", { name: "Community" }));
     expect(screen.getByRole("heading", { name: "Find Programs built for real training" })).toBeTruthy();
-    expect(screen.getByText("Free first")).toBeTruthy();
-    expect(screen.getByText(/No pay-to-win/)).toBeTruthy();
+    expect(screen.getByText("Free programmes")).toBeTruthy();
+    expect(screen.queryByText(/No pay-to-win|Private foundation|social feed|are live first/)).toBeNull();
     await waitFor(() => expect(programDb.listCommunityTrainingPrograms).toHaveBeenCalled());
   });
 

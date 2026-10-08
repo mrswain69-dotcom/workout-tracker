@@ -32,6 +32,7 @@ export default function CommunityProgramDialog({
   onStartDateChange,
   onCompletionModeChange,
   onClose,
+  onCreator,
   onApply,
   busy = false,
 }) {
@@ -86,6 +87,7 @@ export default function CommunityProgramDialog({
           <button type="button" disabled={busy} onClick={onClose}>Close</button>
         </div>
 
+        {program.creator_id ? <button type="button" className="creatorLink" onClick={() => onCreator?.(program.creator_id)}>By {program.creator_name} · View creator bio</button> : null}
         {program.description ? <p className="communityProgramDescription">{program.description}</p> : null}
         {program.purpose ? <div className="communityProgramPurpose">{program.purpose}</div> : null}
 
@@ -126,7 +128,7 @@ export default function CommunityProgramDialog({
         </fieldset>
 
         <div className="communityProgramDialogFooter">
-          <p>Using a Community Program does not change XP values, badges or competitive rankings.</p>
+          <p>Your logged workouts and training history are kept when you apply a programme.</p>
           <div>
             <button type="button" disabled={busy} onClick={onClose}>Cancel</button>
             <button type="button" className="primary" disabled={busy || (mode === "add" && !canAdd) || (mode !== "add" && isCurrent)} onClick={() => onApply(mode)}>
