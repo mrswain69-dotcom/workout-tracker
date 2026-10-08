@@ -1,22 +1,18 @@
 # Workout Tracker — paired sport mastery avatar production briefs
 
-**Version 1.0 · 8 October 2026 · Ready for production handoff**
+**Version 1.1 · 8 October 2026 · Remaining collections ready for production handoff**
 
-This replaces the recolour-led rugby brief for future paired artwork. It does not change the live app, replace existing portraits or generate any images. The core roadmap still places Locker customisation last.
+This specifies the paired artwork and replaces the recolour-led Rugby direction. Football's sixteen paired assets and appearance selector are now live; twelve collections remain. The core roadmap still places Locker customisation last.
 
 ## Quick handoff for Sol Light
 
 Read the shared rules below and only the sport being produced. The JSON companion is the canonical structured prompt source; the small prompt helper composes one image brief without calling an image model or spending image-generation credits.
 
-Suggested first instruction after switching:
-
-> Read `docs/avatar-production/paired-sport-avatar-briefs.md`. Produce only Football Bronze male and female as two separate transparent portraits, using the existing Football Bronze image as the style/progression reference. Use the shared rules and football brief. Show both for review before completing the collection. Preserve all existing assets. Do not generate the whole catalogue.
-
-The football pair checks the youthful starting point and equal representation. Next produce the male/female Football Unreal pair to check the formal final award, then complete that sport in small batches. User feedback can change the brief before producing the remaining images. Do not silently reuse a declined pilot as final artwork.
+Football's Bronze pilot and complete collection are approved and live. Continue with Rugby using `sol-light-production-handoff.md`. The remaining twelve batches, five-pass checkpoints and integration requirements are in `remaining-sport-avatar-batches.md` and its JSON queue. The approved Football paired assets are now the rendering references; the sport-specific identities, kit and awards below remain authoritative.
 
 ### Production order
 
-1. Football pilot pair, then Unreal comparison pair, then remaining Football tiers.
+1. Football paired collection — complete and live (16 portraits).
 2. Rugby full paired collection using the revised kit/award story.
 3. Cricket paired collection, preserving its existing visual direction.
 4. Basketball and Tennis.
@@ -390,9 +386,9 @@ Future integration must:
 
 For each image, check: correct sport/tier/variant; corresponding character face/hair/skin; equal prestige between variants; planned kit and exact award count; plausible hands and sport equipment; no unexpected text/logos; full required framing; clean transparency; readable at the current approximately 88 px gallery size; exact final filename. Compare Bronze vs Champion and Champion vs Unreal for a meaningful difference beyond colour.
 
-For each released sport, check all 16 assets, both toggle paths, claiming only once, changing appearance without XP/stat resets, existing legacy selection, group/header/details agreement, and narrow-mobile layout. These are future implementation checks; no claim is made that they have run during this brief-only task.
+For each released sport, check all 16 assets, both toggle paths, claiming only once, changing appearance without XP/stat resets, existing legacy selection, group/header/details agreement, and narrow-mobile layout. Apply these to each newly released collection; Football's recorded validation is in `football-paired-release.md`.
 
-Keep `docs/avatar-production/production-status.json` current as each final portrait passes review. Initially every paired slot is `not_started`. A legacy image or an unreviewed generator output is not automatically `approved`. Record the final path and any user-requested revisions so production can resume after a usage reset without repeating work.
+Keep `docs/avatar-production/production-status.json` current as each final portrait passes review. Football's sixteen slots are `ready`; the other 192 slots currently remain `not_started`. A legacy image or an unreviewed generator output is not automatically `approved`. Record the final path and any user-requested revisions so production can resume after a usage reset without repeating work.
 
 ## Primary award references
 

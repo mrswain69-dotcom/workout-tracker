@@ -99,3 +99,7 @@ The first production step after switching to Light is the Football Bronze male/f
 ### Football paired collection (8 October 2026)
 
 The first complete paired sport collection ships all sixteen Football portraits through Unreal. Male/female previews are cosmetic choices on the same earned identity, with explicit application, persisted appearance and shared group cosmetics. Existing equipped originals remain until users choose the new artwork. See `avatar-production/football-paired-release.md`. The other twelve sports remain in the production queue; this release does not mark them complete.
+
+### Remaining paired-avatar batches — Sol Light handoff (8 October 2026)
+
+Twelve collections remain, 192 portraits total. Produce one sixteen-image sport batch at a time: Rugby, Cricket, Basketball, Tennis, Badminton, Netball, Hockey, Fencing, Martial Arts, Indoor Rowing, Outdoor Rowing, then Yoga. Each collection has five manageable passes with a saved checkpoint after every pair. `avatar-production/remaining-sport-avatar-batches.md` and its JSON queue include art references, resume instructions and the required allowlist/default-path integration for sports beyond Football. Use `avatar-production/sol-light-production-handoff.md` after the user selects Sol Light. This planning update generates no new artwork.

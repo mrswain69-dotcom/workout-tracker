@@ -1,0 +1,291 @@
+{
+  "version": "1.0",
+  "updated": "2026-10-08",
+  "brief": "paired-sport-avatar-briefs.json",
+  "inventory": "production-status.json",
+  "completed_sports": [
+    "football"
+  ],
+  "remaining_sports": 12,
+  "remaining_assets": 192,
+  "production_mode": "Sol Light selected by user before image production; do not substitute another model silently",
+  "collection_size": 16,
+  "variants": [
+    "male",
+    "female"
+  ],
+  "tier_order": [
+    "bronze",
+    "silver",
+    "gold",
+    "platinum",
+    "diamond",
+    "elite",
+    "champion",
+    "unreal"
+  ],
+  "passes": [
+    {
+      "number": 1,
+      "tiers": [
+        "bronze"
+      ],
+      "assets": 2
+    },
+    {
+      "number": 2,
+      "tiers": [
+        "unreal"
+      ],
+      "assets": 2
+    },
+    {
+      "number": 3,
+      "tiers": [
+        "silver",
+        "gold"
+      ],
+      "assets": 4
+    },
+    {
+      "number": 4,
+      "tiers": [
+        "platinum",
+        "diamond"
+      ],
+      "assets": 4
+    },
+    {
+      "number": 5,
+      "tiers": [
+        "elite",
+        "champion"
+      ],
+      "assets": 4
+    }
+  ],
+  "batches": [
+    {
+      "batch": 1,
+      "sport": "rugby",
+      "label": "Rugby",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "rugby",
+      "final_honour": "One original polished silver player-of-the-year honour with a stylised oval-ball motif.",
+      "filename_template": "public/avatars/sport/rugby_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": [
+          "public/avatars/sport/rugby_bronze.png",
+          "public/avatars/sport/rugby_unreal.png"
+        ]
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 2,
+      "sport": "cricket",
+      "label": "Cricket",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "cricket",
+      "final_honour": "One original overall-cricketer-of-the-year honour.",
+      "filename_template": "public/avatars/sport/cricket_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": [
+          "public/avatars/sport/cricket_bronze.png",
+          "public/avatars/sport/cricket_unreal.png"
+        ]
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 3,
+      "sport": "basketball",
+      "label": "Basketball",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "basketball",
+      "final_honour": "One original gold basketball career-excellence/MVP honour; one ring as a secondary detail.",
+      "filename_template": "public/avatars/sport/basketball_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 4,
+      "sport": "tennis",
+      "label": "Tennis",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "tennis",
+      "final_honour": "One original crystal-and-gold year-end/career-excellence tennis honour.",
+      "filename_template": "public/avatars/sport/tennis_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 5,
+      "sport": "badminton",
+      "label": "Badminton",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "badminton",
+      "final_honour": "Original crystal-and-gold global-excellence honour with a subtle shuttle motif.",
+      "filename_template": "public/avatars/sport/badminton_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 6,
+      "sport": "netball",
+      "label": "Netball",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "netball",
+      "final_honour": "Original gold-and-crystal world-player-excellence netball honour.",
+      "filename_template": "public/avatars/sport/netball_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 7,
+      "sport": "hockey",
+      "label": "Hockey",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "hockey",
+      "final_honour": "Original silver-and-gold global-player honour with subtle field-hockey motif.",
+      "filename_template": "public/avatars/sport/hockey_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 8,
+      "sport": "fencing",
+      "label": "Fencing",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "fencing",
+      "final_honour": "Original silver-and-gold global-fencing-excellence honour with elegant blade motif.",
+      "filename_template": "public/avatars/sport/fencing_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 9,
+      "sport": "martial_arts",
+      "label": "Martial Arts",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "martial_arts",
+      "final_honour": "Original gold-and-crystal lifelong-mastery honour, explicitly a fictional app symbol.",
+      "filename_template": "public/avatars/sport/martial_arts_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 10,
+      "sport": "indoor_rowing",
+      "label": "Indoor Rowing",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "indoor_rowing",
+      "final_honour": "Original silver-and-gold global indoor-rowing excellence honour with flywheel motif.",
+      "filename_template": "public/avatars/sport/indoor_rowing_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 11,
+      "sport": "outdoor_rowing",
+      "label": "Outdoor Rowing",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "outdoor_rowing",
+      "final_honour": "Original silver-and-gold rower/crew-excellence honour with abstract oar motif.",
+      "filename_template": "public/avatars/sport/outdoor_rowing_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    },
+    {
+      "batch": 12,
+      "sport": "yoga",
+      "label": "Yoga",
+      "assets": 16,
+      "release_state": "queued",
+      "brief_key": "yoga",
+      "final_honour": "One original crystal-and-gold lifelong-practice honour, explicitly a fictional app symbol.",
+      "filename_template": "public/avatars/sport/yoga_{tier}_{variant}_v2.png",
+      "references": {
+        "rendering_male": "public/avatars/sport/football_bronze_male_v2.png",
+        "rendering_female": "public/avatars/sport/football_bronze_female_v2.png",
+        "formal_male": "public/avatars/sport/football_unreal_male_v2.png",
+        "formal_female": "public/avatars/sport/football_unreal_female_v2.png",
+        "legacy": []
+      },
+      "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
+    }
+  ]
+}
