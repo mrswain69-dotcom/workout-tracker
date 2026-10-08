@@ -66,17 +66,17 @@ function showPerformance(card, value, claims = new Set()) {
     onClaim={vi.fn().mockResolvedValue(true)} faceText="5K" progressText="Best 5K: 25:00."
     requirementText={tier=>`${tier.threshold} ${card.comparator === "lte" ? "seconds or faster" : "sets"} · +${tier.xp} XP`}/>);
 }
-it("gives performance badges the same cabinet and a Diamond completion state",()=>{
+it("completes performance collections after Unreal and ten stars",()=>{
   const card=BADGE_CARDS.find(c=>c.statKey==="stats.lifts.totalSets");
-  showPerformance(card,card.tiers[4].threshold);
+  showPerformance(card,card.starTiers[9].threshold,new Set([...card.tiers,...card.starTiers].map(t=>t.key)));
   expect(screen.getByText("Collection complete")).toBeTruthy();
-  expect(within(screen.getByLabelText("Earlier earned badges")).getAllByRole("button")).toHaveLength(4);
+  expect(within(screen.getByLabelText("Earlier earned badges")).getAllByRole("button")).toHaveLength(8);
   fireEvent.click(screen.getByRole("button",{name:"Details"}));
   const dialog=screen.getByRole("dialog");
-  expect(within(dialog).getByText("All five tiers achieved.")).toBeTruthy();
+  expect(within(dialog).getByText("All tiers and stars achieved.")).toBeTruthy();
   expect(within(dialog).queryByText(/next stage unlocks/)).toBeNull();
   expect(within(dialog).queryByText(/counted sessions/)).toBeNull();
-  expect(within(dialog).getAllByText(/sets ·/).length).toBe(5);
+  expect(within(dialog).getAllByText(/sets ·/).length).toBe(9);
 });
 it("shows pace requirements and correct earned status in the popup",()=>{
   const card=BADGE_CARDS.find(c=>c.comparator==="lte");
@@ -87,4 +87,18 @@ it("shows pace requirements and correct earned status in the popup",()=>{
   expect(within(dialog).getByLabelText(/Platinum: .*locked/)).toBeTruthy();
   expect(within(dialog).getByText("Best 5K: 25:00.")).toBeTruthy();
   expect(within(dialog).queryByRole("progressbar")).toBeNull();
+});
+it("shows source verification separately from stars and opens a contributing log date",()=>{
+  const card=BADGE_CARDS.find(c=>c.id==="run_5k_best_time");
+  const state=performanceBadgeState(card,card.tiers[4].threshold);
+  const onOpenLog=vi.fn();
+  render(<SportsMasteryCabinet card={card} state={state} claimedKeys={new Set()} onClaim={vi.fn()}
+    requirementText={tier=>`${tier.threshold} seconds`} progressText="Recorded pace" formatValue={String} onOpenLog={onOpenLog}
+    verification={{verified:true,status:"ready",verifiedKeys:new Set([state.currentTier.key]),supportsMeasuredVerification:true,entries:[{date:"2026-10-08",value:1140,verified:true,sources:["Garmin"]}]}}/>);
+  expect(screen.getByText("· Verified")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button",{name:"Details"}));
+  const dialog=screen.getByRole("dialog");
+  expect(within(dialog).getByText(/linked source data supports/)).toBeTruthy();
+  fireEvent.click(within(dialog).getByText("Open log · 2026-10-08"));
+  expect(onOpenLog).toHaveBeenCalledWith("2026-10-08");expect(screen.queryByRole("dialog")).toBeNull();
 });

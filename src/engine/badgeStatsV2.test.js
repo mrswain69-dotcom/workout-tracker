@@ -137,3 +137,17 @@ it("counts each sport once per day across duplicate rows and excludes future day
   const stats = buildBadgeStatsV2({allLogs:[row("2026-09-08",block),row("2026-09-07",block),row("2026-09-08",block),row("2026-09-09",block)],todayYmd:"2026-09-08",isAdult:false});
   expect(stats.sportMastery.football).toEqual({sessions:2,days:2,lastDate:"2026-09-08"});
 });
+
+it("counts strength prestige training days once and ignores cancelled/future rows",()=>{
+  const block={id:"strength",typeId:"strength",sets:{squat:Array.from({length:10},()=>({reps:5,weight:20}))}};
+  const stats=buildBadgeStatsV2({todayYmd:"2026-10-08",isAdult:true,allLogs:[row("2026-10-07",block),row("2026-10-07",block),row("2026-10-09",block),row("2026-10-06",{...block,cancelled:true})]});
+  expect(stats.sessions.strengthTrainingDays).toBe(1);
+  expect(stats.sessions.strengthTrainingDates).toEqual(["2026-10-07"]);
+});
+it("counts pace improvement prestige once per qualifying date across sports",()=>{
+  const cardio=(sport,min)=>({id:sport,typeId:"cardio",cardioType:sport,cardio:{sport,distanceKm:5,durationMin:min}});
+  const logs=[row("2026-08-20",cardio("run",30)),row("2026-09-20",cardio("run",24)),row("2026-09-20",cardio("run",24)),row("2026-10-09",cardio("run",20))];
+  const stats=buildBadgeStatsV2({allLogs:logs,todayYmd:"2026-10-08",isAdult:true});
+  expect(stats.intelligence.paceImprovementDays).toBe(1);
+  expect(stats.intelligence.paceImprovementDates).toEqual(["2026-09-20"]);
+});

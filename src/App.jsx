@@ -1,3 +1,5 @@
+import { loadVerifiedActivityData } from "./verifiedActivityDb.js";
+import { buildPerformanceEvidence, performanceEvidenceForCard } from "./engine/performanceBadgeEvidence.js";
 import { performanceBadgeState } from "./engine/performanceBadgeProgression.js";
 import { sportsMasteryState } from "./engine/sportsMasteryProgression.js";
 import SportsMasteryCabinet from "./components/rewards/SportsMasteryCabinet.jsx";
@@ -51,7 +53,7 @@ import {
   updateFamilyOnboardingState,
 } from "./db";
 
-import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS } from "./config/badges";
+import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS, formatTimeMMSS } from "./config/badges";
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 import {
   buildXpDebugRows as buildXpDebugRowsEngine,
@@ -3043,16 +3045,13 @@ function getBadgeCardState(card, badgeStats, claimedRewardsSet) {
   if (card.badgeGroup === "sport_mastery") {
     return sportsMasteryState(card, getByPath({ stats: badgeStats }, card.statKey), claimedRewardsSet);
   }
-  return performanceBadgeState(card, getByPath({ stats: badgeStats }, card.statKey), claimedRewardsSet);
+  return performanceBadgeState(card, getByPath({ stats: badgeStats }, card.statKey), claimedRewardsSet, badgeStats);
 }
 
 function formatBadgeThreshold(card, threshold) {
   if (card.comparator !== "lte") return `${threshold}+`;
 
-  const totalSeconds = safeNumber(threshold);
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = String(totalSeconds % 60).padStart(2, "0");
-  return `${mins}:${secs}`;
+  return formatTimeMMSS(threshold);
 }
 
 function getBadgeFaceText(card) {
@@ -3080,6 +3079,7 @@ function getTierRequirementText(card, tier) {
   const threshold = safeNumber(tier?.threshold);
   const xp = safeNumber(tier?.xp);
 
+  if (tier?.statKey) return `${threshold}+ ${tier.unit} · +${xp} XP`;
   if (card?.comparator === "lte") {
     return `${formatBadgeThreshold(card, threshold)} or faster · +${xp} XP`;
   }
@@ -3383,6 +3383,16 @@ useEffect(() => {
   // never build from a one-render-old plan.
 useEffect(() => { planRef.current = plan; }, [plan]);
 
+  const [badgeEvidenceData, setBadgeEvidenceData] = useState({profileId:null,status:"idle",data:null});
+  useEffect(() => {
+    if (tab !== "rewards" || rewardsSubTab !== "badges" || badgeCategoryView !== "performance" || !activeProfileId) return;
+    let cancelled=false;
+    setBadgeEvidenceData({profileId:activeProfileId,status:"loading",data:null});
+    loadVerifiedActivityData(activeProfileId).then(result=>{
+      if (!cancelled) setBadgeEvidenceData({profileId:activeProfileId,status:result.error?"error":"ready",data:result.data});
+    }).catch(()=>{if(!cancelled)setBadgeEvidenceData({profileId:activeProfileId,status:"error",data:null});});
+    return ()=>{cancelled=true;};
+  },[tab,rewardsSubTab,badgeCategoryView,activeProfileId]);
   const [selectedDate, setSelectedDate] = useState(initialNavigation.date);
   const currentLogViewRef = useRef(null);
   currentLogViewRef.current = { familyId: family?.id, profileId: activeProfileId, date: selectedDate };
@@ -4433,6 +4443,10 @@ const badgeStats = useMemo(() => {
   }
 }, [sanitisedAllLogsForBadges, todayYmd, isAdult, workoutStreak]);
 
+  const performanceEvidence = useMemo(() => {
+    if (tab !== "rewards" || rewardsSubTab !== "badges" || badgeCategoryView !== "performance") return null;
+    return buildPerformanceEvidence({logs:sanitisedAllLogsForBadges,data:badgeEvidenceData.profileId===activeProfileId?badgeEvidenceData.data||{}:{},todayYmd,isAdult});
+  },[tab,rewardsSubTab,badgeCategoryView,sanitisedAllLogsForBadges,badgeEvidenceData,activeProfileId,todayYmd,isAdult]);
   function updateProfilePlanInState(profileId, nextPlan) {
     setProfiles((prev) =>
       (prev || []).map((p) => (p.id === profileId ? { ...p, plan_json: nextPlan } : p))
@@ -6367,9 +6381,9 @@ const selectedDayHasHeavyTrainingBlocks =
 
   async function claimRewardKey(rewardKey, claimedAtYmd = getTodayYMD()) {
   if (!rewardKey) return false;
-  if (rewardKey.startsWith("badge_sport_")) {
+  if (rewardKey.startsWith("badge_")) {
     const latestClaims = new Set(normaliseClaimedRewards(planRef.current?.meta).map(item => item.key));
-    const eligible = sportMasteryBadgeCards.some(card =>
+    const eligible = BADGE_CARDS.some(card =>
       getBadgeCardState(card, badgeStats, latestClaims).nextClaimable?.key === rewardKey
     );
     if (!eligible) return false;
@@ -6422,7 +6436,7 @@ const selectedDayHasHeavyTrainingBlocks =
     const liveState = getBadgeCardState(card, badgeStats, getClaims());
     if (!liveState.nextClaimable) return false;
     const rewards = liveState.nextClaimable.star ? [liveState.nextClaimable] :
-      card.tiers.filter((tier, index) => index <= liveState.highestEarnedIndex && !getClaims().has(tier.key));
+      (liveState.eligibleRewards || card.tiers.filter((tier, index) => index <= liveState.highestEarnedIndex && !getClaims().has(tier.key)));
     const rect = element?.closest(".masteryCabinet")?.getBoundingClientRect() || element?.getBoundingClientRect();
     const xpFrom = xp;
     playBuildUpSound?.();
@@ -12610,18 +12624,23 @@ const cardioProgress = useMemo(() => {
   const state = getBadgeCardState(card, badgeStats, claimedRewardsSet);
 
   if (badgeView !== "all" && !state.currentTier) return null;
-  const progressText = typeof card.getProgressText === "function" ? card.getProgressText({
+  const progressText = card.badgeGroup !== "sport_mastery" && state.nextTier?.star
+    ? `Current ${card.comparator === "lte" ? "best" : "progress"}: ${card.comparator === "lte" ? formatTimeMMSS(state.value) : Number(state.nextTier.statKey ? state.targetValue : state.value || 0).toLocaleString("en-GB")} · Unreal star ${state.nextTier.star} target: ${getTierRequirementText(card,state.nextTier).replace(/ · \+0 XP$/, "")}.`
+    : card.badgeGroup !== "sport_mastery" && state.nextTier?.statKey ? `${state.targetValue} ${state.nextTier.unit} recorded — target ${state.nextTier.threshold}.` : typeof card.getProgressText === "function" ? card.getProgressText({
     ...state, stats: badgeStats, meta: {
       earlyCutoffHour: badgeStats?.behaviour?.earlyCutoffHour,
       nightCutoffHour: badgeStats?.behaviour?.nightCutoffHour,
-      paceImprovementSport: badgeStats?.intelligence?.paceImprovementSport,
+      paceImprovementBestSport: badgeStats?.intelligence?.paceImprovementBestSport,
     },
   }) : card.desc;
   return <SportsMasteryCabinet key={`${activeProfileId}:${card.id}`} card={card} state={state}
     claimedKeys={claimedRewardsSet} lastDate={badgeStats?.sportMastery?.[card.sportKey]?.lastDate}
     faceText={card.badgeGroup === "sport_mastery" ? getSportBadgeFaceText(card) : getBadgeFaceText(card)}
     requirementText={tier => getTierRequirementText(card, tier)} progressText={progressText}
-    flash={card.tiers.some(tier => tier.key === lastClaimedKey) || (card.sportKey && lastClaimedKey.startsWith(`badge_sport_${card.sportKey}_mastery_unreal_star_`))}
+    verification={card.badgeGroup !== "sport_mastery" && performanceEvidence ? {...performanceEvidenceForCard(card,state,performanceEvidence,badgeStats),status:badgeEvidenceData.profileId===activeProfileId?badgeEvidenceData.status:"loading"} : null}
+    formatValue={value=>card.comparator==="lte"?formatTimeMMSS(value):Number(value||0).toLocaleString("en-GB")}
+    onOpenLog={date=>{setSelectedDate(date);setTab("log");}}
+    flash={card.tiers.some(tier => tier.key === lastClaimedKey) || card.starTiers?.some(tier=>tier.key===lastClaimedKey) || (card.sportKey && lastClaimedKey.startsWith(`badge_sport_${card.sportKey}_mastery_unreal_star_`))}
     onClaim={element => claimBadgeCabinet(card, element)} />;
 })}
           </div>

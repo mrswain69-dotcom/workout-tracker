@@ -1,3 +1,4 @@
+import { extendPerformanceTiers } from "./performancePrestige.js";
 import { SPORT_MASTERY_TIERS } from "../engine/sportsMasteryProgression.js";
 
 // src/config/badges.js
@@ -28,10 +29,10 @@ export function iconPath(iconFilePng) {
 
 export function formatTimeMMSS(totalSec) {
   if (totalSec == null || Number.isNaN(Number(totalSec))) return "—";
-  const sec = Math.max(0, Math.round(Number(totalSec)));
+  const sec = Math.max(0, Math.round(Number(totalSec) * 100) / 100);
   const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
+  const remainder = Math.round((sec - m * 60) * 100) / 100;
+  return `${m}:${Number.isInteger(remainder) ? String(remainder).padStart(2,"0") : remainder.toFixed(2).padStart(5,"0")}`;
 }
 
 function safeNum(v) {
@@ -40,6 +41,8 @@ function safeNum(v) {
 }
 
 function makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers }) {
+  const extended = extendPerformanceTiers(idPrefix, tiers);
+  tiers = extended.tiers;
   const tierDefs = tiers.map((t, idx) => ({
     key: `${idPrefix}_${idx + 1}`,
     title,
@@ -58,8 +61,10 @@ function makeTierDefs({ idPrefix, title, desc, family, iconFile, tiers }) {
     threshold: t.threshold,
     xp: t.xp,
     hidden: !!t.hidden,
+    ...(t.statKey ? { statKey: t.statKey, unit: t.unit } : {}),
   }));
 
+  for (const star of extended.starTiers) tierDefs.push({ ...star, title, desc, category: family, bg: bgPath(family, "unreal"), icon: iconPath(iconFile) });
   return { tierDefs, tierRules };
 }
 
@@ -68,6 +73,12 @@ const ALL_DEFS = [];
 const ALL_KEYS = [];
 
 function addCard(card, tierDefs) {
+  if (card.badgeGroup !== "sport_mastery") {
+    const prefix = card.tiers[0].key.replace(/_1$/, "");
+    const extension = extendPerformanceTiers(prefix, card.tiers.slice(0,5));
+    card.starTiers = extension.starTiers;
+    card.prestige = extension.prestige;
+  }
   BADGE_CARDS.push(card);
   for (const d of tierDefs) {
     ALL_DEFS.push(d);
