@@ -1,3 +1,4 @@
+import { performanceBadgeState } from "./engine/performanceBadgeProgression.js";
 import { sportsMasteryState } from "./engine/sportsMasteryProgression.js";
 import SportsMasteryCabinet from "./components/rewards/SportsMasteryCabinet.jsx";
 import { claimMasterySequence } from "./engine/masteryClaimSequence.js";
@@ -3042,44 +3043,7 @@ function getBadgeCardState(card, badgeStats, claimedRewardsSet) {
   if (card.badgeGroup === "sport_mastery") {
     return sportsMasteryState(card, getByPath({ stats: badgeStats }, card.statKey), claimedRewardsSet);
   }
-  const value = getByPath({ stats: badgeStats }, card.statKey);
-  const tiers = Array.isArray(card?.tiers) ? card.tiers : [];
-
-  const highestEarnedIndex = getHighestEarnedTierIndex(card, value);
-  const rawClaimedIndex = getHighestClaimedTierIndex(card, claimedRewardsSet);
-
-  const highestClaimedIndex =
-    highestEarnedIndex < 0 ? -1 : Math.min(rawClaimedIndex, highestEarnedIndex);
-
-  const currentTier =
-    highestEarnedIndex >= 0 ? tiers[highestEarnedIndex] : null;
-
-  const nextTier =
-    highestEarnedIndex + 1 < tiers.length ? tiers[highestEarnedIndex + 1] : null;
-
-  const nextClaimable =
-    highestEarnedIndex > highestClaimedIndex &&
-    highestClaimedIndex + 1 < tiers.length
-      ? tiers[highestClaimedIndex + 1]
-      : null;
-
-  const status =
-    highestEarnedIndex > highestClaimedIndex
-      ? "claimable"
-      : highestEarnedIndex >= 0
-      ? "claimed"
-      : "locked";
-
-  return {
-    value,
-    tiers,
-    highestEarnedIndex,
-    highestClaimedIndex,
-    currentTier,
-    nextTier,
-    nextClaimable,
-    status,
-  };
+  return performanceBadgeState(card, getByPath({ stats: badgeStats }, card.statKey), claimedRewardsSet);
 }
 
 function formatBadgeThreshold(card, threshold) {
@@ -3126,7 +3090,7 @@ function getTierRequirementText(card, tier) {
     return `${threshold}+ times · +${xp} XP`;
   }
 
-  if (statKey === "stats.streak.currentDays") {
+  if ((statKey === "stats.streak.currentDays" || statKey === "stats.streak.longestDays")) {
     return `${threshold}+ days · +${xp} XP`;
   }
 
@@ -3153,7 +3117,7 @@ function getTierRequirementText(card, tier) {
     return `${threshold}+ sessions · +${xp} XP`;
   }
 
-  if (statKey === "stats.intelligence.paceImprovementPct4w") {
+  if ((statKey === "stats.intelligence.paceImprovementPct4w" || statKey === "stats.intelligence.paceImprovementBestPct")) {
     return `${threshold}%+ · +${xp} XP`;
   }
 
@@ -6451,14 +6415,14 @@ const selectedDayHasHeavyTrainingBlocks =
 }
 
 
-  async function claimMasteryCabinet(card, element) {
+  async function claimBadgeCabinet(card, element) {
     const profileAtStart = activeProfileId;
     const isCurrentProfile = () => currentLogViewRef.current?.profileId === profileAtStart;
     const getClaims = () => new Set(normaliseClaimedRewards(planRef.current?.meta).map(item => item.key));
     const liveState = getBadgeCardState(card, badgeStats, getClaims());
     if (!liveState.nextClaimable) return false;
     const rewards = liveState.nextClaimable.star ? [liveState.nextClaimable] :
-      card.tiers.filter(tier => liveState.value >= tier.threshold && !getClaims().has(tier.key));
+      card.tiers.filter((tier, index) => index <= liveState.highestEarnedIndex && !getClaims().has(tier.key));
     const rect = element?.closest(".masteryCabinet")?.getBoundingClientRect() || element?.getBoundingClientRect();
     const xpFrom = xp;
     playBuildUpSound?.();
@@ -12645,300 +12609,20 @@ const cardioProgress = useMemo(() => {
           {visibleBadgeCards.map((card) => {
   const state = getBadgeCardState(card, badgeStats, claimedRewardsSet);
 
-  const showInCurrentView =
-    badgeView === "all" || state.highestEarnedIndex >= 0 || (card.badgeGroup === "sport_mastery" && state.currentTier);
-
-  if (!showInCurrentView) return null;
-
-  if (card.badgeGroup === "sport_mastery") {
-    return <SportsMasteryCabinet key={`${activeProfileId}:${card.id}`} card={card} state={state}
-      claimedKeys={claimedRewardsSet} lastDate={badgeStats?.sportMastery?.[card.sportKey]?.lastDate}
-      flash={lastClaimedKey.startsWith(`badge_sport_${card.sportKey}_mastery_`)}
-      onClaim={element => claimMasteryCabinet(card, element)} />;
-  }
-
-  const badgeKeyForFlash = state.nextClaimable?.key || card.id;
-  const nextClaimableTier = state.nextClaimable;
-  const earnedTier = state.currentTier;
-  const claimedTierIndex = state.highestClaimedIndex;
-
-  let effectiveTier = null;
-  if (nextClaimableTier) {
-    effectiveTier = nextClaimableTier.tier;
-  } else if (earnedTier) {
-    effectiveTier = earnedTier.tier;
-  } else if (card.tiers?.[0]) {
-    effectiveTier = card.tiers[0].tier;
-  }
-
-  // Build the visible stack from earned progress, not just claimed progress.
-  // Rules:
-  // - no earned tiers => show 1 locked bronze base
-  // - earned but unclaimed tiers => show grey pending layers
-  // - claimed tiers => show full-colour layers
-  const layers = [];
-
-  if (state.highestEarnedIndex >= 0 || (card.badgeGroup === "sport_mastery" && state.currentTier)) {
-    (card.badgeGroup === "sport_mastery" && state.stage !== "foundation"
-      ? [state.currentTier]
-      : card.tiers.slice(0, Math.max(state.highestEarnedIndex, card.badgeGroup === "sport_mastery" ? state.highestClaimedIndex : -1) + 1)).forEach((tier, idx) => {
-      const isClaimedLayer = claimedRewardsSet.has(tier.key);
-
-      layers.push(
-        <img
-          key={`${isClaimedLayer ? "claimed" : "pending"}_${tier.key}`}
-          className={
-            "wtBadgeBgLayer" +
-            (isClaimedLayer ? "" : " wtBadgeBgLayer-next")
-          }
-          src={`/badges/bg/bg_${card.family}_${tier.tier}.svg`}
-          alt=""
-          style={{ "--layerIndex": idx }}
-        />
-      );
-    });
-  } else {
-    layers.push(
-      <img
-        key="locked_bronze_base"
-        className="wtBadgeBgLayer wtBadgeBgLayer-locked"
-        src={`/badges/bg/bg_${card.family}_bronze.svg`}
-        alt=""
-        style={{ "--layerIndex": 0 }}
-      />
-    );
-  }
-
-  const frontOffset = Math.max(0, layers.length - 1) * 22;
-    const faceText =
-    card.badgeGroup === "sport_mastery"
-      ? getSportBadgeFaceText(card)
-      : getBadgeFaceText(card);
-
-  const sportProgressPct =
-    card.badgeGroup === "sport_mastery"
-      ? state.progressPct
-      : 0;
-
-  return (
-    <div
-      key={card.id}
-      className={
-        "panel badgeCard " +
-        (card.badgeGroup === "sport_mastery" ? "sportMasteryCard " : "") + state.status +
-        (lastClaimedKey === badgeKeyForFlash ? " flash" : "") +
-        (state.status === "claimed" ? " lit" : "")
-      }
-    >
-      <div className="badgeTitle">{card.title}</div>
-
-      <div className="badgeMid">
-        <div
-          className={
-            "badgeBig" + (state.status === "locked" ? " off" : "")
-          }
-          aria-hidden="true"
-        >
-          <div className="wtBadge">
-            {layers}
-
-            <div
-              className="wtBadgeForeground"
-              style={{ "--frontOffset": `${frontOffset}px` }}
-            >
-              {!!faceText && (
-                <div className="wtBadgeFaceText">{faceText}</div>
-              )}
-
-              <img
-                className={
-                  "wtBadgeIcon" +
-                  (state.status !== "claimed" ? " wtBadgeIcon--pending" : "")
-                }
-                src={`/badges/icons/${card.iconFile}`}
-                alt=""
-              />
-
-              {!!effectiveTier && (
-                <div className="wtBadgePlaque">
-                  {effectiveTier.toUpperCase()}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="badgeAction">
-          {state.status === "claimable" && state.nextClaimable ? (
-            <button
-              className="btn btn-primary"
-              onClick={async (e) => {
-  const badgeKeyToClaim = state.nextClaimable?.key;
-  if (!badgeKeyToClaim) return;
-
-  const cardEl = e.currentTarget.closest(".badgeCard");
-  const rect = cardEl ? cardEl.getBoundingClientRect() : null;
-
-  const xpReward = safeNumber(state.nextClaimable?.xp);
-  const xpFrom = xp;
-  const xpTo = xpFrom + xpReward;
-
-  setXp(xpTo);
-
-  playBuildUpSound?.();
-
-  const didClaim = await claimRewardKey(badgeKeyToClaim, getTodayYMD());
-if (!didClaim) {
-  setXp(computeXpFromLogs(allLogs, planRef.current));
-  return;
-}
-
-  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 0);
-  setTimeout(() => setXp(computeXpFromLogs(allLogs, planRef.current)), 200);
-
-  setLastClaimedKey(badgeKeyToClaim);
-  setTimeout(() => setLastClaimedKey(""), 900);
-
-  const confetti = Array.from({ length: 18 }).map((_, i) => ({
-    id: i,
-    x: Math.random() * 140 - 70,
-    y: Math.random() * 80 - 110,
-    r: Math.random() * 360,
-    d: 700 + Math.random() * 450,
-  }));
-
-    setClaimModal({
-    kind: "badge",
-    stage: "shake",
-    title: "Badge claimed!",
-    desc: `${card.title}${state.nextClaimable?.star ? ` · Unreal star ${state.nextClaimable.star}` : " unlocked"}`,
-    badgeKey: badgeKeyToClaim,
-    emoji: "🏅",
-    xpAward: xpReward,
-    xpFrom,
-    xpTo,
-    fromRect: rect
-      ? {
-          x: rect.left,
-          y: rect.top,
-          w: rect.width,
-          h: rect.height,
-        }
-      : null,
-    confetti,
-  });
-
-  setTimeout(() => {
-    playRewardSound?.();
-    playSparkleSound?.();
-    setClaimModal((prev) =>
-      prev ? { ...prev, stage: "boom" } : prev
-    );
-  }, 260);
-}}
-            >
-              {state.nextClaimable?.star ? `Claim star ${state.nextClaimable.star}` : "Claim"}
-            </button>
-          ) : (
-            <div className="pill">{badgeStatusLabel(state.status)}</div>
-          )}
-        </div>
-      </div>
-
-      {card.badgeGroup === "sport_mastery" && state.stars > 0 && (
-        <div className="sportMasteryStars" aria-label={`${state.stars} Unreal stars claimed`}>
-          <span aria-hidden="true">{"★".repeat(Math.min(state.stars, 8))}{state.stars > 8 ? ` +${state.stars - 8}` : ""}</span>
-          <span className="mini">{state.stars} Unreal {state.stars === 1 ? "star" : "stars"}</span>
-        </div>
-      )}
-
-            <div className="badgeDesc">
-        {card.desc && (
-          <div className="badgeDescIntro">
-            {card.desc}
-          </div>
-        )}
-
-        {card.badgeGroup === "sport_mastery" && (
-          <div className="sportBadgeMiniMeta">
-            <div className="sportBadgeMiniMetaRow">
-              <span className="sportBadgeMiniLabel">Counted sessions</span>
-              <span className="sportBadgeMiniValue">
-                {safeNumber(badgeStats?.sportMastery?.[card.sportKey]?.sessions)}
-              </span>
-            </div>
-            <div className="sportBadgeMiniMetaRow">
-              <span className="sportBadgeMiniLabel">Current tier</span>
-              <span className="sportBadgeMiniValue">
-                {state.currentTier
-                  ? state.currentTier.tier.charAt(0).toUpperCase() + state.currentTier.tier.slice(1)
-                  : "Not started"}
-              </span>
-            </div>
-
-            {!!state.nextTier && (
-              <div className="sportBadgeProgressWrap">
-                <div className="sportBadgeProgressTop">
-                  <span>Progress to {state.nextTier.star ? `Unreal star ${state.nextTier.star}` : state.nextTier.tier}</span>
-                  <span>{sportProgressPct}%</span>
-                </div>
-                <div className="sportBadgeProgressBar">
-                  <div
-                    className="sportBadgeProgressFill"
-                    style={{ width: `${sportProgressPct}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="badgeDescProgress">
-          {typeof card.getProgressText === "function"
-            ? card.getProgressText({
-                value: state.value,
-                nextTier: state.nextTier,
-                currentTier: state.currentTier,
-                highestEarnedIndex: state.highestEarnedIndex,
-                highestClaimedIndex: state.highestClaimedIndex,
-                stats: badgeStats,
-                meta: {
-                  earlyCutoffHour: badgeStats?.behaviour?.earlyCutoffHour,
-                  nightCutoffHour: badgeStats?.behaviour?.nightCutoffHour,
-                  paceImprovementSport: badgeStats?.intelligence?.paceImprovementSport,
-                },
-              })
-            : card.desc}
-        </div>
-      </div>
-
-      <div className="badgeTierGrid">
-        {card.tiers.map((tier, idx) => {
-          const tierName =
-            tier.tier.charAt(0).toUpperCase() + tier.tier.slice(1);
-
-          const isClaimedTier = claimedTierIndex >= idx;
-          const isCurrentEarnedTier = state.highestEarnedIndex >= idx && !isClaimedTier;
-          const isNextTier = state.nextTier?.key === tier.key;
-
-          let chipClass = "badgeTierChip";
-          if (isClaimedTier) chipClass += " badgeTierChip--claimed";
-          else if (isCurrentEarnedTier) chipClass += " badgeTierChip--earned";
-          else if (isNextTier) chipClass += " badgeTierChip--next";
-          else chipClass += " badgeTierChip--locked";
-
-          return (
-            <div key={tier.key} className={chipClass}>
-              <div className="badgeTierChipName">{tierName}</div>
-              <div className="badgeTierChipMeta">
-                {getTierRequirementText(card, tier)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  if (badgeView !== "all" && !state.currentTier) return null;
+  const progressText = typeof card.getProgressText === "function" ? card.getProgressText({
+    ...state, stats: badgeStats, meta: {
+      earlyCutoffHour: badgeStats?.behaviour?.earlyCutoffHour,
+      nightCutoffHour: badgeStats?.behaviour?.nightCutoffHour,
+      paceImprovementSport: badgeStats?.intelligence?.paceImprovementSport,
+    },
+  }) : card.desc;
+  return <SportsMasteryCabinet key={`${activeProfileId}:${card.id}`} card={card} state={state}
+    claimedKeys={claimedRewardsSet} lastDate={badgeStats?.sportMastery?.[card.sportKey]?.lastDate}
+    faceText={card.badgeGroup === "sport_mastery" ? getSportBadgeFaceText(card) : getBadgeFaceText(card)}
+    requirementText={tier => getTierRequirementText(card, tier)} progressText={progressText}
+    flash={card.tiers.some(tier => tier.key === lastClaimedKey) || (card.sportKey && lastClaimedKey.startsWith(`badge_sport_${card.sportKey}_mastery_unreal_star_`))}
+    onClaim={element => claimBadgeCabinet(card, element)} />;
 })}
           </div>
 

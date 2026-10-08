@@ -49,3 +49,11 @@ Claims retain the existing queued profile saves and per-key double-click lock. T
 Regression coverage includes all thirteen sports, old reward identity/XP compatibility, tier boundaries, staged display, repeat thresholds, sport isolation, malformed repeat keys, retained claims after edited logs, duplicate day rows, future-date exclusion, latest-date ordering and generated client/Edge XP map parity. UI checks cover stage-gated history, compact cabinets, previous trophies, next targets, claim failures/double clicks, star display, popup opening/closing and keyboard focus restoration. Existing timezone-sensitive early-bird tests are run with TZ=UTC, matching GitHub's runner.
 
 Physical Galaxy Fold checks and authenticated browser visual verification remain outstanding; this change does not claim these were completed.
+
+### Performance trophy cabinets (8 October 2026)
+
+Performance badges now share the compact trophy cabinet and accessible detail dialog used by sport mastery. Pace, repetition, training totals, behaviour and streak badges retain their existing five tier targets and XP rewards. Pace uses lower-is-better times; missing/zero times cannot earn trophies. Previously claimed trophies remain visible after log edits. A single claim collects eligible unclaimed tiers in order and retries skip rewards already saved.
+
+Detail notes use their own dark-theme styling, avoiding the global white `.mini` panels. Diamond completes performance collections; no prestige milestones or stars are advertised for these cards yet. Future performance prestige needs suitable targets for each metric as well as artwork, rather than reusing sport session counts.
+
+Validation: 1,168 tests across 194 files, production build, badge asset inventory and dependency audit passed. Physical-device and authenticated visual checks remain outstanding.
