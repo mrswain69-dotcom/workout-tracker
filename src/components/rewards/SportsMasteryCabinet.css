@@ -56,3 +56,19 @@
 .masteryCabinet--flash{animation:masteryCabinetFlash .85s ease}
 @keyframes masteryCabinetFlash{50%{box-shadow:0 0 0 2px #f59e0b77,0 6px 24px #f59e0b22}}
 @media(prefers-reduced-motion:reduce){.masteryCabinet--flash{animation:none}}
+.masteryStarGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.masteryStarMilestone{display:flex;flex-direction:column;gap:5px;border:1px solid #ffffff24;border-radius:10px;padding:12px;font-size:12px;line-height:1.5}
+.masteryStarMilestone strong{color:#f7c85d}
+.masteryDetailsDialog a{color:#7dd3fc}
+.masteryVerifiedStar{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:22px;line-height:1;color:#fbbf24;text-shadow:0 1px 3px #000,0 0 7px #fbbf2470}
+.masteryBadgeArt--tiny .masteryVerifiedStar{font-size:10px}
+.masteryVerifiedLabel{font-size:11px;font-weight:600;color:#896308}
+.masteryEvidence{border-top:1px solid #ffffff30;padding-top:16px;margin:20px 0}
+.masteryEvidence h3{font-size:16px}
+.masteryEvidence summary{cursor:pointer;padding:10px 0;font-size:13px}
+.masteryEvidenceRows{display:grid;gap:8px;max-height:360px;overflow:auto}
+.masteryEvidenceRow{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;border:1px solid #ffffff24;border-radius:8px;padding:10px;font-size:12px}
+.masteryEvidenceRow button{background:transparent;border:0;color:#7dd3fc;text-decoration:underline;cursor:pointer;padding:0;min-height:32px}
+.masteryEvidenceRow small{color:#cbd5e1}
+.masteryStarMilestone{position:relative}
+.masteryStarMilestone--locked strong{color:#94a3b8}

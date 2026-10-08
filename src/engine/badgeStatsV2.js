@@ -725,6 +725,7 @@ function extractCardioEfforts(log) {
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
 
   for (const b of blocks) {
+    if (!b || b.cancelled || b.suspendedByRecoveryMode) continue;
     const typeId = String(b?.typeId || "").toLowerCase();
 
     if (
@@ -817,7 +818,9 @@ export function buildBadgeStatsV2({ allLogs, todayYmd, isAdult }) {
   let totalVolumeKg = 0;
   let totalSets = 0;
   let totalReps = 0;
+  const overloadDates = new Set();
   let maxStrengthSetsInSession = 0;
+  const strengthTrainingDates = new Set();
 
 // -----------------------------
 // Behaviour
@@ -877,7 +880,7 @@ const lastStrengthScoreByMovement = new Map();
   for (const row of rows) {
     const log = row?.log;
     const dateStr = row?.date_ymd || row?.date;
-    if (!log || !dateStr) continue;
+    if (!log || !dateStr || dateStr > today) continue;
 
     // Streak-day marking for badge streak stats.
 // Must match the App.jsx streak XP logic, including saved streak days.
@@ -900,6 +903,7 @@ greenByDate.set(dateStr, isStreakCountingDay(log));
       const lastScore = lastStrengthScoreByMovement.get(movementId);
       if (lastScore != null && currentScore > lastScore) {
         progressiveOverloadEvents += 1;
+        overloadDates.add(dateStr);
       }
 
       if (lastScore == null || currentScore > lastScore) {
@@ -949,6 +953,7 @@ greenByDate.set(dateStr, isStreakCountingDay(log));
       }
     }
 
+    if (sessionSets >= 10 && dateStr <= today) strengthTrainingDates.add(dateStr);
     maxStrengthSetsInSession = Math.max(maxStrengthSetsInSession, sessionSets);
 
 // Behaviour time-based
@@ -1104,6 +1109,7 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
   // This is the stat used by the Pace Improvement badge.
   // It scans historical 28-day windows and finds the best improvement ever achieved.
   // If workout history changes, this value recalculates and badges update honestly.
+  const paceImprovementDates = new Set();
   let paceImprovementBestPct = 0;
   let paceImprovementBestSport = null;
 
@@ -1147,6 +1153,7 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
         });
 
         const imp = improvement(prev, cur);
+        if (imp != null && imp >= 3 && endDate <= today) paceImprovementDates.add(endDate);
 
         if (imp != null && imp > paceImprovementBestPct) {
           paceImprovementBestPct = imp;
@@ -1166,6 +1173,8 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
     },
     sessions: {
       maxStrengthSetsInSession,
+      strengthTrainingDays: strengthTrainingDates.size,
+      strengthTrainingDates: [...strengthTrainingDates].sort(),
     },
     behaviour: {
       earlyBirdSessions,
@@ -1209,6 +1218,7 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
     sportMastery,
         intelligence: {
       progressiveOverloadEvents,
+      overloadDates: [...overloadDates].sort(),
 
       // Current rolling improvement, useful for live progress text / diagnostics.
       paceImprovementPct4w,
@@ -1216,6 +1226,8 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
 
       // Historical best improvement, used for the badge so earned history remains valid.
       paceImprovementBestPct,
+      paceImprovementDays: paceImprovementDates.size,
+      paceImprovementDates: [...paceImprovementDates].sort(),
       paceImprovementBestSport,
     },
   };

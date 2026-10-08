@@ -57,3 +57,9 @@ Performance badges now share the compact trophy cabinet and accessible detail di
 Detail notes use their own dark-theme styling, avoiding the global white `.mini` panels. Diamond completes performance collections; no prestige milestones or stars are advertised for these cards yet. Future performance prestige needs suitable targets for each metric as well as artwork, rather than reusing sport session counts.
 
 Validation: 1,168 tests across 194 files, production build, badge asset inventory and dependency audit passed. Physical-device and authenticated visual checks remain outstanding.
+
+### Performance prestige and source verification (8 October 2026)
+
+Supersedes the Diamond-only performance limit above: all 64 performance cards now have Pro, Champion, Elite and Unreal, followed by ten zero-XP stars. Existing five-tier targets/rewards remain stable. Pace ceilings use sourced road-running/long-course-swimming references where comparable, and labelled app targets elsewhere. Session Builder and Pace Improvement switch to repeat qualifying days after their existing Diamond requirement. See `docs/performance-prestige-and-verification.md` for the complete target table, benchmark sources and verification rules.
+
+A small gold star at the trophy peak represents supporting linked provider evidence, independently of progression stars. Details include verification status and a collapsed list of contributing log days with direct navigation. Source evidence cannot verify manually entered strength set/rep/weight values. Reward maps are shared with the existing XP services; no database migration or leaderboard rule change is required.

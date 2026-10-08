@@ -192,6 +192,7 @@ export function buildVerifiedCardioEvidence(data = {}) {
       manualLink: manualLinkByActivity.get(activity.id) || null,
       distanceKm,
       durationMin,
+      durationSec: duration.value,
       averageSpeedKmh,
       paceMinPerKm,
       averageHeartRateBpm: averageHr.value === null ? null : roundTo(averageHr.value, 0),
