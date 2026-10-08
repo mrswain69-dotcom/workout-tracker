@@ -20,3 +20,7 @@ Tier prompt additions:
 Bronze–Platinum use natural sports fabrics without glow. Diamond–Unreal use progressively refined futuristic sportswear and subtle illumination confined to clothing, keeping clear human faces and natural proportions. No armour, crowns, weapons, wings or background scenery.
 
 The eight-tier avatar ladder remains distinct from the nine-tier badge ladder.
+
+## Paired edition handoff
+
+The first eight portraits remain the legacy edition. Future production follows `avatar-production/paired-sport-avatar-briefs.md`, with two versions at every tier and a new kit/accessory/award progression. Preserve all existing portraits and reward IDs.
