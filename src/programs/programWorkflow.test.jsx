@@ -16,9 +16,9 @@ describe("programme workflow privacy and lifecycle", () => {
       readProgramNotification: vi.fn(async () => ({ data: true })) };
     const view = render(<ProgramNotifications familyId="family" profileId="old" db={db} />);
     view.rerender(<ProgramNotifications familyId="family" profileId="new" db={db} />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Notifications (1)" })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Notifications (1 unread)" })).toBeTruthy());
     resolveOld({ data: [{ id: "old", title: "Old private offer", created_at: "2026-10-05" }] });
-    fireEvent.click(screen.getByRole("button", { name: "Notifications (1)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Notifications (1 unread)" }));
     expect(screen.queryByText("Old private offer")).toBeNull();
     expect(screen.getByText("New profile offer")).toBeTruthy();
   });
@@ -27,7 +27,7 @@ describe("programme workflow privacy and lifecycle", () => {
       readProgramNotification: vi.fn(async () => ({ data: false, error: new Error("Offline") })) };
     const open = vi.fn();
     render(<ProgramNotifications familyId="f" profileId="p" db={db} onOpen={open} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Notifications (1)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Notifications (1 unread)" }));
     fireEvent.click(screen.getByRole("button", { name: /Programme offered/ }));
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Offline");
     expect(open).not.toHaveBeenCalled();

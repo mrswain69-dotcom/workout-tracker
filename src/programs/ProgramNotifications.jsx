@@ -43,7 +43,13 @@ export default function ProgramNotifications({ familyId, profileId, onOpen, db =
     finally { setBusy(""); }
   }
   return <div className="programInbox">
-    <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>Notifications{unread ? ` (${unread})` : ""}</button>
+    <button className="iconBtn programInboxTrigger" type="button" aria-label={unread ? `Notifications (${unread} unread)` : "Notifications"} title="Notifications" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <svg className="iconSvg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M10 21h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+      {unread ? <span className="programInboxBadge" aria-hidden="true">{unread > 9 ? "9+" : unread}</span> : null}
+    </button>
     {open ? <section className="programInboxPanel" aria-label="Programme notifications">
       <div className="programWorkflowHeading"><h3>Notifications</h3><button type="button" onClick={() => setOpen(false)}>Close</button></div>
       {error ? <p role="alert">{error}</p> : null}

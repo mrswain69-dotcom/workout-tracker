@@ -9445,6 +9445,7 @@ const cardioProgress = useMemo(() => {
     </div>
 
     <div className="brandActions">
+      <ProgramNotifications familyId={family?.id} profileId={activeProfileId} onOpen={(notification) => { setProgramLibrarySection(notification.client_connection_id ? "clients" : notification.audience === "coach" ? "mine" : "shared"); setPlanWorkspaceView("library"); setTab("plan"); }} />
       <button type="button" className="iconBtn" onClick={() => setTab("settings")} aria-label="Open Settings" title="Settings">
         <span className="iconEmoji">⚙️</span>
       </button>
@@ -9508,7 +9509,6 @@ const cardioProgress = useMemo(() => {
 </h1>
 
     <div className="header-right">
-      <ProgramNotifications familyId={family?.id} profileId={activeProfileId} onOpen={(notification) => { setProgramLibrarySection(notification.client_connection_id ? "clients" : notification.audience === "coach" ? "mine" : "shared"); setPlanWorkspaceView("library"); setTab("plan"); }} />
       <div className="selectWide">
         <Select
           value={activeProfileId}
