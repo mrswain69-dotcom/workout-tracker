@@ -64,11 +64,15 @@ describe("paired appearances", () => {
       }
     }
   });
+  it("uses a valid default for paired-only collections", () => {
+    expect(sportAvatarArtworkSrc("basketball", "bronze")).toBe("/avatars/sport/basketball_bronze_male_v2.png");
+    expect(sportAvatarArtworkSrc("basketball", "bronze", {edition:"paired_v2",variant:"female"})).toBe("/avatars/sport/basketball_bronze_female_v2.png");
+  });
   it("retains originals and rejects incomplete or invalid variant paths", () => {
     for (const appearance of [undefined, {variant:"female"}, {edition:"paired_v2",variant:"../x"}]) {
       expect(sportAvatarArtworkSrc("football","bronze",appearance)).toBe("/avatars/sport/football_bronze.png");
     }
-    expect(sportAvatarArtworkSrc("basketball","bronze",{edition:"paired_v2",variant:"female"})).toBeNull();
+    expect(sportAvatarArtworkSrc("tennis","bronze",{edition:"paired_v2",variant:"female"})).toBeNull();
     expect(sportAvatarArtworkSrc("football","../x")).toBeNull();
   });
 });
