@@ -25,3 +25,7 @@ All16 Basketball portraits complete, entering release checks. Cricket deployed i
 ### Tennis checkpoint
 
 All16 Tennis portraits complete, entering release checks. Basketball deployed in PR89, all16 live hashes verified. Next Badminton, Netball, Hockey, Fencing, Martial Arts, Indoor Rowing, Outdoor Rowing, Yoga; continuous production remains authorized.
+
+### Badminton checkpoint
+
+All16 Badminton portraits complete, entering release checks. Tennis deployed in PR90, all16 live hashes verified. Next Netball, Hockey, Fencing, Martial Arts, Indoor Rowing, Outdoor Rowing, Yoga; continuous production authorized.
