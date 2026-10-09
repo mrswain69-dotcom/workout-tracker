@@ -1688,7 +1688,7 @@
     ],
     "status": "in_progress",
     "notes": "Rugby reviewed: retain Bronze/Silver, twelve later-tier v3 portraits complete. Football review pending. Both original releases preserved.",
-    "completed_portraits": 22,
+    "completed_portraits": 24,
     "record": "refinement-production-record.json",
     "completed_sports": [
       "rugby"
