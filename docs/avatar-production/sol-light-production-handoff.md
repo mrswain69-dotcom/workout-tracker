@@ -13,3 +13,7 @@ The user requested the Football/Rugby corrections and then continuous production
 ### Refinement checkpoint — 9 October 2026
 
 Rugby refinement deployed in PR86 and all sixteen live image hashes verified. Football later-tier refinement complete, entering release checks. Next: Cricket, then Basketball, Tennis, Badminton, Netball, Hockey, Fencing, Martial Arts, Indoor Rowing, Outdoor Rowing and Yoga. Continue through all sports under the expanded authorization above.
+
+### Cricket checkpoint
+
+All16 Cricket portraits complete and entering integration checks. Football refinement deployed in PR87, all16 live hashes verified. Next Basketball, then remaining sports in saved order; continued production authorized.
