@@ -9,3 +9,7 @@ For later batches, use the same instruction with **Cricket** replaced by the nex
 ## Expanded user authorisation — 9 October 2026
 
 The user requested the Football/Rugby corrections and then continuous production until every queued sport is complete. Resume saved work, finish Football refinement after Rugby, then Cricket through Yoga in queue order. Work through one collection at a time with paired checkpoints and complete integration/release checks. No additional approval is needed between pairs or sports within this scope. Do not report the entire programme complete until all thirteen collections are released under the revised art direction.
+
+### Refinement checkpoint — 9 October 2026
+
+Rugby refinement deployed in PR86 and all sixteen live image hashes verified. Football later-tier refinement complete, entering release checks. Next: Cricket, then Basketball, Tennis, Badminton, Netball, Hockey, Fencing, Martial Arts, Indoor Rowing, Outdoor Rowing and Yoga. Continue through all sports under the expanded authorization above.

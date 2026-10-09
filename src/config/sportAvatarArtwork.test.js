@@ -55,7 +55,7 @@ describe("paired appearances", () => {
         const paired = resolveAvatarIdentity(original.id, { edition: "paired_v2", variant });
         expect(paired.id).toBe(original.id);
         expect(paired.unlockSource).toEqual(original.unlockSource);
-        const revision = sport === "rugby" && !["bronze", "silver"].includes(tier) ? "v3" : "v2";
+        const revision = ["football", "rugby"].includes(sport) && !["bronze", "silver"].includes(tier) ? "v3" : "v2";
         expect(paired.imgSrc).toBe(`/avatars/sport/${sport}_${tier}_${variant}_${revision}.png`);
         const png = readFileSync(new URL(`../../public${paired.imgSrc}`, import.meta.url));
         expect(png.subarray(0,8).toString("hex")).toBe("89504e470d0a1a0a");
