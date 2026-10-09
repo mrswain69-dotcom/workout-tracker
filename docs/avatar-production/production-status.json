@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "brief": "paired-sport-avatar-briefs.json",
-  "updated": "2026-10-08",
+  "updated": "2026-10-09",
   "assets": [
     {
       "sport": "football",
@@ -1667,5 +1667,14 @@
       "final_path": "public/avatars/sport/outdoor_rowing_unreal_female_v2.png",
       "notes": ""
     }
-  ]
+  ],
+  "visual_refinement": {
+    "brief_version": "1.2",
+    "sports": [
+      "rugby",
+      "football"
+    ],
+    "status": "review_required",
+    "notes": "Live collections remain ready for use. Review adult age readability and repeated poses; preserve originals and regenerate only failed portraits. No new images produced by this brief update."
+  }
 }

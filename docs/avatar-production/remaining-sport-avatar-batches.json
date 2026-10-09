@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated": "2026-10-08",
+  "updated": "2026-10-09",
   "brief": "paired-sport-avatar-briefs.json",
   "inventory": "production-status.json",
   "completed_sports": [
@@ -288,5 +288,7 @@
       },
       "first_step": "Create and inspect Bronze male/female anchors, then Unreal pair; complete remaining pairs without another approval unless an unresolved blocker requires it."
     }
-  ]
+  ],
+  "art_direction_version": "1.2",
+  "quality_gate": "Visibly adult faces from Platinum onward; distinct tier silhouettes; existing junior references supply identity, not adult anatomy."
 }

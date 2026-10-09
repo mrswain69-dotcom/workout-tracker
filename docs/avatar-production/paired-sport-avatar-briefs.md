@@ -1,19 +1,19 @@
 # Workout Tracker — paired sport mastery avatar production briefs
 
-**Version 1.1 · 8 October 2026 · Remaining collections ready for production handoff**
+**Version 1.2 · 9 October 2026 · Visible ageing and varied poses required**
 
-This specifies the paired artwork and replaces the recolour-led Rugby direction. Football's sixteen paired assets and appearance selector are now live; twelve collections remain. The core roadmap still places Locker customisation last.
+This specifies the paired artwork and replaces the recolour-led Rugby direction. Football and Rugby each have sixteen paired assets and a live appearance selector; eleven collections / 176 portraits remain. Existing live portraits still require the age/pose review below. The core roadmap still places Locker customisation last.
 
 ## Quick handoff for Sol Light
 
 Read the shared rules below and only the sport being produced. The JSON companion is the canonical structured prompt source; the small prompt helper composes one image brief without calling an image model or spending image-generation credits.
 
-Football's Bronze pilot and complete collection are approved and live. Continue with Rugby using `sol-light-production-handoff.md`. The remaining twelve batches, five-pass checkpoints and integration requirements are in `remaining-sport-avatar-batches.md` and its JSON queue. The approved Football paired assets are now the rendering references; the sport-specific identities, kit and awards below remain authoritative.
+Football's Bronze pilot and complete collection are approved and live. Continue with Cricket using `sol-light-production-handoff.md`. The remaining eleven batches, five-pass checkpoints and integration requirements are in `remaining-sport-avatar-batches.md` and its JSON queue. The approved Football paired assets are now the rendering references; the sport-specific identities, kit and awards below remain authoritative.
 
 ### Production order
 
 1. Football paired collection — complete and live (16 portraits).
-2. Rugby full paired collection using the revised kit/award story.
+2. Rugby paired collection — complete and live (16 portraits); age/pose refinement queued.
 3. Cricket paired collection, preserving its existing visual direction.
 4. Basketball and Tennis.
 5. Badminton, Netball and Hockey.
@@ -26,9 +26,11 @@ There are **13 sports × 8 tiers × 2 variants = 208 final portrait slots**. The
 ## Shared design rules
 
 - One male and one female version at every tier; one unlock earns both. Awards, equipment quality, material finish and presentation have equal value for both versions. No additional claim, session requirement or XP for switching.
-- Keep a recognisable fictional male athlete and a recognisable fictional female athlete through each sport's ladder. Stable face/hair/skin identity within that ladder, with gentle junior-to-adult development. Different sports use different characters. Do not use real athlete likenesses.
-- Bronze is visibly a youth/developing athlete, around 12–14, in basic practical kit; Silver is older academy stage, around 15–17. Gold is young adult; Platinum onward is established adult. This is the character's story, not an estimate of the user's age or ability. Higher tiers do not mean exaggerated muscles, sexualisation or compulsory body growth.
+- Keep a recognisable fictional male athlete and a recognisable fictional female athlete through each sport's ladder. Keep recognisable eye shape, skin tone and hair character, while visibly maturing facial proportions, posture and expression. Do not freeze the Bronze face. Current sport sheets use different fictional characters; these are individual career stories, not a demographic template for a sport. A future recurring-character roster could show the same person across sports without changing unlocks. Do not use real athlete likenesses.
+- Bronze is visibly junior (12–14); Silver is an older teenager (15–17); Gold reads as a young adult (18–22). Platinum 23–27, Diamond 26–30, Elite 28–33, Champion 30–36 and Unreal 32–40 must visibly read as progressively experienced adults. This is the character's story, not an estimate of the user's age or ability. Higher tiers do not mean exaggerated muscles, sexualisation or compulsory body growth.
 - Premium semi-realistic stylised 3D game-skin finish, credible for ages 10 through adult. Natural body proportions, crisp face, clean silhouette and believable equipment. Avoid childish/chibi presentation.
+- Each tier needs a distinct silhouette: body angle, stance, arm/equipment placement and expression. Use controlled sporting poses and restrained celebration as well as presentation stances. Do not duplicate one ball-at-hip pose across the ladder. Male/female versions match prestige, not an identical mannequin pose.
+- Adult tiers need natural eye-to-face proportions, a developed nose/jaw, less rounded cheeks and assured bearing in both appearances. Muscles, beard, makeup, suit or awards do not compensate for a childlike face. Avoid oversized doll eyes.
 - Prestige grows through kit, relevant accessories, individual recognition, club/league/international awards and finally formal presentation. Changing colour or adding glow is not sufficient progression.
 - Both variants have functional sport clothing and equally substantial awards. Formal female portraits use a tailored trouser suit, with the same visual stature as the male suit; no default high heels or evening dress.
 - Bronze has no award. Later trophy collections have at most three large recognition objects; the athlete remains dominant. Small watch/medal/ring details support the story rather than replacing a visible tier upgrade.
@@ -43,14 +45,14 @@ There are **13 sports × 8 tiers × 2 variants = 208 final portrait slots**. The
 
 | Avatar tier | Counted sessions | Existing one-time XP | Character/presentation stage |
 | --- | ---: | ---: | --- |
-| Bronze | 40 | 25 | Youth academy/developing athlete, approximately 12–14, modest practical kit, natural junior physique; no adult musculature or jewellery. |
-| Silver | 80 | 35 | Older academy/developing athlete, approximately 15–17, practical kit, natural adolescent proportions. |
-| Gold | 120 | 50 | Young adult competitive athlete, approximately 18–22, confident but natural physique. |
-| Platinum | 160 | 70 | Established adult athlete, approximately 23–30; progression through kit and awards, not enlarged muscles. |
-| Diamond | 200 | 95 | Established adult athlete, approximately 23–30; champion-level presentation and composed expression. |
-| Elite | 240 | 125 | Established adult athlete, approximately 23–30; elite finish comes from excellent kit and awards, not glow. |
-| Champion | 280 | 160 | Established adult athlete, approximately 23–30; highly accomplished champion, no exaggerated ageing or body growth. |
-| Unreal | 320 | 200 | Established adult athlete, approximately 23–30, formal awards-night recognition; equal tailored trouser-suit quality for both variants. |
+| Bronze | 40 | 25 | Visibly junior athlete, approximately 12–14, natural youthful face and proportions, modest practical kit; no adult musculature or jewellery. |
+| Silver | 80 | 35 | Older teenager, approximately 15–17; subtly lengthened facial proportions and developing posture, visibly older than Bronze. |
+| Gold | 120 | 50 | Young adult, approximately 18–22; face and body read as adult rather than a child in first-team clothing. |
+| Platinum | 160 | 70 | Adult athlete, approximately 23–27; clearly mature facial structure, natural eye size and less rounded cheeks, confident posture. |
+| Diamond | 200 | 95 | Experienced adult, approximately 26–30; mature face and composed leadership expression, not a copied junior face. |
+| Elite | 240 | 125 | Established elite adult, approximately 28–33; developed adult facial proportions and assured bearing, restrained natural expression lines. |
+| Champion | 280 | 160 | Highly accomplished adult, approximately 30–36; recognisable mature identity, seasoned expression and controlled posture; no exaggerated muscles or ageing. |
+| Unreal | 320 | 200 | Mature adult, approximately 32–40; clearly adult face and natural subtle expression lines, composed awards-night bearing, equal tailored trouser-suit quality for both appearances. |
 
 The avatar ladder is **Bronze → Silver → Gold → Platinum → Diamond → Elite → Champion → Unreal**. It has no Pro avatar. Do not reorder Elite/Champion to match the separate nine-tier badge ladder. XP packs and repeat Unreal badge stars are outside this artwork specification.
 
@@ -101,14 +103,14 @@ Each row defines both variants; apply the character identity above the table and
 
 | Tier | Kit / materials | Award or milestone object | Pose / composition |
 | --- | --- | --- | --- |
-| Bronze | Simple junior burgundy shirt with cream trim, practical shorts and inexpensive boots. | None. | Standing with the oval ball held securely against one hip. |
-| Silver | Tidy academy rugby kit, better socks and boots; optional soft scrum cap placed beside the boots, not hiding the face. | Small player-of-the-match statuette. | Ball tucked at hip, award held in the other hand. |
-| Gold | First-team burgundy kit with cream and modest gold trim, premium boots. | Individual season-player award: original oval-ball sculpture on a dark base. | Standing beside the compact individual award with ball held at waist. |
-| Platinum | Refined club kit with clean side seams and small abstract captain marker. | Medium club knockout cup with two handles. | Composed ball-carry stance, cup beside the boots. |
-| Diamond | Championship kit, richer cream/gold materials without excessive jewellery. | Tall domestic championship cup. | Upright captain stance beside the trophy. |
-| Elite | Midnight-navy international-level kit with rich gold piping. | One major international rugby cup with an original gold two-handled silhouette. | Ball at hip, cup clearly visible at the feet. |
-| Champion | Highest-quality navy-and-gold playing kit, confident leader presentation. | Three trophies maximum: club cup, domestic title and international cup. | Standing behind a compact trophy group without hiding the torso. |
-| Unreal | Tailored navy formal trouser suit for both variants, white shirt or blouse, burgundy tie or pocket accent, elegant watch. | One original polished silver player-of-the-year honour with a stylised oval-ball motif. | Head-to-mid-thigh formal portrait holding the individual honour. |
+| Bronze | Simple junior burgundy shirt with cream trim, practical shorts and inexpensive boots. | None. | Relaxed three-quarter introduction facing slightly left, oval ball held with both hands low in front; weight naturally on one leg. No award. |
+| Silver | Tidy academy rugby kit, better socks and boots; optional soft scrum cap placed beside the boots, not hiding the face. | Small player-of-the-match statuette. | Torso turned slightly right, small award presented in one hand and oval ball tucked under the other arm; pleased modest expression. |
+| Gold | First-team burgundy kit with cream and modest gold trim, premium boots. | Individual season-player award: original oval-ball sculpture on a dark base. | Controlled passing-ready stance facing left: staggered feet, gently bent knees, oval ball held in both hands at mid-torso; compact gold award at the feet, face unobstructed. |
+| Platinum | Refined club kit with clean side seams and small abstract captain marker. | Medium club knockout cup with two handles. | Confident controlled forward step on a diagonal, ball carried in one arm, free arm relaxed; club cup beside the boots, both feet inside frame. |
+| Diamond | Championship kit, richer cream/gold materials without excessive jewellery. | Tall domestic championship cup. | Grounded captain stance facing forward, one hand at hip, other arm relaxed; single oval ball on the ground beside a boot and championship trophy beside the other leg. |
+| Elite | Midnight-navy international-level kit with rich gold piping. | One major international rugby cup with an original gold two-handled silhouette. | Restrained victory gesture with free arm raised and open hand, ball secured under the other arm; international cup fully visible at feet, mature pleased expression. |
+| Champion | Highest-quality navy-and-gold playing kit, confident leader presentation. | Three trophies maximum: club cup, domestic title and international cup. | Confident three-quarter contrapposto turned right, one hand at hip and the other relaxed; single ball on ground beside boots, three distinct cups compactly at feet without hiding torso. |
+| Unreal | Tailored navy formal trouser suit for both variants, white shirt or blouse, burgundy tie or pocket accent, elegant watch. | One original polished silver player-of-the-year honour with a stylised oval-ball motif. | Mature formal three-quarter portrait turned slightly left, individual honour supported naturally with both hands at waist-to-chest height; composed adult expression, head-to-mid-thigh crop. |
 
 ### Cricket — `cricket`
 
@@ -122,14 +124,14 @@ Each row defines both variants; apply the character identity above the table and
 
 | Tier | Kit / materials | Award or milestone object | Pose / composition |
 | --- | --- | --- | --- |
-| Bronze | Basic junior ivory cricket whites, plain pads and simple gloves. | None. | Standing with bat blade resting on the ground; one red ball at the boots. |
-| Silver | Neater academy whites and improved pads/gloves; helmet placed beside the bat. | Small player-of-the-match award. | Award in one hand, bat resting safely beside the feet. |
-| Gold | Premium club whites with subtle navy piping; well-fitted protective kit. | Compact individual season-player trophy with abstract cricket-ball motif. | Calm stance with bat and individual trophy beside the feet. |
-| Platinum | Tailored club kit and high-quality gloves/pads, no fictional national crest. | One regional club-cup trophy. | Bat grounded, trophy held at waist or placed beside the feet. |
-| Diamond | Refined navy-and-ivory championship playing kit, premium helmet at the feet. | Tall domestic league-title cup. | Composed team-leader stance beside the title trophy. |
-| Elite | Rich navy-and-gold international-level kit, understated metallic seam accents. | One global cricket championship cup, original globe-and-pillars design. | Standing with championship trophy at the feet, bat grounded on the other side. |
-| Champion | Highest-quality navy/gold kit with clean, successful-athlete presentation. | Three trophies maximum: individual season honour, domestic title and global cup. | Athlete clearly dominant above a compact trophy group. |
-| Unreal | Formal navy trouser suit, white shirt or blouse, discreet gold/navy pocket accent and watch. | One original overall-cricketer-of-the-year honour. Male: One original tall silver overall-player honour inspired by the Sir Garfield Sobers award context, without copied lettering or logos. Female: One equally substantial original silver bowl/globe overall-player honour inspired by the Rachael Heyhoe Flint award context, without copied lettering or logos. | Head-to-mid-thigh awards portrait holding the final individual honour. |
+| Bronze | Basic junior ivory cricket whites, plain pads and simple gloves. | None. | Relaxed junior three-quarter introduction facing left, both hands lightly resting on a safely grounded bat handle; single red ball beside boots. No award. |
+| Silver | Neater academy whites and improved pads/gloves; helmet placed beside the bat. | Small player-of-the-match award. | Torso turned right, small award presented in one hand, safely grounded bat supported in the other; modest pleased expression, different stance from Bronze. |
+| Gold | Premium club whites with subtle navy piping; well-fitted protective kit. | Compact individual season-player trophy with abstract cricket-ball motif. | Controlled batting-ready stance facing left, staggered feet and softly bent knees, both hands on bat held safely beside hip below shoulder level; face clear, individual trophy and single ball beside feet. |
+| Platinum | Tailored club kit and high-quality gloves/pads, no fictional national crest. | One regional club-cup trophy. | Confident controlled diagonal step, grounded bat held at one side and free hand relaxed; club cup beside the other leg, both feet inside frame. |
+| Diamond | Refined navy-and-ivory championship playing kit, premium helmet at the feet. | Tall domestic league-title cup. | Grounded team-leader stance facing forward, one hand at hip and the other supporting a safely grounded bat; title trophy and ball at feet, composed mature face. |
+| Elite | Rich navy-and-gold international-level kit, understated metallic seam accents. | One global cricket championship cup, original globe-and-pillars design. | Restrained victory gesture with free hand raised, other hand supporting grounded bat; championship cup beside boots, mature pleased expression. |
+| Champion | Highest-quality navy/gold kit with clean, successful-athlete presentation. | Three trophies maximum: individual season honour, domestic title and global cup. | Confident three-quarter contrapposto turned right, relaxed shoulders, grounded bat at outer side; athlete dominates compact three-trophy group with single ball beside boots. |
+| Unreal | Formal navy trouser suit, white shirt or blouse, discreet gold/navy pocket accent and watch. | One original overall-cricketer-of-the-year honour. Male: One original tall silver overall-player honour inspired by the Sir Garfield Sobers award context, without copied lettering or logos. Female: One equally substantial original silver bowl/globe overall-player honour inspired by the Rachael Heyhoe Flint award context, without copied lettering or logos. | Mature formal three-quarter portrait facing left, final individual honour held naturally with both hands at waist-to-chest height; head-to-mid-thigh crop, no bat or ball. |
 
 ### Basketball — `basketball`
 
@@ -400,3 +402,11 @@ These references ground the named football, rugby, cricket and outdoor-rowing aw
 - World Rowing awards: https://worldrowing.com/about/awards/world-rowing-awards/ — rower/crew-excellence recognition. Do not reuse this as proof of a distinct indoor-rowing award.
 
 All other honour silhouettes are original app design proposals. Tennis uses major-tournament and year-end inspiration rather than pretending one universal award is equivalent to the Ballon d’Or. Yoga and broad Martial Arts follow the exceptions above.
+
+## Age and pose review gate — 9 October 2026
+
+Inspect Bronze, Gold, Platinum and Unreal together before completing later tiers. Platinum onward must look unmistakably adult in both appearances, with a clear change in facial proportions from Bronze. Compare silhouettes separately from clothing: consecutive tiers must not repeat body angle, feet, hands and expression. Reject a later portrait that is simply the junior character in richer kit, even if its prompt gives an adult age.
+
+Bronze references establish recognisable features only. Adult references must themselves pass the adult-face review; existing baby-faced Unreal portraits are references for suit/award/rendering finish, not adult anatomy. Use the mature Unreal pair as the adult anchor for later portraits only after this review. The prompt helper includes canonical age stages and per-tier silhouette directions, alongside sport-specific poses.
+
+Football and Rugby remain live and retain their original reward keys/assets. Record a targeted visual revision, preserve the original, and replace only portraits that fail review. Do not silently mark v1.2 art corrections complete or spend credits regenerating the catalogue. See `age-and-pose-refinement.md`.
