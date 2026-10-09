@@ -623,17 +623,17 @@
       "sport": "tennis",
       "tier": "elite",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/tennis_elite_male_v2.png",
-      "notes": ""
+      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
     },
     {
       "sport": "tennis",
       "tier": "elite",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/tennis_elite_female_v2.png",
-      "notes": ""
+      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
     },
     {
       "sport": "tennis",
