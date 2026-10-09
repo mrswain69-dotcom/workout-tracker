@@ -40,96 +40,108 @@
       "tier": "gold",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_gold_male_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_gold_male_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_gold_male_v2.png"
     },
     {
       "sport": "football",
       "tier": "gold",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_gold_female_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_gold_female_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_gold_female_v2.png"
     },
     {
       "sport": "football",
       "tier": "platinum",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_platinum_male_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_platinum_male_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_platinum_male_v2.png"
     },
     {
       "sport": "football",
       "tier": "platinum",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_platinum_female_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_platinum_female_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_platinum_female_v2.png"
     },
     {
       "sport": "football",
       "tier": "diamond",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_diamond_male_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_diamond_male_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_diamond_male_v2.png"
     },
     {
       "sport": "football",
       "tier": "diamond",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_diamond_female_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_diamond_female_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_diamond_female_v2.png"
     },
     {
       "sport": "football",
       "tier": "elite",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_elite_male_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_elite_male_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_elite_male_v2.png"
     },
     {
       "sport": "football",
       "tier": "elite",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_elite_female_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_elite_female_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_elite_female_v2.png"
     },
     {
       "sport": "football",
       "tier": "champion",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_champion_male_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_champion_male_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_champion_male_v2.png"
     },
     {
       "sport": "football",
       "tier": "champion",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_champion_female_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_champion_female_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_champion_female_v2.png"
     },
     {
       "sport": "football",
       "tier": "unreal",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_unreal_male_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_unreal_male_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_unreal_male_v2.png"
     },
     {
       "sport": "football",
       "tier": "unreal",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/football_unreal_female_v2.png",
-      "notes": "Paired v2 collection; Bronze pilot approved. Original portraits retained."
+      "final_path": "public/avatars/sport/football_unreal_female_v3.png",
+      "notes": "Refined adult facial anatomy and varied tier poses; original retained.",
+      "previous_path": "public/avatars/sport/football_unreal_female_v2.png"
     },
     {
       "sport": "rugby",
@@ -1686,15 +1698,14 @@
       "rugby",
       "football"
     ],
-    "status": "in_progress",
-    "notes": "Rugby reviewed: retain Bronze/Silver, twelve later-tier v3 portraits complete. Football review pending. Both original releases preserved.",
+    "status": "complete",
+    "notes": "Football and Rugby reviewed: retain junior Bronze/Silver, twelve later-tier v3 portraits per sport. Original releases preserved.",
     "completed_portraits": 24,
     "record": "refinement-production-record.json",
     "completed_sports": [
-      "rugby"
-    ],
-    "remaining_sports": [
+      "rugby",
       "football"
-    ]
+    ],
+    "remaining_sports": []
   }
 }

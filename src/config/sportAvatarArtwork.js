@@ -3,7 +3,7 @@
 export const SPORT_AVATAR_ARTWORK_READY = ["football", "cricket", "rugby"];
 export const PAIRED_SPORT_AVATAR_ARTWORK_READY = ["football", "rugby"];
 // Refined artwork reuses the persisted paired_v2 cosmetic choice and logical reward.
-const REFINED_PAIRED_TIERS = { rugby: ["gold", "platinum", "diamond", "elite", "champion", "unreal"] };
+const REFINED_PAIRED_TIERS = { football: ["gold", "platinum", "diamond", "elite", "champion", "unreal"], rugby: ["gold", "platinum", "diamond", "elite", "champion", "unreal"] };
 const TIERS = ["bronze", "silver", "gold", "platinum", "diamond", "elite", "champion", "unreal"];
 
 export function sportAvatarAppearance(sportKey, appearance) {

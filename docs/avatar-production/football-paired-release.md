@@ -21,3 +21,7 @@ The authenticated SECURITY DEFINER advisory for the new RPC is intentional: the 
 Production build and UTC Vitest suite pass. Regression checks cover paired PNG inventory, path validation, legacy compatibility, unchanged identity requirements and explicit dialog application. `supabase/tests/paired_sport_avatar_appearance.sql` uses a rollback-only transaction to check ownership, unlocks, persistence, sanitized group sync, unchanged rewards/history and legacy restoration. No test writes remain in athlete data.
 
 Authenticated browser and physical Galaxy Fold checks remain outstanding. The other twelve sport pairs, Pack 16, Body Intelligence and later Locker work remain on the roadmap.
+
+## Age and pose refinement — 9 October 2026
+
+Gold through Unreal now use twelve reviewed v3 portraits with adult facial proportions and tier-specific poses. Bronze and Silver retain the junior/teen originals. The saved paired_v2 appearance, logical rewards, XP and unlock thresholds remain unchanged; no database migration is required. Original images and generation prompts are retained.
