@@ -168,96 +168,108 @@
       "tier": "gold",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_gold_male_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_gold_male_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_gold_male_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "gold",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_gold_female_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_gold_female_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_gold_female_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "platinum",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_platinum_male_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_platinum_male_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_platinum_male_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "platinum",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_platinum_female_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_platinum_female_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_platinum_female_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "diamond",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_diamond_male_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_diamond_male_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_diamond_male_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "diamond",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_diamond_female_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_diamond_female_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_diamond_female_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "elite",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_elite_male_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_elite_male_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_elite_male_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "elite",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_elite_female_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_elite_female_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_elite_female_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "champion",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_champion_male_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_champion_male_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_champion_male_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "champion",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_champion_female_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_champion_female_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_champion_female_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "unreal",
       "variant": "male",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_unreal_male_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_unreal_male_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_unreal_male_v2.png"
     },
     {
       "sport": "rugby",
       "tier": "unreal",
       "variant": "female",
       "status": "ready",
-      "final_path": "public/avatars/sport/rugby_unreal_female_v2.png",
-      "notes": "Complete paired v2 collection, visually reviewed and integrated; legacy portraits and logical rewards retained. Generation metadata: rugby-production-record.json."
+      "final_path": "public/avatars/sport/rugby_unreal_female_v3.png",
+      "notes": "Visible adult age and distinctive tier pose refined under brief v1.2; original v2 portrait preserved.",
+      "previous_path": "public/avatars/sport/rugby_unreal_female_v2.png"
     },
     {
       "sport": "cricket",
@@ -1675,8 +1687,14 @@
       "football"
     ],
     "status": "in_progress",
-    "notes": "Live collections remain ready for use. Review adult age readability and repeated poses; preserve originals and regenerate only failed portraits. No new images produced by this brief update.",
+    "notes": "Rugby reviewed: retain Bronze/Silver, twelve later-tier v3 portraits complete. Football review pending. Both original releases preserved.",
     "completed_portraits": 12,
-    "record": "refinement-production-record.json"
+    "record": "refinement-production-record.json",
+    "completed_sports": [
+      "rugby"
+    ],
+    "remaining_sports": [
+      "football"
+    ]
   }
 }

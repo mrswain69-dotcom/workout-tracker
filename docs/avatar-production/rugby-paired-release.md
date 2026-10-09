@@ -17,3 +17,7 @@ Rollback-only Rugby and Football SQL checks passed against the project database.
 UTC tests and the production build validate complete paired PNG paths, legacy compatibility, unchanged identity requirements, explicit dialog application and group appearance resolution. All sixteen originals are 1254 × 1254 RGBA with transparent alpha; hashes, prompts and references are recorded in `rugby-production-record.json`. Artwork was visually reviewed individually. The existing selector wraps on narrow layouts and the dialog has its mobile layout; authenticated browser and physical Galaxy Fold checks remain outstanding.
 
 Football and Rugby are complete. Cricket is next; eleven sports / 176 portraits remain. This release does not start another collection or the Pack 16, education or Locker stages.
+
+## Age and pose refinement — 9 October 2026
+
+Bronze/Silver retain their reviewed junior/teen portraits. Gold through Unreal now have twelve v3 portraits with visibly adult facial proportions and passing, stepping, captain, victory, champion and formal poses. All original v2 files remain. The resolver chooses the reviewed revision for the same saved `paired_v2` appearance; no profile migration, identity change or additional reward is required. Production provenance is in `refinement-production-record.json`. Football refinement and the eleven new sport collections remain in progress.
