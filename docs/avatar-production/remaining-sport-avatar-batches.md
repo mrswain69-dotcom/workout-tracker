@@ -28,7 +28,7 @@ Yoga comes last because it uses practice recognition rather than competition tro
 | Pass | Tiers, both appearances | Portraits | Checkpoint |
 | --- | --- | ---: | --- |
 | 1 | Bronze | 2 | Establish this sport's two distinct character anchors and junior practical kit. |
-| 2 | Unreal | 2 | Check mature formal portraits and equivalent final honours. |
+| 2 | Unreal | 2 | Require visibly adult faces (32–40), a distinct formal pose and equivalent final honours; approve the adult anchor before later tiers. |
 | 3 | Silver, Gold | 4 | Academy-to-competitive development and early awards. |
 | 4 | Platinum, Diamond | 4 | Established athlete, club/national/major award progression. |
 | 5 | Elite, Champion | 4 | Peak playing/practice kit and limited award collections. |
@@ -67,3 +67,5 @@ For new sports without legacy artwork, test both the paired selector and the def
 The eleven remaining paired sport collections complete this artwork programme. Pack 16 at 22,000 XP, Body Intelligence education, later programme improvements and the Locker refresh remain their own roadmap stages. This handoff does not start those tasks.
 
 Machine-readable queue: `remaining-sport-avatar-batches.json`. Ready-to-paste production instruction: `sol-light-production-handoff.md`.
+
+Age/pose rules were strengthened on 9 October 2026. Read the v1.2 canonical brief and `age-and-pose-refinement.md`: visibly adult facial proportions and distinct silhouettes are release requirements, not clothing-only upgrades. Live Football/Rugby art has a separate targeted refinement backlog.

@@ -18,6 +18,7 @@ def render_prompt(data, sport_key, tier, variant):
         stage=data["stages"][tier],
         palette="Collection palette: " + sport["palette"] + ". This tier's outfit below determines the current colours.",
         kit=row["kit"], equipment=row.get("equipment", sport["equipment"]), award=award, pose=row["pose"],
+        pose_direction=data["pose_directions"][tier],
         framing=data["framing"]["unreal" if tier == "unreal" else "default"],
     ) + "\n\nSport-specific constraints: " + sport["notes"]
 
