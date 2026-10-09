@@ -29,7 +29,7 @@ it("uses a validated paired appearance in group displays with the same identity"
 it("shares Rugby's selected appearance and retains its legacy default", () => {
   for (const variant of ["male", "female"]) {
     expect(resolveGroupAvatar("sport_avatar_rugby_unreal", {edition:"paired_v2",variant}).imgSrc)
-      .toBe(`/avatars/sport/rugby_unreal_${variant}_v2.png`);
+      .toBe(`/avatars/sport/rugby_unreal_${variant}_v3.png`);
   }
   expect(resolveGroupAvatar("sport_avatar_rugby_unreal").imgSrc).toBe("/avatars/sport/rugby_unreal.png");
 });
