@@ -1676,7 +1676,7 @@
     ],
     "status": "in_progress",
     "notes": "Live collections remain ready for use. Review adult age readability and repeated poses; preserve originals and regenerate only failed portraits. No new images produced by this brief update.",
-    "completed_portraits": 2,
+    "completed_portraits": 4,
     "record": "refinement-production-record.json"
   }
 }
