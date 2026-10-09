@@ -65,14 +65,18 @@ describe("paired appearances", () => {
     }
   });
   it("uses a valid default for paired-only collections", () => {
-    expect(sportAvatarArtworkSrc("basketball", "bronze")).toBe("/avatars/sport/basketball_bronze_male_v2.png");
-    expect(sportAvatarArtworkSrc("basketball", "bronze", {edition:"paired_v2",variant:"female"})).toBe("/avatars/sport/basketball_bronze_female_v2.png");
+    for (const sport of PAIRED_SPORT_AVATAR_ARTWORK_READY.filter(key => !SPORT_AVATAR_ARTWORK_READY.includes(key))) {
+      for (const tier of tiers) {
+        expect(sportAvatarArtworkSrc(sport, tier)).toBe(`/avatars/sport/${sport}_${tier}_male_v2.png`);
+        expect(sportAvatarArtworkSrc(sport, tier, {edition:"paired_v2",variant:"female"})).toBe(`/avatars/sport/${sport}_${tier}_female_v2.png`);
+      }
+    }
   });
   it("retains originals and rejects incomplete or invalid variant paths", () => {
     for (const appearance of [undefined, {variant:"female"}, {edition:"paired_v2",variant:"../x"}]) {
       expect(sportAvatarArtworkSrc("football","bronze",appearance)).toBe("/avatars/sport/football_bronze.png");
     }
-    expect(sportAvatarArtworkSrc("tennis","bronze",{edition:"paired_v2",variant:"female"})).toBeNull();
+    expect(sportAvatarArtworkSrc("badminton","bronze",{edition:"paired_v2",variant:"female"})).toBeNull();
     expect(sportAvatarArtworkSrc("football","../x")).toBeNull();
   });
 });
