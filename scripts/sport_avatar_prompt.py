@@ -24,8 +24,11 @@ def render_prompt(data, sport_key, tier, variant):
 
 
 def main():
-    data = json.loads(BRIEF.read_text())
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--brief", type=Path, default=BRIEF, help="Canonical brief JSON; defaults to the original released batch")
+    preliminary, _ = parser.parse_known_args()
+    brief = preliminary.brief if preliminary.brief.is_absolute() else ROOT / preliminary.brief
+    data = json.loads(brief.read_text())
     parser.add_argument("--sport", choices=list(data["sports"]))
     parser.add_argument("--tier", choices=data["tier_order"])
     parser.add_argument("--variant", choices=data["variants"])
