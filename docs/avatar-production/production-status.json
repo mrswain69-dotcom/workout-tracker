@@ -1295,17 +1295,17 @@
       "sport": "martial_arts",
       "tier": "unreal",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_unreal_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits before app enablement."
     },
     {
       "sport": "martial_arts",
       "tier": "unreal",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_unreal_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits before app enablement."
     },
     {
       "sport": "yoga",
