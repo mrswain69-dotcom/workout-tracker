@@ -1,6 +1,6 @@
 # Remaining sport-avatar batches — Sol Light handoff
 
-8 October 2026. Football and Rugby each have sixteen paired portraits and a persisted selector. The production inventory has **176 remaining portraits: eleven sports, eight tiers, two appearances**. Cricket is next. The latest main branch also contains the header notification bell update; start from current main to preserve other work.
+10 October 2026 update: all **208 portraits across thirteen sports** are complete. Twelve sports are released; Yoga is awaiting CI, merge and production verification. There are **zero remaining portraits to generate**. See production-status.json and the individual release records for current evidence. The sequence below is retained as production history.
 
 ## Production sequence
 

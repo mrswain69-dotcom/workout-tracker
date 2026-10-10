@@ -72,11 +72,11 @@ describe("paired appearances", () => {
       }
     }
   });
-  it("retains originals and rejects incomplete or invalid variant paths", () => {
+  it("retains originals and rejects unsupported or invalid variant paths", () => {
     for (const appearance of [undefined, {variant:"female"}, {edition:"paired_v2",variant:"../x"}]) {
       expect(sportAvatarArtworkSrc("football","bronze",appearance)).toBe("/avatars/sport/football_bronze.png");
     }
-    expect(sportAvatarArtworkSrc("yoga","bronze",{edition:"paired_v2",variant:"female"})).toBeNull();
+    expect(sportAvatarArtworkSrc("unknown","bronze",{edition:"paired_v2",variant:"female"})).toBeNull();
     expect(sportAvatarArtworkSrc("football","../x")).toBeNull();
   });
 });
