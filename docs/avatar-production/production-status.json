@@ -1503,17 +1503,17 @@
       "sport": "indoor_rowing",
       "tier": "diamond",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_diamond_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "indoor_rowing",
       "tier": "diamond",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_diamond_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "indoor_rowing",
