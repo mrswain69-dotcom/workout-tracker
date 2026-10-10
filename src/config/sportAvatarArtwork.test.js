@@ -76,7 +76,7 @@ describe("paired appearances", () => {
     for (const appearance of [undefined, {variant:"female"}, {edition:"paired_v2",variant:"../x"}]) {
       expect(sportAvatarArtworkSrc("football","bronze",appearance)).toBe("/avatars/sport/football_bronze.png");
     }
-    expect(sportAvatarArtworkSrc("fencing","bronze",{edition:"paired_v2",variant:"female"})).toBeNull();
+    expect(sportAvatarArtworkSrc("martial_arts","bronze",{edition:"paired_v2",variant:"female"})).toBeNull();
     expect(sportAvatarArtworkSrc("football","../x")).toBeNull();
   });
 });
