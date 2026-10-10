@@ -32,8 +32,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 4,
-      "resume": "Cycling Silver male next, then female, followed by Gold through Champion; integrate only after all 16 accepted originals."
+      "reviewed_portraits": 6,
+      "resume": "Cycling Gold male then female, followed by Platinum, Diamond, Elite, Champion. Six accepted portraits saved; activate after complete 16 and tests."
     },
     {
       "order": 3,
