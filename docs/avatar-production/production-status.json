@@ -1663,17 +1663,17 @@
       "sport": "outdoor_rowing",
       "tier": "champion",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_champion_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "champion",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_champion_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
