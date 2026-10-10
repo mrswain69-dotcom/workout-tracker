@@ -1567,129 +1567,129 @@
       "sport": "outdoor_rowing",
       "tier": "bronze",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_bronze_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "bronze",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_bronze_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "silver",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_silver_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "silver",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_silver_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "gold",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_gold_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "gold",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_gold_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "platinum",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_platinum_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "platinum",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_platinum_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "diamond",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_diamond_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "diamond",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_diamond_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "elite",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_elite_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "elite",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_elite_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "champion",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_champion_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "champion",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_champion_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "unreal",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_unreal_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "outdoor_rowing",
       "tier": "unreal",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_unreal_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     }
   ],
   "visual_refinement": {
