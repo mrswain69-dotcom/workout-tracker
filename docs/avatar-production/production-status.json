@@ -1327,17 +1327,17 @@
       "sport": "yoga",
       "tier": "silver",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/yoga_silver_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "yoga",
       "tier": "silver",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/yoga_silver_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "yoga",
@@ -1707,5 +1707,14 @@
       "football"
     ],
     "remaining_sports": []
+  },
+  "releases": {
+    "outdoor_rowing": {
+      "pr": 97,
+      "merge_commit": "b5e6bfcd77a926973bc09042bc383824a9176a15",
+      "status": "production_verified",
+      "portraits": 16,
+      "live_hashes_matched": 16
+    }
   }
 }

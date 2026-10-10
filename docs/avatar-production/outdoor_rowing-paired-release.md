@@ -6,4 +6,4 @@ Both appearances share one existing logical unlock and claim. Session thresholds
 
 Validated: sixteen original square 1254px RGBA portraits, complete SHA-256 matches and alpha range 0–255; UTC suite 196 files / 1,191 tests; production build; diff whitespace checks; rollback-only live SQL ownership, claim, variant, sanitisation, group-sync and full history/XP invariance regression. Migration applied before client enablement. Advisors retain the existing intentional authenticated owner-checked SECURITY DEFINER notice; no performance finding targets this RPC. Unrelated existing advisor findings are outside this release.
 
-CI, preview, merge and live-hash verification are pending. Yoga remains the final collection.
+Workout Tracker CI and Vercel preview passed at ef2db76df43ff798695efbabbf85b75319334808. PR #97 merged as b5e6bfcd77a926973bc09042bc383824a9176a15. Production Vercel status succeeded; all sixteen live image SHA-256 hashes matched saved originals. No manual device QA was performed. Yoga remains the final collection.
