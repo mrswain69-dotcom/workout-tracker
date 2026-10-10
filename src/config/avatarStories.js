@@ -1,6 +1,38 @@
 // Character-specific lore. Each entry deliberately describes what this
 // character does, practises and believes rather than repeating a pack template.
 export const AVATAR_STORY_PROFILES = {
+  sport_avatar_running_bronze: {
+    story: "Bronze discovers how a steady rhythm can turn a difficult run into manageable steps. Easy sessions build confidence without chasing someone else's pace. This runner learns to listen, finish with control and return rested for the next useful practice.",
+    traits: ["Curious", "Patient", "Steady"],
+  },
+  sport_avatar_running_silver: {
+    story: "Silver begins to recognise the difference between rushing and running with purpose. Repeated sessions develop relaxed shoulders, balanced steps and a pace that can be sustained. The first recognition celebrates consistency, while this athlete keeps learning from each route and recovery day.",
+    traits: ["Consistent", "Aware", "Balanced"],
+  },
+  sport_avatar_running_gold: {
+    story: "Gold approaches each run with a clear intention. Some days build endurance; others practise rhythm or controlled changes of pace. This runner treats the watch as useful feedback, welcomes adjustments and knows that progress comes from repeatable habits rather than one impressive effort.",
+    traits: ["Purposeful", "Adaptable", "Focused"],
+  },
+  sport_avatar_running_platinum: {
+    story: "Platinum carries experience with an easy stride. Warm-ups, measured effort and thoughtful recovery make demanding sessions more reliable. This athlete notices when conditions change, adjusts the plan and finishes with enough control to learn from the run instead of simply surviving it.",
+    traits: ["Composed", "Prepared", "Reliable"],
+  },
+  sport_avatar_running_diamond: {
+    story: "Diamond makes patience visible in every session. Years of practice sharpen pacing and movement, but listening remains central to the craft. This runner encourages others to find their own rhythm and values a sustainable training history as much as any single fast day.",
+    traits: ["Patient", "Encouraging", "Skilful"],
+  },
+  sport_avatar_running_elite: {
+    story: "Elite celebrates the quiet work that makes confident running possible. Consistent sessions, honest feedback and recovery build an assured stride across changing routes. Recognition marks that commitment, while this athlete still respects the basics and offers encouragement to runners taking their first steps.",
+    traits: ["Disciplined", "Generous", "Assured"],
+  },
+  sport_avatar_running_champion: {
+    story: "Champion brings seasoned judgement to the training week. Effort has a place, and so does restraint when rest is needed. This runner helps others prepare, keeps perspective when a session disappoints and returns to purposeful practice with the confidence of a long, consistent history.",
+    traits: ["Thoughtful", "Resilient", "Supportive"],
+  },
+  sport_avatar_running_unreal: {
+    story: "Unreal carries a lifetime of practice into a composed awards-night presence. The crystal honour recognises sustained commitment, learning and care for the next generation of runners. Beneath the formal suit remains an athlete who values an honest session, a patient stride and another opportunity to improve.",
+    traits: ["Humble", "Committed", "Inspiring"],
+  },
   sport_avatar_rugby_bronze: {
     story: "Bronze brings a steady pair of hands to every training session. Catching drills, simple passes and balanced footwork build confidence one repetition at a time. When a teammate makes a mistake, Bronze offers the ball again and keeps the practice moving.",
     traits: ["Patient", "Encouraging", "Dependable"],
