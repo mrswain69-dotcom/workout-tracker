@@ -17,8 +17,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 4,
-      "resume": "Running Silver male then female; Bronze and Unreal anchors saved."
+      "reviewed_portraits": 6,
+      "resume": "Running Gold male then female; Bronze, Silver and Unreal pairs saved."
     },
     {
       "order": 2,
