@@ -155,7 +155,8 @@ describe("Phase 4 Stage 5 ProgressDashboard integration", () => {
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Assessments" }));
 
-    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
+    // The analysis bundle is lazy-loaded; cold module transforms can exceed the default one-second wait.
+    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy(), { timeout: 5000 });
     const analysis = screen.getByLabelText("Assessment Analysis");
     const analysisScreen = within(analysis);
     const comparison = analysisScreen.getByLabelText("Assessment comparison period");
@@ -189,7 +190,8 @@ describe("Phase 4 Stage 5 ProgressDashboard integration", () => {
 
     await waitFor(() => expect(screen.queryByText("Loading Progress data…")).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Assessments" }));
-    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy());
+    // The analysis bundle is lazy-loaded; cold module transforms can exceed the default one-second wait.
+    await waitFor(() => expect(screen.getByLabelText("Assessment Analysis")).toBeTruthy(), { timeout: 5000 });
     const analysis = screen.getByLabelText("Assessment Analysis");
     const analysisScreen = within(analysis);
     expect(analysisScreen.getByText("Build your Assessment baseline")).toBeTruthy();
