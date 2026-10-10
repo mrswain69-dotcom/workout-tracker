@@ -4,6 +4,8 @@ import { buildPerformanceEvidence, performanceEvidenceForCard } from "./engine/p
 import { performanceBadgeState } from "./engine/performanceBadgeProgression.js";
 import { sportsMasteryState } from "./engine/sportsMasteryProgression.js";
 import SportsMasteryCabinet from "./components/rewards/SportsMasteryCabinet.jsx";
+import MasteryDisclosure from "./components/rewards/MasteryDisclosure.jsx";
+import SportMasteryCollections from "./components/rewards/SportMasteryCollections.jsx";
 import { claimMasterySequence } from "./engine/masteryClaimSequence.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
@@ -12666,7 +12668,7 @@ const cardioProgress = useMemo(() => {
       paceImprovementBestSport: badgeStats?.intelligence?.paceImprovementBestSport,
     },
   }) : card.desc;
-  return <SportsMasteryCabinet key={`${activeProfileId}:${card.id}`} card={card} state={state}
+  const cabinet = <SportsMasteryCabinet key={`${activeProfileId}:${card.id}`} card={card} state={state}
     claimedKeys={claimedRewardsSet} lastDate={badgeStats?.sportMastery?.[card.sportKey]?.lastDate}
     faceText={card.badgeGroup === "sport_mastery" ? getSportBadgeFaceText(card) : getBadgeFaceText(card)}
     requirementText={tier => getTierRequirementText(card, tier)} progressText={progressText}
@@ -12675,6 +12677,8 @@ const cardioProgress = useMemo(() => {
     onOpenLog={date=>{setSelectedDate(date);setTab("log");}}
     flash={card.tiers.some(tier => tier.key === lastClaimedKey) || card.starTiers?.some(tier=>tier.key===lastClaimedKey) || (card.sportKey && lastClaimedKey.startsWith(`badge_sport_${card.sportKey}_mastery_unreal_star_`))}
     onClaim={element => claimBadgeCabinet(card, element)} />;
+  return card.badgeGroup === "sport_mastery" ? <MasteryDisclosure key={`${activeProfileId}:${card.id}`} title={card.title}
+    subtitle={`${state.value} counted sessions`} status={state.currentTier?.tier || "Not started"} claimable={Boolean(state.nextClaimable)}>{cabinet}</MasteryDisclosure> : cabinet;
 })}
           </div>
 
@@ -12882,25 +12886,10 @@ const cardioProgress = useMemo(() => {
                 Sport Mastery avatars unlock from counted sport sessions, separately from XP avatar packs.
               </div>
 
-              <div className="sportAvatarSeriesGrid mt12">
-                {sportAvatarSeries.map((series) => (
-                  <div key={series.sportKey} className="panel sportAvatarSeriesCard">
-                    <div className="sportAvatarSeriesHeader">
-                      <div>
-                        <div className="h3">{series.sportLabel}</div>
-                        <div className="mini muted mt4">
-                          {series.sessions} sessions
-                          {series.days > 0 ? ` · ${series.days} day${series.days === 1 ? "" : "s"}` : ""}
-                          {series.lastDate ? ` · last ${series.lastDate}` : ""}
-                        </div>
-                      </div>
-
-                      <div className="sportAvatarSeriesStatus">
-                        {series.currentPrestige
-                          ? series.currentPrestige.label
-                          : "Not started"}
-                      </div>
-                    </div>
+              <SportMasteryCollections key={activeProfileId} series={sportAvatarSeries} renderSeries={series => (
+                  <MasteryDisclosure key={`${activeProfileId}:${series.sportKey}`} title={series.sportLabel}
+                    subtitle={`${series.sessions} sessions${series.days > 0 ? ` · ${series.days} days` : ""}${series.lastDate ? ` · last ${series.lastDate}` : ""}`}
+                    status={series.currentPrestige?.label || "Not started"} claimable={series.avatars.some(avatar => avatar.claimable)}>
 
                     {PAIRED_SPORT_AVATAR_ARTWORK_READY.includes(series.sportKey) ? (
                       <div className="sportAvatarAppearancePicker mt12">
@@ -13006,9 +12995,8 @@ const cardioProgress = useMemo(() => {
                         </div>
                       ))}
                     </div> : <p className="muted mt12">Avatar artwork coming soon. Your counted sessions continue to build mastery.</p>}
-                  </div>
-                ))}
-              </div>
+                  </MasteryDisclosure>
+                )} />
             </>
           )}
         </div>

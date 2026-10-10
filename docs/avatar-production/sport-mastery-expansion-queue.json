@@ -1,0 +1,135 @@
+{
+  "version": "2.0",
+  "date": "2026-10-10",
+  "canonical_brief": "paired-sport-avatar-expansion-briefs.json",
+  "existing_released_sports": 13,
+  "existing_active_portraits": 208,
+  "new_sports": 15,
+  "new_portraits": 240,
+  "eventual_total_sports": 28,
+  "eventual_active_portraits": 448,
+  "generation_started": false,
+  "batches": [
+    {
+      "order": 1,
+      "sport": "running",
+      "label": "Running",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 2,
+      "sport": "cycling",
+      "label": "Cycling",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 3,
+      "sport": "swimming",
+      "label": "Swimming",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 4,
+      "sport": "strength_training",
+      "label": "Strength Training",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 5,
+      "sport": "hiking",
+      "label": "Hiking",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 6,
+      "sport": "boxing",
+      "label": "Boxing",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 7,
+      "sport": "pilates",
+      "label": "Pilates",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 8,
+      "sport": "dance",
+      "label": "Dance",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 9,
+      "sport": "gymnastics",
+      "label": "Gymnastics",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 10,
+      "sport": "padel",
+      "label": "Padel",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 11,
+      "sport": "pickleball",
+      "label": "Pickleball",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 12,
+      "sport": "table_tennis",
+      "label": "Table Tennis",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 13,
+      "sport": "volleyball",
+      "label": "Volleyball",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 14,
+      "sport": "golf",
+      "label": "Golf",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    },
+    {
+      "order": 15,
+      "sport": "climbing",
+      "label": "Climbing",
+      "portraits": 16,
+      "state": "brief_ready",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+    }
+  ],
+  "resume": "Select Light first. Generate one image per call. Save reviewed pairs and complete one collection release at a time. Preserve existing 208 portraits. Begin Running Bronze male then female, establish Unreal anchors, then Silver/Gold/Platinum/Diamond/Elite/Champion. Use canonical brief and own anchors. Do not spawn subagents unless user asks."
+}

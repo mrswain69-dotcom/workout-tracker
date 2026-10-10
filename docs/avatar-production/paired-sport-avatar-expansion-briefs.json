@@ -1,0 +1,1120 @@
+{
+  "tier_order": [
+    "bronze",
+    "silver",
+    "gold",
+    "platinum",
+    "diamond",
+    "elite",
+    "champion",
+    "unreal"
+  ],
+  "session_thresholds": [
+    40,
+    80,
+    120,
+    160,
+    200,
+    240,
+    280,
+    320
+  ],
+  "xp_rewards": [
+    25,
+    35,
+    50,
+    70,
+    95,
+    125,
+    160,
+    200
+  ],
+  "variants": [
+    "male",
+    "female"
+  ],
+  "asset_template": "public/avatars/sport/{sport}_{tier}_{variant}_v2.png",
+  "shared_prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional {variant} {sport_label} athlete for the {tier_label} tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. {identity} {stage} {palette} Outfit: {kit} Equipment: {equipment} Award: {award} Pose: {pose} Tier silhouette direction: {pose_direction} {framing} Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.",
+  "stages": {
+    "bronze": "Visibly junior athlete, approximately 12\u201314, natural youthful face and proportions, modest practical kit; no adult musculature or jewellery.",
+    "silver": "Older teenager, approximately 15\u201317; subtly lengthened facial proportions and developing posture, visibly older than Bronze.",
+    "gold": "Young adult, approximately 18\u201322; face and body read as adult rather than a child in first-team clothing.",
+    "platinum": "Adult athlete, approximately 23\u201327; clearly mature facial structure, natural eye size and less rounded cheeks, confident posture.",
+    "diamond": "Experienced adult, approximately 26\u201330; mature face and composed leadership expression, not a copied junior face.",
+    "elite": "Established elite adult, approximately 28\u201333; developed adult facial proportions and assured bearing, restrained natural expression lines.",
+    "champion": "Highly accomplished adult, approximately 30\u201336; recognisable mature identity, seasoned expression and controlled posture; no exaggerated muscles or ageing.",
+    "unreal": "Mature adult, approximately 32\u201340; clearly adult face and natural subtle expression lines, composed awards-night bearing, equal tailored trouser-suit quality for both appearances."
+  },
+  "framing": {
+    "default": "Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed.",
+    "unreal": "Square awards portrait, head to mid-thigh; hands and final award fully visible, 6\u20138% clear transparent margins, face and award dominate without touching the edges."
+  },
+  "pose_directions": {
+    "bronze": "Relaxed introductory three-quarter view; natural asymmetrical weight distribution and curious expression. Establish the junior identity without a stiff catalogue stance.",
+    "silver": "Turn torso toward the opposite side from Bronze; present early recognition with a pleased, modest expression and clearly different hand placement.",
+    "gold": "Sport-appropriate ready or controlled action stance: staggered feet, gently bent knees and focused expression. Keep equipment and trophies safely readable, no cropped limbs.",
+    "platinum": "Controlled forward step or open diagonal stance, with a new arm/equipment arrangement and adult confidence; avoid repeating Gold or Bronze.",
+    "diamond": "Composed leadership stance, broader grounded base and a calm direct expression; distinguish it from the action and walking silhouettes.",
+    "elite": "Restrained celebration or podium presentation, an open gesture when hands are available, stronger vertical silhouette and pleased expression. Never invent an extra hand to hold equipment and awards.",
+    "champion": "Confident three-quarter contrapposto facing a different direction from Elite, relaxed shoulders and compact trophy group. Athlete stays dominant; do not duplicate the Elite stance.",
+    "unreal": "Formal three-quarter portrait with a mature face, award held naturally at waist-to-chest height and composed expression. Deliberate head-to-mid-thigh crop; distinct from the playing poses."
+  },
+  "title": "Workout Tracker \u2014 next fifteen paired sport/fitness mastery briefs",
+  "version": "2.0",
+  "date": "2026-10-10",
+  "status": "Briefs ready; 240 portraits queued. User will select Light before generation. No images generated for this batch.",
+  "parent_brief": "paired-sport-avatar-briefs.json",
+  "sources": [
+    {
+      "url": "https://www.sportengland.org/research-and-data/research/popular-activities",
+      "use": "Core participation categories; not a current numeric ranking."
+    },
+    {
+      "url": "https://www.sportengland.org/research-and-data/data/active-lives",
+      "use": "Adult and child participation coverage."
+    },
+    {
+      "url": "https://www.ltapadel.org.uk/news/2026/may/1000000-padel-players-in-britain/",
+      "use": "Current padel growth: one million players, 15 May 2026."
+    }
+  ],
+  "selection_method": "UK-first product judgement for athletes, families, coaches and PT clients, informed by participation evidence. Order is production priority, not a statistical top-15 ranking. Fitness disciplines are intentionally included.",
+  "diversity_gate": "Review all thirty Bronze identities together before mid-tier generation: distinct face geometry, hair silhouette, build, posture and palette. No existing sport face reused. Counterpart reference supplies kit/award only. Sport is a personal story, not a demographic restriction.",
+  "sports": {
+    "running": {
+      "label": "Running",
+      "priority_reason": "Core endurance activity; covers road, track and trail without three duplicate ladders.",
+      "palette": "vermillion, slate and pearl",
+      "identities": {
+        "male": "deep brown skin; soft square jaw; hazel eyes; short black coils with high fade; tall lean long-legged build",
+        "female": "fair freckled skin; angular heart-shaped face; grey-green eyes; auburn curly bob; medium-height lean build"
+      },
+      "equipment": "Light running shoes; discreet running watch from Gold; no race numbers.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Technical short-sleeve running top and shorts. Basic junior-sized kit with simple construction.",
+          "equipment": "Light running shoes; discreet running watch from Gold; no race numbers.",
+          "award": "None",
+          "pose": "relaxed feet apart; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Technical short-sleeve running top and shorts. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Light running shoes; discreet running watch from Gold; no race numbers.",
+          "award": "One small original silver participation medallion",
+          "pose": "heel raised in pre-run readiness; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Technical short-sleeve running top and shorts. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Light running shoes; discreet running watch from Gold; no race numbers.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "open-palm medal presentation at hip; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Technical short-sleeve running top and shorts. Add lightweight zip jacket in mature adult proportions.",
+          "equipment": "Light running shoes; discreet running watch from Gold; no race numbers.",
+          "award": "One original silver an original swept running-stride sculpture",
+          "pose": "walking with light jacket folded over forearm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Technical short-sleeve running top and shorts. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Light running shoes; discreet running watch from Gold; no race numbers.",
+          "award": "One solid gold an original swept running-stride sculpture; no crystal",
+          "pose": "side-on composed stance with award cradled; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Technical short-sleeve running top and shorts. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Light running shoes; discreet running watch from Gold; no race numbers. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal an original swept running-stride sculpture plus one small gold medallion",
+          "pose": "one relaxed raised arm and medal at waist; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Technical short-sleeve running top and shorts. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Light running shoes; discreet running watch from Gold; no race numbers. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal an original swept running-stride sculpture plus one medallion; maximum three total props including sport equipment",
+          "pose": "arms folded with stride sculpture beside shoes; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated vermillion, slate and pearl palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong running practice honour inspired by an original swept running-stride sculpture; no secondary medals or sport equipment",
+          "pose": "turned three-quarter portrait with stride honour held diagonally; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "cycling": {
+      "label": "Cycling",
+      "priority_reason": "Core endurance activity; includes road, leisure and indoor cycling.",
+      "palette": "cobalt, lime and graphite",
+      "identities": {
+        "male": "olive skin; rounded rectangular face; hazel eyes; chestnut curly crop; compact powerful build",
+        "female": "deep brown skin; long narrow face; dark brown eyes; short tight coils in small practical knots; compact athletic build"
+      },
+      "equipment": "Correct cycle helmet; understated gloves; no bike needed in avatar frame; cycling shoes.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Short-sleeve cycling jersey and padded knee-length shorts. Basic junior-sized kit with simple construction.",
+          "equipment": "Correct cycle helmet; understated gloves; no bike needed in avatar frame; cycling shoes.",
+          "award": "None",
+          "pose": "helmet held beside hip; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Short-sleeve cycling jersey and padded knee-length shorts. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Correct cycle helmet; understated gloves; no bike needed in avatar frame; cycling shoes.",
+          "award": "One small original silver participation medallion",
+          "pose": "one hand adjusting helmet strap without hiding face; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Short-sleeve cycling jersey and padded knee-length shorts. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Correct cycle helmet; understated gloves; no bike needed in avatar frame; cycling shoes.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal on open hand and helmet in other; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Short-sleeve cycling jersey and padded knee-length shorts. Add wind gilet in mature adult proportions.",
+          "equipment": "Correct cycle helmet; understated gloves; no bike needed in avatar frame; cycling shoes.",
+          "award": "One original silver a sculptural silver wheel segment",
+          "pose": "casual walking stride with helmet under arm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Short-sleeve cycling jersey and padded knee-length shorts. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Correct cycle helmet; understated gloves; no bike needed in avatar frame; cycling shoes.",
+          "award": "One solid gold a sculptural silver wheel segment; no crystal",
+          "pose": "composed award held low with offset shoulders; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Short-sleeve cycling jersey and padded knee-length shorts. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Correct cycle helmet; understated gloves; no bike needed in avatar frame; cycling shoes. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal a sculptural silver wheel segment plus one small gold medallion",
+          "pose": "gentle celebration with gloved hand lifted; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Short-sleeve cycling jersey and padded knee-length shorts. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Correct cycle helmet; understated gloves; no bike needed in avatar frame; cycling shoes. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal a sculptural silver wheel segment plus one medallion; maximum three total props including sport equipment",
+          "pose": "one hand on hip beside wheel sculpture; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated cobalt, lime and graphite palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong cycling practice honour inspired by a sculptural silver wheel segment; no secondary medals or sport equipment",
+          "pose": "square formal stance with wheel honour held horizontally; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "swimming": {
+      "label": "Swimming",
+      "priority_reason": "Core family and adult fitness activity; pool and open-water share a ladder.",
+      "palette": "aqua, midnight and silver",
+      "identities": {
+        "male": "fair skin; broad square jaw; blue eyes; sandy straight short hair; broad natural shoulders and medium height",
+        "female": "golden-brown skin; oval face; brown eyes; straight black jaw-length bob; broad athletic shoulders and medium height"
+      },
+      "equipment": "Swim goggles held or at neck; cap in hand when specified; barefoot practice presentation; no wet scene.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Modest short-sleeve swim-training rash top and knee-length swim shorts for both. Basic junior-sized kit with simple construction.",
+          "equipment": "Swim goggles held or at neck; cap in hand when specified; barefoot practice presentation; no wet scene.",
+          "award": "None",
+          "pose": "upright relaxed stance goggles in hand; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Modest short-sleeve swim-training rash top and knee-length swim shorts for both. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Swim goggles held or at neck; cap in hand when specified; barefoot practice presentation; no wet scene.",
+          "award": "One small original silver participation medallion",
+          "pose": "weight shifted with cap folded at side; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Modest short-sleeve swim-training rash top and knee-length swim shorts for both. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Swim goggles held or at neck; cap in hand when specified; barefoot practice presentation; no wet scene.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal resting on open palm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Modest short-sleeve swim-training rash top and knee-length swim shorts for both. Add dry team warm-up jacket in mature adult proportions.",
+          "equipment": "Swim goggles held or at neck; cap in hand when specified; barefoot practice presentation; no wet scene.",
+          "award": "One original silver an abstract interlocking wave honour",
+          "pose": "stepping forward in open warm-up jacket; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Modest short-sleeve swim-training rash top and knee-length swim shorts for both. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Swim goggles held or at neck; cap in hand when specified; barefoot practice presentation; no wet scene.",
+          "award": "One solid gold an abstract interlocking wave honour; no crystal",
+          "pose": "wave sculpture held in two hands at hip; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Modest short-sleeve swim-training rash top and knee-length swim shorts for both. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Swim goggles held or at neck; cap in hand when specified; barefoot practice presentation; no wet scene. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal an abstract interlocking wave honour plus one small gold medallion",
+          "pose": "goggles lifted in restrained celebration; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Modest short-sleeve swim-training rash top and knee-length swim shorts for both. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Swim goggles held or at neck; cap in hand when specified; barefoot practice presentation; no wet scene. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal an abstract interlocking wave honour plus one medallion; maximum three total props including sport equipment",
+          "pose": "hands behind back with one wave award at feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated aqua, midnight and silver palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong swimming practice honour inspired by an abstract interlocking wave honour; no secondary medals or sport equipment",
+          "pose": "calm front-facing formal portrait with wave honour at chest; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "strength_training": {
+      "label": "Strength Training",
+      "priority_reason": "High-fit gym/PT activity; training mastery rather than bodybuilding appearance.",
+      "palette": "burgundy, warm grey and brass",
+      "identities": {
+        "male": "deep brown skin; diamond face; grey-brown eyes; short black locs gathered back; sturdy stocky build with natural shoulders",
+        "female": "olive skin; square jaw; hazel eyes; dark brown pixie cut; shorter sturdy athletic build"
+      },
+      "equipment": "One realistic light dumbbell for junior technique; no oversized loads, strained lifting or supplements.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Practical short-sleeve training shirt and full-length joggers. Basic junior-sized kit with simple construction.",
+          "equipment": "One realistic light dumbbell for junior technique; no oversized loads, strained lifting or supplements.",
+          "award": "None",
+          "pose": "neutral stance holding light dumbbell down; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Practical short-sleeve training shirt and full-length joggers. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "One realistic light dumbbell for junior technique; no oversized loads, strained lifting or supplements.",
+          "award": "One small original silver participation medallion",
+          "pose": "controlled hands at sides with dumbbell beside shoe; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Practical short-sleeve training shirt and full-length joggers. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "One realistic light dumbbell for junior technique; no oversized loads, strained lifting or supplements.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal at hip with free open hand; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Practical short-sleeve training shirt and full-length joggers. Add refined structured training jacket in mature adult proportions.",
+          "equipment": "One realistic light dumbbell for junior technique; no oversized loads, strained lifting or supplements.",
+          "award": "One original silver a balanced bronze-to-crystal geometric strength pillar",
+          "pose": "walking with folded training towel; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Practical short-sleeve training shirt and full-length joggers. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "One realistic light dumbbell for junior technique; no oversized loads, strained lifting or supplements.",
+          "award": "One solid gold a balanced bronze-to-crystal geometric strength pillar; no crystal",
+          "pose": "grounded wide stance award against forearm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Practical short-sleeve training shirt and full-length joggers. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "One realistic light dumbbell for junior technique; no oversized loads, strained lifting or supplements. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal a balanced bronze-to-crystal geometric strength pillar plus one small gold medallion",
+          "pose": "one raised open palm calm pride; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Practical short-sleeve training shirt and full-length joggers. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "One realistic light dumbbell for junior technique; no oversized loads, strained lifting or supplements. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal a balanced bronze-to-crystal geometric strength pillar plus one medallion; maximum three total props including sport equipment",
+          "pose": "folded arms and pillar at feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated burgundy, warm grey and brass palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong strength training practice honour inspired by a balanced bronze-to-crystal geometric strength pillar; no secondary medals or sport equipment",
+          "pose": "formal portrait honour held centrally in both hands; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "hiking": {
+      "label": "Hiking",
+      "priority_reason": "Broad walking/outdoor participation; deliberate hiking sessions, not automatic everyday steps.",
+      "palette": "ochre, forest and stone",
+      "identities": {
+        "male": "fair freckled skin; triangular jaw; green eyes; auburn loose waves; tall slender build",
+        "female": "dark brown skin; softly round face; dark brown eyes; black twists in low ponytail; sturdy medium-height build"
+      },
+      "equipment": "Trail boots; small functional daypack; optional one trekking pole safely vertical, never blocking face.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Short-sleeve base layer and hiking trousers. Basic junior-sized kit with simple construction.",
+          "equipment": "Trail boots; small functional daypack; optional one trekking pole safely vertical, never blocking face.",
+          "award": "None",
+          "pose": "relaxed pack straps held lightly; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Short-sleeve base layer and hiking trousers. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Trail boots; small functional daypack; optional one trekking pole safely vertical, never blocking face.",
+          "award": "One small original silver participation medallion",
+          "pose": "one boot forward and pole vertical beside body; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Short-sleeve base layer and hiking trousers. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Trail boots; small functional daypack; optional one trekking pole safely vertical, never blocking face.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal held at waist with backpack on; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Short-sleeve base layer and hiking trousers. Add lightweight overshirt at Gold in mature adult proportions.",
+          "equipment": "Trail boots; small functional daypack; optional one trekking pole safely vertical, never blocking face.",
+          "award": "One original silver a faceted mountain-ridge milestone",
+          "pose": "walking stride looking slightly upward; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Short-sleeve base layer and hiking trousers. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Trail boots; small functional daypack; optional one trekking pole safely vertical, never blocking face.",
+          "award": "One solid gold a faceted mountain-ridge milestone; no crystal",
+          "pose": "ridge award in crook of arm and other hand on pack strap; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Short-sleeve base layer and hiking trousers. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Trail boots; small functional daypack; optional one trekking pole safely vertical, never blocking face. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal a faceted mountain-ridge milestone plus one small gold medallion",
+          "pose": "small joyful outward gesture with empty hand; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Short-sleeve base layer and hiking trousers. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Trail boots; small functional daypack; optional one trekking pole safely vertical, never blocking face. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal a faceted mountain-ridge milestone plus one medallion; maximum three total props including sport equipment",
+          "pose": "composed crossed arms and pack at feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated ochre, forest and stone palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong hiking practice honour inspired by a faceted mountain-ridge milestone; no secondary medals or sport equipment",
+          "pose": "formal angled portrait with ridge honour on palm; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "boxing": {
+      "label": "Boxing",
+      "priority_reason": "Distinct boxing practice and conditioning; separate future routing from broad Martial Arts.",
+      "palette": "ink, burnt orange and cream",
+      "identities": {
+        "male": "medium brown skin; narrow angular face; brown eyes; short black centre-part curls; compact athletic build",
+        "female": "fair skin; strong oval face; blue eyes; platinum-blond practical braid; medium athletic build"
+      },
+      "equipment": "Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Basic junior-sized kit with simple construction.",
+          "equipment": "Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso.",
+          "award": "None",
+          "pose": "gloves resting low outside torso; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso.",
+          "award": "One small original silver participation medallion",
+          "pose": "relaxed three-quarter guard without combat scene; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal in ungloved palm and gloves held low; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Add refined zip warm-up top in mature adult proportions.",
+          "equipment": "Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso.",
+          "award": "One original silver an original abstract interlocking glove honour",
+          "pose": "walking with gloves slung over forearm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso.",
+          "award": "One solid gold an original abstract interlocking glove honour; no crystal",
+          "pose": "confident award cradled with wrapped free hand; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal an original abstract interlocking glove honour plus one small gold medallion",
+          "pose": "one gloved arm gently lifted at shoulder; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal an original abstract interlocking glove honour plus one medallion; maximum three total props including sport equipment",
+          "pose": "sideways stance hands relaxed beside glove sculpture; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated ink, burnt orange and cream palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong boxing practice honour inspired by an original abstract interlocking glove honour; no secondary medals or sport equipment",
+          "pose": "formal portrait honour held to one side; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "pilates": {
+      "label": "Pilates",
+      "priority_reason": "Common studio/PT activity; independent practice ladder, not Yoga recolour.",
+      "palette": "lavender, plum and chalk",
+      "identities": {
+        "male": "golden tan skin; oval face and gently arched brows; brown eyes; straight black side-part; long torso and medium-height build",
+        "female": "medium brown skin; high cheekbones and narrow jaw; amber eyes; shoulder-length chestnut waves tied low; long-limbed build"
+      },
+      "equipment": "Small pilates ring or rolled mat; never an exercise machine or yoga religious symbol.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Modest short-sleeve top and full-length practice trousers. Basic junior-sized kit with simple construction.",
+          "equipment": "Small pilates ring or rolled mat; never an exercise machine or yoga religious symbol.",
+          "award": "None",
+          "pose": "pilates ring held low with relaxed shoulders; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Modest short-sleeve top and full-length practice trousers. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Small pilates ring or rolled mat; never an exercise machine or yoga religious symbol.",
+          "award": "One small original silver participation medallion",
+          "pose": "mat hugged vertically at side; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Modest short-sleeve top and full-length practice trousers. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Small pilates ring or rolled mat; never an exercise machine or yoga religious symbol.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "small practice medallion presented in palm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Modest short-sleeve top and full-length practice trousers. Add lightweight wrap-free zip jacket in mature adult proportions.",
+          "equipment": "Small pilates ring or rolled mat; never an exercise machine or yoga religious symbol.",
+          "award": "One original silver a continuous sculpted balance loop",
+          "pose": "walking with ring held down at side; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Modest short-sleeve top and full-length practice trousers. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Small pilates ring or rolled mat; never an exercise machine or yoga religious symbol.",
+          "award": "One solid gold a continuous sculpted balance loop; no crystal",
+          "pose": "balance loop sculpture held asymmetrically at waist; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Modest short-sleeve top and full-length practice trousers. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Small pilates ring or rolled mat; never an exercise machine or yoga religious symbol. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal a continuous sculpted balance loop plus one small gold medallion",
+          "pose": "quiet smiling raised open hand; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Modest short-sleeve top and full-length practice trousers. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Small pilates ring or rolled mat; never an exercise machine or yoga religious symbol. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal a continuous sculpted balance loop plus one medallion; maximum three total props including sport equipment",
+          "pose": "relaxed arms crossed with ring and award at feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated lavender, plum and chalk palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong pilates practice honour inspired by a continuous sculpted balance loop; no secondary medals or sport equipment",
+          "pose": "formal angled portrait balance honour held with both hands; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "dance": {
+      "label": "Dance",
+      "priority_reason": "Family, studio and adult fitness audience; one broad dance-practice ladder.",
+      "palette": "coral, petrol and pearl",
+      "identities": {
+        "male": "very dark brown skin; tapered oval face; dark eyes; short coiled flat-top; tall wiry build",
+        "female": "fair pink-toned skin; long rectangular face; blue eyes; black pixie cut; medium-height athletic build"
+      },
+      "equipment": "Simple clean dance trainers; no cultural-costume shorthand or one-sex ballet stereotype.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Loose modest short-sleeve dance top and full-length tapered trousers. Basic junior-sized kit with simple construction.",
+          "equipment": "Simple clean dance trainers; no cultural-costume shorthand or one-sex ballet stereotype.",
+          "award": "None",
+          "pose": "casual asymmetric standing position; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Loose modest short-sleeve dance top and full-length tapered trousers. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Simple clean dance trainers; no cultural-costume shorthand or one-sex ballet stereotype.",
+          "award": "One small original silver participation medallion",
+          "pose": "one heel raised and one open hand extended low; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Loose modest short-sleeve dance top and full-length tapered trousers. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Simple clean dance trainers; no cultural-costume shorthand or one-sex ballet stereotype.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "small medal displayed with playful head tilt; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Loose modest short-sleeve dance top and full-length tapered trousers. Add asymmetric warm-up jacket in mature adult proportions.",
+          "equipment": "Simple clean dance trainers; no cultural-costume shorthand or one-sex ballet stereotype.",
+          "award": "One original silver an abstract flowing ribbon sculpture",
+          "pose": "natural walking turn in open warm-up jacket; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Loose modest short-sleeve dance top and full-length tapered trousers. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Simple clean dance trainers; no cultural-costume shorthand or one-sex ballet stereotype.",
+          "award": "One solid gold an abstract flowing ribbon sculpture; no crystal",
+          "pose": "ribbon award held at side and free arm relaxed; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Loose modest short-sleeve dance top and full-length tapered trousers. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Simple clean dance trainers; no cultural-costume shorthand or one-sex ballet stereotype. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal an abstract flowing ribbon sculpture plus one small gold medallion",
+          "pose": "joyful small outward arm flourish; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Loose modest short-sleeve dance top and full-length tapered trousers. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Simple clean dance trainers; no cultural-costume shorthand or one-sex ballet stereotype. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal an abstract flowing ribbon sculpture plus one medallion; maximum three total props including sport equipment",
+          "pose": "confident offset feet and folded hands; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated coral, petrol and pearl palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong dance practice honour inspired by an abstract flowing ribbon sculpture; no secondary medals or sport equipment",
+          "pose": "formal portrait ribbon honour balanced across both palms; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "gymnastics": {
+      "label": "Gymnastics",
+      "priority_reason": "Strong family/young athlete fit; mastery denotes practice, not qualified difficulty.",
+      "palette": "royal violet, ice and charcoal",
+      "identities": {
+        "male": "olive skin; wide round cheekbones; brown eyes; tight dark brown short curls; compact athletic build",
+        "female": "light brown skin; heart-shaped face; dark brown eyes; tight shoulder-length curls gathered back; compact strong build"
+      },
+      "equipment": "Bare feet; discreet chalk bag only at later tiers; no oversized apparatus or unsafe stunt.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Equal-coverage short-sleeve gymnastics training top with fitted full-length training trousers. Basic junior-sized kit with simple construction.",
+          "equipment": "Bare feet; discreet chalk bag only at later tiers; no oversized apparatus or unsafe stunt.",
+          "award": "None",
+          "pose": "neutral parallel feet arms relaxed; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Equal-coverage short-sleeve gymnastics training top with fitted full-length training trousers. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Bare feet; discreet chalk bag only at later tiers; no oversized apparatus or unsafe stunt.",
+          "award": "One small original silver participation medallion",
+          "pose": "upright poised stance with one open hand low; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Equal-coverage short-sleeve gymnastics training top with fitted full-length training trousers. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Bare feet; discreet chalk bag only at later tiers; no oversized apparatus or unsafe stunt.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal held away from torso on palm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Equal-coverage short-sleeve gymnastics training top with fitted full-length training trousers. Add tailored team warm-up jacket in mature adult proportions.",
+          "equipment": "Bare feet; discreet chalk bag only at later tiers; no oversized apparatus or unsafe stunt.",
+          "award": "One original silver an original balanced arch honour",
+          "pose": "walking confidently in warm-up jacket; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Equal-coverage short-sleeve gymnastics training top with fitted full-length training trousers. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Bare feet; discreet chalk bag only at later tiers; no oversized apparatus or unsafe stunt.",
+          "award": "One solid gold an original balanced arch honour; no crystal",
+          "pose": "arch award held low with squared shoulders; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Equal-coverage short-sleeve gymnastics training top with fitted full-length training trousers. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Bare feet; discreet chalk bag only at later tiers; no oversized apparatus or unsafe stunt. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal an original balanced arch honour plus one small gold medallion",
+          "pose": "one graceful hand lifted without contortion; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Equal-coverage short-sleeve gymnastics training top with fitted full-length training trousers. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Bare feet; discreet chalk bag only at later tiers; no oversized apparatus or unsafe stunt. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal an original balanced arch honour plus one medallion; maximum three total props including sport equipment",
+          "pose": "arms folded with arch sculpture at feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated royal violet, ice and charcoal palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong gymnastics practice honour inspired by an original balanced arch honour; no secondary medals or sport equipment",
+          "pose": "formal composed portrait with arch honour at chest; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "padel": {
+      "label": "Padel",
+      "priority_reason": "Fast-growing British racket sport; LTA reported one million players in May 2026.",
+      "palette": "electric blue, cream and copper",
+      "identities": {
+        "male": "fair cool-toned skin; broad square face and nose; grey eyes; dark-blond wavy quiff; tall athletic build",
+        "female": "deep brown skin; narrow oval face; amber-brown eyes; microbraids in practical bun; compact athletic build"
+      },
+      "equipment": "Short-handled perforated solid padel racket with wrist strap; small ball when specified, never tennis strings.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Short-sleeve padel shirt, knee-length shorts and court shoes. Basic junior-sized kit with simple construction.",
+          "equipment": "Short-handled perforated solid padel racket with wrist strap; small ball when specified, never tennis strings.",
+          "award": "None",
+          "pose": "racket hanging safely beside thigh; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Short-sleeve padel shirt, knee-length shorts and court shoes. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Short-handled perforated solid padel racket with wrist strap; small ball when specified, never tennis strings.",
+          "award": "One small original silver participation medallion",
+          "pose": "ready stance racket angled low; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Short-sleeve padel shirt, knee-length shorts and court shoes. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Short-handled perforated solid padel racket with wrist strap; small ball when specified, never tennis strings.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal on palm and racket in other hand; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Short-sleeve padel shirt, knee-length shorts and court shoes. Add refined sleeveless warm-up gilet in mature adult proportions.",
+          "equipment": "Short-handled perforated solid padel racket with wrist strap; small ball when specified, never tennis strings.",
+          "award": "One original silver a perforated fan-shaped racket honour",
+          "pose": "walking racket resting along forearm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Short-sleeve padel shirt, knee-length shorts and court shoes. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Short-handled perforated solid padel racket with wrist strap; small ball when specified, never tennis strings.",
+          "award": "One solid gold a perforated fan-shaped racket honour; no crystal",
+          "pose": "fan award held at hip with racket down; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Short-sleeve padel shirt, knee-length shorts and court shoes. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Short-handled perforated solid padel racket with wrist strap; small ball when specified, never tennis strings. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal a perforated fan-shaped racket honour plus one small gold medallion",
+          "pose": "restrained fist lift with racket low; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Short-sleeve padel shirt, knee-length shorts and court shoes. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Short-handled perforated solid padel racket with wrist strap; small ball when specified, never tennis strings. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal a perforated fan-shaped racket honour plus one medallion; maximum three total props including sport equipment",
+          "pose": "racket tucked beside leg and fan sculpture at feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated electric blue, cream and copper palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong padel practice honour inspired by a perforated fan-shaped racket honour; no secondary medals or sport equipment",
+          "pose": "formal portrait holding fan honour at a slight angle; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "pickleball": {
+      "label": "Pickleball",
+      "priority_reason": "Accessible growing racket option for mixed ages and families; avoids duplicating tennis.",
+      "palette": "lime, navy and raspberry accent",
+      "identities": {
+        "male": "medium brown skin; round broad face; green-brown eyes; black side-swept waves; medium-height broad build",
+        "female": "fair freckled skin; heart-shaped face; hazel eyes; copper-red pixie cut; medium-height lean build"
+      },
+      "equipment": "Solid pickleball paddle without strings or padel perforations; one perforated plastic ball.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Short-sleeve court shirt and knee-length shorts for both. Basic junior-sized kit with simple construction.",
+          "equipment": "Solid pickleball paddle without strings or padel perforations; one perforated plastic ball.",
+          "award": "None",
+          "pose": "paddle down and ball in open hand; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Short-sleeve court shirt and knee-length shorts for both. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Solid pickleball paddle without strings or padel perforations; one perforated plastic ball.",
+          "award": "One small original silver participation medallion",
+          "pose": "relaxed side-on paddle held at waist; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Short-sleeve court shirt and knee-length shorts for both. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Solid pickleball paddle without strings or padel perforations; one perforated plastic ball.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal in open hand with paddle down; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Short-sleeve court shirt and knee-length shorts for both. Add lightweight court jacket in mature adult proportions.",
+          "equipment": "Solid pickleball paddle without strings or padel perforations; one perforated plastic ball.",
+          "award": "One original silver a geometric paddle-and-orbit honour",
+          "pose": "walking ball held at side; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Short-sleeve court shirt and knee-length shorts for both. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Solid pickleball paddle without strings or padel perforations; one perforated plastic ball.",
+          "award": "One solid gold a geometric paddle-and-orbit honour; no crystal",
+          "pose": "orbit award against forearm paddle beside thigh; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Short-sleeve court shirt and knee-length shorts for both. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Solid pickleball paddle without strings or padel perforations; one perforated plastic ball. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal a geometric paddle-and-orbit honour plus one small gold medallion",
+          "pose": "gentle raised paddle salute; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Short-sleeve court shirt and knee-length shorts for both. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Solid pickleball paddle without strings or padel perforations; one perforated plastic ball. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal a geometric paddle-and-orbit honour plus one medallion; maximum three total props including sport equipment",
+          "pose": "hands loosely clasped with paddle and orbit honour beside feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated lime, navy and raspberry accent palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong pickleball practice honour inspired by a geometric paddle-and-orbit honour; no secondary medals or sport equipment",
+          "pose": "formal three-quarter portrait holding orbit honour horizontally; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "table_tennis": {
+      "label": "Table Tennis",
+      "priority_reason": "Accessible club, school and family sport with recognisable compact equipment.",
+      "palette": "scarlet, charcoal and ivory",
+      "identities": {
+        "male": "golden tan skin; defined oval face; brown eyes; black spiky crop; lean medium-height build",
+        "female": "olive skin; broad rounded face; green eyes; dark brown curls half tied back; shorter compact build"
+      },
+      "equipment": "Small table-tennis bat and white ball; correct compact scale; no full table.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Short-sleeve court top, knee-length shorts and indoor court shoes. Basic junior-sized kit with simple construction.",
+          "equipment": "Small table-tennis bat and white ball; correct compact scale; no full table.",
+          "award": "None",
+          "pose": "bat relaxed beside hip; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Short-sleeve court top, knee-length shorts and indoor court shoes. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Small table-tennis bat and white ball; correct compact scale; no full table.",
+          "award": "One small original silver participation medallion",
+          "pose": "slight ready posture ball in open palm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Short-sleeve court top, knee-length shorts and indoor court shoes. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Small table-tennis bat and white ball; correct compact scale; no full table.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal displayed in free hand; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Short-sleeve court top, knee-length shorts and indoor court shoes. Add fitted team jacket in mature adult proportions.",
+          "equipment": "Small table-tennis bat and white ball; correct compact scale; no full table.",
+          "award": "One original silver a compact circular rally sculpture",
+          "pose": "walking bat tucked safely down beside leg; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Short-sleeve court top, knee-length shorts and indoor court shoes. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Small table-tennis bat and white ball; correct compact scale; no full table.",
+          "award": "One solid gold a compact circular rally sculpture; no crystal",
+          "pose": "rally award cradled with bat lowered; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Short-sleeve court top, knee-length shorts and indoor court shoes. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Small table-tennis bat and white ball; correct compact scale; no full table. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal a compact circular rally sculpture plus one small gold medallion",
+          "pose": "gentle bat-up acknowledgment below face; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Short-sleeve court top, knee-length shorts and indoor court shoes. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Small table-tennis bat and white ball; correct compact scale; no full table. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal a compact circular rally sculpture plus one medallion; maximum three total props including sport equipment",
+          "pose": "offset shoulders bat held behind hip and one award at feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated scarlet, charcoal and ivory palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong table tennis practice honour inspired by a compact circular rally sculpture; no secondary medals or sport equipment",
+          "pose": "formal portrait compact rally honour at chest; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "volleyball": {
+      "label": "Volleyball",
+      "priority_reason": "Established school and club team sport; both appearances equal athletic presence.",
+      "palette": "sunflower, deep blue and pearl",
+      "identities": {
+        "male": "deep brown skin; long square face; dark eyes; short black twists; tall broad-shouldered athletic build",
+        "female": "medium tan skin; angular triangular face; grey eyes; sandy curls in practical ponytail; tall strong build"
+      },
+      "equipment": "One correct panelled volleyball; optional realistic knee pads; no net or beach scene.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Short-sleeve team shirt, mid-length shorts, indoor shoes and optional knee pads for both. Basic junior-sized kit with simple construction.",
+          "equipment": "One correct panelled volleyball; optional realistic knee pads; no net or beach scene.",
+          "award": "None",
+          "pose": "ball loosely held at one hip; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Short-sleeve team shirt, mid-length shorts, indoor shoes and optional knee pads for both. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "One correct panelled volleyball; optional realistic knee pads; no net or beach scene.",
+          "award": "One small original silver participation medallion",
+          "pose": "ball supported in both hands at waist; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Short-sleeve team shirt, mid-length shorts, indoor shoes and optional knee pads for both. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "One correct panelled volleyball; optional realistic knee pads; no net or beach scene.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal on open palm ball against opposite hip; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Short-sleeve team shirt, mid-length shorts, indoor shoes and optional knee pads for both. Add team warm-up jacket in mature adult proportions.",
+          "equipment": "One correct panelled volleyball; optional realistic knee pads; no net or beach scene.",
+          "award": "One original silver an abstract rising ball-panel honour",
+          "pose": "walking ball under one arm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Short-sleeve team shirt, mid-length shorts, indoor shoes and optional knee pads for both. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "One correct panelled volleyball; optional realistic knee pads; no net or beach scene.",
+          "award": "One solid gold an abstract rising ball-panel honour; no crystal",
+          "pose": "panel award cradled at waist; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Short-sleeve team shirt, mid-length shorts, indoor shoes and optional knee pads for both. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "One correct panelled volleyball; optional realistic knee pads; no net or beach scene. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal an abstract rising ball-panel honour plus one small gold medallion",
+          "pose": "one open hand lifted ball at hip; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Short-sleeve team shirt, mid-length shorts, indoor shoes and optional knee pads for both. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "One correct panelled volleyball; optional realistic knee pads; no net or beach scene. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal an abstract rising ball-panel honour plus one medallion; maximum three total props including sport equipment",
+          "pose": "folded arms with ball and award at feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated sunflower, deep blue and pearl palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong volleyball practice honour inspired by an abstract rising ball-panel honour; no secondary medals or sport equipment",
+          "pose": "formal angled portrait panel honour held in two hands; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "golf": {
+      "label": "Golf",
+      "priority_reason": "Established adult and junior club sport; recognised equipment and refined progression.",
+      "palette": "pine, cream and burgundy",
+      "identities": {
+        "male": "fair freckled skin; soft oval face; blue eyes; medium-brown swept hair; medium-height solid build",
+        "female": "dark brown skin; broad angular face; dark eyes; compact rounded natural afro; medium-height athletic build"
+      },
+      "equipment": "One correct golf club with head safely down; optional glove; no giant bag or branded jacket.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Modest short-sleeve polo and golf trousers with golf shoes for both. Basic junior-sized kit with simple construction.",
+          "equipment": "One correct golf club with head safely down; optional glove; no giant bag or branded jacket.",
+          "award": "None",
+          "pose": "club resting down beside boot; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Modest short-sleeve polo and golf trousers with golf shoes for both. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "One correct golf club with head safely down; optional glove; no giant bag or branded jacket.",
+          "award": "One small original silver participation medallion",
+          "pose": "gloved hand on club grip natural side stance; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Modest short-sleeve polo and golf trousers with golf shoes for both. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "One correct golf club with head safely down; optional glove; no giant bag or branded jacket.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medal shown in open palm with club down; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Modest short-sleeve polo and golf trousers with golf shoes for both. Add knitted quarter-zip in mature adult proportions.",
+          "equipment": "One correct golf club with head safely down; optional glove; no giant bag or branded jacket.",
+          "award": "One original silver an original silver rising-arc honour",
+          "pose": "walking club held low along side; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Modest short-sleeve polo and golf trousers with golf shoes for both. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "One correct golf club with head safely down; optional glove; no giant bag or branded jacket.",
+          "award": "One solid gold an original silver rising-arc honour; no crystal",
+          "pose": "arc award held at hip with relaxed free hand; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Modest short-sleeve polo and golf trousers with golf shoes for both. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "One correct golf club with head safely down; optional glove; no giant bag or branded jacket. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal an original silver rising-arc honour plus one small gold medallion",
+          "pose": "quiet open-handed acknowledgment; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Modest short-sleeve polo and golf trousers with golf shoes for both. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "One correct golf club with head safely down; optional glove; no giant bag or branded jacket. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal an original silver rising-arc honour plus one medallion; maximum three total props including sport equipment",
+          "pose": "hands loosely joined with club and award beside feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated pine, cream and burgundy palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong golf practice honour inspired by an original silver rising-arc honour; no secondary medals or sport equipment",
+          "pose": "formal portrait holding arc honour slightly off-centre; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    },
+    "climbing": {
+      "label": "Climbing",
+      "priority_reason": "Clear gym/coach crossover; one ladder for climbing and bouldering.",
+      "palette": "rust, ocean teal and stone",
+      "identities": {
+        "male": "olive skin; long angular face; hazel eyes; shoulder-length dark brown waves tied back; tall lanky build",
+        "female": "light brown skin; rounded diamond face; brown eyes; black short undercut with swept top; sturdy compact build"
+      },
+      "equipment": "Climbing shoes and small chalk bag; correct harness only for roped variant, no ropes around neck or unsafe stunt.",
+      "notes": "Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.",
+      "tiers": [
+        {
+          "tier": "bronze",
+          "kit": "Modest short-sleeve climbing tee and full-length practical trousers. Basic junior-sized kit with simple construction.",
+          "equipment": "Climbing shoes and small chalk bag; correct harness only for roped variant, no ropes around neck or unsafe stunt.",
+          "award": "None",
+          "pose": "relaxed stance chalk bag at hip; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "silver",
+          "kit": "Modest short-sleeve climbing tee and full-length practical trousers. Older-teen fitted kit with subtle secondary-colour side panels.",
+          "equipment": "Climbing shoes and small chalk bag; correct harness only for roped variant, no ropes around neck or unsafe stunt.",
+          "award": "One small original silver participation medallion",
+          "pose": "one hand gently brushing chalk from other low down; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "gold",
+          "kit": "Modest short-sleeve climbing tee and full-length practical trousers. Young-adult technical construction with refined seams and sport-specific footwear.",
+          "equipment": "Climbing shoes and small chalk bag; correct harness only for roped variant, no ropes around neck or unsafe stunt.",
+          "award": "One original bronze practice milestone medal",
+          "pose": "medallion in open palm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "platinum",
+          "kit": "Modest short-sleeve climbing tee and full-length practical trousers. Add technical overshirt in mature adult proportions.",
+          "equipment": "Climbing shoes and small chalk bag; correct harness only for roped variant, no ropes around neck or unsafe stunt.",
+          "award": "One original silver an original faceted ascending hold sculpture",
+          "pose": "walking with technical overshirt folded on forearm; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "diamond",
+          "kit": "Modest short-sleeve climbing tee and full-length practical trousers. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling.",
+          "equipment": "Climbing shoes and small chalk bag; correct harness only for roped variant, no ropes around neck or unsafe stunt.",
+          "award": "One solid gold an original faceted ascending hold sculpture; no crystal",
+          "pose": "hold award against forearm free hand relaxed; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "elite",
+          "kit": "Modest short-sleeve climbing tee and full-length practical trousers. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction.",
+          "equipment": "Climbing shoes and small chalk bag; correct harness only for roped variant, no ropes around neck or unsafe stunt. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal an original faceted ascending hold sculpture plus one small gold medallion",
+          "pose": "small raised open hand expressing achievement; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "champion",
+          "kit": "Modest short-sleeve climbing tee and full-length practical trousers. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim.",
+          "equipment": "Climbing shoes and small chalk bag; correct harness only for roped variant, no ropes around neck or unsafe stunt. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props.",
+          "award": "One crystal-and-metal an original faceted ascending hold sculpture plus one medallion; maximum three total props including sport equipment",
+          "pose": "arms folded with chalk bag and hold award at feet; preserve the stated tier age and a readable unobstructed face."
+        },
+        {
+          "tier": "unreal",
+          "kit": "Formal tailored trouser suit for both appearances with understated rust, ocean teal and stone palette; polished shoes; no athlete uniform.",
+          "equipment": "None. Omit all sport equipment.",
+          "award": "One original crystal-and-gold lifelong climbing practice honour inspired by an original faceted ascending hold sculpture; no secondary medals or sport equipment",
+          "pose": "formal angled portrait with ascending hold honour supported on palm; preserve the stated tier age and a readable unobstructed face."
+        }
+      ]
+    }
+  }
+}
