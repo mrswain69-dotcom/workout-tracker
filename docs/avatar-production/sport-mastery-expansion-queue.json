@@ -30,8 +30,10 @@
       "sport": "cycling",
       "label": "Cycling",
       "portraits": 16,
-      "state": "brief_ready",
-      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+      "state": "artwork_in_progress",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
+      "reviewed_portraits": 2,
+      "resume": "Generate Cycling Unreal male and female adult anchors, then Silver through Champion."
     },
     {
       "order": 3,
