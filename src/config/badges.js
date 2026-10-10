@@ -100,6 +100,11 @@ const REP_TIERS = [
 
 
 export const SPORT_MASTERY_PACKS = {
+  running: {
+    label: "Running",
+    family: "sport",
+    iconFile: "icon_runner.png",
+  },
   football: {
     label: "Football",
     family: "sport",

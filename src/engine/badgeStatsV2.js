@@ -460,6 +460,7 @@ const PACE_DISTANCES = {
 // - do NOT yet wire into badge defs / avatar unlocks
 // -----------------------------------------------------
 const SPORT_MASTERY_KEYS = [
+  "running",
   "football",
   "rugby",
   "basketball",
@@ -476,6 +477,7 @@ const SPORT_MASTERY_KEYS = [
 ];
 
 const SPORT_NAME_MATCHERS = [
+  { key: "running", pattern: /\b(?:running|jogging|trail run|road run|track run)\b/ },
   { key: "football", terms: ["football", "soccer"] },
   { key: "rugby", terms: ["rugby"] },
   { key: "basketball", terms: ["basketball"] },
@@ -568,6 +570,10 @@ function getSportKeyFromText(text) {
   if (!t) return null;
 
   for (const matcher of SPORT_NAME_MATCHERS) {
+    if (matcher.pattern) {
+      if (matcher.pattern.test(t)) return matcher.key;
+      continue;
+    }
     for (const term of matcher.terms) {
       if (t.includes(term)) return matcher.key;
     }
@@ -644,7 +650,9 @@ function getSportKeysForLog(log) {
 
     const cardioType = normaliseText(b?.cardioType);
 
-    if (cardioType === "indoor_rowing") {
+    if (typeId === "run" || cardioType === "run" || cardioType === "running") {
+      found = "running";
+    } else if (cardioType === "indoor_rowing") {
       found = "indoor_rowing";
     } else if (cardioType === "row") {
       found = "outdoor_rowing";

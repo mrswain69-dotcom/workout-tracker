@@ -1,0 +1,11 @@
+# Running paired collection
+
+Running adds sixteen original portraits, two appearances sharing eight logical unlocks. Bronze and Silver establish junior and older-teen identities; Gold through Unreal progress into adult faces, varied poses and the prescribed participation/practice recognition. Original PNG bytes and the completed 208 existing portraits are preserved. Prompts, references and hashes are recorded in running-production-record.json.
+
+Native Run blocks and Run/Running cardio types now count real logged distance or duration. Named running, jogging and road/track/trail-run activities also count. Duplicate blocks and duplicate rows contribute at most one session per sport/day. Empty plans, cancelled blocks, recovery-suspended blocks and future dates do not count. Historic qualifying runs can now build Running mastery; existing claimed rewards are not rewritten.
+
+Avatar thresholds remain 40/80/120/160/200/240/280/320 sessions and XP 25/35/50/70/95/125/160/200. The separate nine-tier Sport Mastery badge progression is unchanged. Running uses the existing runner badge icon and eight distinct 30–70-word stories. Earned/All disclosure behaviour continues unchanged.
+
+The CLI-created migration extends the existing owner/claimed-avatar checked cosmetic RPC allowlist. Its rollback-only production regression passed anonymous/non-owner/unclaimed rejection, male/female persistence, sanitised group sync, full plan/XP/reward/history invariance, invalid input rejection and default restoration. Advisors retain the existing intentional authenticated SECURITY DEFINER notice for this owner-checked RPC; there is no appearance-function performance finding. Other project findings are outside this release.
+
+The client and both deployed server XP maps include the nine Running badge rewards, preserving all 1,333 previous entries. group-xp-leaderboard version 14 and group-seasons-awards version 13 retain JWT verification. Focused routing/artwork/reward tests passed; the complete regression suite and exact-head CI are required before merge. Build passed with the existing large-chunk warning. Public production asset hashes and bundle will be checked after deployment; authenticated/device visual QA is not represented by the public checks.

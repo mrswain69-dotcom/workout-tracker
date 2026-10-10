@@ -15,10 +15,10 @@
       "sport": "running",
       "label": "Running",
       "portraits": 16,
-      "state": "artwork_in_progress",
+      "state": "integration_verification",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "Running artwork complete16/16; integrate session routing, registries, stories, RPC, tests and release before Cycling."
+      "resume": "Finish Running CI, merge and public production verification, then begin Cycling Bronze male/female."
     },
     {
       "order": 2,
