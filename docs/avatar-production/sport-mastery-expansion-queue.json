@@ -131,5 +131,6 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Select Light first. Generate one image per call. Save reviewed pairs and complete one collection release at a time. Preserve existing 208 portraits. Begin Running Bronze male then female, establish Unreal anchors, then Silver/Gold/Platinum/Diamond/Elite/Champion. Use canonical brief and own anchors. Do not spawn subagents unless user asks."
+  "resume": "Select Light first. Generate one image per call. Save reviewed pairs and complete one collection release at a time. Preserve existing 208 portraits. Begin Running Bronze male then female, establish Unreal anchors, then Silver/Gold/Platinum/Diamond/Elite/Champion. Use canonical brief and own anchors. Do not spawn subagents unless user asks.",
+  "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required."
 }

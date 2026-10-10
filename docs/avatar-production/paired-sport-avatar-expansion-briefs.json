@@ -79,7 +79,7 @@
     }
   ],
   "selection_method": "UK-first product judgement for athletes, families, coaches and PT clients, informed by participation evidence. Order is production priority, not a statistical top-15 ranking. Fitness disciplines are intentionally included.",
-  "diversity_gate": "Review all thirty Bronze identities together before mid-tier generation: distinct face geometry, hair silhouette, build, posture and palette. No existing sport face reused. Counterpart reference supplies kit/award only. Sport is a personal story, not a demographic restriction.",
+  "diversity_gate": "Review all thirty planned identities as a design matrix before production. At each sport\u2019s Bronze checkpoint, compare the reviewed male/female pair with all completed Bronze anchors across existing and new sports: distinct face geometry, hair silhouette, build, posture and palette. Resolve a near-clone before that sport\u2019s later tiers. Do not regenerate accepted completed art. Counterpart reference supplies kit/award only. Sport is a personal story, not a demographic restriction.",
   "sports": {
     "running": {
       "label": "Running",
