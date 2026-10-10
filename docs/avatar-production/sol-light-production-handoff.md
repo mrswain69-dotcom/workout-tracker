@@ -41,3 +41,8 @@ All sixteen paired portraits are produced, reviewed and hash/alpha validated. Ap
 ## Fencing checkpoint — 10 October 2026
 
 All sixteen paired portraits are produced, reviewed and hash/alpha validated. App enablement and migration are ready for release validation. Hockey PR93 is merged and all sixteen images matched live. Next: Martial Arts, Indoor Rowing, Outdoor Rowing, Yoga. Continue without further approval.
+
+
+## 10 October — Martial Arts collection complete
+
+All 16 originals saved and reviewed; collection integration and release checks continue on feature/martial-arts-paired-avatars. Next: Indoor Rowing, Outdoor Rowing, Yoga. Preserve ageing, distinct poses and one logical unlock per pair.
