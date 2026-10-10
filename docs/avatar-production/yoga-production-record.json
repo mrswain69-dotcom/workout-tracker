@@ -151,6 +151,36 @@
       ],
       "review": "Visually inspected identity, age, pose, kit, awards and framing; dimensions/RGBA/alpha/hash validated",
       "generated_at": "2026-10-10T13:09:45.183152+00:00"
+    },
+    "diamond_male": {
+      "path": "public/avatars/sport/yoga_diamond_male_v2.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "sha256": "e74610f4ad4522501d2a4cfdc885735d1aa0fdf6a466ca38cc7263a42dfda154",
+      "prompt": "Use case: precise-object-edit. Correct this Workout Tracker Yoga Diamond male portrait. Change ONLY the held recognition sculpture: replace all translucent crystal balanced-stone elements with opaque polished solid warm GOLD METAL balanced-stone forms. The specified Diamond honour is ONE original gold practice-mastery sculpture, NOT the crystal-and-gold Unreal honour. Use three abstract balanced oval stones of SOLID GOLD on the same small dark base; no transparent or clear material anywhere in the sculpture. Preserve the exact mature male face, wavy hair, tan skin, brown eyes, pose, hands, deep teal/ivory practice clothes, bare feet, full-body square framing and transparency. Keep same small size held at waist. No added props mat blocks medallion cup inscriptions logos religious symbol or background. Real transparent alpha.",
+      "references": [
+        "/workspace/scratch/675e6e2a48e2/generated_images/exec-1e2c4627-f632-418b-9d27-52687ac6192d.png"
+      ],
+      "review": "Visually inspected identity, age, pose, kit, awards and framing; dimensions/RGBA/alpha/hash validated",
+      "generated_at": "2026-10-10T13:12:16.456197+00:00"
+    },
+    "diamond_female": {
+      "path": "public/avatars/sport/yoga_diamond_female_v2.png",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "sha256": "f10f053c6a614f70961c19d74d54e21ebd50bf9dc2d36acbaa9130c487da753d",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional female Yoga athlete for the Diamond tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: warm tan skin, brown eyes, dark wavy hair tied in a practical bun. Experienced adult, approximately 26\u201330; mature face and composed leadership expression, not a copied junior face. Collection palette: muted sage and charcoal; refined deep teal/ivory; calm dark-teal ceremonial tailoring. This tier's outfit below determines the current colours. Outfit: High-quality deep-teal outfit with restrained ivory seams and elegant fabric drape. Equipment: Functional modest yoga top and trousers/leggings with equal coverage, bare feet for practice; rolled mat or neatly placed yoga blocks/strap as specified. Grounded neutral standing posture. No extreme contortion. Award: Original gold practice-mastery sculpture with abstract balanced-stone form. Pose: Same recognisable Yoga female aged29 experienced ADULT warm TAN skin BROWN eyes DARK WAVY practical BUN mature longer face/nose/jaw natural eyes subtle expression lines. High-quality DEEP TEAL modest short sleeve top/full length comfortable trousers fine IVORY seams elegant draped fabric BARE FEET equal male quality coverage. Grounded leadership stance stable feet body quarter turned left shoulders level composed expression. ONE original SOLID OPAQUE GOLD METAL balanced-stone practice mastery sculpture held at WAIST with both hands, three abstract GOLD oval stones slim GOLD support low dark base, matches male. IMPORTANT NO CRYSTAL/TRANSLUCENT STONES; Diamond is gold sculpture, crystal only later tiers. Override generic equipment: ONLY held gold sculpture, NO MAT BLOCKS STRAP medals CUP religious symbols qualification certificate or extra props. Entire head hands body bare feet sculpture inside square 8% alpha margins. Own Unreal only adult face, male only kit/gold honour. Distinct from walking Platinum. Tier silhouette direction: Composed leadership stance, broader grounded base and a calm direct expression; distinguish it from the action and walking silhouettes. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Non-competitive practice-mastery ladder. No league cups, world championships, guru titles, religious symbols or teaching/medical qualification certificates. Later recognition objects are original Workout Tracker practice/milestone symbols. Luxury comes from materials, calm presence and refined presentation.\n\nReferences establish own identity and age endpoint; counterpart kit/awards only. Follow new pose, preserve same person, visibly mature adult anatomy where required.",
+      "references": [
+        "/workspace/scratch/675e6e2a48e2/generated_images/exec-91fa27fd-9db1-4688-8b49-8e2d2e14d6f5.png",
+        "/workspace/scratch/675e6e2a48e2/generated_images/exec-7a0fa808-deb1-49cf-bd52-a9c98d944a3b.png",
+        "/workspace/scratch/675e6e2a48e2/generated_images/exec-672096ce-a0b3-4a6f-a54b-8d520bea7875.png"
+      ],
+      "review": "Visually inspected identity, age, pose, kit, awards and framing; dimensions/RGBA/alpha/hash validated",
+      "generated_at": "2026-10-10T13:12:16.485971+00:00"
     }
   }
 }
