@@ -132,5 +132,21 @@
     }
   ],
   "resume": "Select Light first. Generate one image per call. Save reviewed pairs and complete one collection release at a time. Preserve existing 208 portraits. Begin Running Bronze male then female, establish Unreal anchors, then Silver/Gold/Platinum/Diamond/Elite/Champion. Use canonical brief and own anchors. Do not spawn subagents unless user asks.",
-  "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required."
+  "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
+  "ui_release": {
+    "pr": 99,
+    "merge_commit": "cef0e101dc7ef8d06279c9f38a38b9542c421609",
+    "tested_head": "7dd92e0ac685e3a3d5b9d9cc310cb177b8647303",
+    "ci_run": 38064367746,
+    "status": "production_verified",
+    "live_bundle": "/assets/index-Dq--SRRQ.js"
+  },
+  "integration_checklist": [
+    "Confirm canonical keys and session routing; native run/bike/swim/strength blocks need real logged activity. Preserve existing aliases and claims with a defined cutover for Boxing/Pilates. Avoid tennis substring collisions.",
+    "Add sport registry, stats buckets/matchers, avatar metadata and 30\u201370 word tier stories; badge/reward mapping must follow existing authorities. Review appropriate badge icon assets.",
+    "Validate all sixteen original images and reviewed provenance before adding to paired artwork-ready client registry.",
+    "Extend authenticated owner/claim checked cosmetic RPC allowlist through CLI-named migration; preserve history, XP, privacy and sanitisation protections.",
+    "Test maximum one session per sport/day, historic routing boundaries, future/cancelled/suspended exclusion, unchanged existing reward keys and no missing-image requests.",
+    "Run regression suite/build/CI, apply required migration, merge expected head, deploy and verify live hashes/client/RPC behaviour. Update this queue after each collection release."
+  ]
 }
