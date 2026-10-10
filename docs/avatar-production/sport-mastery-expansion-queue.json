@@ -15,10 +15,15 @@
       "sport": "running",
       "label": "Running",
       "portraits": 16,
-      "state": "integration_verification",
+      "state": "production_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "Finish Running CI, merge and public production verification, then begin Cycling Bronze male/female."
+      "resume": "Complete. Preserve all sixteen portraits.",
+      "pr": 100,
+      "merge_commit": "e556ad1ff4150e04ce64fe9cab3066d1904fcb1d",
+      "tested_head": "cfb013243d926be9b88472742aef6309315463b5",
+      "ci_run": 38090209423,
+      "live_bundle": "/assets/index-Bs8WFpgP.js"
     },
     {
       "order": 2,
@@ -133,7 +138,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Select Light first. Generate one image per call. Save reviewed pairs and complete one collection release at a time. Preserve existing 208 portraits. Begin Running Bronze male then female, establish Unreal anchors, then Silver/Gold/Platinum/Diamond/Elite/Champion. Use canonical brief and own anchors. Do not spawn subagents unless user asks.",
+  "resume": "Cycling Bronze male then female, then Unreal anchors and Silver through Champion. Complete its integration/release before Swimming.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
@@ -150,5 +155,9 @@
     "Extend authenticated owner/claim checked cosmetic RPC allowlist through CLI-named migration; preserve history, XP, privacy and sanitisation protections.",
     "Test maximum one session per sport/day, historic routing boundaries, future/cancelled/suspended exclusion, unchanged existing reward keys and no missing-image requests.",
     "Run regression suite/build/CI, apply required migration, merge expected head, deploy and verify live hashes/client/RPC behaviour. Update this queue after each collection release."
-  ]
+  ],
+  "released_new_sports": 1,
+  "released_new_portraits": 16,
+  "current_released_sports": 14,
+  "current_active_portraits": 224
 }
