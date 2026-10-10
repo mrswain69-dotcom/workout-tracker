@@ -37,3 +37,7 @@ All sixteen paired portraits are produced, reviewed and hash/alpha validated. Di
 ## Hockey checkpoint — 10 October 2026
 
 All sixteen paired portraits are produced, reviewed and hash/alpha validated. App enablement and migration are ready for release validation. Netball PR92 is merged and all sixteen images matched live. Next: Fencing, Martial Arts, Indoor Rowing, Outdoor Rowing, Yoga. Continue without further approval.
+
+## Fencing checkpoint — 10 October 2026
+
+All sixteen paired portraits are produced, reviewed and hash/alpha validated. App enablement and migration are ready for release validation. Hockey PR93 is merged and all sixteen images matched live. Next: Martial Arts, Indoor Rowing, Outdoor Rowing, Yoga. Continue without further approval.
