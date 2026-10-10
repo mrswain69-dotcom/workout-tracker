@@ -29,7 +29,7 @@ describe("Running mastery release", () => {
     const result = stats([
       row("2026-10-08", [run({ typeId: "duration", activityName: "Road run", duration: { minutes: 15 } })]),
       row("2026-10-09", [run({ typeId: "duration", activityName: "Outrunning distractions", duration: { minutes: 15 } })]),
-      row("2026-10-10", [run({ typeId: "cardio", activityName: "Football practice", cardioType: "team_sport" })]),
+      row("2026-10-10", [run({ typeId: "cardio", activityName: "Football running drills", cardioType: "team_sport" })]),
     ]);
     expect(result.running.sessions).toBe(1);
     expect(result.football.sessions).toBe(1);

@@ -477,7 +477,6 @@ const SPORT_MASTERY_KEYS = [
 ];
 
 const SPORT_NAME_MATCHERS = [
-  { key: "running", pattern: /\b(?:running|jogging|trail run|road run|track run)\b/ },
   { key: "football", terms: ["football", "soccer"] },
   { key: "rugby", terms: ["rugby"] },
   { key: "basketball", terms: ["basketball"] },
@@ -555,6 +554,7 @@ const SPORT_NAME_MATCHERS = [
       "coastal rowing",
     ],
   },
+  { key: "running", pattern: /\b(?:running|jogging|trail run|road run|track run)\b/ },
 ];
 
 function normaliseText(v) {
