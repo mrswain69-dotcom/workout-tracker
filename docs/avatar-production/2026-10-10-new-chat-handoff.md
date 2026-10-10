@@ -1,6 +1,6 @@
 # Paired sport avatars — new-chat handover, 10 October 2026
 
-> Completion update: Outdoor Rowing is released and live verified (PR #97). All sixteen Yoga portraits are saved and integrated; Yoga release checks are underway. The starting-point instructions below are historical and must not restart completed generation. See yoga-paired-release.md and production-status.json for current state.
+> Completion update: Outdoor Rowing is released and live verified (PR #97). Yoga is released and live verified (PR #98). All thirteen sports and 208 active portraits are complete. The starting-point instructions below are historical and must not restart completed generation. See yoga-paired-release.md and production-status.json for current state.
 
 ## User request and scope
 

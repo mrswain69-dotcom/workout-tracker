@@ -8,4 +8,6 @@ Both appearances share the existing logical unlock and claim. Session thresholds
 
 Validated: sixteen 1254px square RGBA PNGs, alpha range 0–255 and original SHA-256 matches; complete 208-slot inventory; UTC suite 196 files / 1,191 tests; production build; diff checks; all thirteen rollback-only live avatar SQL regressions, including ownership, claim, variant, sanitised group sync and complete history/XP/reward invariance. Advisors retain the existing intentional owner-checked authenticated SECURITY DEFINER notice; no performance finding targets this RPC. Other existing findings are outside this release.
 
-PR, CI and production verification are pending. No manual device QA has been performed.
+Workout Tracker CI (run 38055285253), including tests, build and dependency security audit, and Vercel preview passed at c9fdb3eb769a8e20bf43f515fe398b8afc6b10d5. PR #98 merged as 45e66c533e2dd30ecc6e42bf3e20f99c38a4d471. Production Vercel status succeeded; all sixteen Yoga hashes and all 208 active portrait hashes matched saved files, and the live client enables all thirteen sports. The production public page renders without app-origin console errors. No manual device or authenticated browser gallery QA was performed. See paired-avatar-production-verification.json.
+
+Existing advisory reference: [authenticated SECURITY DEFINER execution](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable). The owner-checked authenticated RPC intentionally retains this execution model.

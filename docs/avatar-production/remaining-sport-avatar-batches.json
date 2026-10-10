@@ -14,10 +14,11 @@
     "hockey",
     "fencing",
     "martial_arts",
+    "yoga",
     "indoor_rowing",
     "outdoor_rowing"
   ],
-  "remaining_sports": 1,
+  "remaining_sports": 0,
   "remaining_assets": 0,
   "production_mode": "Sol Light selected by user before image production; do not substitute another model silently",
   "collection_size": 16,
@@ -285,7 +286,7 @@
       "sport": "yoga",
       "label": "Yoga",
       "assets": 16,
-      "release_state": "awaiting_release",
+      "release_state": "released",
       "brief_key": "yoga",
       "final_honour": "One original crystal-and-gold lifelong-practice honour, explicitly a fictional app symbol.",
       "filename_template": "public/avatars/sport/yoga_{tier}_{variant}_v2.png",
@@ -316,7 +317,5 @@
     "indoor_rowing",
     "outdoor_rowing"
   ],
-  "pending_release_sports": [
-    "yoga"
-  ]
+  "pending_release_sports": []
 }

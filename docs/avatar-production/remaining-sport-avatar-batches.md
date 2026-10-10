@@ -1,6 +1,6 @@
 # Remaining sport-avatar batches — Sol Light handoff
 
-10 October 2026 update: all **208 portraits across thirteen sports** are complete. Twelve sports are released; Yoga is awaiting CI, merge and production verification. There are **zero remaining portraits to generate**. See production-status.json and the individual release records for current evidence. The sequence below is retained as production history.
+10 October 2026 update: all **208 portraits across thirteen sports** are complete. All thirteen sports are released and production verified. There are **zero remaining portraits or releases**. See production-status.json and the individual release records for current evidence. The sequence below is retained as production history.
 
 ## Production sequence
 

@@ -289,7 +289,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_bronze_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -297,7 +297,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_bronze_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -305,7 +305,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_silver_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -313,7 +313,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_silver_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -321,7 +321,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_gold_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -329,7 +329,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_gold_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -337,7 +337,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_platinum_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -345,7 +345,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_platinum_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -353,7 +353,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_diamond_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -361,7 +361,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_diamond_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -369,7 +369,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_elite_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -377,7 +377,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_elite_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -385,7 +385,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_champion_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -393,7 +393,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_champion_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -401,7 +401,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_unreal_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "cricket",
@@ -409,7 +409,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/cricket_unreal_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -417,7 +417,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_bronze_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -425,7 +425,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_bronze_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -433,7 +433,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_silver_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -441,7 +441,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_silver_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -449,7 +449,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_gold_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -457,7 +457,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_gold_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -465,7 +465,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_platinum_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -473,7 +473,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_platinum_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -481,7 +481,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_diamond_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -489,7 +489,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_diamond_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -497,7 +497,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_elite_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -505,7 +505,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_elite_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -513,7 +513,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_champion_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -521,7 +521,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_champion_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -529,7 +529,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_unreal_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "basketball",
@@ -537,7 +537,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/basketball_unreal_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -545,7 +545,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_bronze_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -553,7 +553,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_bronze_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -561,7 +561,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_silver_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -569,7 +569,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_silver_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -577,7 +577,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_gold_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -585,7 +585,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_gold_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -593,7 +593,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_platinum_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -601,7 +601,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_platinum_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -609,7 +609,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_diamond_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -617,7 +617,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_diamond_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -625,7 +625,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_elite_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -633,7 +633,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_elite_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -641,7 +641,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_champion_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -649,7 +649,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_champion_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -657,7 +657,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_unreal_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "tennis",
@@ -665,7 +665,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/tennis_unreal_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -673,7 +673,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_bronze_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -681,7 +681,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_bronze_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -689,7 +689,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_silver_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -697,7 +697,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_silver_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -705,7 +705,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_gold_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -713,7 +713,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_gold_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -721,7 +721,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_platinum_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -729,7 +729,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_platinum_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -737,7 +737,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_diamond_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -745,7 +745,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_diamond_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -753,7 +753,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_elite_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -761,7 +761,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_elite_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -769,7 +769,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_champion_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -777,7 +777,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_champion_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -785,7 +785,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_unreal_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "badminton",
@@ -793,7 +793,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/badminton_unreal_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -801,7 +801,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_bronze_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -809,7 +809,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_bronze_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -817,7 +817,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_silver_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -825,7 +825,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_silver_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -833,7 +833,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_gold_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -841,7 +841,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_gold_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -849,7 +849,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_platinum_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -857,7 +857,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_platinum_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -865,7 +865,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_diamond_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -873,7 +873,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_diamond_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -881,7 +881,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_elite_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -889,7 +889,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_elite_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -897,7 +897,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_champion_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -905,7 +905,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_champion_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -913,7 +913,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_unreal_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "netball",
@@ -921,7 +921,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/netball_unreal_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -929,7 +929,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_bronze_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -937,7 +937,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_bronze_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -945,7 +945,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_silver_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -953,7 +953,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_silver_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -961,7 +961,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_gold_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -969,7 +969,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_gold_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -977,7 +977,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_platinum_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -985,7 +985,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_platinum_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -993,7 +993,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_diamond_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -1001,7 +1001,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_diamond_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -1009,7 +1009,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_elite_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -1017,7 +1017,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_elite_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -1025,7 +1025,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_champion_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -1033,7 +1033,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_champion_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -1041,7 +1041,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_unreal_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "hockey",
@@ -1049,7 +1049,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/hockey_unreal_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1057,7 +1057,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_bronze_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1065,7 +1065,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_bronze_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1073,7 +1073,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_silver_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1081,7 +1081,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_silver_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1089,7 +1089,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_gold_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1097,7 +1097,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_gold_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1105,7 +1105,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_platinum_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1113,7 +1113,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_platinum_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1121,7 +1121,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_diamond_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1129,7 +1129,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_diamond_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1137,7 +1137,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_elite_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1145,7 +1145,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_elite_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1153,7 +1153,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_champion_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1161,7 +1161,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_champion_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1169,7 +1169,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_unreal_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "fencing",
@@ -1177,7 +1177,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/fencing_unreal_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1185,7 +1185,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_bronze_male_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1193,7 +1193,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_bronze_female_v2.png",
-      "notes": "Paired v2; agent inspected. Provenance: per-sport production record. Collection activation awaits all 16 assets and integration checks."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1201,7 +1201,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_silver_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1209,7 +1209,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_silver_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1217,7 +1217,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_gold_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1225,7 +1225,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_gold_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1233,7 +1233,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_platinum_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1241,7 +1241,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_platinum_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1249,7 +1249,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_diamond_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1257,7 +1257,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_diamond_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1265,7 +1265,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_elite_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1273,7 +1273,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_elite_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1281,7 +1281,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_champion_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1289,7 +1289,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_champion_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1297,7 +1297,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_unreal_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits before app enablement."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "martial_arts",
@@ -1305,7 +1305,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/martial_arts_unreal_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits before app enablement."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1313,7 +1313,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_bronze_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1321,7 +1321,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_bronze_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1329,7 +1329,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_silver_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1337,7 +1337,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_silver_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1345,7 +1345,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_gold_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1353,7 +1353,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_gold_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1361,7 +1361,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_platinum_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1369,7 +1369,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_platinum_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1377,7 +1377,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_diamond_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1385,7 +1385,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_diamond_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1393,7 +1393,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_elite_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1401,7 +1401,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_elite_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1409,7 +1409,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_champion_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1417,7 +1417,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_champion_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1425,7 +1425,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_unreal_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "yoga",
@@ -1433,7 +1433,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/yoga_unreal_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1441,7 +1441,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_bronze_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1449,7 +1449,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_bronze_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1457,7 +1457,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_silver_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1465,7 +1465,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_silver_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1473,7 +1473,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_gold_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1481,7 +1481,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_gold_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1489,7 +1489,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_platinum_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1497,7 +1497,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_platinum_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1505,7 +1505,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_diamond_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1513,7 +1513,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_diamond_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1521,7 +1521,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_elite_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1529,7 +1529,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_elite_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1537,7 +1537,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_champion_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1545,7 +1545,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_champion_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1553,7 +1553,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_unreal_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "indoor_rowing",
@@ -1561,7 +1561,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_unreal_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1569,7 +1569,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_bronze_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1577,7 +1577,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_bronze_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1585,7 +1585,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_silver_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1593,7 +1593,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_silver_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1601,7 +1601,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_gold_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1609,7 +1609,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_gold_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1617,7 +1617,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_platinum_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1625,7 +1625,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_platinum_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1633,7 +1633,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_diamond_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1641,7 +1641,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_diamond_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1649,7 +1649,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_elite_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1657,7 +1657,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_elite_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1665,7 +1665,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_champion_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1673,7 +1673,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_champion_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1681,7 +1681,7 @@
       "variant": "male",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_unreal_male_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     },
     {
       "sport": "outdoor_rowing",
@@ -1689,7 +1689,7 @@
       "variant": "female",
       "status": "ready",
       "final_path": "public/avatars/sport/outdoor_rowing_unreal_female_v2.png",
-      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
+      "notes": "Reviewed paired artwork integrated and production hash verified. Original PNG bytes retained; provenance in per-sport production record."
     }
   ],
   "visual_refinement": {
@@ -1715,6 +1715,38 @@
       "status": "production_verified",
       "portraits": 16,
       "live_hashes_matched": 16
+    },
+    "yoga": {
+      "pr": 98,
+      "merge_commit": "45e66c533e2dd30ecc6e42bf3e20f99c38a4d471",
+      "tested_head": "c9fdb3eb769a8e20bf43f515fe398b8afc6b10d5",
+      "ci_run": 38055285253,
+      "status": "production_verified",
+      "portraits": 16,
+      "live_hashes_matched": 16
     }
+  },
+  "completion": {
+    "status": "production_verified",
+    "sports": [
+      "football",
+      "rugby",
+      "cricket",
+      "basketball",
+      "tennis",
+      "badminton",
+      "netball",
+      "hockey",
+      "fencing",
+      "martial_arts",
+      "yoga",
+      "indoor_rowing",
+      "outdoor_rowing"
+    ],
+    "completed_sports": 13,
+    "active_portraits": 208,
+    "remaining_portraits": 0,
+    "live_hashes_matched": 208,
+    "verification_record": "paired-avatar-production-verification.json"
   }
 }
