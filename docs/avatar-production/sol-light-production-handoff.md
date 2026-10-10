@@ -46,3 +46,8 @@ All sixteen paired portraits are produced, reviewed and hash/alpha validated. Ap
 ## 10 October — Martial Arts collection complete
 
 All 16 originals saved and reviewed; collection integration and release checks continue on feature/martial-arts-paired-avatars. Next: Indoor Rowing, Outdoor Rowing, Yoga. Preserve ageing, distinct poses and one logical unlock per pair.
+
+
+## 10 October — Indoor Rowing originals complete
+
+All16 originals saved; release checks on feature/indoor-rowing-paired-avatars. Martial Arts released via PR95 and all16 production hashes matched. Remaining: Outdoor Rowing then Yoga.
