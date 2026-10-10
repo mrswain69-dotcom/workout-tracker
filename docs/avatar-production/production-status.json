@@ -1487,17 +1487,17 @@
       "sport": "indoor_rowing",
       "tier": "platinum",
       "variant": "male",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_platinum_male_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "indoor_rowing",
       "tier": "platinum",
       "variant": "female",
-      "status": "not_started",
+      "status": "ready",
       "final_path": "public/avatars/sport/indoor_rowing_platinum_female_v2.png",
-      "notes": ""
+      "notes": "Reviewed paired v2 artwork; collection awaits all sixteen portraits and release validation."
     },
     {
       "sport": "indoor_rowing",
