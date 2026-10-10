@@ -29,3 +29,7 @@ All16 Tennis portraits complete, entering release checks. Basketball deployed in
 ### Badminton checkpoint
 
 All16 Badminton portraits complete, entering release checks. Tennis deployed in PR90, all16 live hashes verified. Next Netball, Hockey, Fencing, Martial Arts, Indoor Rowing, Outdoor Rowing, Yoga; continuous production authorized.
+
+## Netball checkpoint — 10 October 2026
+
+All sixteen paired portraits are produced, reviewed and hash/alpha validated. Diamond recovery, Elite and Champion are checkpointed. App enablement and migration are ready for release validation. Next: Hockey, Fencing, Martial Arts, Indoor Rowing, Outdoor Rowing, Yoga. Continue without further approval.
