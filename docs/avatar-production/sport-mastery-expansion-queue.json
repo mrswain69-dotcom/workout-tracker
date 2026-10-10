@@ -8,15 +8,17 @@
   "new_portraits": 240,
   "eventual_total_sports": 28,
   "eventual_active_portraits": 448,
-  "generation_started": false,
+  "generation_started": true,
   "batches": [
     {
       "order": 1,
       "sport": "running",
       "label": "Running",
       "portraits": 16,
-      "state": "brief_ready",
-      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+      "state": "artwork_in_progress",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
+      "reviewed_portraits": 2,
+      "resume": "Running Unreal male then female; Bronze pair saved, review across existing anchors before later tiers."
     },
     {
       "order": 2,
