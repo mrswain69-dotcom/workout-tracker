@@ -34,7 +34,7 @@ begin
  if v_saved->'plan_json'->'meta'->'sportAvatarAppearance'<>'{"edition":"paired_v2","variant":"female"}' then raise exception 'Appearance not sanitised'; end if;
  if exists(select 1 from public.group_member_directory gd join public.group_memberships gm on gm.id=gd.membership_id where gm.profile_id=v_profile and gd.sport_avatar_appearance is distinct from '{"edition":"paired_v2","variant":"female"}'::jsonb) then raise exception 'Group appearance did not sync'; end if;
  v_denied:=false;
- begin perform public.set_profile_avatar_appearance(v_profile,'sport_avatar_outdoor_rowing_bronze','{"edition":"paired_v2","variant":"female"}');
+ begin perform public.set_profile_avatar_appearance(v_profile,'sport_avatar_yoga_bronze','{"edition":"paired_v2","variant":"female"}');
  exception when invalid_parameter_value then v_denied:=true; end;
  if not v_denied then raise exception 'Unfinished collection allowed'; end if;
  v_saved:=public.set_profile_avatar_appearance(v_profile,'sport_avatar_football_bronze',null);
