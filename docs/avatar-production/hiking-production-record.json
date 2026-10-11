@@ -116,6 +116,46 @@
       ],
       "sha256": "505117d5bf7db4c2619bc5f21ad69fc37a7ca2a54031bdaa67b8881f04ff997e",
       "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved."
+    },
+    "gold_male": {
+      "path": "public/avatars/sport/hiking_gold_male_v2.png",
+      "source": "exec-32b62995-b790-4007-92fd-0343715c5e57.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        466,
+        155,
+        863,
+        1130
+      ],
+      "sha256": "9ad3b13538ee9e29c20644484940e35a37434149673fedc371c45e7c8fc1f849",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:45:27.422608+00:00"
+    },
+    "gold_female": {
+      "path": "public/avatars/sport/hiking_gold_female_v2.png",
+      "source": "exec-93a64279-08b7-4a91-a673-1a8a1fd9f9dc.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        450,
+        164,
+        837,
+        1152
+      ],
+      "sha256": "9426d14d4dfb97f1cef58e2229cfd90773db5b846ca97c53e9be76ae9fb042f1",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:45:27.455555+00:00"
     }
   }
 }

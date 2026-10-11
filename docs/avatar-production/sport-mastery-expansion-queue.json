@@ -76,8 +76,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 6,
-      "resume": "Bronze, Silver and Unreal pairs reviewed and saved. Gold pair next.",
+      "reviewed_portraits": 8,
+      "resume": "Bronze, Silver, Gold and Unreal pairs reviewed and saved. Platinum pair next, then Diamond/Elite/Champion. No activation until16 complete assets and final integration.",
       "draft_portraits": 3
     },
     {
@@ -161,7 +161,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Bronze, Silver and Unreal pairs reviewed and saved. Gold pair next.",
+  "resume": "Bronze, Silver, Gold and Unreal pairs reviewed and saved. Platinum pair next, then Diamond/Elite/Champion. No activation until16 complete assets and final integration.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
