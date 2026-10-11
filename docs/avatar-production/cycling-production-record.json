@@ -301,5 +301,18 @@
   },
   "review_notes": [
     "Thirty identity briefs reviewed as a design matrix. Bronze pair must be compared with completed anchors before later tiers."
-  ]
+  ],
+  "rejected_drafts": [
+    {
+      "tier": "bronze",
+      "variant": "male",
+      "reason": "First draft too similar to Running face and proportions; accepted generation established distinct olive compact character."
+    },
+    {
+      "tier": "champion",
+      "variant": "female",
+      "reason": "First draft omitted medallion and used shorts; accepted regeneration restores equal full-length warm-up trousers and gold medallion."
+    }
+  ],
+  "state": "artwork_complete"
 }

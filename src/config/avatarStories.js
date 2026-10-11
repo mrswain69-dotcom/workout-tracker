@@ -1,6 +1,38 @@
 // Character-specific lore. Each entry deliberately describes what this
 // character does, practises and believes rather than repeating a pack template.
 export const AVATAR_STORY_PROFILES = {
+  sport_avatar_cycling_bronze: {
+    story: "Bronze learns that a smooth pedal stroke matters more than chasing speed. Short, manageable rides build confidence in balance and rhythm. This cyclist checks the helmet, listens to guidance and finishes each useful session with enough energy to enjoy coming back.",
+    traits: ["Curious", "Careful", "Steady"],
+  },
+  sport_avatar_cycling_silver: {
+    story: "Silver begins to connect preparation with a better ride. Comfortable cadence, patient pacing and a quick equipment check become familiar habits. The first participation medal marks repeated practice, while this cyclist keeps learning how to adapt effort when the route or weather changes.",
+    traits: ["Prepared", "Consistent", "Aware"],
+  },
+  sport_avatar_cycling_gold: {
+    story: "Gold approaches each ride with a clear purpose. Some sessions practise a steady rhythm; others explore controlled changes of effort. This cyclist uses feedback without letting numbers decide every choice, and values a repeatable routine that leaves room for recovery and enjoyment.",
+    traits: ["Purposeful", "Balanced", "Adaptable"],
+  },
+  sport_avatar_cycling_platinum: {
+    story: "Platinum brings calm judgement to changing conditions. A light layer, a sensible pace and thoughtful preparation make regular rides more dependable. Experience helps this cyclist recognise when to work and when to ease back, turning each session into another opportunity to learn.",
+    traits: ["Composed", "Practical", "Reliable"],
+  },
+  sport_avatar_cycling_diamond: {
+    story: "Diamond understands that lasting progress is built across many ordinary rides. Confident handling and measured effort reflect years of attentive practice. This cyclist shares encouragement freely, respects different starting points and treats a consistent training history as something worth celebrating in its own right.",
+    traits: ["Patient", "Skilful", "Encouraging"],
+  },
+  sport_avatar_cycling_elite: {
+    story: "Elite celebrates the habits that make demanding rides feel controlled. Preparation, pacing and recovery work together, with room to adjust when life changes the plan. Recognition honours sustained commitment, while this cyclist still enjoys the simple satisfaction of finding a comfortable rhythm on the pedals.",
+    traits: ["Disciplined", "Flexible", "Assured"],
+  },
+  sport_avatar_cycling_champion: {
+    story: "Champion carries a seasoned perspective into the training week. A challenging ride is useful only when it fits the wider routine. This cyclist helps others prepare, keeps disappointment in proportion and returns to practice with patience, confident that consistency matters more than a single impressive outing.",
+    traits: ["Thoughtful", "Supportive", "Resilient"],
+  },
+  sport_avatar_cycling_unreal: {
+    story: "Unreal brings a lifetime of cycling practice to a composed awards-night presence. The crystal honour recognises sustained learning, commitment and encouragement of others. Beneath the tailored suit remains a cyclist who values a well-prepared ride, honest effort and the chance to keep discovering new rhythms.",
+    traits: ["Humble", "Committed", "Inspiring"],
+  },
   sport_avatar_running_bronze: {
     story: "Bronze discovers how a steady rhythm can turn a difficult run into manageable steps. Easy sessions build confidence without chasing someone else's pace. This runner learns to listen, finish with control and return rested for the next useful practice.",
     traits: ["Curious", "Patient", "Steady"],

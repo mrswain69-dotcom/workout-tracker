@@ -30,7 +30,7 @@
       "sport": "cycling",
       "label": "Cycling",
       "portraits": 16,
-      "state": "artwork_in_progress",
+      "state": "integration_verification",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
       "resume": "Cycling all sixteen originals complete. Integrate session routing, badges/stories/XP maps, appearance RPC, regression tests and release; Swimming follows after live verification."
