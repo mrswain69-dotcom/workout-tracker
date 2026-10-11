@@ -74,20 +74,26 @@
       "sport": "hiking",
       "label": "Hiking",
       "portraits": 16,
-      "state": "integration_verification",
+      "state": "production_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "Complete artwork and integration tested. Exact-head CI/preview and production verification next.",
+      "resume": "Complete; preserve sixteen originals.",
       "draft_portraits": 3,
-      "pr": 104
+      "pr": 104,
+      "merge_commit": "b4a2a681d7bf8161fbe60c4717cc91216f68557d",
+      "tested_head": "cad4c90c2e5c8e5e65b1f30db54d0295f96d0ad2",
+      "ci_run": 38182994042,
+      "live_bundle": "/assets/index-gFbvqZMD.js"
     },
     {
       "order": 6,
       "sport": "boxing",
       "label": "Boxing",
       "portraits": 16,
-      "state": "brief_ready",
-      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+      "state": "artwork_in_progress",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
+      "reviewed_portraits": 2,
+      "resume": "Boxing Bronze pair reviewed and saved. Unreal adult anchors next, then remaining tiers. Protect historic Martial Arts/Yoga reward claims and implement an explicit new-session routing cutover before activation."
     },
     {
       "order": 7,
@@ -162,7 +168,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Complete artwork and integration tested. Exact-head CI/preview and production verification next.",
+  "resume": "Boxing Bronze pair reviewed and saved. Unreal adult anchors next, then remaining tiers. Protect historic Martial Arts/Yoga reward claims and implement an explicit new-session routing cutover before activation.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
@@ -180,8 +186,8 @@
     "Test maximum one session per sport/day, historic routing boundaries, future/cancelled/suspended exclusion, unchanged existing reward keys and no missing-image requests.",
     "Run regression suite/build/CI, apply required migration, merge expected head, deploy and verify live hashes/client/RPC behaviour. Update this queue after each collection release."
   ],
-  "released_new_sports": 4,
-  "released_new_portraits": 64,
-  "current_released_sports": 17,
-  "current_active_portraits": 272
+  "released_new_sports": 5,
+  "released_new_portraits": 80,
+  "current_released_sports": 18,
+  "current_active_portraits": 288
 }

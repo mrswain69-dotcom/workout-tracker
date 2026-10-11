@@ -1,0 +1,45 @@
+{
+  "sport": "boxing",
+  "brief": "paired-sport-avatar-expansion-briefs.json",
+  "tool": "built-in image generation",
+  "assets": {
+    "bronze_male": {
+      "path": "public/avatars/sport/boxing_bronze_male_v2.png",
+      "source": "exec-0510e5a9-bffa-40d0-acad-89bdb96e4184.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        463,
+        201,
+        792,
+        1139
+      ],
+      "sha256": "847d07243549dc095e9928ba03a9200846323fdef5541620489f9621f8b8c4cd",
+      "review": "Distinct junior identities, matching modest kit/coverage and low gloves, no awards, transparent margins. Compared against Hiking and prior sports; original PNG preserved."
+    },
+    "bronze_female": {
+      "path": "public/avatars/sport/boxing_bronze_female_v2.png",
+      "source": "exec-f6cbaa5f-af4c-4e63-b23f-242cb8efc81a.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        440,
+        221,
+        832,
+        1123
+      ],
+      "sha256": "4a7c98d94849f6f06f39a3bc81981e689584c93616c8e4d830ffb2f4a4bcf209",
+      "review": "Distinct junior identities, matching modest kit/coverage and low gloves, no awards, transparent margins. Compared against Hiking and prior sports; original PNG preserved."
+    }
+  }
+}

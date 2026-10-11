@@ -1,6 +1,6 @@
 {
   "sport": "hiking",
-  "state": "draft_not_registered",
+  "state": "registered_and_tested",
   "profiles": {
     "sport_avatar_hiking_bronze": {
       "story": "Bronze finds adventure in noticing the trail. A small daypack, comfortable boots and patient guidance make the first outings welcoming. This hiker learns to check the route, stay with the group and enjoy a manageable pace, discovering that curiosity matters more than reaching the furthest point.",
