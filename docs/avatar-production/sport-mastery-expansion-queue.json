@@ -32,8 +32,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 14,
-      "resume": "Cycling Champion male then female; fourteen originals saved. Then integration, RPC, tests, deployment/live verification."
+      "reviewed_portraits": 16,
+      "resume": "Cycling all sixteen originals complete. Integrate session routing, badges/stories/XP maps, appearance RPC, regression tests and release; Swimming follows after live verification."
     },
     {
       "order": 3,
@@ -140,7 +140,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Cycling Champion male then female; fourteen originals saved. Then integration, RPC, tests, deployment/live verification.",
+  "resume": "Cycling all sixteen originals complete. Integrate session routing, badges/stories/XP maps, appearance RPC, regression tests and release; Swimming follows after live verification.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
