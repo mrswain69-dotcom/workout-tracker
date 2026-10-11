@@ -2,7 +2,7 @@
   "sport": "hiking",
   "date": "2026-10-11",
   "state": "artwork_in_progress",
-  "accepted_portraits": 8,
+  "accepted_portraits": 10,
   "canonical_brief": "paired-sport-avatar-expansion-briefs.json",
   "branch": "feature/hiking-paired-avatars",
   "generation_mode": "built-in image generation",
@@ -32,7 +32,7 @@
       "request_id": "76905558-3f2b-441d-b4eb-511e4035d150"
     }
   ],
-  "resume": "Bronze, Silver, Gold and Unreal pairs reviewed and saved. Platinum pair next, then Diamond/Elite/Champion. No activation until16 complete assets and final integration.",
+  "resume": "Bronze, Silver, Gold, Platinum and Unreal pairs reviewed and saved. Diamond pair next, then Elite/Champion. No activation until16 complete assets and final integration.",
   "prepared": [
     "Explicit hiking session routing with ordinary walking excluded; maximum one session per sport/day; existing native/named sport precedence preserved.",
     "Eight draft stories, each 30\u201370 words, stored outside the live avatar registry.",

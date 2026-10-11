@@ -156,6 +156,46 @@
       "sha256": "9426d14d4dfb97f1cef58e2229cfd90773db5b846ca97c53e9be76ae9fb042f1",
       "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
       "saved_at": "2026-10-11T22:45:27.455555+00:00"
+    },
+    "platinum_male": {
+      "path": "public/avatars/sport/hiking_platinum_male_v2.png",
+      "source": "exec-b37c1efc-2a03-4f08-90eb-6334ebf9cc0e.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        414,
+        153,
+        861,
+        1148
+      ],
+      "sha256": "94e42211b31980587e92e7212e02a5d173fd99e2a33e5fdb8255e312383f9e00",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:49:33.441381+00:00"
+    },
+    "platinum_female": {
+      "path": "public/avatars/sport/hiking_platinum_female_v2.png",
+      "source": "exec-6791d609-2262-42b7-8490-b9bbdd1fd29c.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        412,
+        198,
+        863,
+        1148
+      ],
+      "sha256": "5c0b951c7adfb30f7b5a37031b0fad7b8634321e7c22ee55751f1f4cd59e47ec",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:49:33.473175+00:00"
     }
   }
 }
