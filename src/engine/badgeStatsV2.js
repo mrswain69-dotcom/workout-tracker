@@ -462,6 +462,7 @@ const PACE_DISTANCES = {
 const SPORT_MASTERY_KEYS = [
   "running",
   "cycling",
+  "swimming",
   "football",
   "rugby",
   "basketball",
@@ -555,6 +556,7 @@ const SPORT_NAME_MATCHERS = [
       "coastal rowing",
     ],
   },
+  { key: "swimming", pattern: /\b(?:swimming|swim|pool swim|open water swim)\b/ },
   { key: "cycling", pattern: /\b(?:cycling|biking|bicycle|bike ride|road ride|indoor cycling|spin class)\b/ },
   { key: "running", pattern: /\b(?:running|jogging|trail run|road run|track run)\b/ },
 ];
@@ -656,6 +658,8 @@ function getSportKeysForLog(log) {
       found = "running";
     } else if (["bike", "cycle"].includes(typeId) || ["bike", "cycle", "cycling"].includes(cardioType)) {
       found = "cycling";
+    } else if (typeId === "swim" || cardioType === "swim" || cardioType === "swimming") {
+      found = "swimming";
     } else if (cardioType === "indoor_rowing") {
       found = "indoor_rowing";
     } else if (cardioType === "row") {
