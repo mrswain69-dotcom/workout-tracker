@@ -59,6 +59,63 @@
       ],
       "sha256": "533614221e547dc63112c929c2e0fe402cf0803854dec4e86f5f82100eaecb59",
       "review": "Reviewed original identity, age, kit, hands, transparent margins and award. Unreal pair has matching three-peak crystal-gold practice honour and comparable portrait scale. No raster manipulation."
+    },
+    "bronze_male": {
+      "path": "public/avatars/sport/hiking_bronze_male_v2.png",
+      "source": "exec-ad561b98-0c18-4dac-b3ad-82b333285e30.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        494,
+        159,
+        840,
+        1150
+      ],
+      "sha256": "091852c3d4f7acbf8bbdec5f307a75d821db6c71f1be06a1feba9480f54b8857",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved."
+    },
+    "silver_male": {
+      "path": "public/avatars/sport/hiking_silver_male_v2.png",
+      "source": "exec-6cf37444-f3f1-4406-bf37-aedbf1b55cd4.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        448,
+        162,
+        848,
+        1128
+      ],
+      "sha256": "280ab31ba5e992612b0c63916a046bbe134758092e2b51bc734589f751d8aecc",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved."
+    },
+    "silver_female": {
+      "path": "public/avatars/sport/hiking_silver_female_v2.png",
+      "source": "exec-f7476f0d-ae0b-4972-ba38-3649557aaba1.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        425,
+        195,
+        808,
+        1127
+      ],
+      "sha256": "505117d5bf7db4c2619bc5f21ad69fc37a7ca2a54031bdaa67b8881f04ff997e",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved."
     }
   }
 }
