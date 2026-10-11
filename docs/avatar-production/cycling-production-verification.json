@@ -1,0 +1,92 @@
+{
+  "sport": "cycling",
+  "production_url": "https://workout-tracker-ivory-tau.vercel.app",
+  "merge_commit": "124153c713cfebd9db1b6d31559a63ede90c06ea",
+  "tested_head": "28d77ebb30907f27e819649dab59e79ae46183d3",
+  "ci_run": 38124441055,
+  "live_bundle": "/assets/index-BKpaIvyc.js",
+  "verified_at": "2026-10-11T08:22:25.880755+00:00",
+  "assets": [
+    {
+      "key": "bronze_male",
+      "sha256": "1604ddc2de2c3f1df1891ab91ce08bd6ae359ab395c6a8421b62a31adc06725b",
+      "matched": true
+    },
+    {
+      "key": "bronze_female",
+      "sha256": "495cbb1cceb6186e83514bcfe6d80e4dd887844cbc605b602ff3200771539369",
+      "matched": true
+    },
+    {
+      "key": "unreal_male",
+      "sha256": "76be7207886853127a873f53b5e6b4c019ba14651721c325a57bb14291d80135",
+      "matched": true
+    },
+    {
+      "key": "unreal_female",
+      "sha256": "9c981839470bc6981e6cb16c640fc4bd005d1afb0c54c05a2971011a99d6d14e",
+      "matched": true
+    },
+    {
+      "key": "silver_male",
+      "sha256": "163f7b2ebe8ac078665d79ffc99da6e8769784f3d8827486a4cf1a696df0b0f5",
+      "matched": true
+    },
+    {
+      "key": "silver_female",
+      "sha256": "669f08e19c243e7cc563210668196bf2f4d5b1968c9e09b852c83996e81a094e",
+      "matched": true
+    },
+    {
+      "key": "gold_male",
+      "sha256": "56b530bae97dffd458465ceb392f3c3f1b7067f644d57a76c7ea11e097e3ff36",
+      "matched": true
+    },
+    {
+      "key": "gold_female",
+      "sha256": "fbddf7936f925eb34efd5f4b0098cc9805763f905dc170e0a34439fe036e8692",
+      "matched": true
+    },
+    {
+      "key": "platinum_male",
+      "sha256": "2c71e26598977798caccc476e02b5768699e062fb5b8d8d76713dca64a1d04f2",
+      "matched": true
+    },
+    {
+      "key": "platinum_female",
+      "sha256": "49aedc6457bcff3d2e885a0608f2e4189c10d6fc0629fad457365b3787b429ec",
+      "matched": true
+    },
+    {
+      "key": "diamond_male",
+      "sha256": "e38c204ac9251433a29bbe47eb5c57c84b698ee98371aab24ed6608fd501fb6b",
+      "matched": true
+    },
+    {
+      "key": "diamond_female",
+      "sha256": "75c3f8513f6ac2f9487e359402520d19a2cf5dad95c6e888f14682c82f542a84",
+      "matched": true
+    },
+    {
+      "key": "elite_male",
+      "sha256": "fa7ffc9da4cbb16af97f97d715dabc4639c7734c7150460c372b43e3efe3405b",
+      "matched": true
+    },
+    {
+      "key": "elite_female",
+      "sha256": "d275d5ce046f1a0572a97a13a29cab96e87a4f12340b94dc6cceb0223f97dad4",
+      "matched": true
+    },
+    {
+      "key": "champion_male",
+      "sha256": "e946bf09f01017bc1f04d35292cf1dbea42d7d0c47aa04f328ab631e36488113",
+      "matched": true
+    },
+    {
+      "key": "champion_female",
+      "sha256": "6507bd51a10d6c1beb6418c2996249c8711d5727603ce023967ec54e52636157",
+      "matched": true
+    }
+  ],
+  "authenticated_device_visual_qa": false
+}
