@@ -1,6 +1,71 @@
 // Character-specific lore. Each entry deliberately describes what this
 // character does, practises and believes rather than repeating a pack template.
 export const AVATAR_STORY_PROFILES = {
+  sport_avatar_strength_training_bronze: {
+      "story": "Bronze learns to make each repetition deliberate. A manageable weight, patient instruction and a comfortable pace build confidence before heavier work matters. This lifter values careful practice and honest recording, discovering that a useful session can begin with just a few well considered movements.",
+      "traits": [
+          "Curious",
+          "Patient",
+          "Careful"
+      ]
+  },
+  sport_avatar_strength_training_silver: {
+      "story": "Silver turns preparation into a familiar habit. Checking the plan, choosing manageable resistance and paying attention to movement help each session feel more purposeful. The first participation medal celebrates returning to practice, while this lifter keeps asking questions and leaves room for rest and steady learning.",
+      "traits": [
+          "Prepared",
+          "Consistent",
+          "Aware"
+      ]
+  },
+  sport_avatar_strength_training_gold: {
+      "story": "Gold begins to connect separate movements into a thoughtful routine. Each exercise has a purpose, and honest records reveal which changes help. This lifter welcomes feedback, avoids rushing progression and understands that recovery supports the next session as much as effort supports the current one.",
+      "traits": [
+          "Purposeful",
+          "Balanced",
+          "Adaptable"
+      ]
+  },
+  sport_avatar_strength_training_platinum: {
+      "story": "Platinum brings calm experience to training. A clear plan, a comfortable warm layer and a measured pace make sessions easier to repeat through a busy week. This lifter adjusts to changing energy, values controlled movement and regards the practice honour as encouragement to keep learning.",
+      "traits": [
+          "Composed",
+          "Reliable",
+          "Prepared"
+      ]
+  },
+  sport_avatar_strength_training_diamond: {
+      "story": "Diamond recognises the patience behind lasting strength practice. Progress has come through many ordinary sessions, thoughtful adjustments and the willingness to recover. This lifter encourages others to choose their own manageable starting point, knowing that confidence grows through useful habits rather than comparisons of appearance or load.",
+      "traits": [
+          "Patient",
+          "Skilful",
+          "Encouraging"
+      ]
+  },
+  sport_avatar_strength_training_elite: {
+      "story": "Elite celebrates a routine built on attention and consistency. Honest feedback, measured effort and recovery keep practice sustainable as circumstances change. The crystal pillar honours commitment to learning, while this lifter still values the simple satisfaction of a controlled repetition and a session completed with purpose.",
+      "traits": [
+          "Disciplined",
+          "Open",
+          "Assured"
+      ]
+  },
+  sport_avatar_strength_training_champion: {
+      "story": "Champion carries perspective into every training week. A demanding session matters when it supports a balanced routine, and lighter work can be equally purposeful. This lifter welcomes newcomers, shares practical encouragement and keeps setbacks in proportion, returning to practice with confidence earned through years of thoughtful repetition.",
+      "traits": [
+          "Thoughtful",
+          "Supportive",
+          "Resilient"
+      ]
+  },
+  sport_avatar_strength_training_unreal: {
+      "story": "Unreal brings a lifetime of strength practice to a composed formal presence. The pillar honour recognises commitment, continued learning and encouragement of others. Beneath the tailored suit remains a lifter who values manageable effort, honest records and the patient attention that made the first session worthwhile.",
+      "traits": [
+          "Humble",
+          "Committed",
+          "Inspiring"
+      ]
+  },
+
   sport_avatar_swimming_bronze: {
     story: "Bronze discovers confidence through small, repeatable swimming practices. A comfortable rhythm and careful attention to guidance make each session feel more manageable. This swimmer learns to prepare, pause when needed and return ready to practise, enjoying progress without comparing every length with somebody else.",
     traits: ["Curious", "Patient", "Careful"],

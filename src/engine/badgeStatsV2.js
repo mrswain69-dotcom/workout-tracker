@@ -460,6 +460,8 @@ const PACE_DISTANCES = {
 // - do NOT yet wire into badge defs / avatar unlocks
 // -----------------------------------------------------
 const SPORT_MASTERY_KEYS = [
+  "strength_training",
+
   "running",
   "cycling",
   "swimming",
@@ -556,6 +558,7 @@ const SPORT_NAME_MATCHERS = [
       "coastal rowing",
     ],
   },
+  { key: "strength_training", pattern: /\b(?:strength training|resistance training|weight training|weightlifting|weight lifting)\b/ },
   { key: "swimming", pattern: /\b(?:swimming|swim|pool swim|open water swim)\b/ },
   { key: "cycling", pattern: /\b(?:cycling|biking|bicycle|bike ride|road ride|indoor cycling|spin class)\b/ },
   { key: "running", pattern: /\b(?:running|jogging|trail run|road run|track run)\b/ },
@@ -607,7 +610,14 @@ function getSportKeysForLog(log) {
 
     const typeId = normaliseText(b.typeId);
 
-    // We only care about cardio + duration style blocks for sport mastery.
+    // Native strength sessions require performed sets, not planned weights.
+    if (typeId === "strength") {
+      if (isTrainingBlock(b)) keys.add("strength_training");
+      continue;
+    }
+
+    // Cardio, duration and session blocks can also name a sport.
+
     if (
       typeId !== "cardio" &&
       typeId !== "run" &&
