@@ -76,8 +76,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 0,
-      "resume": "Three drafts saved; framing and Unreal award consistency need revision. Bronze male still service-blocked. See hiking-production-checkpoint.json.",
+      "reviewed_portraits": 3,
+      "resume": "Bronze female and both Unreal adult anchors reviewed and saved. Thirteen portraits remain; Bronze male previously blocked.",
       "draft_portraits": 3
     },
     {
@@ -161,7 +161,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Hiking art in progress: three drafts require revision; Bronze male still service-blocked.",
+  "resume": "Bronze female and both Unreal adult anchors reviewed and saved. Thirteen portraits remain; Bronze male previously blocked.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
