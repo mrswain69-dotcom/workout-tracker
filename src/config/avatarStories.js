@@ -1,6 +1,38 @@
 // Character-specific lore. Each entry deliberately describes what this
 // character does, practises and believes rather than repeating a pack template.
 export const AVATAR_STORY_PROFILES = {
+  sport_avatar_swimming_bronze: {
+    story: "Bronze discovers confidence through small, repeatable swimming practices. A comfortable rhythm and careful attention to guidance make each session feel more manageable. This swimmer learns to prepare, pause when needed and return ready to practise, enjoying progress without comparing every length with somebody else.",
+    traits: ["Curious", "Patient", "Careful"],
+  },
+  sport_avatar_swimming_silver: {
+    story: "Silver begins to connect steady breathing with calmer movement. Repeated practice makes preparation familiar, from checking goggles to choosing a manageable session. The first participation medal recognises showing up, while this swimmer keeps listening and learning how to finish with control rather than rushing.",
+    traits: ["Consistent", "Aware", "Calm"],
+  },
+  sport_avatar_swimming_gold: {
+    story: "Gold gives each swim a purpose. Some sessions explore rhythm; others practise controlled effort or a smoother movement pattern. Feedback helps this swimmer make useful adjustments, while recovery keeps the routine sustainable. A practice milestone celebrates those habits instead of claiming a competitive title.",
+    traits: ["Purposeful", "Balanced", "Adaptable"],
+  },
+  sport_avatar_swimming_platinum: {
+    story: "Platinum brings experience to the moments around a swim as well as the session itself. Thoughtful preparation, a dry warm layer and measured effort help practice fit the wider week. This swimmer recognises changing energy levels and adjusts with confidence, keeping learning at the centre.",
+    traits: ["Prepared", "Composed", "Reliable"],
+  },
+  sport_avatar_swimming_diamond: {
+    story: "Diamond values the long pattern of practice behind each comfortable length. Patient attention sharpens movement, but curiosity remains just as useful as experience. This swimmer encourages others to find their own rhythm and knows that lasting progress needs both committed effort and permission to recover.",
+    traits: ["Patient", "Skilful", "Encouraging"],
+  },
+  sport_avatar_swimming_elite: {
+    story: "Elite celebrates the quiet decisions that support confident swimming. Preparation, honest feedback and recovery make regular sessions dependable across changing weeks. Recognition honours sustained practice, while this swimmer still enjoys a simple, controlled rhythm and welcomes the chance to learn something new from the next session.",
+    traits: ["Disciplined", "Open", "Assured"],
+  },
+  sport_avatar_swimming_champion: {
+    story: "Champion carries perspective into every training week. A demanding swim has value when it serves a balanced routine, and an easier session can be just as purposeful. This swimmer helps others prepare, keeps setbacks in proportion and returns to the water with patience built through experience.",
+    traits: ["Thoughtful", "Supportive", "Resilient"],
+  },
+  sport_avatar_swimming_unreal: {
+    story: "Unreal brings a lifetime of swimming practice to a composed awards-night presence. The wave honour recognises commitment, continued learning and encouragement of others. Beneath the formal suit remains a swimmer who values thoughtful preparation, an honest session and the steady rhythm that first made progress feel possible.",
+    traits: ["Humble", "Committed", "Inspiring"],
+  },
   sport_avatar_cycling_bronze: {
     story: "Bronze learns that a smooth pedal stroke matters more than chasing speed. Short, manageable rides build confidence in balance and rhythm. This cyclist checks the helmet, listens to guidance and finishes each useful session with enough energy to enjoy coming back.",
     traits: ["Curious", "Careful", "Steady"],
