@@ -47,8 +47,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 12,
-      "resume": "Swimming Elite pair next, then Champion; twelve originals saved. Integrate/release only after complete artwork."
+      "reviewed_portraits": 14,
+      "resume": "Swimming Champion pair next; fourteen originals saved. Then integration, migration, tests and production/live verification."
     },
     {
       "order": 4,
@@ -147,7 +147,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Swimming Elite pair next, then Champion; twelve originals saved. Integrate/release only after complete artwork.",
+  "resume": "Swimming Champion pair next; fourteen originals saved. Then integration, migration, tests and production/live verification.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
