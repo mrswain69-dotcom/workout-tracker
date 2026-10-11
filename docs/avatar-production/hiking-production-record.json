@@ -1,0 +1,321 @@
+{
+  "sport": "hiking",
+  "brief": "paired-sport-avatar-expansion-briefs.json",
+  "tool": "built-in image generation",
+  "assets": {
+    "bronze_female": {
+      "path": "public/avatars/sport/hiking_bronze_female_v2.png",
+      "source": "exec-b4bcda4f-6096-4255-acf7-38388424d9db.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        470,
+        162,
+        808,
+        1126
+      ],
+      "sha256": "edb4bfca9aa139cb9f8a8ecdb6b7724e4d9f419828c8878405c49eb637df280d",
+      "review": "Reviewed original identity, age, kit, hands, transparent margins and award. Unreal pair has matching three-peak crystal-gold practice honour and comparable portrait scale. No raster manipulation."
+    },
+    "unreal_male": {
+      "path": "public/avatars/sport/hiking_unreal_male_v2.png",
+      "source": "exec-755dfc0e-d1d6-4e01-9d32-8ebc2ad261bf.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        399,
+        198,
+        942,
+        1105
+      ],
+      "sha256": "fa3cda0bf025125092b51edebd50bed6393b7cb0970f4216947565d3a4373ff9",
+      "review": "Reviewed original identity, age, kit, hands, transparent margins and award. Unreal pair has matching three-peak crystal-gold practice honour and comparable portrait scale. No raster manipulation."
+    },
+    "unreal_female": {
+      "path": "public/avatars/sport/hiking_unreal_female_v2.png",
+      "source": "exec-354a3883-d335-4401-9fd0-b5eed022d984.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        408,
+        234,
+        906,
+        1091
+      ],
+      "sha256": "533614221e547dc63112c929c2e0fe402cf0803854dec4e86f5f82100eaecb59",
+      "review": "Reviewed original identity, age, kit, hands, transparent margins and award. Unreal pair has matching three-peak crystal-gold practice honour and comparable portrait scale. No raster manipulation."
+    },
+    "bronze_male": {
+      "path": "public/avatars/sport/hiking_bronze_male_v2.png",
+      "source": "exec-ad561b98-0c18-4dac-b3ad-82b333285e30.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        494,
+        159,
+        840,
+        1150
+      ],
+      "sha256": "091852c3d4f7acbf8bbdec5f307a75d821db6c71f1be06a1feba9480f54b8857",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved."
+    },
+    "silver_male": {
+      "path": "public/avatars/sport/hiking_silver_male_v2.png",
+      "source": "exec-6cf37444-f3f1-4406-bf37-aedbf1b55cd4.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        448,
+        162,
+        848,
+        1128
+      ],
+      "sha256": "280ab31ba5e992612b0c63916a046bbe134758092e2b51bc734589f751d8aecc",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved."
+    },
+    "silver_female": {
+      "path": "public/avatars/sport/hiking_silver_female_v2.png",
+      "source": "exec-f7476f0d-ae0b-4972-ba38-3649557aaba1.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        425,
+        195,
+        808,
+        1127
+      ],
+      "sha256": "505117d5bf7db4c2619bc5f21ad69fc37a7ca2a54031bdaa67b8881f04ff997e",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved."
+    },
+    "gold_male": {
+      "path": "public/avatars/sport/hiking_gold_male_v2.png",
+      "source": "exec-32b62995-b790-4007-92fd-0343715c5e57.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        466,
+        155,
+        863,
+        1130
+      ],
+      "sha256": "9ad3b13538ee9e29c20644484940e35a37434149673fedc371c45e7c8fc1f849",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:45:27.422608+00:00"
+    },
+    "gold_female": {
+      "path": "public/avatars/sport/hiking_gold_female_v2.png",
+      "source": "exec-93a64279-08b7-4a91-a673-1a8a1fd9f9dc.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        450,
+        164,
+        837,
+        1152
+      ],
+      "sha256": "9426d14d4dfb97f1cef58e2229cfd90773db5b846ca97c53e9be76ae9fb042f1",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:45:27.455555+00:00"
+    },
+    "platinum_male": {
+      "path": "public/avatars/sport/hiking_platinum_male_v2.png",
+      "source": "exec-b37c1efc-2a03-4f08-90eb-6334ebf9cc0e.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        414,
+        153,
+        861,
+        1148
+      ],
+      "sha256": "94e42211b31980587e92e7212e02a5d173fd99e2a33e5fdb8255e312383f9e00",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:49:33.441381+00:00"
+    },
+    "platinum_female": {
+      "path": "public/avatars/sport/hiking_platinum_female_v2.png",
+      "source": "exec-6791d609-2262-42b7-8490-b9bbdd1fd29c.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        412,
+        198,
+        863,
+        1148
+      ],
+      "sha256": "5c0b951c7adfb30f7b5a37031b0fad7b8634321e7c22ee55751f1f4cd59e47ec",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:49:33.473175+00:00"
+    },
+    "diamond_male": {
+      "path": "public/avatars/sport/hiking_diamond_male_v2.png",
+      "source": "exec-6cd1116c-e326-497b-9fea-74d14ec6139e.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        470,
+        194,
+        813,
+        1097
+      ],
+      "sha256": "723ed39c90ecdd0d011c66ee020cbb43e9a69c6d5cd58bb42b2ff8ec7613e19f",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:53:58.755532+00:00"
+    },
+    "diamond_female": {
+      "path": "public/avatars/sport/hiking_diamond_female_v2.png",
+      "source": "exec-259f9fb4-6cfd-4ad5-a81f-d3f1abadeb41.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        449,
+        196,
+        811,
+        1151
+      ],
+      "sha256": "4d855ddb77a7b82f2bc58dbb48a8fc31f23090fc1ffd3ed48e02262151e84466",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:53:58.785666+00:00"
+    },
+    "elite_male": {
+      "path": "public/avatars/sport/hiking_elite_male_v2.png",
+      "source": "exec-80d95704-1e18-4f7f-9e3d-5818a285d0aa.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        386,
+        165,
+        884,
+        1171
+      ],
+      "sha256": "7b8adcff8c43c2b13ae92d241a826860a0f5a8f0d86f2c336bdf1077134007ae",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:58:22.076920+00:00"
+    },
+    "elite_female": {
+      "path": "public/avatars/sport/hiking_elite_female_v2.png",
+      "source": "exec-906c9567-bc43-4a2b-a542-404e60528c30.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        424,
+        176,
+        984,
+        1160
+      ],
+      "sha256": "6544169c574bf79976e46126e09c6f37a4b80aa6bb689b5e0ca8a5e6b4028f97",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:58:22.106661+00:00"
+    },
+    "champion_male": {
+      "path": "public/avatars/sport/hiking_champion_male_v2.png",
+      "source": "exec-c15e9311-11fe-4006-a519-a9b813a05387.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        363,
+        149,
+        971,
+        1127
+      ],
+      "sha256": "0c71c9fc75411ee0ed25209daa6ae165ef6ea485749930d0cda8587441199c80",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T23:02:42.177257+00:00"
+    },
+    "champion_female": {
+      "path": "public/avatars/sport/hiking_champion_female_v2.png",
+      "source": "exec-9a3ce7c8-7a72-4e61-ab6d-cbcebf92d182.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        259,
+        139,
+        990,
+        1146
+      ],
+      "sha256": "d0e68c340563612472a9e417c61ad9416c8412f8ae18a6a3003310eed0411b94",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T23:02:42.214777+00:00"
+    }
+  }
+}

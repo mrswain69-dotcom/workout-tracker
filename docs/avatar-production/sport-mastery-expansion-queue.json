@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "date": "2026-10-10",
+  "date": "2026-10-11",
   "canonical_brief": "paired-sport-avatar-expansion-briefs.json",
   "existing_released_sports": 13,
   "existing_active_portraits": 208,
@@ -60,18 +60,26 @@
       "sport": "strength_training",
       "label": "Strength Training",
       "portraits": 16,
-      "state": "artwork_in_progress",
+      "state": "production_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 10,
-      "resume": "Strength Training Diamond male next; Bronze, Silver, Gold, Platinum and Unreal pairs reviewed and saved."
+      "reviewed_portraits": 16,
+      "resume": "Complete; all sixteen original portraits match live production and the live bundle includes Strength Training.",
+      "pr": 103,
+      "merge_commit": "4f23fae1c36b79165f1c1cb9c45b07cdd19978e8",
+      "tested_head": "358fa1722c5f18585092fac08d7f1c757a5eef10",
+      "ci_run": 38157328188
     },
     {
       "order": 5,
       "sport": "hiking",
       "label": "Hiking",
       "portraits": 16,
-      "state": "brief_ready",
-      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+      "state": "integration_verification",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
+      "reviewed_portraits": 16,
+      "resume": "Complete artwork and integration tested. Exact-head CI/preview and production verification next.",
+      "draft_portraits": 3,
+      "pr": 104
     },
     {
       "order": 6,
@@ -154,7 +162,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Strength Training Diamond male next; Bronze, Silver, Gold, Platinum and Unreal pairs reviewed and saved.",
+  "resume": "Complete artwork and integration tested. Exact-head CI/preview and production verification next.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
@@ -172,8 +180,8 @@
     "Test maximum one session per sport/day, historic routing boundaries, future/cancelled/suspended exclusion, unchanged existing reward keys and no missing-image requests.",
     "Run regression suite/build/CI, apply required migration, merge expected head, deploy and verify live hashes/client/RPC behaviour. Update this queue after each collection release."
   ],
-  "released_new_sports": 3,
-  "released_new_portraits": 48,
-  "current_released_sports": 16,
-  "current_active_portraits": 256
+  "released_new_sports": 4,
+  "released_new_portraits": 64,
+  "current_released_sports": 17,
+  "current_active_portraits": 272
 }

@@ -1,0 +1,50 @@
+{
+  "sport": "hiking",
+  "date": "2026-10-11",
+  "state": "integration_verification",
+  "accepted_portraits": 16,
+  "canonical_brief": "paired-sport-avatar-expansion-briefs.json",
+  "branch": "feature/hiking-paired-avatars",
+  "generation_mode": "built-in image generation",
+  "attempts": [
+    {
+      "portrait": "bronze_male",
+      "prompt": "canonical brief via sport_avatar_prompt.py",
+      "result": "output moderation blocked",
+      "request_id": "67aabb26-710e-4a03-8926-a34076cd9ed3"
+    },
+    {
+      "portrait": "bronze_male",
+      "prompt": "Simplified fully clothed junior hiker; ochre shirt, forest full-length trousers, boots and daypack; transparent full-body portrait.",
+      "result": "output moderation blocked",
+      "request_id": "87f1aecb-e783-4c82-b469-ba6dfaee6f98"
+    },
+    {
+      "portrait": "bronze_male",
+      "prompt": "canonical brief via sport_avatar_prompt.py",
+      "result": "output moderation blocked",
+      "request_id": "c4dc4354-33ea-42c7-818d-f346ae3fcb3c"
+    },
+    {
+      "portrait": "bronze_male",
+      "prompt": "canonical brief via sport_avatar_prompt.py",
+      "result": "output moderation blocked",
+      "request_id": "76905558-3f2b-441d-b4eb-511e4035d150"
+    }
+  ],
+  "resume": "All16 artwork and integration ready. Push final source; verify exact-head CI and Vercel preview, mark PR104 ready, merge then verify production bundle/all16 hashes. Boxing next.",
+  "prepared": [
+    "Explicit hiking session routing with ordinary walking excluded; maximum one session per sport/day; existing native/named sport precedence preserved.",
+    "Eight draft stories, each 30\u201370 words, stored outside the live avatar registry.",
+    "Five routing and incomplete-release gate tests."
+  ],
+  "activation": "No Hiking artwork, mastery rewards, server XP maps or cosmetic RPC changes deployed.",
+  "validation": {
+    "full_suite": "UTC:202 files /1217 tests passed",
+    "build": "Passed; existing chunk-size advisory",
+    "audit": "0 production vulnerabilities",
+    "sql": "Passed rollback-only owner/claim/appearance/history/XP/group/privacy regression after installed migration",
+    "edge_functions": "group-xp-leaderboard18, group-seasons-awards17; nine Hiking entries verified; JWT checks preserved"
+  },
+  "draft_portraits": 3
+}
