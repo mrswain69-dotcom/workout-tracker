@@ -77,7 +77,7 @@
       "state": "image_generation_blocked",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 0,
-      "resume": "Bronze male generation rejected twice by image service at output moderation; no specific reason supplied. No artwork accepted or activated. Canonical brief retained."
+      "resume": "Routing and eight stories prepared and tested (1217 tests pass UTC). Built-in image generation remains blocked, 0 accepted portraits. See hiking-production-checkpoint.json."
     },
     {
       "order": 6,

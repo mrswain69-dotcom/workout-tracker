@@ -18,7 +18,25 @@
       "prompt": "Simplified fully clothed junior hiker; ochre shirt, forest full-length trousers, boots and daypack; transparent full-body portrait.",
       "result": "output moderation blocked",
       "request_id": "87f1aecb-e783-4c82-b469-ba6dfaee6f98"
+    },
+    {
+      "portrait": "bronze_male",
+      "prompt": "canonical brief via sport_avatar_prompt.py",
+      "result": "output moderation blocked",
+      "request_id": "c4dc4354-33ea-42c7-818d-f346ae3fcb3c"
     }
   ],
-  "resume": "Generate and review Bronze pair, then Unreal adult anchors, then remaining tiers. Do not activate Hiking before all sixteen assets and integration checks pass."
+  "resume": "Artwork blocked. Routing and eight stories prepared and tested. After all 16 portraits are accepted, register Hiking stories/rewards and artwork; add client and both server badge XP maps; generate owner/claim checked cosmetic RPC migration and SQL regression; replace incomplete-release gate test with full unlock tests; run CI and verify production.",
+  "prepared": [
+    "Explicit hiking session routing with ordinary walking excluded; maximum one session per sport/day; existing native/named sport precedence preserved.",
+    "Eight draft stories, each 30\u201370 words, stored outside the live avatar registry.",
+    "Five routing and incomplete-release gate tests."
+  ],
+  "activation": "No Hiking artwork, mastery rewards, server XP maps or cosmetic RPC changes deployed.",
+  "validation": {
+    "full_suite": "TZ=UTC npm test: 202 files, 1217 tests passed",
+    "build": "npm run build passed; existing large-chunk advisory",
+    "diff": "git diff --check passed",
+    "non_utc_run": "3 pre-existing time-of-day assertions failed under local timezone; UTC suite passed"
+  }
 }

@@ -460,6 +460,7 @@ const PACE_DISTANCES = {
 // - do NOT yet wire into badge defs / avatar unlocks
 // -----------------------------------------------------
 const SPORT_MASTERY_KEYS = [
+  "hiking",
   "strength_training",
 
   "running",
@@ -562,6 +563,7 @@ const SPORT_NAME_MATCHERS = [
   { key: "swimming", pattern: /\b(?:swimming|swim|pool swim|open water swim)\b/ },
   { key: "cycling", pattern: /\b(?:cycling|biking|bicycle|bike ride|road ride|indoor cycling|spin class)\b/ },
   { key: "running", pattern: /\b(?:running|jogging|trail run|road run|track run)\b/ },
+  { key: "hiking", pattern: /\b(?:hiking|hike)\b/ },
 ];
 
 function normaliseText(v) {
@@ -670,6 +672,8 @@ function getSportKeysForLog(log) {
       found = "cycling";
     } else if (typeId === "swim" || cardioType === "swim" || cardioType === "swimming") {
       found = "swimming";
+    } else if (["hiking", "hike"].includes(cardioType)) {
+      found = "hiking";
     } else if (cardioType === "indoor_rowing") {
       found = "indoor_rowing";
     } else if (cardioType === "row") {

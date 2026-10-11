@@ -1,0 +1,70 @@
+{
+  "sport": "hiking",
+  "state": "draft_not_registered",
+  "profiles": {
+    "sport_avatar_hiking_bronze": {
+      "story": "Bronze finds adventure in noticing the trail. A small daypack, comfortable boots and patient guidance make the first outings welcoming. This hiker learns to check the route, stay with the group and enjoy a manageable pace, discovering that curiosity matters more than reaching the furthest point.",
+      "traits": [
+        "Curious",
+        "Observant",
+        "Careful"
+      ]
+    },
+    "sport_avatar_hiking_silver": {
+      "story": "Silver begins to make preparation a habit. Checking the forecast, packing thoughtfully and choosing a suitable route help each outing feel more confident. A participation medallion celebrates returning to the trail, while this hiker still pauses to notice small details and listen to useful advice.",
+      "traits": [
+        "Prepared",
+        "Steady",
+        "Attentive"
+      ]
+    },
+    "sport_avatar_hiking_gold": {
+      "story": "Gold understands that a good hike starts before the first step. The route suits the day, the pack carries what is needed and the pace leaves room to enjoy the surroundings. This hiker welcomes feedback and treats changing plans as part of thoughtful practice rather than a setback.",
+      "traits": [
+        "Purposeful",
+        "Adaptable",
+        "Balanced"
+      ]
+    },
+    "sport_avatar_hiking_platinum": {
+      "story": "Platinum brings calm experience to unfamiliar paths. Reading the route, watching conditions and checking how the group feels make each decision deliberate. The ridge honour recognises regular practice, while this hiker values turning back when appropriate as much as reaching a planned destination together.",
+      "traits": [
+        "Composed",
+        "Aware",
+        "Considerate"
+      ]
+    },
+    "sport_avatar_hiking_diamond": {
+      "story": "Diamond remembers the ordinary outings behind growing confidence. Useful habits have come from patient repetition, honest reflection and plans adjusted to changing conditions. This hiker encourages newcomers to choose their own manageable route, knowing that the trail offers something worthwhile without a contest over distance or speed.",
+      "traits": [
+        "Patient",
+        "Encouraging",
+        "Resourceful"
+      ]
+    },
+    "sport_avatar_hiking_elite": {
+      "story": "Elite celebrates a routine that keeps adventure sustainable. Careful preparation, respect for the surroundings and room for recovery support many different kinds of outing. The crystal ridge recognises commitment to learning, while this hiker still enjoys the simple pleasure of a well chosen path and good company.",
+      "traits": [
+        "Committed",
+        "Thoughtful",
+        "Assured"
+      ]
+    },
+    "sport_avatar_hiking_champion": {
+      "story": "Champion carries perspective alongside the daypack. A memorable summit and a short local trail can both belong in a rewarding hiking life. This hiker shares practical encouragement, respects different starting points and keeps changing conditions in view, finding confidence in sound decisions rather than the need to press on.",
+      "traits": [
+        "Supportive",
+        "Measured",
+        "Resilient"
+      ]
+    },
+    "sport_avatar_hiking_unreal": {
+      "story": "Unreal brings years of hiking practice to a composed formal portrait. The ridge honour celebrates continued learning, thoughtful preparation and encouragement of others. Beneath the tailored suit remains a hiker who values a suitable route, an honest decision and the curiosity that made the first outing feel like an adventure.",
+      "traits": [
+        "Humble",
+        "Experienced",
+        "Inspiring"
+      ]
+    }
+  }
+}
