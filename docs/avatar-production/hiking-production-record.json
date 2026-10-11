@@ -276,6 +276,46 @@
       "sha256": "6544169c574bf79976e46126e09c6f37a4b80aa6bb689b5e0ca8a5e6b4028f97",
       "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
       "saved_at": "2026-10-11T22:58:22.106661+00:00"
+    },
+    "champion_male": {
+      "path": "public/avatars/sport/hiking_champion_male_v2.png",
+      "source": "exec-c15e9311-11fe-4006-a519-a9b813a05387.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        363,
+        149,
+        971,
+        1127
+      ],
+      "sha256": "0c71c9fc75411ee0ed25209daa6ae165ef6ea485749930d0cda8587441199c80",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T23:02:42.177257+00:00"
+    },
+    "champion_female": {
+      "path": "public/avatars/sport/hiking_champion_female_v2.png",
+      "source": "exec-9a3ce7c8-7a72-4e61-ab6d-cbcebf92d182.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        259,
+        139,
+        990,
+        1146
+      ],
+      "sha256": "d0e68c340563612472a9e417c61ad9416c8412f8ae18a6a3003310eed0411b94",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T23:02:42.214777+00:00"
     }
   }
 }

@@ -76,8 +76,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 14,
-      "resume": "Fourteen portraits reviewed; Champion pair next. All other pairs saved. No activation until16 assets and final integration.",
+      "reviewed_portraits": 16,
+      "resume": "All16 portraits reviewed and saved. Next: register Hiking rewards/stories/artwork, client and both server badge XP maps, owner/claim checked cosmetic RPC migration and SQL regression, full UTC suite/build/CI, then deploy/live hash verification.",
       "draft_portraits": 3
     },
     {
@@ -161,7 +161,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Fourteen portraits reviewed; Champion pair next. All other pairs saved. No activation until16 assets and final integration.",
+  "resume": "All16 portraits reviewed and saved. Next: register Hiking rewards/stories/artwork, client and both server badge XP maps, owner/claim checked cosmetic RPC migration and SQL regression, full UTC suite/build/CI, then deploy/live hash verification.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
