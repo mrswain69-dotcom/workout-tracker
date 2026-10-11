@@ -32,8 +32,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 10,
-      "resume": "Cycling Diamond male then female, followed by Elite and Champion; ten originals saved."
+      "reviewed_portraits": 12,
+      "resume": "Cycling Elite pair next, then Champion; twelve reviewed originals saved."
     },
     {
       "order": 3,
@@ -140,7 +140,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Cycling Diamond male then female, followed by Elite and Champion; ten originals saved.",
+  "resume": "Cycling Elite pair next, then Champion; twelve reviewed originals saved.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
