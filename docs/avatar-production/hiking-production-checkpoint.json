@@ -1,0 +1,24 @@
+{
+  "sport": "hiking",
+  "date": "2026-10-11",
+  "state": "image_generation_blocked",
+  "accepted_portraits": 0,
+  "canonical_brief": "paired-sport-avatar-expansion-briefs.json",
+  "branch": "feature/hiking-paired-avatars",
+  "generation_mode": "built-in image generation",
+  "attempts": [
+    {
+      "portrait": "bronze_male",
+      "prompt": "canonical brief via sport_avatar_prompt.py",
+      "result": "output moderation blocked",
+      "request_id": "67aabb26-710e-4a03-8926-a34076cd9ed3"
+    },
+    {
+      "portrait": "bronze_male",
+      "prompt": "Simplified fully clothed junior hiker; ochre shirt, forest full-length trousers, boots and daypack; transparent full-body portrait.",
+      "result": "output moderation blocked",
+      "request_id": "87f1aecb-e783-4c82-b469-ba6dfaee6f98"
+    }
+  ],
+  "resume": "Generate and review Bronze pair, then Unreal adult anchors, then remaining tiers. Do not activate Hiking before all sixteen assets and integration checks pass."
+}

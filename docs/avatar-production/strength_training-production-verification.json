@@ -1,0 +1,90 @@
+{
+  "release": "Strength Training",
+  "merge_commit": "4f23fae1c36b79165f1c1cb9c45b07cdd19978e8",
+  "pull_request": 103,
+  "production_url": "https://workout-tracker-ivory-tau.vercel.app/",
+  "assets": [
+    {
+      "asset": "bronze_male",
+      "matches": true,
+      "sha256": "a7d8ba283965c67cef55513564536e58d8b1826b5e48a662c7b1c8fa949dc0d4"
+    },
+    {
+      "asset": "bronze_female",
+      "matches": true,
+      "sha256": "0985c232d3c4abdbea120a790929e43925791d9216f2d827f31bd1e1173cc0a6"
+    },
+    {
+      "asset": "unreal_male",
+      "matches": true,
+      "sha256": "e98c2c7d51872322ff897a4a07f4f66357d1e58ea68f9fea395e95127666e487"
+    },
+    {
+      "asset": "unreal_female",
+      "matches": true,
+      "sha256": "c089cfa64817225e046dfb2f881d662ac26aa8cac2376518ad4589be586f170c"
+    },
+    {
+      "asset": "silver_male",
+      "matches": true,
+      "sha256": "6d09312393ccc8a20c799874be97fc30d73816b8184c22c9797ee09b58f8bf43"
+    },
+    {
+      "asset": "silver_female",
+      "matches": true,
+      "sha256": "be8b43825bf0cb070299e67c5e7793a386eda632868ee337e737385dac802b1e"
+    },
+    {
+      "asset": "gold_male",
+      "matches": true,
+      "sha256": "1bf0ef4382fd2ac29c6d29798b178574d5492423327a382728e59e0a587352ff"
+    },
+    {
+      "asset": "gold_female",
+      "matches": true,
+      "sha256": "e8faa447ba1d79c0b4cbbbfb9694648fc3cb6373732fb9d1b4aeb6f0b2eb727f"
+    },
+    {
+      "asset": "platinum_male",
+      "matches": true,
+      "sha256": "962b88649e0379e559024a5c01fae992281e6920400e11960297422d4b22cb55"
+    },
+    {
+      "asset": "platinum_female",
+      "matches": true,
+      "sha256": "a0c0d9965115781a9241839eb6a7b8c4167312bfbd1c2048bc2d46cde28fea0f"
+    },
+    {
+      "asset": "champion_female",
+      "matches": true,
+      "sha256": "f2364e5165ef6dbe6def29894d31c84437fa27f34fe09be23c1574d5f8b49b8c"
+    },
+    {
+      "asset": "champion_male",
+      "matches": true,
+      "sha256": "9bc26bea3a80c569773f52500e6770164b334104a1b522a1bd78052ef41c4917"
+    },
+    {
+      "asset": "elite_female",
+      "matches": true,
+      "sha256": "acec3cfca7f99da48eab1a587910431d0790c8644061455070d44397d170f1d6"
+    },
+    {
+      "asset": "elite_male",
+      "matches": true,
+      "sha256": "880eb7ee94ac7a3a7ad845a7f0d904419013e041463bac25c38833d3530f62eb"
+    },
+    {
+      "asset": "diamond_female",
+      "matches": true,
+      "sha256": "6ac83a2270f0f96c1f797eb39426bd2b72fbaa28ca04eea772afd51843d2aa83"
+    },
+    {
+      "asset": "diamond_male",
+      "matches": true,
+      "sha256": "3ba023088c4b002936c45359f76f3e6cfb35b299d9a62c53aafb2ba8a070d6a2"
+    }
+  ],
+  "all_16_assets_match": true,
+  "live_bundle_strength_training": true
+}
