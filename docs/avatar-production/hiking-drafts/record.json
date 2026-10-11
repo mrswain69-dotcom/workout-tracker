@@ -1,0 +1,43 @@
+{
+  "sport": "hiking",
+  "state": "drafts_require_revision",
+  "tool": "built-in image generation",
+  "assets": {
+    "unreal_male": {
+      "path": "docs/avatar-production/hiking-drafts/unreal_male.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "d438abd81984907e62b9088b4454334e74ebb6697e48f59250b7eceadc450ced",
+      "review": "Draft only: insufficient transparent framing margins. Unreal pair also needs matching mountain-ridge award shape. Do not activate."
+    },
+    "unreal_female": {
+      "path": "docs/avatar-production/hiking-drafts/unreal_female.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "3b67a0844c642aed32554e1d09d1bc15b524439096960aecae806678e5e0a99f",
+      "review": "Draft only: insufficient transparent framing margins. Unreal pair also needs matching mountain-ridge award shape. Do not activate."
+    },
+    "bronze_female": {
+      "path": "docs/avatar-production/hiking-drafts/bronze_female.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "c1521374c98d0c13b43569da2c071120e10ddf42b00b10b6bf12f1e3a3eebe05",
+      "review": "Draft only: insufficient transparent framing margins. Unreal pair also needs matching mountain-ridge award shape. Do not activate."
+    }
+  }
+}
