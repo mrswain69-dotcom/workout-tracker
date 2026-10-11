@@ -196,6 +196,46 @@
       "sha256": "5c0b951c7adfb30f7b5a37031b0fad7b8634321e7c22ee55751f1f4cd59e47ec",
       "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
       "saved_at": "2026-10-11T22:49:33.473175+00:00"
+    },
+    "diamond_male": {
+      "path": "public/avatars/sport/hiking_diamond_male_v2.png",
+      "source": "exec-6cd1116c-e326-497b-9fea-74d14ec6139e.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        470,
+        194,
+        813,
+        1097
+      ],
+      "sha256": "723ed39c90ecdd0d011c66ee020cbb43e9a69c6d5cd58bb42b2ff8ec7613e19f",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:53:58.755532+00:00"
+    },
+    "diamond_female": {
+      "path": "public/avatars/sport/hiking_diamond_female_v2.png",
+      "source": "exec-259f9fb4-6cfd-4ad5-a81f-d3f1abadeb41.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        449,
+        196,
+        811,
+        1151
+      ],
+      "sha256": "4d855ddb77a7b82f2bc58dbb48a8fc31f23090fc1ffd3ed48e02262151e84466",
+      "review": "Reviewed recognizable identity and natural tier age, kit/award parity, changed tier pose, visible equipment and safe transparent framing. Original PNG preserved.",
+      "saved_at": "2026-10-11T22:53:58.785666+00:00"
     }
   }
 }
