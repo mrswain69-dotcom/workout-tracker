@@ -45,18 +45,25 @@
       "sport": "swimming",
       "label": "Swimming",
       "portraits": 16,
-      "state": "integration_verification",
+      "state": "production_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "Swimming all sixteen originals complete. Integrate native swim/named sessions, stories/badges/XP maps, RPC, tests and release/live verification. Strength Training next after verified release."
+      "resume": "Complete; preserve all sixteen originals.",
+      "pr": 102,
+      "merge_commit": "849267ddcfbaa21c2462d14ff84c6f8cb2cc35ca",
+      "tested_head": "d467faa18e1488ab5f01ee43c6b18cf964e2cef7",
+      "ci_run": 38125994612,
+      "live_bundle": "/assets/index-DiZiDHN9.js"
     },
     {
       "order": 4,
       "sport": "strength_training",
       "label": "Strength Training",
       "portraits": 16,
-      "state": "brief_ready",
-      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+      "state": "artwork_in_progress",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
+      "reviewed_portraits": 10,
+      "resume": "Strength Training Diamond male next; Bronze, Silver, Gold, Platinum and Unreal pairs reviewed and saved."
     },
     {
       "order": 5,
@@ -147,7 +154,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Swimming all sixteen originals complete. Integrate native swim/named sessions, stories/badges/XP maps, RPC, tests and release/live verification. Strength Training next after verified release.",
+  "resume": "Strength Training Diamond male next; Bronze, Silver, Gold, Platinum and Unreal pairs reviewed and saved.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
@@ -165,8 +172,8 @@
     "Test maximum one session per sport/day, historic routing boundaries, future/cancelled/suspended exclusion, unchanged existing reward keys and no missing-image requests.",
     "Run regression suite/build/CI, apply required migration, merge expected head, deploy and verify live hashes/client/RPC behaviour. Update this queue after each collection release."
   ],
-  "released_new_sports": 2,
-  "released_new_portraits": 32,
-  "current_released_sports": 15,
-  "current_active_portraits": 240
+  "released_new_sports": 3,
+  "released_new_portraits": 48,
+  "current_released_sports": 16,
+  "current_active_portraits": 256
 }
