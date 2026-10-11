@@ -62,8 +62,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 8,
-      "resume": "Strength Training Platinum pair next, then Diamond, Elite and Champion; eight originals saved."
+      "reviewed_portraits": 10,
+      "resume": "Strength Training Diamond male next; Bronze, Silver, Gold, Platinum and Unreal pairs reviewed and saved."
     },
     {
       "order": 5,
@@ -154,7 +154,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Strength Training Platinum pair next, then Diamond, Elite and Champion; eight originals saved.",
+  "resume": "Strength Training Diamond male next; Bronze, Silver, Gold, Platinum and Unreal pairs reviewed and saved.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
