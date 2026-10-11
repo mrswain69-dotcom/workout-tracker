@@ -32,8 +32,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 6,
-      "resume": "Cycling Gold male then female, followed by Platinum, Diamond, Elite, Champion. Six accepted portraits saved; activate after complete 16 and tests."
+      "reviewed_portraits": 8,
+      "resume": "Cycling Platinum pair next, then Diamond, Elite and Champion; eight reviewed originals saved."
     },
     {
       "order": 3,
@@ -140,7 +140,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Cycling Bronze male then female, then Unreal anchors and Silver through Champion. Complete its integration/release before Swimming.",
+  "resume": "Cycling Platinum pair next, then Diamond, Elite and Champion; eight reviewed originals saved.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
