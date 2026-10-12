@@ -2,6 +2,6 @@
   "sport": "volleyball",
   "branch": "feature/volleyball-paired-avatars",
   "state": "artwork_in_progress",
-  "accepted_portraits": 2,
-  "resume": "Volleyball Bronze accepted (2/16); continue Silver through Unreal. Table Tennis PR113 merged; verify all16 live hashes and routing cutover before marking released. Remaining Golf and Climbing."
+  "accepted_portraits": 4,
+  "resume": "Volleyball Bronze and Silver accepted (4/16); continue Gold through Unreal. Table Tennis merged, production verification pending fresh rollout check. Remaining Golf and Climbing."
 }
