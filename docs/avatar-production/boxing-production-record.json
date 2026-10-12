@@ -40,6 +40,42 @@
       ],
       "sha256": "4a7c98d94849f6f06f39a3bc81981e689584c93616c8e4d830ffb2f4a4bcf209",
       "review": "Distinct junior identities, matching modest kit/coverage and low gloves, no awards, transparent margins. Compared against Hiking and prior sports; original PNG preserved."
+    },
+    "unreal_male": {
+      "path": "public/avatars/sport/boxing_unreal_male_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        369,
+        215,
+        953,
+        1082
+      ],
+      "sha256": "351fc0bfe3daf5607b0f3fdaefc57c5c399f0636394238171ba32082640c0335",
+      "review": "Reviewed visibly mature adult identity, equal suit/award prestige and safe transparent margins. Original PNG preserved."
+    },
+    "unreal_female": {
+      "path": "public/avatars/sport/boxing_unreal_female_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        369,
+        192,
+        953,
+        1062
+      ],
+      "sha256": "be0ebf843256da7562824710f3740225b6b9438eeeb013ae7642dc669daeaeef",
+      "review": "Reviewed visibly mature adult identity, equal suit/award prestige and safe transparent margins. Original PNG preserved."
     }
   }
 }
