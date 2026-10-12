@@ -1,6 +1,6 @@
 {
   "sport": "golf",
-  "state": "integration_verified",
+  "state": "production_verified",
   "accepted_portraits": 16,
   "tests": 1289,
   "test_files": 214,
@@ -27,5 +27,11 @@
     "authenticated_security_definer_function_executable": 80,
     "auth_leaked_password_protection": 1
   },
-  "production_verified": false
+  "production_verified": true,
+  "pr": 115,
+  "tested_head": "f97608081f9c4b433dd10c8a2d6426ebebe10d95",
+  "ci_run": 38304492230,
+  "ci_conclusion": "success",
+  "merge_commit": "ea25eb42b90095e7c8266a270d3f40a93d154ff0",
+  "production_verification": "golf-production-verification.json"
 }

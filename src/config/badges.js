@@ -100,6 +100,7 @@ const REP_TIERS = [
 
 
 export const SPORT_MASTERY_PACKS = {
+  climbing: { label: "Climbing", family: "sport", iconFile: "icon_flame.png" },
   golf: { label: "Golf", family: "sport", iconFile: "icon_flame.png" },
   volleyball: { label: "Volleyball", family: "sport", iconFile: "icon_flame.png" },
   table_tennis: { label: "Table Tennis", family: "sport", iconFile: "icon_sport_tennis.png" },

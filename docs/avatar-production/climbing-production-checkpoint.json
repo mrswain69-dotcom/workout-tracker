@@ -1,0 +1,7 @@
+{
+  "sport": "climbing",
+  "branch": "feature/climbing-paired-avatars",
+  "state": "artwork_complete",
+  "accepted_portraits": 16,
+  "resume": "All16 Climbing portraits accepted; final client/RPC/XP integration and release."
+}
