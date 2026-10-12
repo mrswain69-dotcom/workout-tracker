@@ -47,6 +47,33 @@ import TrainingProgramLibrary from "./TrainingProgramLibrary.jsx";
 import * as programDb from "./trainingProgramDb.js";
 
 describe("personal programme management integration", () => {
+  it("starts or resumes a draft without saving or applying the active programme", async () => {
+    const onNewDraft = vi.fn(), onResumeDraft = vi.fn();
+    renderLibrary({ onNewDraft, onResumeDraft });
+    fireEvent.click(await screen.findByRole("button", { name: "New blank Program" }));
+    fireEvent.click(screen.getByRole("button", { name: "Resume draft" }));
+    expect(onNewDraft).toHaveBeenCalledOnce();
+    expect(onResumeDraft).toHaveBeenCalledOnce();
+    expect(programDb.saveTrainingProgram).not.toHaveBeenCalled();
+    expect(programDb.applyAccessibleTrainingProgram).not.toHaveBeenCalled();
+  });
+  it("opens the frozen library content for draft editing and applies only on a separate explicit action", async () => {
+    const saved = { ...program, current_version: assignedProgram.version };
+    programDb.listOwnedTrainingPrograms.mockResolvedValue({ data: [saved] });
+    const onEditDraft = vi.fn(), onProgramApplied = vi.fn();
+    renderLibrary({ onEditDraft, onProgramApplied });
+    fireEvent.click(await screen.findByRole("button", { name: "View details" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit as draft" }));
+    expect(onEditDraft).toHaveBeenCalledWith(saved);
+    expect(programDb.applyAccessibleTrainingProgram).not.toHaveBeenCalled();
+    const controls = document.querySelector(".programDetailsDialog .trainingProgramControls");
+    fireEvent.change(controls.querySelector('input[type="date"]'), { target: { value: "2026-11-02" } });
+    fireEvent.change(controls.querySelector("select"), { target: { value: "once" } });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getAllByRole("button").find((button) => button.textContent.includes("Make this my current plan") && !button.textContent.includes("but keep")));
+    await waitFor(() => expect(programDb.applyAccessibleTrainingProgram).toHaveBeenCalledWith(expect.objectContaining({ startDate: "2026-11-02", completionMode: "once", adoptionMode: "replace" })));
+    expect(onProgramApplied).toHaveBeenCalled();
+  });
   it("keeps archived programmes collapsed and separate from assignment choices", async () => {
     programDb.listOwnedTrainingPrograms.mockResolvedValue({ data: [program, { ...program, id: "archived", title: "Old preparation", status: "archived" }], error: null });
     renderLibrary();
