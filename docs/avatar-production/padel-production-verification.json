@@ -35,5 +35,14 @@
       "vercel": "failure",
       "cause": "Logs unavailable to connected Vercel account; one documentation checkpoint commit retries preview with unchanged verified application code."
     }
+  ],
+  "production_failed_attempts": [
+    {
+      "head": "56dac66bcaac69e368db31e3b574e69d99b38c06",
+      "deployment": "dpl_8tVvnYEPbTMv7kRTukdDinw2cuS9",
+      "vercel": "failure",
+      "cause": "Unknown: deployment logs unavailable to connected account.",
+      "retry": "Documentation-only checkpoint retries production using unchanged verified application code."
+    }
   ]
 }
