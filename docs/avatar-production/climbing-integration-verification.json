@@ -1,0 +1,37 @@
+{
+  "sport": "climbing",
+  "state": "integration_verified",
+  "accepted_portraits": 16,
+  "artwork": "All sixteen original transparent PNGs preserved with SHA256 provenance.",
+  "session_routing": "Climbing and Bouldering whole-word aliases; one performed session/day; existing named/native sport precedence preserved.",
+  "unlocks": "Eight shared logical avatars, thresholds40 through320, male/female cosmetic variants; nine sport badges.",
+  "local_tests": {
+    "files": 215,
+    "tests": 1296,
+    "timezone": "UTC",
+    "result": "passed"
+  },
+  "build": "passed",
+  "production_dependency_audit": {
+    "vulnerabilities": 0
+  },
+  "backend": {
+    "migration": "20261012230713_climbing_paired_avatar_appearance.sql",
+    "applied": true,
+    "rollback_test": "Passed ownership, unlock, male/female persistence, sanitised group sync, full history/XP/reward invariance, invalid/unsupported rejection, legacy restoration",
+    "group-xp-leaderboard": {
+      "version": 28,
+      "files": 6,
+      "verify_jwt": true,
+      "all_files_byte_verified": true
+    },
+    "group-seasons-awards": {
+      "version": 27,
+      "files": 8,
+      "verify_jwt": true,
+      "all_files_byte_verified": true
+    },
+    "security_advisors": "Unchanged:15 INFO RLS-no-policy,80 WARN authenticated SECURITY DEFINER execution,1 WARN leaked-password protection"
+  },
+  "release": "Await expected-head CI/merge and live hashes."
+}
