@@ -1,7 +1,12 @@
 {
   "sport": "golf",
   "branch": "feature/golf-paired-avatars",
-  "state": "integration_verified",
+  "state": "production_verified",
   "accepted_portraits": 16,
-  "resume": "Golf complete: publish validated PR, check exact-head CI then merge and verify live. Climbing Bronze accepted, remaining tiers in progress."
+  "resume": "Complete; preserve all16 originals.",
+  "pr": 115,
+  "tested_head": "f97608081f9c4b433dd10c8a2d6426ebebe10d95",
+  "merge_commit": "ea25eb42b90095e7c8266a270d3f40a93d154ff0",
+  "ci_run": 38304492230,
+  "live_bundle": "/assets/index-Bi1tjrWi.js"
 }

@@ -211,14 +211,15 @@
       "sport": "golf",
       "label": "Golf",
       "portraits": 16,
-      "state": "integration_verified",
+      "state": "production_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "Merged; verify deployed all16 portrait hashes and bundle registration after rollout. Preserve original artwork.",
+      "resume": "Complete; preserve all16 originals.",
       "pr": 115,
       "tested_head": "f97608081f9c4b433dd10c8a2d6426ebebe10d95",
       "merge_commit": "ea25eb42b90095e7c8266a270d3f40a93d154ff0",
-      "ci_run": 38304492230
+      "ci_run": 38304492230,
+      "live_bundle": "/assets/index-Bi1tjrWi.js"
     },
     {
       "order": 15,
@@ -227,11 +228,11 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 4,
-      "resume": "Climbing Bronze and Silver accepted (4/16); finish Gold and Platinum framing, then Diamond through Unreal. Golf all16 integrated/tested and backend verified; PR115 CI pending. Volleyball merged/live all16 hashes plus bundle verified; confirm Table Tennis live and update released counts."
+      "reviewed_portraits": 6,
+      "resume": "Climbing Bronze through Gold accepted (6/16); finish Platinum then Diamond through Unreal. Golf merged PR115 with backend verified, production rollout check pending; all13 earlier expansion collections production_verified."
     }
   ],
-  "resume": "Climbing Bronze/Silver accepted (4/16); continue Gold through Unreal. Golf merged with backend verified, production rollout verification pending. All previous13 expansion collections production_verified.",
+  "resume": "Final Climbing collection: Bronze through Gold accepted (6/16); continue Platinum through Unreal. All other14 expansion collections production_verified.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
@@ -249,8 +250,8 @@
     "Test maximum one session per sport/day, historic routing boundaries, future/cancelled/suspended exclusion, unchanged existing reward keys and no missing-image requests.",
     "Run regression suite/build/CI, apply required migration, merge expected head, deploy and verify live hashes/client/RPC behaviour. Update this queue after each collection release."
   ],
-  "released_new_sports": 13,
-  "released_new_portraits": 208,
-  "current_released_sports": 26,
-  "current_active_portraits": 416
+  "released_new_sports": 14,
+  "released_new_portraits": 224,
+  "current_released_sports": 27,
+  "current_active_portraits": 432
 }
