@@ -1,8 +1,8 @@
 {
   "sport": "pilates",
   "branch": "feature/pilates-paired-avatars",
-  "state": "integration_verified",
+  "state": "production_verified",
   "accepted_portraits": 16,
-  "resume": "Release verified Pilates; start Dance Bronze pair.",
-  "activation": "All16 reviewed originals registered; live RPC and Group maps verified. Await exact-head CI, Vercel build, merge and production verification."
+  "resume": "Pilates complete. Continue Dance Bronze pair.",
+  "activation": "Released and production verified; preserve all16 originals."
 }
