@@ -1,7 +1,7 @@
 {
   "sport": "padel",
   "branch": "feature/padel-paired-avatars",
-  "state": "artwork_complete",
+  "state": "integration_verified",
   "accepted_portraits": 16,
-  "resume": "Padel artwork complete: 16 reviewed portraits. Integrate, verify and release before Pickleball."
+  "resume": "Padel 16 portraits and integration verified; publish PR109, verify exact-head CI/Vercel, merge and verify production before Pickleball."
 }
