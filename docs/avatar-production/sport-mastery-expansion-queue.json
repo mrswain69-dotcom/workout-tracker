@@ -150,8 +150,10 @@
       "sport": "padel",
       "label": "Padel",
       "portraits": 16,
-      "state": "brief_ready",
-      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+      "state": "artwork_in_progress",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
+      "reviewed_portraits": 2,
+      "resume": "Padel 2 of 16 reviewed. Build mature Unreal anchors, then Silver through Champion."
     },
     {
       "order": 11,
@@ -194,7 +196,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Gymnastics production verified; continue Padel Bronze cutout review, then later tiers.",
+  "resume": "Padel 2 of 16 reviewed. Build mature Unreal anchors, then Silver through Champion.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,

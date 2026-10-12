@@ -1,0 +1,66 @@
+{
+  "bronze": {
+    "story": "Bronze begins with a racket held quietly beside the leg and an interest in trying something new. This player listens, experiments and enjoys the first small discoveries of practice, finding that a patient return can matter more than getting every movement right on the first attempt.",
+    "traits": [
+      "Curious",
+      "Patient",
+      "Attentive"
+    ]
+  },
+  "silver": {
+    "story": "Silver settles into a ready stance with growing familiarity. The participation medallion celebrates returning to practice, while this player notices how preparation can make the next attempt feel calmer. Questions and useful guidance remain welcome, and small improvements bring satisfaction without needing to rush the learning process.",
+    "traits": [
+      "Receptive",
+      "Steady",
+      "Observant"
+    ]
+  },
+  "gold": {
+    "story": "Gold carries a bronze practice medal as a reminder of persistence. Familiar routines now leave room for thoughtful adjustments and fresh ideas. This player enjoys sharing encouragement, listens carefully to feedback and understands that a difficult day can still offer something useful to bring into the next practice.",
+    "traits": [
+      "Reflective",
+      "Persistent",
+      "Encouraging"
+    ]
+  },
+  "platinum": {
+    "story": "Platinum arrives in a warm-up layer with preparation shaped by experience. A natural walking turn reflects comfort in returning to familiar practice. The silver fan honour recognises continued participation, while this player remembers early uncertainty and welcomes others with the same patience that helped those first attempts feel possible.",
+    "traits": [
+      "Prepared",
+      "Welcoming",
+      "Adaptable"
+    ]
+  },
+  "diamond": {
+    "story": "Diamond values the steady details behind a rewarding practice. Thoughtful preparation, useful feedback and time to recover leave room for a lasting interest in the game. The gold fan honour celebrates commitment, while this player stays curious about new approaches and respects the different pace at which each person learns.",
+    "traits": [
+      "Balanced",
+      "Committed",
+      "Open-minded"
+    ]
+  },
+  "elite": {
+    "story": "Elite greets another practice with a restrained gesture of satisfaction. The crystal fan and medallion recognise sustained participation rather than a competitive title. This player appreciates progress in others, offers encouragement freely and remembers that confidence is often built through ordinary attempts, adjustments and patient returns.",
+    "traits": [
+      "Assured",
+      "Generous",
+      "Patient"
+    ]
+  },
+  "champion": {
+    "story": "Champion carries perspective into a relaxed stance. The fan honour at their feet recalls years of practice, changing plans and small discoveries. This player remains interested in learning, values encouragement from different people and makes space for the shared enjoyment that can keep familiar routines meaningful over time.",
+    "traits": [
+      "Grounded",
+      "Supportive",
+      "Resilient"
+    ]
+  },
+  "unreal": {
+    "story": "Unreal brings years of padel practice to a composed formal portrait. The crystal and gold fan honour reflects sustained curiosity, participation and encouragement of others. Beneath the tailored suit remains the same attentive learner, grateful for guidance and interested in the small details that make another return worthwhile.",
+    "traits": [
+      "Experienced",
+      "Humble",
+      "Inquisitive"
+    ]
+  }
+}
