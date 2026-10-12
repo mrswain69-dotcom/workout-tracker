@@ -25,7 +25,7 @@
     "other_live_files_unchanged": true
   },
   "advisor_comparison": "Unchanged categories/counts: 15 INFO, 80 authenticated definer WARN, 1 auth configuration WARN",
-  "release_state": "integration_verified",
+  "release_state": "production_verified",
   "preview_failed_attempts": [
     {
       "head": "5e61382d3e3ae3088b3302269cc81b887bf8ea71",
@@ -44,5 +44,17 @@
       "cause": "Unknown: deployment logs unavailable to connected account.",
       "retry": "Documentation-only checkpoint retries production using unchanged verified application code."
     }
-  ]
+  ],
+  "pr": 109,
+  "tested_head": "d69785a2b14ccc6a4082fe5c964037fd9c525f50",
+  "merge_commit": "56dac66bcaac69e368db31e3b574e69d99b38c06",
+  "ci_run": 38251123787,
+  "production": {
+    "matched_portraits": 16,
+    "original_hashes_match": true,
+    "sport_registered": true,
+    "bundle": "/assets/index-BRvXNGOf.js",
+    "observed_main": "ca2a23240d70fdfbcdaea74956e2a293a4e2a434",
+    "verification_note": "Fetch deployed paths after removing repository public/ prefix."
+  }
 }
