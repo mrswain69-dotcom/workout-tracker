@@ -1,0 +1,55 @@
+{
+  "sport": "golf",
+  "brief": "paired-sport-avatar-expansion-briefs.json",
+  "tool": "built-in image generation",
+  "assets": {
+    "bronze_male": {
+      "path": "public/avatars/sport/golf_bronze_male_v2.png",
+      "source": "exec-0a17ed9b-b268-4678-946e-32e5d44a59b0.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        419,
+        85,
+        875,
+        1152
+      ],
+      "sha256": "6644c327f09536a3793dcaaa4956922784b5f50ada880a29f0a8f2ece852eecc",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional male Golf athlete for the Bronze tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: fair freckled skin; soft oval face; blue eyes; medium-brown swept hair; medium-height solid build. Visibly junior athlete, approximately 12\u201314, natural youthful face and proportions, modest practical kit; no adult musculature or jewellery. Collection palette: pine, cream and burgundy. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve polo and golf trousers with golf shoes for both. Basic junior-sized kit with simple construction. Equipment: One correct golf club with head safely down; optional glove; no giant bag or branded jacket. Award: None Pose: club resting down beside boot; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Relaxed introductory three-quarter view; natural asymmetrical weight distribution and curious expression. Establish the junior identity without a stiff catalogue stance. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\nNEW fictional Golf male age13, entirely DIFFERENT face/body/hair/skin from reference. Reference supplies only premium stylised3D rendering quality; discard volleyball person identity, kit, ball and pose. Follow Golf identity exactly: FAIR FRECKLED skin, SOFT OVAL face, BLUE eyes, MEDIUM-BROWN swept hair, medium height solid junior build. Modest short-sleeve PINE golf polo, FULL CREAM golf trousers and cream/burgundy golf shoes. Relaxed quiet standing pose, ONE real golf club held beside body with its iron HEAD DOWN beside shoe and shaft vertical. Other hand relaxed open at side. No glove/bag/ball/awards/medals/hat/text/logos. Full cutout INCLUDING ALL head/club/shoes occupies ONLY70% SQUARE transparent canvas height, centred with15% empty transparent above/below, no scene/shadow.",
+      "references": [
+        "public/avatars/sport/volleyball_bronze_male_v2.png"
+      ],
+      "review": "Reviewed distinct junior Golf identities against all original/expansion identity briefs; fair freckled soft-oval blue-eyed male/brown swept hair and dark-brown broad-angular female/rounded natural afro are distinct from Volleyball style references. Matching modest short-sleeve polo/full cream trouser coverage, one credible club head down, natural hands, full shoes and transparent framing; no awards. Original PNG bytes retained.",
+      "saved_at": "2026-10-12T19:44:16.975701+00:00"
+    },
+    "bronze_female": {
+      "path": "public/avatars/sport/golf_bronze_female_v2.png",
+      "source": "exec-00637eae-bd18-47b5-af07-9e653f5b6fa0.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        391,
+        98,
+        817,
+        1149
+      ],
+      "sha256": "04b03d8d15fa2c9cc60986b89c48074538d7763a913fc798667fb72e81501744",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional female Golf athlete for the Bronze tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: dark brown skin; broad angular face; dark eyes; compact rounded natural afro; medium-height athletic build. Visibly junior athlete, approximately 12\u201314, natural youthful face and proportions, modest practical kit; no adult musculature or jewellery. Collection palette: pine, cream and burgundy. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve polo and golf trousers with golf shoes for both. Basic junior-sized kit with simple construction. Equipment: One correct golf club with head safely down; optional glove; no giant bag or branded jacket. Award: None Pose: club resting down beside boot; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Relaxed introductory three-quarter view; natural asymmetrical weight distribution and curious expression. Establish the junior identity without a stiff catalogue stance. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\nNEW fictional Golf female age13, entirely DIFFERENT face/body/hair/skin from reference. Reference supplies only premium stylised3D rendering quality; discard volleyball person identity, kit, ball and pose. Follow Golf identity exactly: DARK BROWN skin, BROAD ANGULAR face, dark eyes, COMPACT ROUNDED NATURAL AFRO, medium height athletic junior build. Modest short-sleeve PINE golf polo, FULL CREAM golf trousers and cream/burgundy golf shoes. Relaxed quiet standing pose, ONE real golf club held beside body with its iron HEAD DOWN beside shoe and shaft vertical. Other hand relaxed open at side. No glove/bag/ball/awards/medals/hat/text/logos. Full cutout INCLUDING ALL head/club/shoes occupies ONLY70% SQUARE transparent canvas height, centred with15% empty transparent above/below, no scene/shadow.",
+      "references": [
+        "public/avatars/sport/volleyball_bronze_female_v2.png"
+      ],
+      "review": "Reviewed distinct junior Golf identities against all original/expansion identity briefs; fair freckled soft-oval blue-eyed male/brown swept hair and dark-brown broad-angular female/rounded natural afro are distinct from Volleyball style references. Matching modest short-sleeve polo/full cream trouser coverage, one credible club head down, natural hands, full shoes and transparent framing; no awards. Original PNG bytes retained.",
+      "saved_at": "2026-10-12T19:44:17.005468+00:00"
+    }
+  }
+}
