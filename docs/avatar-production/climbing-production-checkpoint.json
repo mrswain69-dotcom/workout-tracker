@@ -2,6 +2,6 @@
   "sport": "climbing",
   "branch": "feature/climbing-paired-avatars",
   "state": "artwork_in_progress",
-  "accepted_portraits": 6,
-  "resume": "Climbing Bronze through Gold accepted (6/16); finish Platinum then Diamond through Unreal. Golf merged PR115 with backend verified, production rollout check pending; all13 earlier expansion collections production_verified."
+  "accepted_portraits": 8,
+  "resume": "Climbing Bronze through Platinum accepted (8/16); finish Diamond through Unreal, then final client/RPC/XP integration and release. All14 earlier expansion collections production_verified."
 }
