@@ -105,10 +105,11 @@
       "sport": "pilates",
       "label": "Pilates",
       "portraits": 16,
-      "state": "artwork_complete",
+      "state": "integration_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "All16 Pilates portraits reviewed. Integrate dated Yoga routing, registry/stories/XP/RPC and verify release, then Dance."
+      "resume": "Release verified Pilates; start Dance Bronze pair.",
+      "pr": 106
     },
     {
       "order": 8,
@@ -175,7 +176,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "All16 Pilates portraits reviewed. Integrate dated Yoga routing, registry/stories/XP/RPC and verify release, then Dance.",
+  "resume": "Release verified Pilates; start Dance Bronze pair.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,

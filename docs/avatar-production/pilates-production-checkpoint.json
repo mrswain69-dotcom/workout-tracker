@@ -1,7 +1,8 @@
 {
   "sport": "pilates",
   "branch": "feature/pilates-paired-avatars",
-  "state": "artwork_complete",
+  "state": "integration_verified",
   "accepted_portraits": 16,
-  "resume": "All16 Pilates portraits reviewed. Integrate dated Yoga routing, registry/stories/XP/RPC and verify release, then Dance."
+  "resume": "Release verified Pilates; start Dance Bronze pair.",
+  "activation": "All16 reviewed originals registered; live RPC and Group maps verified. Await exact-head CI, Vercel build, merge and production verification."
 }
