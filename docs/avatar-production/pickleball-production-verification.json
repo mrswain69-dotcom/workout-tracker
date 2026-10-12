@@ -26,5 +26,15 @@
     "other_live_files_unchanged": true
   },
   "advisor_comparison": "Unchanged categories/counts:15INFO,80authenticated definer WARN,1auth configuration WARN",
-  "release_state": "integration_verified"
+  "release_state": "production_verified",
+  "pr": 112,
+  "tested_head": "428af11d35a3e0eca4930d37c21cd4261ef44154",
+  "merge_commit": "6d170ad1a419b17db6389424f0f4be26bdfce8cb",
+  "ci_run": 38288306727,
+  "production": {
+    "matched_portraits": 16,
+    "original_hashes_match": true,
+    "sport_registered": true,
+    "bundle": "/assets/index-D_0-ei7b.js"
+  }
 }

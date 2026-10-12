@@ -165,10 +165,15 @@
       "sport": "pickleball",
       "label": "Pickleball",
       "portraits": 16,
-      "state": "integration_verified",
+      "state": "production_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "Publish Pickleball PR; verify exact head CI/preview, merge and verify deployed paths without public/ prefix and bundle registration. Then Table Tennis."
+      "resume": "Complete; preserve all16 originals.",
+      "pr": 112,
+      "tested_head": "428af11d35a3e0eca4930d37c21cd4261ef44154",
+      "merge_commit": "6d170ad1a419b17db6389424f0f4be26bdfce8cb",
+      "ci_run": 38288306727,
+      "live_bundle": "/assets/index-D_0-ei7b.js"
     },
     {
       "order": 12,
@@ -223,8 +228,8 @@
     "Test maximum one session per sport/day, historic routing boundaries, future/cancelled/suspended exclusion, unchanged existing reward keys and no missing-image requests.",
     "Run regression suite/build/CI, apply required migration, merge expected head, deploy and verify live hashes/client/RPC behaviour. Update this queue after each collection release."
   ],
-  "released_new_sports": 10,
-  "released_new_portraits": 160,
-  "current_released_sports": 23,
-  "current_active_portraits": 368
+  "released_new_sports": 11,
+  "released_new_portraits": 176,
+  "current_released_sports": 24,
+  "current_active_portraits": 384
 }
