@@ -91,6 +91,7 @@ function RecentActivityCalendar({ days = [], onOpenDate = null }) {
       </div>
       <div className="dashboardHistory__legend" aria-label="Plan history colour key">
         <span className="is-complete">Complete</span>
+            <span className="is-partial">Partial</span>
         <span className="is-rest">Rest</span>
         <span className="is-illness">Illness</span>
         <span className="is-cancelled">Cancelled</span>

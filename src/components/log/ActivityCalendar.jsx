@@ -129,6 +129,7 @@ export default function ActivityCalendar({
           </div>
           <div className="activityCalendar__legend" aria-label="Calendar colour key">
             <span className="is-complete">Complete</span>
+            <span className="is-partial">Partial</span>
             <span className="is-rest">Rest</span>
             <span className="is-illness">Illness</span>
             <span className="is-cancelled">Cancelled</span>

@@ -58,4 +58,17 @@ describe("PerformanceDashboard recent activity calendar", () => {
     fireEvent.click(screen.getByRole("button", { name: "2026-10-14. Plan completed" }));
     expect(onOpenHistoryDate).toHaveBeenCalledWith("2026-10-14");
   });
+  it('shows partial activity with its earned XP and opens the matching Log date', () => {
+    const onOpenHistoryDate = vi.fn();
+    render(<PerformanceDashboard historyDays={[{ dateYmd: '2026-10-12', kind: 'partial',
+      label: 'Plan partially completed', icon: '◐', earnedXp: 255 }]}
+      onOpenHistoryDate={onOpenHistoryDate} />);
+    const day = screen.getByRole('button', { name: '2026-10-12. Plan partially completed' });
+    expect(day.className).toContain('is-partial');
+    expect(day.querySelector('.dashboardHistoryDay__xp').textContent).toBe('255XP');
+    expect(screen.getByText('Partial').className).toBe('is-partial');
+    fireEvent.click(day);
+    expect(onOpenHistoryDate).toHaveBeenCalledWith('2026-10-12');
+  });
+
 });

@@ -1,3 +1,5 @@
+import { sessionBlockHasActivity } from "./sessionCore.js";
+
 const PHYSICAL_TYPES = new Set([
   "strength",
   "hiit",
@@ -25,6 +27,31 @@ function physicalBlocks(blocks = []) {
     !block.suspendedByRecoveryMode &&
     PHYSICAL_TYPES.has(text(block.typeId).toLowerCase())
   );
+}
+
+function positive(value) {
+  return Number.isFinite(Number(value)) && Number(value) > 0;
+}
+
+// Classify recorded physical effort, never templates, reward XP or tasks alone.
+function blockHasRecordedActivity(block) {
+  if (block.cancelled) return false;
+  const type = text(block.typeId).toLowerCase();
+  if (["strength", "hiit", "box"].includes(type)) {
+    return Object.values(block.sets || {}).some((sets) =>
+      Array.isArray(sets) && sets.some((set) =>
+        ["reps", "timeSeconds", "count", "distanceKm", "durationMin"]
+          .some((field) => positive(set?.[field]))
+      )
+    );
+  }
+  if (type === "session") return sessionBlockHasActivity(block);
+  if (type === "duration") return positive(block.duration?.minutes);
+  if (type === "recovery") return !!block.recoveryDone || (
+    block.isProfileRecoveryBlock && block.profileRecoveryMode === "injury" &&
+    positive(block.duration?.minutes)
+  );
+  return positive(block.cardio?.distanceKm) || positive(block.cardio?.durationMin);
 }
 
 /**
@@ -94,6 +121,17 @@ export function buildActivityCalendarDay({
       label: mode === "injury" ? "Physio completed" : "Plan completed",
       icon: "✓",
       completed: true,
+      isToday: dateYmd === todayYmd,
+    };
+  }
+
+  if (blocks.some(blockHasRecordedActivity)) {
+    return {
+      dateYmd,
+      kind: "partial",
+      label: "Plan partially completed",
+      icon: "◐",
+      completed: false,
       isToday: dateYmd === todayYmd,
     };
   }
