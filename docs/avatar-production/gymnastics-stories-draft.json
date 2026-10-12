@@ -1,0 +1,66 @@
+{
+  "bronze": {
+    "story": "Bronze begins with a quiet moment before practice. Parallel feet and relaxed hands leave room to listen, try and ask questions. This gymnast enjoys discovering how small changes in balance feel, returning with curiosity and learning that a patient attempt can be valuable even when it remains unfinished.",
+    "traits": [
+      "Curious",
+      "Patient",
+      "Attentive"
+    ]
+  },
+  "silver": {
+    "story": "Silver recognises the comfort of a familiar routine. A poised stance and an open hand reflect growing confidence in asking for guidance. The participation medallion celebrates returning to practice, while this gymnast notices small improvements and makes room for an unhurried approach to something new.",
+    "traits": [
+      "Steady",
+      "Receptive",
+      "Observant"
+    ]
+  },
+  "gold": {
+    "story": "Gold brings a thoughtful eye to ordinary practice. A pause to reflect can be as useful as another attempt, and feedback helps turn uncertainty into a clearer next step. This gymnast carries the bronze milestone medal as a reminder of persistence, curiosity and the value of learning at a personal pace.",
+    "traits": [
+      "Reflective",
+      "Persistent",
+      "Thoughtful"
+    ]
+  },
+  "platinum": {
+    "story": "Platinum arrives with preparation shaped by experience. A warm-up layer and a natural walking stance suggest a routine that leaves space for listening and adjustment. The silver arch honour recognises continued participation, while this gymnast remembers the encouragement that made early practice feel welcoming and possible.",
+    "traits": [
+      "Prepared",
+      "Welcoming",
+      "Adaptable"
+    ]
+  },
+  "diamond": {
+    "story": "Diamond values the details that make practice rewarding. Time to prepare, useful guidance and room to recover support a lasting interest in movement. The gold arch honour celebrates commitment to learning, while this gymnast remains willing to revisit familiar foundations and welcome a different perspective on the next attempt.",
+    "traits": [
+      "Grounded",
+      "Committed",
+      "Open-minded"
+    ]
+  },
+  "elite": {
+    "story": "Elite greets another practice with a small graceful gesture. The crystal arch and medallion recognise steady participation, carrying memories of adjustments as well as progress. This gymnast offers encouragement freely, understands that confidence can arrive gradually and appreciates the patience behind each person's different route through learning.",
+    "traits": [
+      "Generous",
+      "Assured",
+      "Patient"
+    ]
+  },
+  "champion": {
+    "story": "Champion stands comfortably with years of practice in view. The arch honour at their feet celebrates a commitment built through ordinary returns, changing plans and fresh discoveries. This gymnast brings perspective to familiar routines, respecting different starting points and enjoying the shared encouragement that keeps movement meaningful.",
+    "traits": [
+      "Experienced",
+      "Supportive",
+      "Resilient"
+    ]
+  },
+  "unreal": {
+    "story": "Unreal presents a lifetime of curiosity in a composed formal portrait. The crystal and gold arch honour reflects sustained practice and participation. Beneath the tailored suit remains the same attentive learner, appreciative of guidance, generous with encouragement and interested in the small discoveries that make returning worthwhile.",
+    "traits": [
+      "Humble",
+      "Encouraging",
+      "Inquisitive"
+    ]
+  }
+}
