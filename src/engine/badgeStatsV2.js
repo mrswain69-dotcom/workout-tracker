@@ -464,6 +464,7 @@ export const BOXING_MASTERY_START_YMD = "2026-10-13";
 // Preserve Pilates logs through the release day under Yoga.
 export const PILATES_MASTERY_START_YMD = "2026-10-13";
 const SPORT_MASTERY_KEYS = [
+  "gymnastics",
   "dance",
   "pilates",
   "boxing",
@@ -572,6 +573,7 @@ const SPORT_NAME_MATCHERS = [
   { key: "running", pattern: /\b(?:running|jogging|trail run|road run|track run)\b/ },
   { key: "hiking", pattern: /\b(?:hiking|hike)\b/ },
   { key: "dance", pattern: /\b(?:dance|dancing)\b/ },
+  { key: "gymnastics", pattern: /\bgymnastics\b/ },
 ];
 
 function normaliseText(v) {
