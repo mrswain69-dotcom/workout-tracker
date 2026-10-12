@@ -23,3 +23,6 @@
 .activityCalendar__legend .is-complete::before{background:#22c55e}.activityCalendar__legend .is-rest::before{background:#3b82f6}.activityCalendar__legend .is-illness::before{background:#f97316}.activityCalendar__legend .is-cancelled::before{background:#ef4444}.activityCalendar__legend .is-streak-saver::before{background:#eab308}
 .activityCalendar__today{display:block;margin:9px 0 0 auto;border:0;background:transparent;color:#0f766e;font:inherit;font-size:11px;font-weight:850;cursor:pointer}
 @media(max-width:520px){.activityCalendar{min-width:0;width:100%}.activityCalendar__popover{left:-1px}.activityCalendar__day{border-radius:8px}}
+
+.activityCalendar__day.is-partial{border-color:#86efac;background:linear-gradient(135deg,#dcfce7 0%,#dcfce7 50%,#f1f5f9 50%,#f1f5f9 100%);color:#166534}
+.activityCalendar__legend .is-partial::before{background:linear-gradient(135deg,#22c55e 0%,#22c55e 50%,#cbd5e1 50%,#cbd5e1 100%)}
