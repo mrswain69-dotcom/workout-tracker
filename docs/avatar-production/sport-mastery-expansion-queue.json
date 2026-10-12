@@ -183,7 +183,11 @@
       "state": "integration_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "Publish Table Tennis PR; verify exacthead CI, merge and verify all16 deployed image paths without public/ prefix plus bundle registration/cutover. Then Volleyball."
+      "resume": "Merged with exact-head CI and local integration checks passing. Production image hashes/bundle verification pending: current network proxy returns 403; do not mark production_verified.",
+      "pr": 113,
+      "tested_head": "61916182692705d59f874293e994f79bc1b41043",
+      "merge_commit": "f6355c5814c116fbee0a88db78506c417e6c1ec4",
+      "ci_run": 38294378865
     },
     {
       "order": 13,
@@ -192,8 +196,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 4,
-      "resume": "Volleyball Bronze and Silver accepted (4/16); continue Gold through Unreal. Table Tennis merged, production verification pending fresh rollout check. Remaining Golf and Climbing."
+      "reviewed_portraits": 6,
+      "resume": "Volleyball Bronze through Gold accepted (6/16); continue Platinum through Unreal, then Golf and Climbing. Table Tennis merged; live verification blocked by network 403, remains pending."
     },
     {
       "order": 14,
@@ -212,7 +216,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Volleyball Bronze and Silver accepted (4/16); continue Gold through Unreal. Table Tennis merged, production verification pending fresh rollout check. Remaining Golf and Climbing.",
+  "resume": "Volleyball Bronze through Gold accepted (6/16); continue Platinum through Unreal, then Golf and Climbing. Table Tennis merged; live verification blocked by network 403, remains pending.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
