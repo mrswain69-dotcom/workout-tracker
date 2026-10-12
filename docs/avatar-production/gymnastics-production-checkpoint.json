@@ -1,7 +1,7 @@
 {
   "sport": "gymnastics",
   "branch": "feature/gymnastics-paired-avatars",
-  "state": "artwork_complete",
+  "state": "integration_verified",
   "accepted_portraits": 16,
-  "resume": "Gymnastics artwork complete: 16 reviewed portraits. Integrate and release before Padel."
+  "resume": "Gymnastics 16 portraits and integration verified; publish PR108, verify exact-head CI/Vercel, merge and verify production before Padel."
 }
