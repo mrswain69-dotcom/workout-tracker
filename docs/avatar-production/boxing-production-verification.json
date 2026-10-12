@@ -1,0 +1,28 @@
+{
+  "sport": "boxing",
+  "portraits": 16,
+  "original_hashes_verified": true,
+  "session_routing": {
+    "cutover_ymd": "2026-10-13",
+    "historic_boxing": "martial_arts",
+    "new_explicit_boxing_or_boxercise": "boxing",
+    "kickboxing_and_muay_thai": "martial_arts",
+    "maximum_sessions_per_sport_per_day": 1
+  },
+  "local_tests": {
+    "timezone": "UTC",
+    "files": 203,
+    "passed": 1223
+  },
+  "build": "passed",
+  "production_dependency_audit": "0 vulnerabilities",
+  "live_rpc": "Rollback-only ownership, claims, variants, group sanitisation, complete XP/reward/history invariance and default restore passed",
+  "edge_functions": {
+    "group-xp-leaderboard": 19,
+    "group-seasons-awards": 18,
+    "jwt_preserved": true,
+    "other_live_files_unchanged": true
+  },
+  "advisor_comparison": "Unchanged categories and counts:15 INFO,80 authenticated definer WARN,1 auth configuration WARN",
+  "release_state": "awaiting exact-head CI and preview"
+}

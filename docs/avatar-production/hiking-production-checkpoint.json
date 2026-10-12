@@ -1,7 +1,7 @@
 {
   "sport": "hiking",
   "date": "2026-10-11",
-  "state": "integration_verification",
+  "state": "production_verified",
   "accepted_portraits": 16,
   "canonical_brief": "paired-sport-avatar-expansion-briefs.json",
   "branch": "feature/hiking-paired-avatars",
@@ -32,7 +32,7 @@
       "request_id": "76905558-3f2b-441d-b4eb-511e4035d150"
     }
   ],
-  "resume": "All16 artwork and integration ready. Push final source; verify exact-head CI and Vercel preview, mark PR104 ready, merge then verify production bundle/all16 hashes. Boxing next.",
+  "resume": "Complete. All16 live image hashes match; production bundle includes Hiking. Boxing next.",
   "prepared": [
     "Explicit hiking session routing with ordinary walking excluded; maximum one session per sport/day; existing native/named sport precedence preserved.",
     "Eight draft stories, each 30\u201370 words, stored outside the live avatar registry.",
@@ -46,5 +46,8 @@
     "sql": "Passed rollback-only owner/claim/appearance/history/XP/group/privacy regression after installed migration",
     "edge_functions": "group-xp-leaderboard18, group-seasons-awards17; nine Hiking entries verified; JWT checks preserved"
   },
-  "draft_portraits": 3
+  "draft_portraits": 3,
+  "merge_commit": "b4a2a681d7bf8161fbe60c4717cc91216f68557d",
+  "tested_head": "cad4c90c2e5c8e5e65b1f30db54d0295f96d0ad2",
+  "ci_run": 38182994042
 }

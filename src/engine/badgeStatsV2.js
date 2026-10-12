@@ -459,7 +459,10 @@ const PACE_DISTANCES = {
 // - count max 1 sport session per sport per day
 // - do NOT yet wire into badge defs / avatar unlocks
 // -----------------------------------------------------
+// Prospective cutover: preserve Boxing logs through the release day under Martial Arts.
+export const BOXING_MASTERY_START_YMD = "2026-10-13";
 const SPORT_MASTERY_KEYS = [
+  "boxing",
   "hiking",
   "strength_training",
 
@@ -574,7 +577,7 @@ function normaliseText(v) {
     .trim();
 }
 
-function getSportKeyFromText(text) {
+function getSportKeyFromText(text, dateYmd) {
   const t = normaliseText(text);
   if (!t) return null;
 
@@ -584,10 +587,21 @@ function getSportKeyFromText(text) {
       continue;
     }
     for (const term of matcher.terms) {
-      if (t.includes(term)) return matcher.key;
+      if (t.includes(term)) {
+        // Boxing is a separate collection only for prospectively dated sessions.
+        // Earlier Martial Arts matches (kickboxing, karate, Muay Thai) retain precedence.
+        if (matcher.key === "martial_arts" && term === "boxing" &&
+            dateYmd >= BOXING_MASTERY_START_YMD) {
+          if (!/\bboxing\b/.test(t)) continue;
+          if (/\b(?:kick boxing|thai boxing)\b/.test(t)) return "martial_arts";
+          return "boxing";
+        }
+        return matcher.key;
+      }
     }
   }
 
+  if (dateYmd >= BOXING_MASTERY_START_YMD && /\bboxercise\b/.test(t)) return "boxing";
   return null;
 }
 
@@ -603,7 +617,7 @@ function createEmptySportMasteryBucket() {
   return out;
 }
 
-function getSportKeysForLog(log) {
+function getSportKeysForLog(log, dateYmd) {
   const keys = new Set();
   const blocks = Array.isArray(log?.blocks) ? log.blocks : [];
 
@@ -693,7 +707,7 @@ function getSportKeysForLog(log) {
       ];
 
       for (const text of candidates) {
-        found = getSportKeyFromText(text);
+        found = getSportKeyFromText(text, dateYmd);
         if (found) break;
       }
     }
@@ -947,7 +961,7 @@ greenByDate.set(dateStr, isStreakCountingDay(log));
 
     // Sport mastery:
     // Count max 1 session per sport per day.
-    const sportKeysForDay = getSportKeysForLog(log);
+    const sportKeysForDay = getSportKeysForLog(log, dateStr);
     for (const sportKey of sportKeysForDay) {
       if (!sportMastery[sportKey] || dateStr > today) continue;
       const countedKey = `${dateStr}:${sportKey}`;

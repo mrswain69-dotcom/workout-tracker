@@ -1,0 +1,8 @@
+{
+  "sport": "boxing",
+  "state": "integration_verified",
+  "accepted_portraits": 16,
+  "branch": "feature/boxing-paired-avatars",
+  "resume": "Merge tested Boxing release and verify production; then start Pilates Bronze identity pair.",
+  "activation": "All16 reviewed original portraits registered. Live RPC and Group reward maps verified. Await exact-head CI, preview, merge and live asset verification."
+}

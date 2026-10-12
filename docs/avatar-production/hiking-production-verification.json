@@ -1,0 +1,95 @@
+{
+  "sport": "hiking",
+  "merge_commit": "b4a2a681d7bf8161fbe60c4717cc91216f68557d",
+  "tested_head": "cad4c90c2e5c8e5e65b1f30db54d0295f96d0ad2",
+  "pr": 104,
+  "ci_run": 38182994042,
+  "production_url": "https://workout-tracker-ivory-tau.vercel.app/",
+  "all16_assets_match": true,
+  "live_bundle_hiking": true,
+  "assets": [
+    {
+      "asset": "bronze_female",
+      "matches": true,
+      "sha256": "edb4bfca9aa139cb9f8a8ecdb6b7724e4d9f419828c8878405c49eb637df280d"
+    },
+    {
+      "asset": "unreal_male",
+      "matches": true,
+      "sha256": "fa3cda0bf025125092b51edebd50bed6393b7cb0970f4216947565d3a4373ff9"
+    },
+    {
+      "asset": "unreal_female",
+      "matches": true,
+      "sha256": "533614221e547dc63112c929c2e0fe402cf0803854dec4e86f5f82100eaecb59"
+    },
+    {
+      "asset": "bronze_male",
+      "matches": true,
+      "sha256": "091852c3d4f7acbf8bbdec5f307a75d821db6c71f1be06a1feba9480f54b8857"
+    },
+    {
+      "asset": "silver_male",
+      "matches": true,
+      "sha256": "280ab31ba5e992612b0c63916a046bbe134758092e2b51bc734589f751d8aecc"
+    },
+    {
+      "asset": "silver_female",
+      "matches": true,
+      "sha256": "505117d5bf7db4c2619bc5f21ad69fc37a7ca2a54031bdaa67b8881f04ff997e"
+    },
+    {
+      "asset": "gold_male",
+      "matches": true,
+      "sha256": "9ad3b13538ee9e29c20644484940e35a37434149673fedc371c45e7c8fc1f849"
+    },
+    {
+      "asset": "gold_female",
+      "matches": true,
+      "sha256": "9426d14d4dfb97f1cef58e2229cfd90773db5b846ca97c53e9be76ae9fb042f1"
+    },
+    {
+      "asset": "platinum_male",
+      "matches": true,
+      "sha256": "94e42211b31980587e92e7212e02a5d173fd99e2a33e5fdb8255e312383f9e00"
+    },
+    {
+      "asset": "platinum_female",
+      "matches": true,
+      "sha256": "5c0b951c7adfb30f7b5a37031b0fad7b8634321e7c22ee55751f1f4cd59e47ec"
+    },
+    {
+      "asset": "diamond_male",
+      "matches": true,
+      "sha256": "723ed39c90ecdd0d011c66ee020cbb43e9a69c6d5cd58bb42b2ff8ec7613e19f"
+    },
+    {
+      "asset": "diamond_female",
+      "matches": true,
+      "sha256": "4d855ddb77a7b82f2bc58dbb48a8fc31f23090fc1ffd3ed48e02262151e84466"
+    },
+    {
+      "asset": "elite_male",
+      "matches": true,
+      "sha256": "7b8adcff8c43c2b13ae92d241a826860a0f5a8f0d86f2c336bdf1077134007ae"
+    },
+    {
+      "asset": "elite_female",
+      "matches": true,
+      "sha256": "6544169c574bf79976e46126e09c6f37a4b80aa6bb689b5e0ca8a5e6b4028f97"
+    },
+    {
+      "asset": "champion_male",
+      "matches": true,
+      "sha256": "0c71c9fc75411ee0ed25209daa6ae165ef6ea485749930d0cda8587441199c80"
+    },
+    {
+      "asset": "champion_female",
+      "matches": true,
+      "sha256": "d0e68c340563612472a9e417c61ad9416c8412f8ae18a6a3003310eed0411b94"
+    }
+  ],
+  "live_bundle": [
+    "/assets/index-gFbvqZMD.js"
+  ]
+}

@@ -1,0 +1,370 @@
+{
+  "sport": "boxing",
+  "brief": "paired-sport-avatar-expansion-briefs.json",
+  "tool": "built-in image generation",
+  "assets": {
+    "bronze_male": {
+      "path": "public/avatars/sport/boxing_bronze_male_v2.png",
+      "source": "exec-0510e5a9-bffa-40d0-acad-89bdb96e4184.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        463,
+        201,
+        792,
+        1139
+      ],
+      "sha256": "847d07243549dc095e9928ba03a9200846323fdef5541620489f9621f8b8c4cd",
+      "review": "Distinct junior identities, matching modest kit/coverage and low gloves, no awards, transparent margins. Compared against Hiking and prior sports; original PNG preserved."
+    },
+    "bronze_female": {
+      "path": "public/avatars/sport/boxing_bronze_female_v2.png",
+      "source": "exec-f6cbaa5f-af4c-4e63-b23f-242cb8efc81a.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        440,
+        221,
+        832,
+        1123
+      ],
+      "sha256": "4a7c98d94849f6f06f39a3bc81981e689584c93616c8e4d830ffb2f4a4bcf209",
+      "review": "Distinct junior identities, matching modest kit/coverage and low gloves, no awards, transparent margins. Compared against Hiking and prior sports; original PNG preserved."
+    },
+    "unreal_male": {
+      "path": "public/avatars/sport/boxing_unreal_male_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        369,
+        215,
+        953,
+        1082
+      ],
+      "sha256": "351fc0bfe3daf5607b0f3fdaefc57c5c399f0636394238171ba32082640c0335",
+      "review": "Reviewed visibly mature adult identity, equal suit/award prestige and safe transparent margins. Original PNG preserved."
+    },
+    "unreal_female": {
+      "path": "public/avatars/sport/boxing_unreal_female_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        369,
+        192,
+        953,
+        1062
+      ],
+      "sha256": "be0ebf843256da7562824710f3740225b6b9438eeeb013ae7642dc669daeaeef",
+      "review": "Reviewed visibly mature adult identity, equal suit/award prestige and safe transparent margins. Original PNG preserved."
+    },
+    "silver_male": {
+      "path": "public/avatars/sport/boxing_silver_male_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        477,
+        243,
+        820,
+        1137
+      ],
+      "sha256": "ec21d7e916330b11671a251a9d4a3f5eabf748f8ffc3b039d3369486051588ef",
+      "review": "Reviewed recognizable teenage identity, equal kit/medal prestige, relaxed practice guard, no fight scene or logos, and safe transparent margins. Original PNG preserved.",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional male Boxing athlete for the Silver tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: medium brown skin; narrow angular face; brown eyes; short black centre-part curls; compact athletic build. Older teenager, approximately 15\u201317; subtly lengthened facial proportions and developing posture, visibly older than Bronze. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Older-teen fitted kit with subtle secondary-colour side panels. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Award: One small original silver participation medallion Pose: relaxed three-quarter guard without combat scene; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Turn torso toward the opposite side from Bronze; present early recognition with a pleased, modest expression and clearly different hand placement. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nImage1 own Bronze identity only, Image2 future adult face direction only. Same male age16, medium-brown skin, narrow angular teen face, brown natural-sized eyes, short black centre-part curls, compact teenage athletic build. Ink short-sleeve tee with refined burnt-orange side panels, cream MID-LENGTH shorts, boxing boots. Correct black/orange gloves in RELAXED THREE-QUARTER PRACTICE GUARD at upper abdomen/chest below face, feet staggered, no fight scene or opponent. ONE SMALL silver fictional participation medallion on cream ribbon. Square fullbody genuine transparent PNG with generous clear margins above head/belowfeet. No logos/text, belts or extra awards.\nFraming revision: Edit ONLY scale/framing of this exact Boxing Silver male. Keep teenage face, hair, kit, relaxed guard, gloves, silver participation medallion and boots. Reduce ENTIRE current figure to80 percent current height, center vertically in SAME SQUARE transparent canvas. Large empty transparent margins above hair and below boots. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_bronze_male_v2.png",
+        "public/avatars/sport/boxing_unreal_male_v2.png"
+      ],
+      "saved_at": "2026-10-12T08:38:23.671780+00:00"
+    },
+    "silver_female": {
+      "path": "public/avatars/sport/boxing_silver_female_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        428,
+        226,
+        822,
+        1093
+      ],
+      "sha256": "765aeb6b4ccc31e184f3b1facd2949c27e5e01a8c984db7e387214eb483d53d3",
+      "review": "Reviewed recognizable teenage identity, equal kit/medal prestige, relaxed practice guard, no fight scene or logos, and safe transparent margins. Original PNG preserved.",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional female Boxing athlete for the Silver tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: fair skin; strong oval face; blue eyes; platinum-blond practical braid; medium athletic build. Older teenager, approximately 15\u201317; subtly lengthened facial proportions and developing posture, visibly older than Bronze. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Older-teen fitted kit with subtle secondary-colour side panels. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Award: One small original silver participation medallion Pose: relaxed three-quarter guard without combat scene; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Turn torso toward the opposite side from Bronze; present early recognition with a pleased, modest expression and clearly different hand placement. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nImage1 HER Bronze identity, image2 future adult face direction, image3 equal KIT/MEDAL ONLY. Same female age16 fair skin, strong oval teen face, natural blue eyes, platinum-blond practical braid, medium natural athletic teenage build. Ink short-sleeve tee with burnt-orange panels, cream MID-LENGTH shorts and boots. Correct gloves held in relaxed three-quarter PRACTICE GUARD belowface, staggered feet angled opposite male. ONE SMALL matching original silver participation medallion on cream ribbon. No belts, fight scene, opponent, bare torso, letters or logos. Fullbody square transparent PNG with large margins.\nFraming revision: Edit ONLY scale/framing of this exact Boxing Silver female. Keep teenage face, braid, kit, relaxed guard, gloves, silver participation medallion and boots. Reduce ENTIRE current figure to80 percent current height, center vertically in SAME SQUARE transparent canvas. Large empty transparent margins above hair and below boots. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_bronze_female_v2.png",
+        "public/avatars/sport/boxing_unreal_female_v2.png",
+        "public/avatars/sport/boxing_silver_male_v2.png"
+      ],
+      "saved_at": "2026-10-12T08:38:23.705382+00:00"
+    },
+    "gold_male": {
+      "path": "public/avatars/sport/boxing_gold_male_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        411,
+        191,
+        837,
+        1144
+      ],
+      "sha256": "f94bebc2c51d4637d30914bef0f50aee0b566a356f9f68a34fbc2374a52c8a66",
+      "review": "Reviewed young-adult identity, equal modest kit and bronze practice medal, ungloved hands carrying gloves low, changed tier pose and safe alpha framing. Original PNG preserved.",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional male Boxing athlete for the Gold tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: medium brown skin; narrow angular face; brown eyes; short black centre-part curls; compact athletic build. Young adult, approximately 18\u201322; face and body read as adult rather than a child in first-team clothing. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Young-adult technical construction with refined seams and sport-specific footwear. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Award: One original bronze practice milestone medal Pose: medal in ungloved palm and gloves held low; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Sport-appropriate ready or controlled action stance: staggered feet, gently bent knees and focused expression. Keep equipment and trophies safely readable, no cropped limbs. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nOwn Bronze identity and Unreal ADULT facial direction only. Same compact male age21, medium-brown skin, developed narrow angular young-adult face, natural brown eyes, short centre-part black curls. Refined ink/burnt-orange short-sleeve technical shirt, cream MID-LENGTH shorts and boxing boots. One SMALL original bronze practice medal resting in UNGLOVED LEFT PALM at waist; RIGHT hand carries one pair of black/orange boxing gloves LOW by their joined laces. No gloves worn on hands. Relaxed three-quarter stance angled left, feet offset, distinct from Silver guard. Fullbody square genuine transparent PNG with clear margins. No belts, fight scene, other people, text or logos.\nFraming revision: Edit ONLY scale/framing of this exact Boxing Gold male. Keep adult face, hair, kit, pose, bronze medal in ungloved palm, pair of gloves carried low and boots. Reduce ENTIRE existing composition to80 percent current height, center vertically within same SQUARE transparent canvas with large empty margins above hair and below boots. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_bronze_male_v2.png",
+        "public/avatars/sport/boxing_unreal_male_v2.png"
+      ],
+      "saved_at": "2026-10-12T08:45:36.218978+00:00"
+    },
+    "gold_female": {
+      "path": "public/avatars/sport/boxing_gold_female_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        374,
+        151,
+        895,
+        1162
+      ],
+      "sha256": "5bcf43a005455547c53bdf99657440d32e0cbc44a99fd0c593accdc5ce5cf2b0",
+      "review": "Reviewed young-adult identity, equal modest kit and bronze practice medal, ungloved hands carrying gloves low, changed tier pose and safe alpha framing. Original PNG preserved.",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional female Boxing athlete for the Gold tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: fair skin; strong oval face; blue eyes; platinum-blond practical braid; medium athletic build. Young adult, approximately 18\u201322; face and body read as adult rather than a child in first-team clothing. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Young-adult technical construction with refined seams and sport-specific footwear. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Award: One original bronze practice milestone medal Pose: medal in ungloved palm and gloves held low; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Sport-appropriate ready or controlled action stance: staggered feet, gently bent knees and focused expression. Keep equipment and trophies safely readable, no cropped limbs. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nImage1 HER Bronze identity, Image2 future adult face direction, Image3 equal KIT/MEDAL ONLY. Same female age21 fair skin, developed strong oval young-adult face, natural blue eyes, platinum-blond practical braid, medium adult athletic build. Refined ink/burnt-orange short-sleeve technical tee, cream MID-LENGTH shorts and boxing boots, equal coverage asmale. ONE SMALL matching original bronze practice medal resting in UNGLOVED RIGHT PALM at waist; LEFT hand carries ONE PAIR black/orange gloves low by joined laces. No gloves worn. Relaxed three-quarter stance angled right with offset feet, different from Silver guard. Fullbody square transparent cutout clear margins. No belts/fight/text/logos.\nFraming revision: Edit ONLY scale/framing of this exact Boxing Gold female. Keep adult face, braid, kit, pose, bronze medal in ungloved palm, pair of gloves carried low and boots. Reduce ENTIRE existing composition to80 percent current height, center vertically within same SQUARE transparent canvas. Entire hair fully visible with large clear transparent margin above it and belowboots. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_bronze_female_v2.png",
+        "public/avatars/sport/boxing_unreal_female_v2.png",
+        "public/avatars/sport/boxing_gold_male_v2.png"
+      ],
+      "saved_at": "2026-10-12T08:45:36.248698+00:00"
+    },
+    "platinum_male": {
+      "path": "public/avatars/sport/boxing_platinum_male_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        437,
+        228,
+        824,
+        1087
+      ],
+      "sha256": "020f74584e83ebb10c5657af5633369e81aacabd52e93f0923c0e852de69c740",
+      "review": "Reviewed Platinum pair: mature distinct faces, equal warm-up kit and silver honour, full boots and safe transparent margins.",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional male Boxing athlete for the Platinum tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: medium brown skin; narrow angular face; brown eyes; short black centre-part curls; compact athletic build. Adult athlete, approximately 23\u201327; clearly mature facial structure, natural eye size and less rounded cheeks, confident posture. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Add refined zip warm-up top in mature adult proportions. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Award: One original silver an original abstract interlocking glove honour Pose: walking with gloves slung over forearm; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Controlled forward step or open diagonal stance, with a new arm/equipment arrangement and adult confidence; avoid repeating Gold or Bronze. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nOwn Unreal reference supplies mature identity and original honour SHAPE ONLY, not formal suit or crystal. Same male age26 medium-brown skin, developed narrow angular adult face, brown natural eyes, short black centre-part curls, compact adult athletic build. Refined INK zip warm-up top with burnt-orange panels/cream seams, cream MID-LENGTH shorts, boxing boots. One original SOLID OPAQUE SILVER abstract INTERLOCKING GLOVE sculpture on low silver plinth supported in LEFT hand at waist, no crystal/glass. ONE PAIR black/orange gloves slung by laces over RIGHT forearm, hand relaxed. Natural walking pose right foot forward, face unobstructed, distinct from Gold. Fullbody square transparent PNG clear margins. No belt, medal, fight scene, text or logos.\nFraming revision: Edit ONLY scale/framing of this exact Boxing Platinum male. Keep mature adult face, hair, warm-up kit, walking pose, solid-silver interlocking glove honour, gloves slung over forearm and boots. Reduce ENTIRE existing composition to80 percent current height, center vertically in SAME SQUARE transparent canvas with large empty margins abovehair/belowboots. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_unreal_male_v2.png"
+      ],
+      "saved_at": "2026-10-12T08:55:41.722694+00:00"
+    },
+    "platinum_female": {
+      "path": "public/avatars/sport/boxing_platinum_female_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        461,
+        200,
+        859,
+        1111
+      ],
+      "sha256": "a5755beacbc72393d836ec5b1d223a87e32f16bb319c4d4d1949bb53e3c9f02c",
+      "review": "Reviewed Platinum pair: mature distinct faces, equal warm-up kit and silver honour, full boots and safe transparent margins.",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional female Boxing athlete for the Platinum tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: fair skin; strong oval face; blue eyes; platinum-blond practical braid; medium athletic build. Adult athlete, approximately 23\u201327; clearly mature facial structure, natural eye size and less rounded cheeks, confident posture. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Add refined zip warm-up top in mature adult proportions. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Award: One original silver an original abstract interlocking glove honour Pose: walking with gloves slung over forearm; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Controlled forward step or open diagonal stance, with a new arm/equipment arrangement and adult confidence; avoid repeating Gold or Bronze. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nImage1 HER ADULT identity ONLY; Image2 same tier KIT/AWARD ONLY. Same female age26 fair skin, developed strong oval adult face, natural blue eyes, platinum-blond practical braid, medium adult athletic build. Ink zip warm-up top burnt-orange panels/cream seams, cream MID-LENGTH shorts and boxing boots. ONE matching SOLID OPAQUE SILVER interlocking glove honour on silver base in RIGHT hand at waist, no glass/crystal. ONE PAIR black/orange gloves slung by laces over LEFT forearm. Natural walking pose left foot forward, face unobstructed, opposite male. Fullbody SQUARE genuine transparent PNG with generous margins. No belts, medals, fight scene, text or logos.\nFraming revision: Edit ONLY scale/framing of this exact Boxing Platinum female. Keep mature adult face, braid, warm-up kit, walking pose, solid-silver interlocking glove honour, gloves slung over forearm and boots. Reduce ENTIRE existing composition to 80 percent current height, center vertically in SAME SQUARE transparent canvas with large empty margins above hair and below boots. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_unreal_female_v2.png"
+      ],
+      "saved_at": "2026-10-12T08:55:41.755663+00:00"
+    },
+    "diamond_male": {
+      "path": "public/avatars/sport/boxing_diamond_male_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        432,
+        189,
+        838,
+        1140
+      ],
+      "sha256": "1f9ff8c0a4d953057ba645117479c69ee040fceb1b23be72dd6b70dbb19edf87",
+      "review": "Reviewed Diamond pair: mature identities, equal technical kit and opaque gold honours, distinct grounded poses, full feet and clear alpha margins.",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional male Boxing athlete for the Diamond tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: medium brown skin; narrow angular face; brown eyes; short black centre-part curls; compact athletic build. Experienced adult, approximately 26\u201330; mature face and composed leadership expression, not a copied junior face. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Award: One solid gold an original abstract interlocking glove honour; no crystal Pose: confident award cradled with wrapped free hand; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Composed leadership stance, broader grounded base and a calm direct expression; distinguish it from the action and walking silhouettes. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nReference 1 supplies this man's identity and rendering only. Full body age 28, developed adult face, short centre-part curls, compact athletic proportions. Ink short-sleeve technical top with burnt orange tailored panels, cream mid-length shorts, black orange boxing boots, cream hand wraps. Grounded feet apart, left ungloved wrapped hand cradles one opaque polished GOLD interlocking glove honour below chest, right wrapped hand rests lightly beside its base. NO crystal, medals or actual boxing gloves. Entire cutout occupies ONLY 76 percent of square canvas height, generous transparent margins top and bottom; boots fully visible.\nFraming revision: Edit only the framing of this exact Boxing Diamond male. Reduce the entire unchanged cutout to 80 percent of its current height centered vertically in the same square transparent canvas. Large empty transparent margins above hair and below both boots. Preserve adult identity, face, curls, ink orange cream technical kit, hand wraps, stance, opaque gold interlocking glove honour, all anatomy and rendering. No other change.",
+      "references": [
+        "public/avatars/sport/boxing_unreal_male_v2.png"
+      ],
+      "saved_at": "2026-10-12T09:02:25.810721+00:00"
+    },
+    "diamond_female": {
+      "path": "public/avatars/sport/boxing_diamond_female_v2.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        463,
+        173,
+        850,
+        1153
+      ],
+      "sha256": "0e28cb7ffb95278541f075ce697cb400dda1f77bede1c1bc3403d7d6a29b4712",
+      "review": "Reviewed Diamond pair: mature identities, equal technical kit and opaque gold honours, distinct grounded poses, full feet and clear alpha margins.",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional female Boxing athlete for the Diamond tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: fair skin; strong oval face; blue eyes; platinum-blond practical braid; medium athletic build. Experienced adult, approximately 26\u201330; mature face and composed leadership expression, not a copied junior face. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Premium adult technical kit with tailored panels, understated metal-tone seam accents and restrained mature styling. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Award: One solid gold an original abstract interlocking glove honour; no crystal Pose: confident award cradled with wrapped free hand; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Composed leadership stance, broader grounded base and a calm direct expression; distinguish it from the action and walking silhouettes. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nReference 1 supplies female identity and mature rendering; reference 2 supplies ONLY equivalent kit, award material and scale. Age28 fair skin, strong oval adult face, blue eyes, platinum blond practical braid. Full body ink short-sleeve technical top with orange panels and metallic seams, cream MID-LENGTH shorts and black orange boxing boots. Hand wraps instead of actual gloves. Grounded three-quarter stance angled LEFT, weight on right leg, hold one solid opaque GOLD interlocking glove honour at right hip, left wrapped hand lightly supports base. NO crystals or medals. Distinct pose from male. Entire cutout only75 percent of square transparent canvas height, wide empty margins above hair and below boots.\nFraming revision: Edit ONLY scale/framing of this exact Boxing Diamond female. Reduce entire unchanged composition to80 percent current height, center vertically in same square transparent canvas with large clear margins above hair and below boots. Preserve mature adult face and braid, technical kit, handwraps, solid opaque GOLD interlocking glove honour, stance, anatomy and rendering. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_unreal_female_v2.png",
+        "public/avatars/sport/boxing_diamond_male_v2.png"
+      ],
+      "saved_at": "2026-10-12T09:02:25.840125+00:00"
+    },
+    "elite_male": {
+      "path": "public/avatars/sport/boxing_elite_male_v2.png",
+      "source": "exec-bd4b3f33-0349-4b94-926d-d67cc65fabc9.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        412,
+        158,
+        849,
+        1128
+      ],
+      "sha256": "19429ed9476319f42f42ec5ea329c485e5d8b950fadfbeaaa1eca213f79e6284",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional male Boxing athlete for the Elite tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: medium brown skin; narrow angular face; brown eyes; short black centre-part curls; compact athletic build. Established elite adult, approximately 28\u201333; developed adult facial proportions and assured bearing, restrained natural expression lines. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props. Award: One crystal an original abstract interlocking glove honour plus one small gold medallion Pose: one gloved arm gently lifted at shoulder; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Restrained celebration or podium presentation, an open gesture when hands are available, stronger vertical silhouette and pleased expression. Never invent an extra hand to hold equipment and awards. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nReference supplies identity/rendering only. Age31 developed adult angular face with subtle natural lines. Ink short-sleeve technical boxing top asymmetric burnt orange panel, cream MID-LENGTH shorts, black orange boots. One right black-orange boxing GLOVE gently lifted at shoulder outside face; left UNGLOVED hand supports crystal interlocking glove practice honour at hip. One small original plain GOLD participation medallion on cream ribbon around neck, no words. Exactly these3 props, no second actual glove or wraps. Confident relaxed half-smile, feet offset grounded. Composition occupies ONLY75 percent height of square transparent canvas with generous empty margins above hair and below both boots.\nFraming revision: Edit ONLY framing of this exact Boxing Elite male. Reduce entire existing cutout to80 percent current height, center vertically in same square transparent canvas with generous clear margins above curls and below boots. Preserve mature identity, face, asymmetrical kit, raised glove outside face, crystal gold interlocking glove honour, plain gold medallion, stance, anatomy and finish. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_unreal_male_v2.png"
+      ],
+      "review": "Reviewed Elite pair: mature adult faces, equal asymmetric kit, crystal honours and plain gold medallions, one raised glove outside face, safe transparent margins, original PNG unchanged.",
+      "saved_at": "2026-10-12T09:38:56.331940+00:00"
+    },
+    "elite_female": {
+      "path": "public/avatars/sport/boxing_elite_female_v2.png",
+      "source": "exec-617e165a-7d35-4466-bccc-3914bcce7b92.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        443,
+        249,
+        849,
+        1085
+      ],
+      "sha256": "9ac02e800c3c0f8d7db868a0aab0c6916546e468666190aafa66b010a03e2769",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional female Boxing athlete for the Elite tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: fair skin; strong oval face; blue eyes; platinum-blond practical braid; medium athletic build. Established elite adult, approximately 28\u201333; developed adult facial proportions and assured bearing, restrained natural expression lines. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Peak practice/performance kit with refined fabric texture and asymmetrical secondary-colour panel construction. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props. Award: One crystal an original abstract interlocking glove honour plus one small gold medallion Pose: one gloved arm gently lifted at shoulder; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Restrained celebration or podium presentation, an open gesture when hands are available, stronger vertical silhouette and pleased expression. Never invent an extra hand to hold equipment and awards. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nReference1 identity only, reference2 equal kit/award finish only. Age31 mature strong oval face, blue eyes, fair skin, practical platinum blond braid, natural facial proportions. Short-sleeve ink top asymmetric burnt orange panels, cream MID-LENGTH shorts, black orange boots. Left black orange glove gently lifted at shoulder outside face; right ungloved hand supports one crystal gold interlocking glove honour at right hip. One small plain GOLD medallion on cream ribbon. Exactly3 props, no second real glove or extras. Calm pleased smile, three-quarter body angled right with feet offset opposite male. Whole figure occupies ONLY75 percent square transparent canvas height, generous clear space above braid and below boots.\nFraming revision: Edit ONLY framing of this exact Boxing Elite female. Reduce entire existing cutout to80 percent current height, center vertically in same square transparent canvas with generous clear margins above braid and below boots. Preserve mature identity, face, asymmetrical kit, raised glove outside face, crystal gold interlocking glove honour, plain gold medallion, stance, anatomy and finish. No other changes.\nSecond revision: Framing correction ONLY. This exact Boxing Elite female still has insufficient clear space below boots. Shrink WHOLE existing character and all props to75 percent of present height and center cutout vertically with equal top and bottom EMPTY TRANSPARENT margins, each at least150 pixels in square canvas. All face, braid, kit, gloves, medals, trophy, pose and anatomy stay identical. Do not move or crop any body part independently.",
+      "references": [
+        "public/avatars/sport/boxing_unreal_female_v2.png",
+        "public/avatars/sport/boxing_elite_male_v2.png"
+      ],
+      "review": "Reviewed Elite pair: mature adult faces, equal asymmetric kit, crystal honours and plain gold medallions, one raised glove outside face, safe transparent margins, original PNG unchanged.",
+      "saved_at": "2026-10-12T09:38:56.362755+00:00"
+    },
+    "champion_male": {
+      "path": "public/avatars/sport/boxing_champion_male_v2.png",
+      "source": "exec-b299ceac-c17f-444c-93bf-3929b33048ba.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        439,
+        194,
+        864,
+        1083
+      ],
+      "sha256": "8869e16072a6c2d9ba5cbc7d1e2b4d6ff86d762f7852a9f424d7901efb4fb16d",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional male Boxing athlete for the Champion tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: medium brown skin; narrow angular face; brown eyes; short black centre-part curls; compact athletic build. Highly accomplished adult, approximately 30\u201336; recognisable mature identity, seasoned expression and controlled posture; no exaggerated muscles or ageing. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props. Award: One crystal-and-metal an original abstract interlocking glove honour plus one medallion; maximum three total props including sport equipment Pose: sideways stance hands relaxed beside glove sculpture; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Confident three-quarter contrapposto facing a different direction from Elite, relaxed shoulders and compact trophy group. Athlete stays dominant; do not duplicate the Elite stance. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nIdentity reference only. Age34 mature angular face, medium brown skin, short centre-part curls, compact athletic build. Full body sideways three-quarter contrapposto facing LEFT, relaxed shoulders, both hands low. Layered ink burnt orange cream practice warmup zip jacket over cream training shirt, mid-length cream boxing shorts and black orange boots. One small original gold medallion around neck. One crystal-and-metal interlocking glove sculpture rests beside left boot, modest knee-high scale on its own integral base, no pedestal. One actual boxing glove worn on right low relaxed hand; left ungloved hand naturally relaxed. Exactly3props, noextra gloves or belts. No scene or floor. Whole composition centered occupying ONLY75 percent square transparent canvas height with wide empty margins above curls and below boots and sculpture.\nFraming revision: Edit ONLY framing of exact Boxing Champion male. Reduce ENTIRE character, boots, glove, medallion and adjacent sculpture together to80 percent current height; center vertically in same square transparent canvas with generous equal empty margins above hair and below boots/trophy. Preserve face, identity, kit, pose, anatomy, all props and finish. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_unreal_male_v2.png"
+      ],
+      "review": "Reviewed Champion pair: mature distinct identities, equal layered warm-up kit and medal/crystal honours, opposite relaxed poses and low gloves, complete feet/sculptures and safe transparent margins; originals preserved.",
+      "saved_at": "2026-10-12T09:43:01.680506+00:00"
+    },
+    "champion_female": {
+      "path": "public/avatars/sport/boxing_champion_female_v2.png",
+      "source": "exec-5f470746-8d46-4413-b26d-57731a45ac4d.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "visible_bounds": [
+        431,
+        180,
+        890,
+        1080
+      ],
+      "sha256": "a5aacec764e689117210741def982f05ec4821d91d59cfd914852a573dca6274",
+      "prompt": "Use case: stylized-concept. Asset type: Workout Tracker sport mastery avatar. Generate exactly ONE fictional female Boxing athlete for the Champion tier. Polished premium semi-realistic stylised 3D game-skin illustration, credible for ages 10 through adult; crisp face, natural athletic proportions, well-defined hands and believable equipment. Original character, not a real athlete or celebrity. Character identity: fair skin; strong oval face; blue eyes; platinum-blond practical braid; medium athletic build. Highly accomplished adult, approximately 30\u201336; recognisable mature identity, seasoned expression and controlled posture; no exaggerated muscles or ageing. Collection palette: ink, burnt orange and cream. This tier's outfit below determines the current colours. Outfit: Modest short-sleeve boxing training top, mid-length shorts and boxing boots for both. Accomplished adult team/practice warm-up ensemble, distinct layered construction and restrained rich trim. Equipment: Correct boxing gloves or hand wraps; no belts, injuries, fight scene or bare torso. Retain at most ONE principal equipment item at this tier; omit optional accessories so award, medallion and equipment total at most three props. Award: One crystal-and-metal an original abstract interlocking glove honour plus one medallion; maximum three total props including sport equipment Pose: sideways stance hands relaxed beside glove sculpture; preserve the stated tier age and a readable unobstructed face. Tier silhouette direction: Confident three-quarter contrapposto facing a different direction from Elite, relaxed shoulders and compact trophy group. Athlete stays dominant; do not duplicate the Elite stance. Square portrait. Entire head, hands, equipment and both feet visible, centred with 6\u20138% clear transparent margins. Athlete occupies roughly 80\u201388% of canvas height; trophies fit naturally inside the frame. Keep face and torso unobstructed. Match the rendering finish and proportions of the supplied style reference, but follow this tier's kit and award brief. Keep the corresponding male and female tier equal in prestige, award scale, kit quality and visual presence. Create a real transparent background with clean alpha edges. No words, lettering, numbers, brand or team logos, watermark, border, background scene, extra people, unrelated weapons, fantasy armour, wings, magic, neon aura or trophy clutter. Bronze has no award. Do not invent extra medals or accessories. No copied official trophy inscriptions. Preserve recognisable eye shape, skin tone and hair character, while visibly ageing the same fictional person. Do not preserve the junior face proportions in adult tiers. Mature facial structure, natural eye-to-face proportions, a developed nose/jaw and less rounded cheeks must make Platinum onward unmistakably adult in BOTH appearances; do not rely on muscles, makeup, a beard, suit or trophies to signal age. Styling stays polished and semi-realistic, with no oversized doll eyes or baby-faced adult. Pose references supply equipment/kit only: do not duplicate their stance, hand placement, body angle or expression across tiers. The sport is this individual's story, not a demographic stereotype or a restriction that this person can only play one sport.\n\nSport-specific constraints: Same fictional individual visibly ages across the eight tiers. Original practice/participation recognition, not proof of professional rank, competitive titles, medical or teaching qualifications. Both appearances have equal coverage, stature, kit quality and award scale. Do not change historic Yoga/Martial Arts claims; decide explicit new-session routing before activation. Unreal uses equally refined formal trouser suits for both; omit sport equipment. No competition numbers, words, brands, official medals or copied trophies. Avoid repeated template anatomy across sports; individual build does not imply ability or demographic association.\n\nReference1 female mature identity only, reference2 equal layered kit and sculpture/medallion materials and size only. Age34 fair skin strong oval developed face, blue eyes, practical platinum blond braid. Full body sideways three-quarter contrapposto facing RIGHT opposite male, shoulders relaxed both hands low. Ink burnt orange cream layered practice zip jacket over cream training shirt, cream MID-LENGTH shorts, black orange boots. One small original gold medallion around neck. One crystal-and-metal interlocking glove sculpture rests beside right boot knee-high with integral base, NOpedestal. One actual boxing glove on LEFT low relaxed hand, other hand ungloved naturally relaxed. Exactly3props, noextra gloves, wraps or belts. No scene or floor. Entire composition centered occupying only75 percent square transparent canvas height, wide empty margins above hair and below boots/sculpture. Preserve female distinct identity; not male face with braid.\nFraming revision: Edit ONLY framing of exact Boxing Champion female. Reduce ENTIRE character, boots, glove, medallion and adjacent sculpture together to80 percent current height; center vertically in same square transparent canvas with generous equal empty margins above hair and below boots/trophy. Preserve mature face, braid, identity, kit, pose, anatomy, all props and finish. No other changes.",
+      "references": [
+        "public/avatars/sport/boxing_unreal_female_v2.png",
+        "public/avatars/sport/boxing_champion_male_v2.png"
+      ],
+      "review": "Reviewed Champion pair: mature distinct identities, equal layered warm-up kit and medal/crystal honours, opposite relaxed poses and low gloves, complete feet/sculptures and safe transparent margins; originals preserved.",
+      "saved_at": "2026-10-12T09:43:01.711990+00:00"
+    }
+  }
+}
