@@ -463,7 +463,10 @@ const PACE_DISTANCES = {
 export const BOXING_MASTERY_START_YMD = "2026-10-13";
 // Preserve Pilates logs through the release day under Yoga.
 export const PILATES_MASTERY_START_YMD = "2026-10-13";
+// Preserve earlier Table Tennis attribution under Tennis; recognise the new collection prospectively.
+export const TABLE_TENNIS_MASTERY_START_YMD = "2026-10-13";
 const SPORT_MASTERY_KEYS = [
+  "table_tennis",
   "pickleball",
   "padel",
   "gymnastics",
@@ -578,6 +581,7 @@ const SPORT_NAME_MATCHERS = [
   { key: "gymnastics", pattern: /\bgymnastics\b/ },
   { key: "padel", pattern: /\bpadel\b/ },
   { key: "pickleball", pattern: /\bpickleball\b/ },
+  { key: "table_tennis", pattern: /\b(?:table\s*tennis|ping\s*pong)\b/, startYmd: TABLE_TENNIS_MASTERY_START_YMD },
 ];
 
 function normaliseText(v) {
@@ -594,11 +598,14 @@ function getSportKeyFromText(text, dateYmd) {
 
   for (const matcher of SPORT_NAME_MATCHERS) {
     if (matcher.pattern) {
+      if (matcher.startYmd && dateYmd < matcher.startYmd) continue;
       if (matcher.pattern.test(t)) return matcher.key;
       continue;
     }
     for (const term of matcher.terms) {
       if (t.includes(term)) {
+        if (matcher.key === "tennis" && dateYmd >= TABLE_TENNIS_MASTERY_START_YMD &&
+            /\b(?:table\s*tennis|ping\s*pong)\b/.test(t)) return "table_tennis";
         // Boxing is a separate collection only for prospectively dated sessions.
         // Earlier Martial Arts matches (kickboxing, karate, Muay Thai) retain precedence.
         if (matcher.key === "martial_arts" && term === "boxing" &&

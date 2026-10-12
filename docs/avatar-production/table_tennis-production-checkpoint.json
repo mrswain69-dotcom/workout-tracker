@@ -1,7 +1,7 @@
 {
   "sport": "table_tennis",
   "branch": "feature/table_tennis-paired-avatars",
-  "state": "artwork_complete",
+  "state": "integration_verified",
   "accepted_portraits": 16,
-  "resume": "Table Tennis all16 artwork accepted; full collection QA then integrate session routing preserving historical Tennis via defined cutover, stories, client/RPC/XP mappings and release. Eleven new sports production verified; remaining Volleyball,Golf,Climbing."
+  "resume": "Publish Table Tennis PR; verify exacthead CI, merge and verify all16 deployed image paths without public/ prefix plus bundle registration/cutover. Then Volleyball."
 }
