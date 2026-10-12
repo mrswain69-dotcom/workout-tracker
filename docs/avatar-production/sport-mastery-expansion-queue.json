@@ -182,8 +182,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 12,
-      "resume": "Table Tennis Bronze through Elite accepted (12/16); continue Champion and Unreal. Eleven new sports production verified; remaining Volleyball,Golf,Climbing."
+      "reviewed_portraits": 14,
+      "resume": "Table Tennis Bronze through Champion accepted (14/16); continue Unreal then collection QA/session routing with historical Tennis cutover/integration/release. Eleven new sports production verified; remaining Volleyball,Golf,Climbing."
     },
     {
       "order": 13,
@@ -210,7 +210,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Table Tennis Bronze through Elite accepted (12/16); continue Champion and Unreal. Eleven new sports production verified; remaining Volleyball,Golf,Climbing.",
+  "resume": "Table Tennis Bronze through Champion accepted (14/16); continue Unreal then collection QA/session routing with historical Tennis cutover/integration/release. Eleven new sports production verified; remaining Volleyball,Golf,Climbing.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
