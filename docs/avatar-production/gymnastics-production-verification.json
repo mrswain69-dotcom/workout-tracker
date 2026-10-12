@@ -25,5 +25,83 @@
     "other_live_files_unchanged": true
   },
   "advisor_comparison": "Unchanged categories/counts: 15 INFO, 80 authenticated definer WARN, 1 auth configuration WARN",
-  "release_state": "integration_verified"
+  "release_state": "production_verified",
+  "tested_head": "4c6373873be3e39fdb9b778010c908808b7b37fa",
+  "merge_commit": "0ccc4160a922aeb202464bb116811bb09d062a95",
+  "ci_run": 38246058101,
+  "preview": "Vercel READY; exact-head CI passed. Protected preview access remains unavailable to connector account; public production hashes/bundle verified.",
+  "production": {
+    "assets": [
+      {
+        "path": "/avatars/sport/gymnastics_bronze_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_bronze_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_unreal_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_unreal_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_silver_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_silver_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_gold_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_gold_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_platinum_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_platinum_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_diamond_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_diamond_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_elite_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_elite_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_champion_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/gymnastics_champion_female_v2.png",
+        "matches": true
+      }
+    ],
+    "matched": 16,
+    "bundle": [
+      "/assets/index-BIz5JdH8.js"
+    ],
+    "sport_registered": true,
+    "cutover_in_bundle": true
+  }
 }

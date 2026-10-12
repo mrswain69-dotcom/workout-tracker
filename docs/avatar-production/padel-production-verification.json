@@ -1,0 +1,39 @@
+{
+  "sport": "padel",
+  "portraits": 16,
+  "original_hashes_verified": true,
+  "session_routing": {
+    "explicit_words": [
+      "padel"
+    ],
+    "unrelated_fragments_excluded": true,
+    "existing_named_sport_and_native_cardio_strength_precedence": "preserved",
+    "maximum_sessions_per_sport_per_day": 1
+  },
+  "local_tests": {
+    "timezone": "UTC",
+    "files": 207,
+    "passed": 1247
+  },
+  "build": "passed",
+  "production_dependency_audit": "0 vulnerabilities",
+  "live_rpc": "Rollback-only ownership, claims, variants, sanitised group sync, complete XP/reward/history invariance and default restore passed",
+  "edge_functions": {
+    "group-xp-leaderboard": 23,
+    "group-seasons-awards": 22,
+    "jwt_preserved": true,
+    "other_live_files_unchanged": true
+  },
+  "advisor_comparison": "Unchanged categories/counts: 15 INFO, 80 authenticated definer WARN, 1 auth configuration WARN",
+  "release_state": "integration_verified",
+  "preview_failed_attempts": [
+    {
+      "head": "5e61382d3e3ae3088b3302269cc81b887bf8ea71",
+      "deployment": "dpl_8cpEjXizKykXDvBcFAuaepNiodLX",
+      "ci_run": 38250542438,
+      "ci": "success",
+      "vercel": "failure",
+      "cause": "Logs unavailable to connected Vercel account; one documentation checkpoint commit retries preview with unchanged verified application code."
+    }
+  ]
+}
