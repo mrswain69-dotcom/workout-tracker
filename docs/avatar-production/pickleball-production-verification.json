@@ -1,0 +1,30 @@
+{
+  "sport": "pickleball",
+  "portraits": 16,
+  "original_hashes_verified": true,
+  "collection_visual_review": "Bronze identities compared with all23 prior pairs; all16 collection reviewed for age progression, pose/kit variety, matching awards and prestige, real solid paddles and perforated balls, alpha and margins.",
+  "session_routing": {
+    "explicit_words": [
+      "pickleball"
+    ],
+    "maximum_sessions_per_sport_per_day": 1,
+    "existing_named_sport_and_native_cardio_strength_precedence": "preserved",
+    "unrelated_fragments_excluded": true
+  },
+  "local_tests": {
+    "timezone": "UTC",
+    "files": 211,
+    "passed": 1270
+  },
+  "build": "passed",
+  "production_dependency_audit": "0 vulnerabilities",
+  "live_rpc": "Rollback-only ownership, claims, variants, sanitised group sync, complete XP/reward/history invariance and default restore passed",
+  "edge_functions": {
+    "group-xp-leaderboard": 24,
+    "group-seasons-awards": 23,
+    "jwt_preserved": true,
+    "other_live_files_unchanged": true
+  },
+  "advisor_comparison": "Unchanged categories/counts:15INFO,80authenticated definer WARN,1auth configuration WARN",
+  "release_state": "integration_verified"
+}

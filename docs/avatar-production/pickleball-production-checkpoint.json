@@ -1,7 +1,7 @@
 {
   "sport": "pickleball",
   "branch": "feature/pickleball-paired-avatars",
-  "state": "artwork_complete",
+  "state": "integration_verified",
   "accepted_portraits": 16,
-  "resume": "Pickleball all16 portraits accepted; complete full collection QA, stories/session-routing/client/RPC/XP integration, tests and release. Padel production verified16 original hashes and live registration. Remaining sports Table Tennis, Volleyball, Golf, Climbing."
+  "resume": "Publish Pickleball PR; verify exact head CI/preview, merge and verify deployed paths without public/ prefix and bundle registration. Then Table Tennis."
 }
