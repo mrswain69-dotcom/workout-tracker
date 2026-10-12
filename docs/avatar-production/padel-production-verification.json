@@ -25,5 +25,15 @@
     "other_live_files_unchanged": true
   },
   "advisor_comparison": "Unchanged categories/counts: 15 INFO, 80 authenticated definer WARN, 1 auth configuration WARN",
-  "release_state": "integration_verified"
+  "release_state": "integration_verified",
+  "preview_failed_attempts": [
+    {
+      "head": "5e61382d3e3ae3088b3302269cc81b887bf8ea71",
+      "deployment": "dpl_8cpEjXizKykXDvBcFAuaepNiodLX",
+      "ci_run": 38250542438,
+      "ci": "success",
+      "vercel": "failure",
+      "cause": "Logs unavailable to connected Vercel account; one documentation checkpoint commit retries preview with unchanged verified application code."
+    }
+  ]
 }
