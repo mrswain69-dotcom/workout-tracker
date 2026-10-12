@@ -210,8 +210,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 2,
-      "resume": "Golf Bronze pair accepted (2/16); continue Silver through Unreal. Volleyball all16 complete with 1283 tests and CI38299309327 passing, PR114 draft pending Supabase internal leaderboard deploy error. Then Climbing; Table Tennis live verification pending proxy403."
+      "reviewed_portraits": 4,
+      "resume": "Golf Bronze and Silver accepted (4/16); continue Gold through Unreal, then Climbing. Volleyball complete/tested PR114 pending Supabase internal function deploy errors; Table Tennis production check pending proxy403."
     },
     {
       "order": 15,
@@ -222,7 +222,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Golf Bronze pair accepted (2/16); continue Silver through Unreal. Volleyball all16 complete with 1283 tests and CI38299309327 passing, PR114 draft pending Supabase internal leaderboard deploy error. Then Climbing; Table Tennis live verification pending proxy403.",
+  "resume": "Golf Bronze and Silver accepted (4/16); continue Gold through Unreal, then Climbing. Volleyball complete/tested PR114 pending Supabase internal function deploy errors; Table Tennis production check pending proxy403.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
