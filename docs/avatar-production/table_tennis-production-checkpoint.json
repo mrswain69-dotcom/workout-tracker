@@ -1,0 +1,7 @@
+{
+  "sport": "table_tennis",
+  "branch": "feature/table_tennis-paired-avatars",
+  "state": "artwork_in_progress",
+  "accepted_portraits": 2,
+  "resume": "Table Tennis Bronze pair accepted (2/16); generate Silver through Unreal. Pickleball PR112 merged; verify production hashes/registration before marking released. Padel production verified."
+}
