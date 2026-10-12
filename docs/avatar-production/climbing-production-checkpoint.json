@@ -1,7 +1,13 @@
 {
   "sport": "climbing",
   "branch": "feature/climbing-paired-avatars",
-  "state": "artwork_complete",
+  "state": "production_verified",
   "accepted_portraits": 16,
-  "resume": "All16 Climbing portraits accepted; final client/RPC/XP integration and release."
+  "resume": "Complete. Preserve all sixteen original portraits. All15 new sport collections released and production verified.",
+  "pr": 116,
+  "tested_head": "347729951dcaab1c81a03c24d13081501c2cc0be",
+  "merge_commit": "ab0fa216cc2d7aff43e693f50b9d54f872264f65",
+  "ci_run": 38320826506,
+  "ci_conclusion": "success",
+  "live_bundle": "/assets/index-DPYr2gfy.js"
 }

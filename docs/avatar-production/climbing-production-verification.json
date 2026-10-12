@@ -1,0 +1,111 @@
+{
+  "sport": "climbing",
+  "state": "production_verified",
+  "verified_at": "2026-10-12T23:16:29.642567+00:00",
+  "pr": 116,
+  "tested_head": "347729951dcaab1c81a03c24d13081501c2cc0be",
+  "merge_commit": "ab0fa216cc2d7aff43e693f50b9d54f872264f65",
+  "ci_run": 38320826506,
+  "ci_conclusion": "success",
+  "live_bundle": "/assets/index-DPYr2gfy.js",
+  "matched_original_portraits": 16,
+  "live_registration": true,
+  "assets": [
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_bronze_male_v2.png",
+      "match": true,
+      "actual_sha256": "cb21d7b09d6b50f2a187741738902d68053a86da25940bd7b3f2222bffb2456e"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_bronze_female_v2.png",
+      "match": true,
+      "actual_sha256": "fefe1a94f4b2293744e6dc869a23d1b5765e225c569de07ae3a8baf52299c12e"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_silver_male_v2.png",
+      "match": true,
+      "actual_sha256": "8787bf67524c0ef5a336a7ef14b059b2eed0131f52ca436239c73301fba5d3c2"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_silver_female_v2.png",
+      "match": true,
+      "actual_sha256": "f90deaf9b9ac16cd884c28233804f77f6e22d55cbe3920cc76ef098a1b8977e9"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_gold_male_v2.png",
+      "match": true,
+      "actual_sha256": "6ffaf369d4e7e93fa65a063bfea1301a8ed6be2aaaebc66585557842d12ed9c0"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_gold_female_v2.png",
+      "match": true,
+      "actual_sha256": "97564b0202b40d09eec8d1f8273f1551880ed61b90ae0ed763b475a88e276097"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_platinum_male_v2.png",
+      "match": true,
+      "actual_sha256": "e9c9f409b5e8eb6008a34bbee12e3529af4d7ab8dde335908f171a76a7f1f1ac"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_platinum_female_v2.png",
+      "match": true,
+      "actual_sha256": "ab894e7336ffd9dcdf5182215eabfa3dd7b3e4dc8675fe65986488d909955288"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_diamond_male_v2.png",
+      "match": true,
+      "actual_sha256": "bacaea42b95d39790a589bd1db8a5da056a93a9836b7e5757bd6e700849fd055"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_diamond_female_v2.png",
+      "match": true,
+      "actual_sha256": "279bdd6bef8ff35e962916db3912790a3f837cdbc24fd12bce4575148a3a0924"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_elite_male_v2.png",
+      "match": true,
+      "actual_sha256": "75303dedbb0b88fff9d124eeb8003435aab3cf00e7d8ac8929edc8c37977c55b"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_elite_female_v2.png",
+      "match": true,
+      "actual_sha256": "012d1a81a9b51eb90fd1f0a7513fabb916cdcdf17886b56946b434b27a646ae0"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_champion_male_v2.png",
+      "match": true,
+      "actual_sha256": "8b861fb1e1294d407d9fa928b3bc5f198aac9735cc9a7baf52886af8a9a9470f"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_unreal_male_v2.png",
+      "match": true,
+      "actual_sha256": "6b3d63ea9a8299db0d1cab5761e1adfb98a6f3cc84c6fd916989b3c0a6610b1a"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_unreal_female_v2.png",
+      "match": true,
+      "actual_sha256": "511363414fbe800bd2ceffb72587f06f42bed5b060bd835a5ed7aa7b513c4ee0"
+    },
+    {
+      "sport": "climbing",
+      "path": "avatars/sport/climbing_champion_female_v2.png",
+      "match": true,
+      "actual_sha256": "6b07d4d4654ff3532dc483d51e8dacbd31648a395c1da31f24f922403fd62fe8"
+    }
+  ]
+}

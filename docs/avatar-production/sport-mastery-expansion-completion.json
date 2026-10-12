@@ -1,0 +1,149 @@
+{
+  "state": "complete",
+  "completed_at": "2026-10-12T23:16:29.643792+00:00",
+  "new_sports": 15,
+  "new_portraits": 240,
+  "total_sports": 28,
+  "active_portraits": 448,
+  "local_original_sha256_checks": 240,
+  "all_registered_assets_exist": 448,
+  "validation": {
+    "test_files": 215,
+    "tests": 1296,
+    "result": "passed",
+    "timezone": "UTC",
+    "build": "passed",
+    "production_dependency_vulnerabilities": 0
+  },
+  "production_verification": "Previous14 batches retain their saved release evidence; finalClimbing batch verified live16/16 in this release. A repeated240-file live sweep was interrupted by network access; original local hashes for all240 verified.",
+  "final_release": {
+    "pr": 116,
+    "tested_head": "347729951dcaab1c81a03c24d13081501c2cc0be",
+    "merge_commit": "ab0fa216cc2d7aff43e693f50b9d54f872264f65",
+    "ci_run": 38320826506,
+    "ci_conclusion": "success",
+    "live_bundle": "/assets/index-DPYr2gfy.js"
+  },
+  "batches": [
+    {
+      "sport": "running",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 100,
+      "merge_commit": "e556ad1ff4150e04ce64fe9cab3066d1904fcb1d",
+      "ci_run": 38090209423
+    },
+    {
+      "sport": "cycling",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 101,
+      "merge_commit": "124153c713cfebd9db1b6d31559a63ede90c06ea",
+      "ci_run": 38124441055
+    },
+    {
+      "sport": "swimming",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 102,
+      "merge_commit": "849267ddcfbaa21c2462d14ff84c6f8cb2cc35ca",
+      "ci_run": 38125994612
+    },
+    {
+      "sport": "strength_training",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 103,
+      "merge_commit": "4f23fae1c36b79165f1c1cb9c45b07cdd19978e8",
+      "ci_run": 38157328188
+    },
+    {
+      "sport": "hiking",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 104,
+      "merge_commit": "b4a2a681d7bf8161fbe60c4717cc91216f68557d",
+      "ci_run": 38182994042
+    },
+    {
+      "sport": "boxing",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 105,
+      "merge_commit": "f9b505aba6ced27c4b60b48b17df6ddb123f56c6",
+      "ci_run": 38232154577
+    },
+    {
+      "sport": "pilates",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 106,
+      "merge_commit": "97615942e1ee508735e0a28400590eaf58376485",
+      "ci_run": 38236078289
+    },
+    {
+      "sport": "dance",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 107,
+      "merge_commit": "62feb69410344441518a2d0e15461a9636515659",
+      "ci_run": 38242455003
+    },
+    {
+      "sport": "gymnastics",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 108,
+      "merge_commit": "0ccc4160a922aeb202464bb116811bb09d062a95",
+      "ci_run": 38246058101
+    },
+    {
+      "sport": "padel",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 109,
+      "merge_commit": "56dac66bcaac69e368db31e3b574e69d99b38c06",
+      "ci_run": 38251123787
+    },
+    {
+      "sport": "pickleball",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 112,
+      "merge_commit": "6d170ad1a419b17db6389424f0f4be26bdfce8cb",
+      "ci_run": 38288306727
+    },
+    {
+      "sport": "table_tennis",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 113,
+      "merge_commit": "f6355c5814c116fbee0a88db78506c417e6c1ec4",
+      "ci_run": 38294378865
+    },
+    {
+      "sport": "volleyball",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 114,
+      "merge_commit": "0d19660b3d3912610761d93856ec4eb16989526d",
+      "ci_run": 38299309327
+    },
+    {
+      "sport": "golf",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 115,
+      "merge_commit": "ea25eb42b90095e7c8266a270d3f40a93d154ff0",
+      "ci_run": 38304492230
+    },
+    {
+      "sport": "climbing",
+      "state": "production_verified",
+      "portraits": 16,
+      "pr": 116,
+      "merge_commit": "ab0fa216cc2d7aff43e693f50b9d54f872264f65",
+      "ci_run": 38320826506
+    }
+  ]
+}

@@ -226,13 +226,19 @@
       "sport": "climbing",
       "label": "Climbing",
       "portraits": 16,
-      "state": "integration_verified",
+      "state": "production_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "All16 portraits accepted; client tests/build, live cosmetic RPC rollback tests and both group XP deployments verified. Await expected-head CI/merge and live asset verification."
+      "resume": "Complete; preserve all sixteen originals.",
+      "pr": 116,
+      "tested_head": "347729951dcaab1c81a03c24d13081501c2cc0be",
+      "merge_commit": "ab0fa216cc2d7aff43e693f50b9d54f872264f65",
+      "ci_run": 38320826506,
+      "ci_conclusion": "success",
+      "live_bundle": "/assets/index-DPYr2gfy.js"
     }
   ],
-  "resume": "All16 portraits accepted; client tests/build, live cosmetic RPC rollback tests and both group XP deployments verified. Await expected-head CI/merge and live asset verification.",
+  "resume": "Complete: all15 expansion sports and240 new original portraits production verified;28 total sports and448 active paired portraits.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
@@ -250,8 +256,8 @@
     "Test maximum one session per sport/day, historic routing boundaries, future/cancelled/suspended exclusion, unchanged existing reward keys and no missing-image requests.",
     "Run regression suite/build/CI, apply required migration, merge expected head, deploy and verify live hashes/client/RPC behaviour. Update this queue after each collection release."
   ],
-  "released_new_sports": 14,
-  "released_new_portraits": 224,
-  "current_released_sports": 27,
-  "current_active_portraits": 432
+  "released_new_sports": 15,
+  "released_new_portraits": 240,
+  "current_released_sports": 28,
+  "current_active_portraits": 448
 }

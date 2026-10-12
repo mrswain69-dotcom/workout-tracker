@@ -1,6 +1,6 @@
 {
   "sport": "climbing",
-  "state": "integration_verified",
+  "state": "production_verified",
   "accepted_portraits": 16,
   "artwork": "All sixteen original transparent PNGs preserved with SHA256 provenance.",
   "session_routing": "Climbing and Bouldering whole-word aliases; one performed session/day; existing named/native sport precedence preserved.",
@@ -33,5 +33,11 @@
     },
     "security_advisors": "Unchanged:15 INFO RLS-no-policy,80 WARN authenticated SECURITY DEFINER execution,1 WARN leaked-password protection"
   },
-  "release": "Await expected-head CI/merge and live hashes."
+  "release": "Complete: expected-head CI passed, merged and production deployment succeeded; all16 live portrait hashes and Climbing registration verified.",
+  "pr": 116,
+  "tested_head": "347729951dcaab1c81a03c24d13081501c2cc0be",
+  "merge_commit": "ab0fa216cc2d7aff43e693f50b9d54f872264f65",
+  "ci_run": 38320826506,
+  "ci_conclusion": "success",
+  "live_bundle": "/assets/index-DPYr2gfy.js"
 }
