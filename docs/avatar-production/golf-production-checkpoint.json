@@ -1,7 +1,7 @@
 {
   "sport": "golf",
   "branch": "feature/golf-paired-avatars",
-  "state": "artwork_complete",
+  "state": "integration_verified",
   "accepted_portraits": 16,
-  "resume": "Golf all16 accepted and durable; integrate/validate complete Golf collection. Climbing Bronze accepted (2/16), Silver/Gold drafts recovered after workspace pruning; continue without recreating accepted artwork. Volleyball PR114 CI passed, pending Supabase internal function deploy errors; Table Tennis production check pending proxy403."
+  "resume": "Golf complete: publish validated PR, check exact-head CI then merge and verify live. Climbing Bronze accepted, remaining tiers in progress."
 }
