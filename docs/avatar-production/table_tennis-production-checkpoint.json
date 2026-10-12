@@ -1,7 +1,12 @@
 {
   "sport": "table_tennis",
   "branch": "feature/table_tennis-paired-avatars",
-  "state": "integration_verified",
+  "state": "production_verified",
   "accepted_portraits": 16,
-  "resume": "Publish Table Tennis PR; verify exacthead CI, merge and verify all16 deployed image paths without public/ prefix plus bundle registration/cutover. Then Volleyball."
+  "resume": "Complete; preserve all16 originals.",
+  "pr": 113,
+  "tested_head": "61916182692705d59f874293e994f79bc1b41043",
+  "merge_commit": "f6355c5814c116fbee0a88db78506c417e6c1ec4",
+  "ci_run": 38294378865,
+  "live_bundle": "/assets/index-CNZw_y1a.js"
 }

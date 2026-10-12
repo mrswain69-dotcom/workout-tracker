@@ -1,35 +1,83 @@
 {
   "sport": "table_tennis",
-  "portraits": 16,
-  "original_hashes_verified": true,
-  "collection_visual_review": "Bronze compared with all24 prior pairs; full16 collection passes identities, adult age progression, pose/kit/award variety, compact bat/ball accuracy, natural hands and alpha/margin checks.",
-  "session_routing": {
-    "explicit_aliases": [
-      "table tennis",
-      "tabletennis",
-      "ping pong",
-      "pingpong"
+  "state": "production_verified",
+  "pr": 113,
+  "tested_head": "61916182692705d59f874293e994f79bc1b41043",
+  "merge_commit": "f6355c5814c116fbee0a88db78506c417e6c1ec4",
+  "ci_run": 38294378865,
+  "production_url": "https://workout-tracker-ivory-tau.vercel.app",
+  "live": {
+    "sport": "table_tennis",
+    "matched": 16,
+    "assets": [
+      {
+        "path": "avatars/sport/table_tennis_bronze_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_bronze_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_silver_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_silver_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_gold_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_gold_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_platinum_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_platinum_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_diamond_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_diamond_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_elite_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_elite_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_champion_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_champion_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_unreal_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/table_tennis_unreal_female_v2.png",
+        "match": true
+      }
     ],
-    "cutover": "2026-10-13",
-    "historical_table_tennis_attribution": "Tennis preserved before cutover; no historical inference/backfill.",
-    "maximum_sessions_per_sport_per_day": 1,
-    "native_cardio_strength_and_earlier_named_sport_precedence": "preserved",
-    "unrelated_fragments_excluded": true
+    "bundle": "/assets/index-CNZw_y1a.js",
+    "registered": true
   },
-  "local_tests": {
-    "timezone": "UTC",
-    "files": 212,
-    "passed": 1277
-  },
-  "build": "passed",
-  "production_dependency_audit": "0 vulnerabilities",
-  "live_rpc": "Rollback-only ownership, claims, variants, sanitised group sync, complete XP/reward/history invariance and default restore passed",
-  "edge_functions": {
-    "group-xp-leaderboard": 25,
-    "group-seasons-awards": 24,
-    "jwt_preserved": true,
-    "other_live_files_unchanged": true
-  },
-  "advisor_comparison": "Unchanged categories/counts:15INFO,80authenticated definer WARN,1auth configuration WARN",
-  "release_state": "integration_verified"
+  "original_hashes_match": 16,
+  "registration_verified": true
 }

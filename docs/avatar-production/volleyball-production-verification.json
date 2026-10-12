@@ -1,0 +1,83 @@
+{
+  "sport": "volleyball",
+  "state": "production_verified",
+  "pr": 114,
+  "tested_head": "b6fd8004c263ce652e6fcc279529fd9152f9cd3f",
+  "merge_commit": "0d19660b3d3912610761d93856ec4eb16989526d",
+  "ci_run": 38299309327,
+  "production_url": "https://workout-tracker-ivory-tau.vercel.app",
+  "live": {
+    "sport": "volleyball",
+    "matched": 16,
+    "assets": [
+      {
+        "path": "avatars/sport/volleyball_bronze_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_bronze_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_silver_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_silver_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_gold_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_gold_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_platinum_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_platinum_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_diamond_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_diamond_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_elite_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_elite_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_champion_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_champion_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_unreal_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/volleyball_unreal_female_v2.png",
+        "match": true
+      }
+    ],
+    "bundle": "/assets/index-CNZw_y1a.js",
+    "registered": true
+  },
+  "original_hashes_match": 16,
+  "registration_verified": true
+}
