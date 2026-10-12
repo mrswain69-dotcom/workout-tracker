@@ -1,7 +1,7 @@
 {
   "sport": "dance",
   "branch": "feature/dance-paired-avatars",
-  "state": "artwork_in_progress",
-  "accepted_portraits": 14,
-  "resume": "Dance 14 of 16 reviewed. Finish Champion pair framing, then integrate and release."
+  "state": "artwork_complete",
+  "accepted_portraits": 16,
+  "resume": "Dance artwork complete: 16 reviewed portraits. Integrate, verify and release before Gymnastics."
 }
