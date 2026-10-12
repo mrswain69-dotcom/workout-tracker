@@ -152,8 +152,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 8,
-      "resume": "Padel 8 of 16 reviewed. Finish Platinum and Diamond framing, then Elite and Champion."
+      "reviewed_portraits": 10,
+      "resume": "Padel 10 of 16 reviewed. Finish Diamond framing, Elite and Champion, then integrate and release."
     },
     {
       "order": 11,
@@ -196,7 +196,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Padel 8 of 16 reviewed. Finish Platinum and Diamond framing, then Elite and Champion.",
+  "resume": "Padel 10 of 16 reviewed. Finish Diamond framing, Elite and Champion, then integrate and release.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
