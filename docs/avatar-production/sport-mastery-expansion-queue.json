@@ -162,8 +162,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 8,
-      "resume": "Pickleball Bronze through Platinum accepted (8/16); continue Diamond through Unreal. Padel merged but production unresolved; CI retry passed, no Vercel status and project deployment API403."
+      "reviewed_portraits": 10,
+      "resume": "Pickleball Bronze through Diamond accepted (10/16); continue Elite, Champion and Unreal. Padel artwork complete; production pending verification."
     },
     {
       "order": 12,
@@ -198,7 +198,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Pickleball Bronze through Platinum accepted (8/16); continue Diamond through Unreal. Padel merged but production unresolved; CI retry passed, no Vercel status and project deployment API403.",
+  "resume": "Pickleball Bronze through Diamond accepted (10/16); continue Elite, Champion and Unreal. Padel artwork complete; production pending verification.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,

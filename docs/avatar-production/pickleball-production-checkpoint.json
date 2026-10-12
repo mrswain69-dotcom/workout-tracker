@@ -2,6 +2,6 @@
   "sport": "pickleball",
   "branch": "feature/pickleball-paired-avatars",
   "state": "artwork_in_progress",
-  "accepted_portraits": 8,
-  "resume": "Pickleball Bronze through Platinum accepted (8/16); continue Diamond through Unreal. Padel merged but production unresolved; CI retry passed, no Vercel status and project deployment API403."
+  "accepted_portraits": 10,
+  "resume": "Pickleball Bronze through Diamond accepted (10/16); continue Elite, Champion and Unreal. Padel artwork complete; production pending verification."
 }
