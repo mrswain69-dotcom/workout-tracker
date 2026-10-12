@@ -1,0 +1,31 @@
+{
+  "sport": "golf",
+  "state": "integration_verified",
+  "accepted_portraits": 16,
+  "tests": 1289,
+  "test_files": 214,
+  "timezone": "UTC",
+  "build_pass": true,
+  "migration": "20261012202419_golf_paired_avatar_appearance.sql",
+  "migration_applied": true,
+  "live_rpc_rollback_test": "Passed ownership, claims, both variants, sanitised sync, full history/XP/reward invariance, invalid rejection and legacy restoration",
+  "edge_functions": {
+    "group-xp-leaderboard": {
+      "version": 27,
+      "jwt": true,
+      "all_files_match": true
+    },
+    "group-seasons-awards": {
+      "version": 26,
+      "jwt": true,
+      "all_files_match": true
+    }
+  },
+  "security_advisors": {
+    "unchanged": true,
+    "rls_enabled_no_policy": 15,
+    "authenticated_security_definer_function_executable": 80,
+    "auth_leaked_password_protection": 1
+  },
+  "production_verified": false
+}

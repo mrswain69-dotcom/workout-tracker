@@ -466,6 +466,7 @@ export const PILATES_MASTERY_START_YMD = "2026-10-13";
 // Preserve earlier Table Tennis attribution under Tennis; recognise the new collection prospectively.
 export const TABLE_TENNIS_MASTERY_START_YMD = "2026-10-13";
 const SPORT_MASTERY_KEYS = [
+  "golf",
   "volleyball",
   "table_tennis",
   "pickleball",
@@ -584,6 +585,7 @@ const SPORT_NAME_MATCHERS = [
   { key: "pickleball", pattern: /\bpickleball\b/ },
   { key: "table_tennis", pattern: /\b(?:table\s*tennis|ping\s*pong)\b/, startYmd: TABLE_TENNIS_MASTERY_START_YMD },
   { key: "volleyball", pattern: /\bvolleyball\b/ },
+  { key: "golf", pattern: /\bgolf\b/ },
 ];
 
 function normaliseText(v) {
