@@ -1,7 +1,7 @@
 {
   "sport": "pilates",
   "branch": "feature/pilates-paired-avatars",
-  "state": "artwork_in_progress",
-  "accepted_portraits": 14,
-  "resume": "Pilates14 of16 reviewed. Finish Champion pair, then dated Yoga/Pilates routing and release."
+  "state": "artwork_complete",
+  "accepted_portraits": 16,
+  "resume": "All16 Pilates portraits reviewed. Integrate dated Yoga routing, registry/stories/XP/RPC and verify release, then Dance."
 }
