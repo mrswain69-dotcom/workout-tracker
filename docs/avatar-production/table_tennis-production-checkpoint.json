@@ -1,0 +1,7 @@
+{
+  "sport": "table_tennis",
+  "branch": "feature/table_tennis-paired-avatars",
+  "state": "integration_verified",
+  "accepted_portraits": 16,
+  "resume": "Publish Table Tennis PR; verify exacthead CI, merge and verify all16 deployed image paths without public/ prefix plus bundle registration/cutover. Then Volleyball."
+}

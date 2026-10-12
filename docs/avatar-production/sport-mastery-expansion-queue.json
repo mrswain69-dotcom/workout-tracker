@@ -180,10 +180,10 @@
       "sport": "table_tennis",
       "label": "Table Tennis",
       "portraits": 16,
-      "state": "artwork_in_progress",
+      "state": "integration_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 4,
-      "resume": "Table Tennis Bronze and Silver pairs accepted (4/16); continue Gold through Unreal. Pickleball production verified16 original hashes/live bundle registration. Padel verified. Remaining after Table Tennis Volleyball,Golf,Climbing."
+      "reviewed_portraits": 16,
+      "resume": "Publish Table Tennis PR; verify exacthead CI, merge and verify all16 deployed image paths without public/ prefix plus bundle registration/cutover. Then Volleyball."
     },
     {
       "order": 13,
@@ -210,7 +210,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Table Tennis Bronze and Silver pairs accepted (4/16); continue Gold through Unreal. Pickleball production verified16 original hashes/live bundle registration. Padel verified. Remaining after Table Tennis Volleyball,Golf,Climbing.",
+  "resume": "Publish Table Tennis PR; verify exacthead CI, merge and verify all16 deployed image paths without public/ prefix plus bundle registration/cutover. Then Volleyball.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
