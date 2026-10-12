@@ -1,0 +1,7 @@
+{
+  "sport": "climbing",
+  "branch": "feature/climbing-paired-avatars",
+  "state": "artwork_in_progress",
+  "accepted_portraits": 2,
+  "resume": "Climbing Bronze pair accepted (2/16); continue Silver through Unreal. Finish Golf Champion/Unreal (12/16 accepted), then integrate complete Golf and merge its finished code into Climbing branch. Volleyball complete/tested PR114 pending Supabase internal function deploy errors; Table Tennis production check pending proxy403."
+}
