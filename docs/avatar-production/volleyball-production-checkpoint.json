@@ -1,7 +1,7 @@
 {
   "sport": "volleyball",
   "branch": "feature/volleyball-paired-avatars",
-  "state": "artwork_in_progress",
-  "accepted_portraits": 14,
-  "resume": "Volleyball Bronze through Champion accepted (14/16); finish Unreal, run integration and release checks, then Golf and Climbing. Table Tennis merged; production verification pending network access."
+  "state": "artwork_complete",
+  "accepted_portraits": 16,
+  "resume": "Volleyball all16 portraits accepted and durable; integrate complete collection, validate client/RPC/XP, publish/release, then Golf and Climbing. Table Tennis merged; production verification pending network access."
 }

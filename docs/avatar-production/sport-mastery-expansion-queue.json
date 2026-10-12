@@ -194,10 +194,10 @@
       "sport": "volleyball",
       "label": "Volleyball",
       "portraits": 16,
-      "state": "artwork_in_progress",
+      "state": "artwork_complete",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 14,
-      "resume": "Volleyball Bronze through Champion accepted (14/16); finish Unreal, run integration and release checks, then Golf and Climbing. Table Tennis merged; production verification pending network access."
+      "reviewed_portraits": 16,
+      "resume": "Volleyball all16 portraits accepted and durable; integrate complete collection, validate client/RPC/XP, publish/release, then Golf and Climbing. Table Tennis merged; production verification pending network access."
     },
     {
       "order": 14,
@@ -216,7 +216,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Volleyball Bronze through Champion accepted (14/16); finish Unreal, run integration and release checks, then Golf and Climbing. Table Tennis merged; production verification pending network access.",
+  "resume": "Volleyball all16 portraits accepted and durable; integrate complete collection, validate client/RPC/XP, publish/release, then Golf and Climbing. Table Tennis merged; production verification pending network access.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
