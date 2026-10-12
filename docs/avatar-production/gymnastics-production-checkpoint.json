@@ -1,7 +1,7 @@
 {
   "sport": "gymnastics",
   "branch": "feature/gymnastics-paired-avatars",
-  "state": "artwork_in_progress",
-  "accepted_portraits": 14,
-  "resume": "Gymnastics 14 of 16 reviewed. Finish Champion edge cleanup, then integrate and release."
+  "state": "artwork_complete",
+  "accepted_portraits": 16,
+  "resume": "Gymnastics artwork complete: 16 reviewed portraits. Integrate and release before Padel."
 }
