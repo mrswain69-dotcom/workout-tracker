@@ -74,6 +74,16 @@ describe('isolated programme drafts', () => {
     expect(hook.result.current.draft.dirty).toBe(true);
     expect(readProgramDraft(localStorage, programDraftKey('f', 'paul')).sourceProgram.id).toBe('paul-program');
   });
+  it('does not reopen the draft if the user leaves the builder during a save', async () => {
+    const hook = renderHook(() => useProgramDraft('f', 'p'));
+    act(() => hook.result.current.start(plan));
+    let finish, pending;
+    act(() => { pending = hook.result.current.save(() => new Promise(resolve => { finish = resolve; })); });
+    act(() => hook.result.current.close());
+    await act(async () => { finish({ id: 'saved' }); await pending; });
+    expect(hook.result.current.editing).toBe(false);
+    expect(hook.result.current.draft.dirty).toBe(false);
+  });
   it('handles corrupt storage and keeps an in-memory draft if storage fails', () => {
     localStorage.setItem(programDraftKey('f', 'p'), '{bad');
     const hook = renderHook(() => useProgramDraft('f', 'p'));

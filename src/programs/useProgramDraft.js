@@ -63,7 +63,7 @@ export default function useProgramDraft(familyId, profileId) {
         if (!program) return null;
         // A save finishing after a profile switch must never update that profile's draft.
         const saved = { ...snapshot, sourceProgram: program, dirty: false };
-        if (currentKey.current === key) commit({ key, draft: saved, editing: true });
+        if (currentKey.current === key) commit({ key, draft: saved, editing: latest.current.editing });
         else { try { window.localStorage.setItem(key, JSON.stringify(saved)); } catch { /* The programme is already saved in My Programs. */ } }
         return program;
       } finally { saving.current.delete(key); setSavingKeys([...saving.current]); }
