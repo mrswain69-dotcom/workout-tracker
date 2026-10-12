@@ -1279,6 +1279,10 @@ function CommitOnBlurInput({
   type = "text",
   min,
   step,
+  max,
+  multiline = false,
+  rows = 3,
+  ...inputProps
 }) {
   const externalValue =
     value === undefined || value === null ? "" : String(value);
@@ -1295,9 +1299,13 @@ function CommitOnBlurInput({
     onCommit?.(draft);
   };
 
+  const Element = multiline ? "textarea" : "input";
   return (
-    <input
-      className="input"
+    <Element
+      {...inputProps}
+      className={multiline ? "textarea" : "input"}
+      rows={multiline ? rows : undefined}
+      max={max}
       value={draft}
       type={type}
       min={min}
@@ -1309,7 +1317,7 @@ function CommitOnBlurInput({
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}
       onKeyDown={(event) => {
-        if (event.key === "Enter") {
+        if (!multiline && event.key === "Enter" && !event.nativeEvent.isComposing) {
           event.preventDefault();
           event.currentTarget.blur();
         }
@@ -11471,7 +11479,7 @@ const cardioProgress = useMemo(() => {
     </div>
   </Card>
   {planWorkspaceView === "build" ? (
-  <div className="gridPlan">
+  <div className="gridPlan" key={`${profileLoadKey}:${editingDraft ? "draft" : editingAddOn?.id || "active"}`}>
     <Card className="pad" style={{ gridColumn: "1 / -1" }}>
       <div className="rowBetween" style={{ gap: 12, flexWrap: "wrap" }}>
         <div>
@@ -11550,9 +11558,11 @@ const cardioProgress = useMemo(() => {
       <div className="planCycleSettings mt12">
         <div className="field">
           <div className="label">Programme name</div>
-          <Input
+          <CommitOnBlurInput
+            key={"name"}
+            aria-label="Programme name"
             value={planProgram.program.name}
-            onChange={(value) => changePlanCycleSettings({ name: value })}
+            onCommit={(value) => changePlanCycleSettings({ name: value })}
             placeholder="e.g. Four-week pre-season"
           />
         </div>
@@ -11581,16 +11591,20 @@ const cardioProgress = useMemo(() => {
       <div className="planCycleWeekDetails mt16">
         <div className="field">
           <div className="label">Current phase</div>
-          <Input
+          <CommitOnBlurInput
+            key={selectedProgramWeek?.phase?.id + ":name"}
+            aria-label="Current phase"
             value={selectedProgramWeek?.phase?.name || "Phase 1"}
-            onChange={(value) => updateCurrentProgramPhase({ name: value })}
+            onCommit={(value) => updateCurrentProgramPhase({ name: value })}
           />
         </div>
         <div className="field flex1">
           <div className="label">Phase focus (optional)</div>
-          <Input
+          <CommitOnBlurInput
+            key={selectedProgramWeek?.phase?.id + ":focus"}
+            aria-label="Phase focus (optional)"
             value={selectedProgramWeek?.phase?.focus || ""}
-            onChange={(value) => updateCurrentProgramPhase({ focus: value })}
+            onCommit={(value) => updateCurrentProgramPhase({ focus: value })}
             placeholder="e.g. Foundation, build, return to play"
           />
         </div>
@@ -11620,16 +11634,20 @@ const cardioProgress = useMemo(() => {
       <div className="planCycleWeekDetails mt12">
         <div className="field">
           <div className="label">Week name</div>
-          <Input
+          <CommitOnBlurInput
+            key={selectedProgramWeek?.week?.id + ":name"}
+            aria-label="Week name"
             value={selectedProgramWeek?.week?.name || `Week ${planCycleWeekIndex + 1}`}
-            onChange={(value) => updatePlanCycleWeekDetails({ name: value })}
+            onCommit={(value) => updatePlanCycleWeekDetails({ name: value })}
           />
         </div>
         <div className="field flex1">
           <div className="label">Focus (optional)</div>
-          <Input
+          <CommitOnBlurInput
+            key={selectedProgramWeek?.week?.id + ":focus"}
+            aria-label="Focus (optional)"
             value={selectedProgramWeek?.week?.focus || ""}
-            onChange={(value) => updatePlanCycleWeekDetails({ focus: value })}
+            onCommit={(value) => updatePlanCycleWeekDetails({ focus: value })}
             placeholder="e.g. Build, peak, recovery"
           />
         </div>
@@ -11856,9 +11874,9 @@ const cardioProgress = useMemo(() => {
               {/* Common: name + coach  note */}
               <div className="mt12">
                 <div className="label">Name</div>
-                <Input
+                <CommitOnBlurInput
                   value={block.label || ""}
-                  onChange={(v) =>
+                  onCommit={(v) =>
                     updateBlockInDay(block.id, () => ({ label: v }))
                   }
                   placeholder={
@@ -11877,9 +11895,9 @@ const cardioProgress = useMemo(() => {
 
               <div className="mt8">
                 <div className="label">Coach note</div>
-                <Textarea
+                <CommitOnBlurInput multiline
                   value={block.note || ""}
-                  onChange={(v) =>
+                  onCommit={(v) =>
                     updateBlockInDay(block.id, () => ({ note: v }))
                   }
                   placeholder="Optional notes, cues, or reminders…"
@@ -11893,7 +11911,7 @@ const cardioProgress = useMemo(() => {
                 <>
                   <div className="mt12">
                     <div className="label">Rest between sets (seconds)</div>
-                    <Input
+                    <CommitOnBlurInput
                       type="number"
                       min={0}
                       step={5}
@@ -11902,7 +11920,7 @@ const cardioProgress = useMemo(() => {
                           ? block.restSec
                           : 60
                       }
-                      onChange={(v) =>
+                      onCommit={(v) =>
                         updateBlockInDay(block.id, () => ({
                           restSec: safeNumber(v) ?? 60,
                         }))
@@ -11929,9 +11947,9 @@ const cardioProgress = useMemo(() => {
                               <div className="row">
                                 <div className="field flex1">
   <div className="label">Movement</div>
-  <Input
+  <CommitOnBlurInput
     value={m.name || ""}
-    onChange={(v) =>
+    onCommit={(v) =>
       updateMovementField(
         block.id,
         m.id,
@@ -11944,12 +11962,12 @@ const cardioProgress = useMemo(() => {
 </div>
                                 <div className="field w120">
                                   <div className="label">Sets</div>
-                                  <Input
+                                  <CommitOnBlurInput
                                     type="number"
                                     min={1}
                                     max={20}
                                     value={m.sets || 3}
-                                    onChange={(v) =>
+                                    onCommit={(v) =>
                                       updateMovementField(
                                         block.id,
                                         m.id,
@@ -11961,9 +11979,9 @@ const cardioProgress = useMemo(() => {
                                 </div>
                                 <div className="field w120">
                                   <div className="label">Reps / duration</div>
-                                  <Input
+                                  <CommitOnBlurInput
                                     value={m.reps || ""}
-                                    onChange={(v) =>
+                                    onCommit={(v) =>
                                       updateMovementField(
                                         block.id,
                                         m.id,
@@ -12018,10 +12036,10 @@ const cardioProgress = useMemo(() => {
                               </div>
                                         <div className="mt4">
             <div className="label">Coach note (optional)</div>
-            <Textarea
+            <CommitOnBlurInput multiline
               rows={2}
               value={m.coachNote || ""}
-              onChange={(v) =>
+              onCommit={(v) =>
                 updateMovementField(block.id, m.id, "coachNote", v)
               }
               placeholder="Coaching notes or reminders for this movement"
@@ -12073,9 +12091,9 @@ const cardioProgress = useMemo(() => {
                   {block.cardioType === "other" && (
                     <div className="mt8">
                       <div className="label">Other cardio name</div>
-                      <Input
+                      <CommitOnBlurInput
                         value={block.cardioTypeOtherLabel || ""}
-                        onChange={(v) =>
+                        onCommit={(v) =>
                           updateBlockInDay(block.id, () => ({
                             cardioTypeOtherLabel: v,
                           }))
@@ -12091,9 +12109,9 @@ const cardioProgress = useMemo(() => {
   block.cardioType === "row") && (
   <div className="mt8">
     <div className="label">Activity / sport name</div>
-    <Input
+    <CommitOnBlurInput
       value={block.activityName || ""}
-      onChange={(v) =>
+      onCommit={(v) =>
         updateBlockInDay(block.id, () => ({
           activityName: v,
         }))
@@ -12138,9 +12156,9 @@ const cardioProgress = useMemo(() => {
 
                   <div className="mt8">
                     <div className="label">Target</div>
-                    <Input
+                    <CommitOnBlurInput
                       value={block.targetText || ""}
-                      onChange={(v) =>
+                      onCommit={(v) =>
                         updateBlockInDay(block.id, () => ({
                           targetText: v,
                         }))
@@ -12155,7 +12173,7 @@ const cardioProgress = useMemo(() => {
                 <>
                   <div className="mt12">
                     <div className="label">Planned minutes (optional)</div>
-                    <Input
+                    <CommitOnBlurInput
                       type="number"
                       min={0}
                       value={
@@ -12163,7 +12181,7 @@ const cardioProgress = useMemo(() => {
                           ? ""
                           : String(block.plannedMinutes)
                       }
-                      onChange={(v) => {
+                      onCommit={(v) => {
                         const cleaned =
                           v === "" ? "" : Math.max(0, parseInt(v, 10) || 0);
 
@@ -12197,7 +12215,7 @@ const cardioProgress = useMemo(() => {
 
                   <div className="mt8">
                     <div className="label">Planned minutes (optional)</div>
-                    <Input
+                    <CommitOnBlurInput
                       type="number"
                       min={0}
                       value={
@@ -12205,7 +12223,7 @@ const cardioProgress = useMemo(() => {
                           ? ""
                           : String(block.plannedMinutes)
                       }
-                      onChange={(v) => {
+                      onCommit={(v) => {
                         const cleaned =
                           v === "" ? "" : Math.max(0, parseInt(v, 10) || 0);
 
@@ -12244,9 +12262,9 @@ const cardioProgress = useMemo(() => {
                             <div className="row">
                               <div className="field flex1">
                                 <div className="label">Task</div>
-                                <Input
+                                <CommitOnBlurInput
                                   value={t.label || ""}
-                                  onChange={(v) =>
+                                  onCommit={(v) =>
                                     updateTaskField(block.id, t.id, "label", v)
                                   }
                                   placeholder="Task name (e.g. 30 mins reading)"
@@ -12254,12 +12272,12 @@ const cardioProgress = useMemo(() => {
                               </div>
                               <div className="field w120">
                                 <div className="label">XP</div>
-                                <Input
+                                <CommitOnBlurInput
                                   type="number"
                                   min={0}
                                   step={1}
                                   value={t.xpValue ?? 0}
-                                  onChange={(v) =>
+                                  onCommit={(v) =>
                                     updateTaskField(
                                       block.id,
                                       t.id,
@@ -12282,10 +12300,10 @@ const cardioProgress = useMemo(() => {
                             {/* Coach note for this task */}
                             <div className="mt4">
                               <div className="label">Coach note (optional)</div>
-                              <Textarea
+                              <CommitOnBlurInput multiline
                                 rows={2}
                                 value={t.coachNote || ""}
-                                onChange={(v) =>
+                                onCommit={(v) =>
                                   updateTaskField(block.id, t.id, "coachNote", v)
                                 }
                                 placeholder="Coaching notes or reminders for this task"
