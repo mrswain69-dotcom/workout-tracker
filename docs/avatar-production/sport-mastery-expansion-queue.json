@@ -208,10 +208,10 @@
       "sport": "golf",
       "label": "Golf",
       "portraits": 16,
-      "state": "artwork_in_progress",
+      "state": "artwork_complete",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 14,
-      "resume": "Golf Bronze through Champion accepted (14/16); finish Unreal and integration checks. Climbing Bronze accepted (2/16), Silver generating. Volleyball complete/tested PR114 pending Supabase internal function deploy errors; Table Tennis production check pending proxy403."
+      "reviewed_portraits": 16,
+      "resume": "Golf all16 accepted and durable; integrate/validate complete Golf collection. Climbing Bronze accepted (2/16), Silver/Gold drafts recovered after workspace pruning; continue without recreating accepted artwork. Volleyball PR114 CI passed, pending Supabase internal function deploy errors; Table Tennis production check pending proxy403."
     },
     {
       "order": 15,
@@ -224,7 +224,7 @@
       "resume": "Climbing Bronze pair accepted (2/16); continue Silver through Unreal. Finish Golf Champion/Unreal (12/16 accepted), then integrate complete Golf and merge its finished code into Climbing branch. Volleyball complete/tested PR114 pending Supabase internal function deploy errors; Table Tennis production check pending proxy403."
     }
   ],
-  "resume": "Golf Bronze through Champion accepted (14/16); finish Unreal and integration checks. Climbing Bronze accepted (2/16), Silver generating. Volleyball complete/tested PR114 pending Supabase internal function deploy errors; Table Tennis production check pending proxy403.",
+  "resume": "Golf all16 accepted and durable; integrate/validate complete Golf collection. Climbing Bronze accepted (2/16), Silver/Gold drafts recovered after workspace pruning; continue without recreating accepted artwork. Volleyball PR114 CI passed, pending Supabase internal function deploy errors; Table Tennis production check pending proxy403.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
