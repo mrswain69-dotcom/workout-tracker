@@ -122,8 +122,8 @@
       "portraits": 16,
       "state": "artwork_in_progress",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
-      "reviewed_portraits": 8,
-      "resume": "Dance 8 of 16 reviewed. Finish Platinum drafts, then Diamond, Elite and Champion."
+      "reviewed_portraits": 10,
+      "resume": "Dance 10 of 16 reviewed. Finish Platinum transparency cleanup, then Elite and Champion."
     },
     {
       "order": 9,
@@ -182,7 +182,7 @@
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
     }
   ],
-  "resume": "Dance 8 of 16 reviewed. Finish Platinum drafts, then Diamond, Elite and Champion.",
+  "resume": "Dance 10 of 16 reviewed. Finish Platinum transparency cleanup, then Elite and Champion.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,
