@@ -2,6 +2,6 @@
   "sport": "climbing",
   "branch": "feature/climbing-paired-avatars",
   "state": "artwork_in_progress",
-  "accepted_portraits": 10,
-  "resume": "Climbing Bronze through Diamond accepted (10/16); finish Elite, Champion and Unreal, then final integration/release. All14 other expansion collections production_verified."
+  "accepted_portraits": 12,
+  "resume": "Climbing Bronze through Elite accepted (12/16); finish Champion and Unreal, then final client/RPC/XP integration/release. All14 other expansion collections production_verified."
 }
