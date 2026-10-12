@@ -1,0 +1,36 @@
+{
+  "state": "integration_ready_pending_backend",
+  "accepted_portraits": 16,
+  "local_tests": {
+    "files": 213,
+    "tests": 1283,
+    "timezone": "UTC",
+    "pass": true
+  },
+  "build": {
+    "pass": true
+  },
+  "production_dependency_audit": {
+    "vulnerabilities": 0
+  },
+  "migration": "20261012193332_volleyball_paired_avatar_appearance.sql",
+  "migration_applied": true,
+  "live_rpc_rollback_test": "Passed ownership, claim checks, both variants, sanitisation, history/XP/reward invariance, invalid rejection and legacy restoration",
+  "backend": {
+    "group-xp-leaderboard": {
+      "version": 25,
+      "jwt": true,
+      "update_verified": false,
+      "error": "get bundle twice failed InternalServerError; deploy failed internal error; subsequent metadata version25 unchanged",
+      "baseline": "Version25 files previously byte-verified during Table Tennis; current version25 confirmed before attempt"
+    },
+    "group-seasons-awards": {
+      "version": 24,
+      "jwt": true,
+      "update_verified": false,
+      "update_attempted": false
+    }
+  },
+  "production_verified": false,
+  "resume": "Volleyball all16 artwork accepted; 1283 tests/build pass and live cosmetic RPC rollback test pass. Draft release pending Supabase leaderboard bundle/deploy InternalServerError (version25 unchanged); no client release yet. Continue Golf then Climbing artwork; Table Tennis live verification still pending network proxy403."
+}
