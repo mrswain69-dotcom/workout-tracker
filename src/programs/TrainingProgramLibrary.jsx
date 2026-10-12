@@ -278,6 +278,9 @@ export default function TrainingProgramLibrary({
   authorizeMutation,
   onProgramApplied,
   onStarterApplied,
+  onNewDraft,
+  onEditDraft,
+  onResumeDraft,
 }) {
   const [section, setSection] = useState(initialSection);
   const identity = useRef({ familyId, activeProfileId });
@@ -797,6 +800,11 @@ export default function TrainingProgramLibrary({
 
       {section === "mine" ? (
         <>
+          {onNewDraft ? <div className="trainingProgramSection programDraftLibraryActions">
+            <div><h3>Prepare a programme</h3><p className="muted">Build and save without a start date. Choose when it starts when you apply it.</p></div>
+            <button type="button" disabled={!!busy} onClick={onNewDraft}>New blank Program</button>
+            {onResumeDraft ? <button type="button" disabled={!!busy} onClick={onResumeDraft}>Resume draft</button> : null}
+          </div> : null}
           <div className="trainingProgramCreate">
             <label>Name<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={100} /></label>
             <label>Description<input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={1200} placeholder="Who this is for and what it develops" /></label>
@@ -825,6 +833,7 @@ export default function TrainingProgramLibrary({
             externalBusy={!!busy}
             externalNotice={notice}
             noCopy={noCopy}
+            onEditDraft={onEditDraft ? () => onEditDraft([...programs, ...archivedPrograms].find((p) => p.id === manageProgramId)) : null}
             startDate={startDate}
             completionMode={completionMode}
             onStartDateChange={(date) => setStartDate(normaliseProgramStartDate(date))}

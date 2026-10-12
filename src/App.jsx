@@ -175,6 +175,9 @@ import {
   updateProgramPhase,
 } from "./engine/planCycleEngine.js";
 const GroupHub = React.lazy(() => import("./groups/GroupHub.jsx"));
+import useProgramDraft from "./programs/useProgramDraft.js";
+import { saveProgramDraft } from "./programs/programDraftDb.js";
+
 const TrainingProgramLibrary = React.lazy(() => import("./programs/TrainingProgramLibrary.jsx"));
 
 // -------- Utilities ----------
@@ -3483,8 +3486,14 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const [editingAddOnId, setEditingAddOnId] = useState("");
   const [copyingAddOnId, setCopyingAddOnId] = useState("");
   const [addOnCopyNotice, setAddOnCopyNotice] = useState("");
-  const editingAddOn = (plan?.meta?.programAddOns || []).find((row) => row.id === editingAddOnId);
-  const editorSourcePlan = editingAddOn?.content || plan;
+  const programDraft = useProgramDraft(family?.id, activeProfileId);
+  const [draftNotice, setDraftNotice] = useState("");
+  const draftIdentity = useRef("");
+  draftIdentity.current = profileLoadKey;
+  useEffect(() => { setDraftNotice(""); }, [profileLoadKey]);
+  const editingDraft = programDraft.editing;
+  const editingAddOn = !editingDraft && (plan?.meta?.programAddOns || []).find((row) => row.id === editingAddOnId);
+  const editorSourcePlan = editingDraft ? programDraft.draft.content : editingAddOn?.content || plan;
   useEffect(() => { setEditingAddOnId(""); setPlanCycleWeekIndex(0); }, [activeProfileId]);
   const planEditorPlan = useMemo(
     () => (editorSourcePlan ? getPlanEditorWeek(editorSourcePlan, planCycleWeekIndex) : null),
@@ -3513,7 +3522,7 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const baseProgramLocked = mainProgramSource?.kind === "assignment" && (mainProgramSource.recipientCanEdit === false || mainProgramControl?.can_edit === false || (mainProgramSource.recipientCanEdit === undefined && !mainProgramControl));
 
   const editAddOnControl = programControlState.profileId === activeProfileId ? programControlState.rows.find((r) => r.assignment_id === editingAddOnId) : null;
-  const mainProgramLocked = editingAddOn ? editingAddOn.recipientCanEdit === false || editAddOnControl?.can_edit === false || (editingAddOn.recipientCanEdit === undefined && !editAddOnControl) : baseProgramLocked;
+  const mainProgramLocked = editingDraft ? false : editingAddOn ? editingAddOn.recipientCanEdit === false || editAddOnControl?.can_edit === false || (editingAddOn.recipientCanEdit === undefined && !editAddOnControl) : baseProgramLocked;
 
   const programAdoptionUndo = plan?.meta?.programAdoptionUndo || null;
   const addedGroupPrograms = Array.isArray(plan?.meta?.programAddOns)
@@ -6172,24 +6181,42 @@ const selectedDayHasHeavyTrainingBlocks =
     setPlanCycleWeekIndex(0);
   }
 
-  async function startBlankTrainingProgram() {
-    const ok = window.confirm(
-      "Start a new blank Program?\n\nYour current Program remains available only if you have saved it to My Programs. You can undo immediately after creating the blank Program."
-    );
-    if (!ok) return;
-    const blank = ensurePlanProgram(defaultPlanForFamily(), {
-      todayYmd: getTodayYMD(),
-      name: "Untitled programme",
-    });
-    await applyTrainingPlanContent({
-      ...blank,
-      program: {
-        ...blank.program,
-        name: "Untitled programme",
-        completionMode: "repeat",
-      },
-    }, { label: "New blank Program" });
+  async function openProgramDraft(content, sourceProgram = null) {
+    const identity = profileLoadKey;
+    if (programDraft.busy || !(await ensureUnlocked("edit a programme draft")) || draftIdentity.current !== identity) return;
+    if (programDraft.draft?.dirty && !window.confirm("Replace the unfinished draft on this device? Save it to My Programs first if you want to keep it.")) return;
+    programDraft.start(content, sourceProgram);
+    setDraftNotice("");
+    setEditingAddOnId("");
+    setPlanWeekday("Mon");
+    setPlanCycleWeekIndex(0);
     setPlanWorkspaceView("build");
+  }
+
+  async function startBlankTrainingProgram() {
+    const blank = ensurePlanProgram(defaultPlanForFamily(), { name: "Untitled programme" });
+    await openProgramDraft({ ...blank, program: { ...blank.program, name: "Untitled programme" } });
+  }
+
+  async function resumeProgramDraft() {
+    const identity = profileLoadKey;
+    if (programDraft.busy || !(await ensureUnlocked("resume a programme draft")) || draftIdentity.current !== identity) return;
+    programDraft.resume();
+    setEditingAddOnId("");
+    setPlanCycleWeekIndex(0);
+    setPlanWorkspaceView("build");
+  }
+
+  async function saveDraftToLibrary(asCopy = false) {
+    const identity = profileLoadKey;
+    if (programDraft.busy || !(await ensureUnlocked("save a programme draft")) || draftIdentity.current !== identity) return;
+    setDraftNotice("");
+    try {
+      const saved = await programDraft.save((draft) => saveProgramDraft(asCopy ? { ...draft, sourceProgram: null } : draft, family.id, activeProfileId));
+      if (saved && draftIdentity.current === identity) setDraftNotice("Saved to My Programs. Choose a start date when you apply the programme.");
+    } catch (error) {
+      if (draftIdentity.current === identity) setDraftNotice(error.message || "Your draft could not be saved. Please try again.");
+    }
   }
 
   function acceptRemotelyAppliedTrainingPlan(nextPlan, label = "Training plan applied") {
@@ -6252,9 +6279,14 @@ const selectedDayHasHeavyTrainingBlocks =
   }
 
       async function savePlan(nextPlan) {
+    if (editingDraft && tab === "plan" && planWorkspaceView === "build") {
+      programDraft.update(nextPlan);
+      setDraftNotice("");
+      return;
+    }
     if (!(await ensureUnlocked("save changes"))) return;
 
-    if (mainProgramLocked) { window.alert("This programme must be followed as supplied. You can undo it, or use a new personal plan."); return; }
+    if ((tab === "plan" && planWorkspaceView === "build") ? mainProgramLocked : baseProgramLocked) { window.alert("This programme must be followed as supplied. You can undo it, or use a new personal plan."); return; }
 
     if (editingAddOn && tab === "plan" && planWorkspaceView === "build") {
       const next = updateEditableProgramAddOn(plan, editingAddOn.id, normalisePlanForRuntime(nextPlan));
@@ -6621,14 +6653,14 @@ if (!didClaim) {
 
   async function changePlanCycleSettings(patch) {
     const nextPlan = updatePlanProgramSettings(
-      ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() }),
+      ensurePlanProgram(editorSourcePlan || defaultPlanForFamily(), { todayYmd: getTodayYMD() }),
       patch
     );
     await savePlan(nextPlan);
   }
 
   async function updatePlanCycleWeekDetails(patch) {
-    const base = ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
+    const base = ensurePlanProgram(editorSourcePlan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
     const currentWeek = getProgramWeekPosition(base, planCycleWeekIndex).week;
     const nextPlan = setPlanProgramWeek(base, planCycleWeekIndex, {
       ...currentWeek,
@@ -6638,7 +6670,7 @@ if (!didClaim) {
   }
 
   async function duplicateCurrentPlanWeek() {
-    const base = ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
+    const base = ensurePlanProgram(editorSourcePlan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
     if (flattenProgramWeeks(base).length >= 52) {
       window.alert("A programme can contain up to 52 weeks.");
       return;
@@ -6649,7 +6681,7 @@ if (!didClaim) {
   }
 
   async function removeCurrentPlanWeek() {
-    const base = ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
+    const base = ensurePlanProgram(editorSourcePlan || defaultPlanForFamily(), { todayYmd: getTodayYMD() });
     const weeks = flattenProgramWeeks(base);
     if (weeks.length <= 1) return;
     const currentWeek = weeks[planCycleWeekIndex]?.week;
@@ -11413,7 +11445,7 @@ const cardioProgress = useMemo(() => {
       <div>
         <div className="h2">Plans</div>
         <div className="muted mt4">
-          Build the active Program or choose a reusable Program from your library.
+          Edit your active programme, prepare a draft or choose from your library.
         </div>
       </div>
       <div className="pillToggle" role="tablist" aria-label="Plan workspace">
@@ -11443,17 +11475,17 @@ const cardioProgress = useMemo(() => {
     <Card className="pad" style={{ gridColumn: "1 / -1" }}>
       <div className="rowBetween" style={{ gap: 12, flexWrap: "wrap" }}>
         <div>
-          <div className="h2">{editingAddOn ? `Edit add-on: ${editingAddOn.title}` : "Training programme"}</div>
+          <div className="h2">{editingDraft ? "Draft programme" : editingAddOn ? `Edit add-on: ${editingAddOn.title}` : "Training programme"}</div>
           {editingAddOn ? <SecondaryButton onClick={() => { setEditingAddOnId(""); setPlanCycleWeekIndex(0); }}>Back to my main programme</SecondaryButton> : null}
           <div className="muted mt4">
-            Build phases and changing weeks once. The right week appears automatically from the start date.
+            {editingDraft ? "Prepare your weeks without a start date. Save to My Programs, then apply when you are ready." : "Build phases and changing weeks once. The right week appears automatically from the start date."}
           </div>
         </div>
         <div className="planProgrammeActions">
           <span className="pill">
             {planProgramWeeks.length} week{planProgramWeeks.length === 1 ? "" : "s"} · {planProgram.program.phases.length} phase{planProgram.program.phases.length === 1 ? "" : "s"}
           </span>
-          {undoPlan || programAdoptionUndo?.assignmentId ? (
+          {!editingDraft && (undoPlan || programAdoptionUndo?.assignmentId) ? (
             <div className="planProgrammeUndoWrap">
               <SecondaryButton className="planProgrammeUndo" onClick={undoLastPlan} title={programAdoptionUndo?.programTitle ? `Restore the plan from before “${programAdoptionUndo.programTitle}”` : undoLabel || "Undo recent Program change"}>
                 {programAdoptionUndo?.programTitle ? `Undo “${programAdoptionUndo.programTitle}”` : "Undo recent change"}
@@ -11461,11 +11493,23 @@ const cardioProgress = useMemo(() => {
               {programAdoptionUndo?.assignmentId ? <small>Restores your exact previous plan</small> : null}
             </div>
           ) : null}
-          <SecondaryButton onClick={startBlankTrainingProgram}>New blank Program</SecondaryButton>
+          {!editingDraft && programDraft.draft ? <SecondaryButton onClick={resumeProgramDraft}>Resume draft</SecondaryButton> : null}
+          <SecondaryButton disabled={programDraft.busy} onClick={startBlankTrainingProgram}>New blank Program</SecondaryButton>
         </div>
       </div>
 
-      {addedGroupPrograms.length ? (
+      {editingDraft ? <div className="programDraftBanner" aria-label="Draft programme actions">
+        <div><span className="pill">No start date</span><p>{programDraft.draft.dirty ? "Draft edits are retained on this device. Save to My Programs to keep a reusable copy across devices." : "Saved in My Programs. You can keep editing or apply it from the library."}</p></div>
+        <div className="planProgrammeActions">
+          <PrimaryButton disabled={programDraft.busy || !programDraft.draft.dirty} onClick={() => saveDraftToLibrary()}>{programDraft.busy ? "Saving…" : "Save to My Programs"}</PrimaryButton>
+          {programDraft.draft.sourceProgram ? <SecondaryButton disabled={programDraft.busy} onClick={() => saveDraftToLibrary(true)}>Save as separate programme</SecondaryButton> : null}
+          <SecondaryButton disabled={programDraft.busy} onClick={() => { programDraft.close(); setPlanCycleWeekIndex(0); }}>Back to active plan</SecondaryButton>
+          <SecondaryButton disabled={programDraft.busy} onClick={() => { if (window.confirm("Discard the draft on this device? Saved programmes in My Programs are kept.")) { programDraft.discard(); setDraftNotice(""); setPlanCycleWeekIndex(0); } }}>Discard draft</SecondaryButton>
+        </div>
+        {draftNotice || programDraft.storageError ? <p role="status">{draftNotice || programDraft.storageError}</p> : null}
+      </div> : null}
+
+      {!editingDraft && addedGroupPrograms.length ? (
         <div className="planAddedPrograms" aria-label="Programs added alongside your personal plan">
           <strong>Added Program{addedGroupPrograms.length === 1 ? "" : "s"}</strong>
           <div>
@@ -11502,7 +11546,7 @@ const cardioProgress = useMemo(() => {
       ) : null}
 
       {mainProgramLocked ? <p className="programWorkflowCard">Follow as supplied · Editing is disabled for this assigned programme. Logging, undo and switching to a personal programme remain available.</p> : null}
-      <fieldset disabled={mainProgramLocked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+      <fieldset disabled={mainProgramLocked || (editingDraft && programDraft.busy)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <div className="planCycleSettings mt12">
         <div className="field">
           <div className="label">Programme name</div>
@@ -11512,14 +11556,14 @@ const cardioProgress = useMemo(() => {
             placeholder="e.g. Four-week pre-season"
           />
         </div>
-        <div className="field">
+        {!editingDraft ? <div className="field">
           <div className="label">Starts Monday</div>
           <Input
             type="date"
             value={planProgram.program.startDate || ""}
             onChange={(value) => changePlanCycleSettings({ startDate: value })}
           />
-        </div>
+        </div> : null}
         <div className="field">
           <div className="label">At the end</div>
           <Select
@@ -12396,11 +12440,18 @@ const cardioProgress = useMemo(() => {
       activeProfileId={activeProfileId}
       activePlan={ensurePlanProgram(plan || defaultPlanForFamily(), { todayYmd: getTodayYMD() })}
       authorizeMutation={(reason) => ensureUnlocked(reason)}
+      onNewDraft={startBlankTrainingProgram}
+      onEditDraft={(program) => openProgramDraft(program.current_version.content_json, program)}
+      onResumeDraft={programDraft.draft ? resumeProgramDraft : null}
       onProgramApplied={(nextPlan, label) => {
+        programDraft.close();
+        setEditingAddOnId("");
         if (nextPlan) acceptRemotelyAppliedTrainingPlan(nextPlan, label);
         setPlanWorkspaceView("build");
       }}
       onStarterApplied={async (program, options) => {
+        programDraft.close();
+        setEditingAddOnId("");
         await applyTrainingPlanContent(program.content, {
           startDate: options?.startDate,
           repeatMode: options?.completionMode,
@@ -15801,6 +15852,9 @@ function StyleTag() {
         text-align:center;
       }
       .planProgrammeUndoWrap{display:grid;gap:3px;text-align:center}
+      .programDraftBanner{margin-top:16px;padding:14px;border:1px solid #a6cbbd;border-radius:12px;background:#f0f9f4;color:#173d30;display:grid;gap:10px}
+      .programDraftBanner p{margin:6px 0;font-size:13px;line-height:1.5}
+      .programDraftBanner .planProgrammeActions{justify-content:flex-start}
       .planProgrammeUndoWrap small{color:#64748b;font-size:9px;font-weight:750}
       .planAddedPrograms{
         display:grid;

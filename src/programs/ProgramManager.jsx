@@ -27,7 +27,7 @@ export function ProgramVersionPreview({ version }) {
 
 const dateLabel = (value) => value ? new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "No expiry";
 
-export default function ProgramManager({ program, authorize, onChanged, onClose, externalBusy = false, externalNotice = "", noCopy = false, startDate, completionMode, onStartDateChange, onCompletionModeChange, onUse, onSaveVersion, onAssign, onArchive, isCurrentVersionActive = false, isCurrentVersionAdded = false, addAlongsideAvailable = false, keepTasksAvailable = false, onPublishFree, onUnpublish }) {
+export default function ProgramManager({ program, authorize, onChanged, onClose, externalBusy = false, externalNotice = "", noCopy = false, startDate, completionMode, onStartDateChange, onCompletionModeChange, onUse, onSaveVersion, onEditDraft, onAssign, onArchive, isCurrentVersionActive = false, isCurrentVersionAdded = false, addAlongsideAvailable = false, keepTasksAvailable = false, onPublishFree, onUnpublish }) {
   const [tab, setTab] = useState("details");
   const [details, setDetails] = useState({ ...program, description: program.description || "", purpose: program.purpose || "", sport: program.sport || "", difficulty: program.difficulty || "all_levels", age_band: program.age_band || "all_ages", equipment: (program.equipment || []).join(", "), tags: (program.tags || []).join(", ") });
   const [versions, setVersions] = useState([]);
@@ -122,6 +122,7 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
     <details className="programActionHelp"><summary>What do these options do?</summary><dl>
       <dt>Use this Program</dt><dd>Choose how this saved version should fit with your active plan. Making it current replaces your base training and tasks while keeping logs, XP and any separate add-on.</dd>
       <dt>Duplicate</dt><dd>Create a separate programme from the selected saved version. Your active plan stays as it is.</dd>
+      {onEditDraft ? <><dt>Edit as draft</dt><dd>Edit the saved weeks without changing your active plan. Save the edited draft as a new library version, then apply it when ready.</dd></> : null}
       <dt>Save new version</dt><dd>Save your currently active base plan as a new version of this programme. Existing recipients keep their issued version until they accept an update.</dd>
       <dt>Version history / restore</dt><dd>Preview previous versions or restore an older one as a new latest version. This does not change anyone’s active plan.</dd>
       <dt>Assign</dt><dd>Invite selected team members to follow this programme, with the permissions you choose.</dd>
@@ -136,8 +137,8 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
       {onStartDateChange && program.status !== "archived" ? <div className="trainingProgramControls"><label>Starts Monday<input type="date" value={startDate} onChange={(e) => onStartDateChange(e.target.value)} /></label><label>At the end<select value={completionMode} onChange={(e) => onCompletionModeChange(e.target.value)}><option value="repeat">Repeat</option><option value="once">Finish</option><option value="hold">Hold final week</option></select></label></div> : null}
       {onUse && program.status !== "archived" ? <section className="programUsePanel" aria-label="Use this Program">
         <div className="programUseHeading">
-          <strong>Use this Program</strong>
-          <p>Choose what should happen to your active plan.</p>
+          <strong>Apply programme</strong>
+          <p>Choose a start date above, then how it should fit with your active plan.</p>
         </div>
         <div className="programUseChoices">
           <button type="button" className="programUseChoice" disabled={working || !addAlongsideAvailable || isCurrentVersionAdded} onClick={() => { setNotice(""); onUse("add"); }}>
@@ -155,6 +156,7 @@ export default function ProgramManager({ program, authorize, onChanged, onClose,
         </div>
       </section> : null}
       <div className="programManagerActions">
+        {onEditDraft && program.status !== "archived" ? <button type="button" disabled={working || !currentVersion?.content_json} onClick={onEditDraft}>Edit as draft</button> : null}
         <button type="button" disabled={working || !currentVersion?.id} onClick={() => beginCopy(currentVersion, true)}>Duplicate current version</button>
         <button type="button" disabled={working} onClick={() => { setNotice(""); setTab("links"); }}>Share programme</button>
       </div>
