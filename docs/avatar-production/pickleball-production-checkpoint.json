@@ -1,7 +1,7 @@
 {
   "sport": "pickleball",
   "branch": "feature/pickleball-paired-avatars",
-  "state": "artwork_in_progress",
-  "accepted_portraits": 14,
-  "resume": "Pickleball Bronze through Champion accepted (14/16); generate Unreal pair then complete collection QA and integration. Padel live16/16 original hash matches and bundle registration verified."
+  "state": "artwork_complete",
+  "accepted_portraits": 16,
+  "resume": "Pickleball all16 portraits accepted; complete full collection QA, stories/session-routing/client/RPC/XP integration, tests and release. Padel production verified16 original hashes and live registration. Remaining sports Table Tennis, Volleyball, Golf, Climbing."
 }
