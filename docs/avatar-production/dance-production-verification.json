@@ -25,5 +25,83 @@
     "other_live_files_unchanged": true
   },
   "advisor_comparison": "Unchanged categories/counts: 15 INFO, 80 authenticated definer WARN, 1 auth configuration WARN",
-  "release_state": "integration_verified"
+  "release_state": "production_verified",
+  "tested_head": "6277ada0b106cc6fb04e00d52341365af50f020b",
+  "merge_commit": "62feb69410344441518a2d0e15461a9636515659",
+  "ci_run": 38242455003,
+  "preview": "Vercel READY; exact-head CI passed. Protected preview access remains unavailable to connector account; public production hashes/bundle verified.",
+  "production": {
+    "assets": [
+      {
+        "path": "/avatars/sport/dance_bronze_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_bronze_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_unreal_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_unreal_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_silver_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_silver_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_gold_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_gold_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_diamond_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_diamond_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_elite_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_elite_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_platinum_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_platinum_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_champion_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/dance_champion_female_v2.png",
+        "matches": true
+      }
+    ],
+    "matched": 16,
+    "bundle": [
+      "/assets/index-DW72I_BA.js"
+    ],
+    "sport_registered": true,
+    "cutover_in_bundle": true
+  }
 }
