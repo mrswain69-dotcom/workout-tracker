@@ -1,0 +1,83 @@
+{
+  "sport": "golf",
+  "state": "production_verified",
+  "pr": 115,
+  "tested_head": "f97608081f9c4b433dd10c8a2d6426ebebe10d95",
+  "merge_commit": "ea25eb42b90095e7c8266a270d3f40a93d154ff0",
+  "ci_run": 38304492230,
+  "production_url": "https://workout-tracker-ivory-tau.vercel.app",
+  "live": {
+    "sport": "golf",
+    "matched": 16,
+    "assets": [
+      {
+        "path": "avatars/sport/golf_bronze_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_bronze_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_silver_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_silver_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_gold_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_gold_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_platinum_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_platinum_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_diamond_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_diamond_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_elite_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_elite_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_champion_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_champion_female_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_unreal_male_v2.png",
+        "match": true
+      },
+      {
+        "path": "avatars/sport/golf_unreal_female_v2.png",
+        "match": true
+      }
+    ],
+    "bundle": "/assets/index-Bi1tjrWi.js",
+    "registered": true
+  },
+  "original_hashes_match": 16,
+  "registration_verified": true
+}
