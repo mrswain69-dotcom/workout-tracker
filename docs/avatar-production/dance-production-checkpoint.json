@@ -1,7 +1,7 @@
 {
   "sport": "dance",
   "branch": "feature/dance-paired-avatars",
-  "state": "artwork_complete",
+  "state": "integration_verified",
   "accepted_portraits": 16,
-  "resume": "Dance artwork complete: 16 reviewed portraits. Integrate, verify and release before Gymnastics."
+  "resume": "Dance 16 portraits and integration verified; publish PR107, verify exact-head CI/Vercel, merge and verify production before Gymnastics."
 }
