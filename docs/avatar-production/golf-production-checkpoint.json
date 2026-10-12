@@ -2,6 +2,6 @@
   "sport": "golf",
   "branch": "feature/golf-paired-avatars",
   "state": "artwork_in_progress",
-  "accepted_portraits": 8,
-  "resume": "Golf Bronze through Platinum accepted (8/16); continue Diamond through Unreal, then Climbing. Volleyball complete/tested PR114 draft pending Supabase internal function deploy errors; Table Tennis production check pending proxy403."
+  "accepted_portraits": 10,
+  "resume": "Golf Bronze through Diamond accepted (10/16); finish Elite, Champion and Unreal, then Climbing. Volleyball complete/tested PR114 draft pending Supabase internal function deploy errors; Table Tennis production check pending proxy403."
 }
