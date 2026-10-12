@@ -1,8 +1,8 @@
 {
   "sport": "boxing",
   "state": "artwork_in_progress",
-  "accepted_portraits": 10,
+  "accepted_portraits": 12,
   "branch": "feature/boxing-paired-avatars",
-  "resume": "Next generate Boxing Diamond male/female, then Elite and Champion; 10 of 16 accepted.",
+  "resume": "Next Boxing Elite and Champion pairs;12 of16 accepted.",
   "activation": "No Boxing artwork/reward/RPC registration yet."
 }
