@@ -1,0 +1,28 @@
+{
+  "sport": "pilates",
+  "portraits": 16,
+  "original_hashes_verified": true,
+  "session_routing": {
+    "cutover_ymd": "2026-10-13",
+    "historic_pilates": "yoga",
+    "new_explicit_pilates": "pilates",
+    "yoga_and_tai_chi": "yoga",
+    "maximum_sessions_per_sport_per_day": 1
+  },
+  "local_tests": {
+    "timezone": "UTC",
+    "files": 204,
+    "passed": 1229
+  },
+  "build": "passed",
+  "production_dependency_audit": "0 vulnerabilities",
+  "live_rpc": "Rollback-only ownership, claims, variants, sanitised group sync, complete XP/reward/history invariance and default restore passed",
+  "edge_functions": {
+    "group-xp-leaderboard": 20,
+    "group-seasons-awards": 19,
+    "jwt_preserved": true,
+    "other_live_files_unchanged": true
+  },
+  "advisor_comparison": "Unchanged categories/counts:15 INFO,80 authenticated definer WARN,1 auth configuration WARN",
+  "release_state": "awaiting exact-head CI and Vercel build status"
+}

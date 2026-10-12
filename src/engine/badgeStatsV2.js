@@ -461,7 +461,10 @@ const PACE_DISTANCES = {
 // -----------------------------------------------------
 // Prospective cutover: preserve Boxing logs through the release day under Martial Arts.
 export const BOXING_MASTERY_START_YMD = "2026-10-13";
+// Preserve Pilates logs through the release day under Yoga.
+export const PILATES_MASTERY_START_YMD = "2026-10-13";
 const SPORT_MASTERY_KEYS = [
+  "pilates",
   "boxing",
   "hiking",
   "strength_training",
@@ -595,6 +598,11 @@ function getSportKeyFromText(text, dateYmd) {
           if (!/\bboxing\b/.test(t)) continue;
           if (/\b(?:kick boxing|thai boxing)\b/.test(t)) return "martial_arts";
           return "boxing";
+        }
+        if (matcher.key === "yoga" && term === "pilates" &&
+            dateYmd >= PILATES_MASTERY_START_YMD) {
+          if (!/\bpilates\b/.test(t)) continue;
+          return "pilates";
         }
         return matcher.key;
       }

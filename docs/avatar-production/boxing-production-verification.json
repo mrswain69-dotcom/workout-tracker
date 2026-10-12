@@ -24,5 +24,83 @@
     "other_live_files_unchanged": true
   },
   "advisor_comparison": "Unchanged categories and counts:15 INFO,80 authenticated definer WARN,1 auth configuration WARN",
-  "release_state": "awaiting exact-head CI and preview"
+  "release_state": "production_verified",
+  "tested_head": "fd50a6a8b3183d14046fcbe98bce2b68008f57a5",
+  "merge_commit": "f9b505aba6ced27c4b60b48b17df6ddb123f56c6",
+  "ci_run": 38232154577,
+  "preview": "Vercel READY; direct protected preview access denied by connector account. Exact-head CI and public production asset/bundle checks passed.",
+  "production": {
+    "assets": [
+      {
+        "path": "/avatars/sport/boxing_bronze_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_bronze_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_unreal_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_unreal_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_silver_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_silver_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_gold_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_gold_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_platinum_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_platinum_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_diamond_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_diamond_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_elite_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_elite_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_champion_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/boxing_champion_female_v2.png",
+        "matches": true
+      }
+    ],
+    "matched": 16,
+    "bundle": [
+      "/assets/index-IqF0o0IZ.js"
+    ],
+    "boxing_registered": true,
+    "cutover_in_bundle": true
+  }
 }
