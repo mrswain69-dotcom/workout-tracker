@@ -1,7 +1,7 @@
 {
   "sport": "volleyball",
   "branch": "feature/volleyball-paired-avatars",
-  "state": "artwork_complete",
+  "state": "integration_ready_pending_backend",
   "accepted_portraits": 16,
-  "resume": "Volleyball all16 portraits accepted and durable; integrate complete collection, validate client/RPC/XP, publish/release, then Golf and Climbing. Table Tennis merged; production verification pending network access."
+  "resume": "Volleyball all16 artwork accepted; 1283 tests/build pass and live cosmetic RPC rollback test pass. Draft release pending Supabase leaderboard bundle/deploy InternalServerError (version25 unchanged); no client release yet. Continue Golf then Climbing artwork; Table Tennis live verification still pending network proxy403."
 }
