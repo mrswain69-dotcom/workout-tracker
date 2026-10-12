@@ -194,29 +194,38 @@
       "sport": "volleyball",
       "label": "Volleyball",
       "portraits": 16,
-      "state": "integration_ready_pending_backend",
+      "state": "integration_verified",
       "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
       "reviewed_portraits": 16,
-      "resume": "Volleyball all16 artwork accepted; 1283 tests/build pass and live cosmetic RPC rollback test pass. Draft release pending Supabase leaderboard bundle/deploy InternalServerError (version25 unchanged); no client release yet. Continue Golf then Climbing artwork; Table Tennis live verification still pending network proxy403."
+      "resume": "Merged after internal function service recovered; backend verified, production image/bundle check pending. Preserve all16 originals.",
+      "pr": 114,
+      "tested_head": "b6fd8004c263ce652e6fcc279529fd9152f9cd3f",
+      "ci_run": 38299309327,
+      "ci_conclusion": "success",
+      "merge_commit": "0d19660b3d3912610761d93856ec4eb16989526d"
     },
     {
       "order": 14,
       "sport": "golf",
       "label": "Golf",
       "portraits": 16,
-      "state": "brief_ready",
-      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+      "state": "integration_verified",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
+      "reviewed_portraits": 16,
+      "resume": "Golf complete: publish validated PR, check exact-head CI then merge and verify live. Climbing Bronze accepted, remaining tiers in progress."
     },
     {
       "order": 15,
       "sport": "climbing",
       "label": "Climbing",
       "portraits": 16,
-      "state": "brief_ready",
-      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification"
+      "state": "artwork_in_progress",
+      "activation": "After complete art, session routing, client/RPC integration, tests, deployment and live verification",
+      "reviewed_portraits": 2,
+      "resume": "Climbing Bronze pair accepted (2/16); continue Silver through Unreal. Finish Golf Champion/Unreal (12/16 accepted), then integrate complete Golf and merge its finished code into Climbing branch. Volleyball complete/tested PR114 pending Supabase internal function deploy errors; Table Tennis production check pending proxy403."
     }
   ],
-  "resume": "Volleyball all16 artwork accepted; 1283 tests/build pass and live cosmetic RPC rollback test pass. Draft release pending Supabase leaderboard bundle/deploy InternalServerError (version25 unchanged); no client release yet. Continue Golf then Climbing artwork; Table Tennis live verification still pending network proxy403.",
+  "resume": "Golf complete: publish validated PR, check exact-head CI then merge and verify live. Climbing Bronze accepted, remaining tiers in progress.",
   "diversity_review": "Review the 30 identity briefs as a matrix first. Compare each new reviewed Bronze pair against all completed Bronze anchors before its later tiers; no all-sport image pilot is required.",
   "ui_release": {
     "pr": 99,

@@ -32,5 +32,26 @@
     }
   },
   "production_verified": false,
-  "resume": "Volleyball all16 artwork accepted; 1283 tests/build pass and live cosmetic RPC rollback test pass. Draft release pending Supabase leaderboard bundle/deploy InternalServerError (version25 unchanged); no client release yet. Continue Golf then Climbing artwork; Table Tennis live verification still pending network proxy403."
+  "resume": "Volleyball all16 artwork accepted; 1283 tests/build pass and live cosmetic RPC rollback test pass. Draft release pending Supabase leaderboard bundle/deploy InternalServerError (version25 unchanged); no client release yet. Continue Golf then Climbing artwork; Table Tennis live verification still pending network proxy403.",
+  "pr": 114,
+  "tested_head": "b6fd8004c263ce652e6fcc279529fd9152f9cd3f",
+  "ci_run": 38299309327,
+  "ci_conclusion": "success",
+  "remote_byte_verification": {
+    "changed_files": 31,
+    "all_matched": true
+  },
+  "security_advisors": {
+    "before": {
+      "rls_enabled_no_policy": 15,
+      "authenticated_security_definer_function_executable": 80,
+      "auth_leaked_password_protection": 1
+    },
+    "after": {
+      "rls_enabled_no_policy": 15,
+      "authenticated_security_definer_function_executable": 80,
+      "auth_leaked_password_protection": 1
+    },
+    "unchanged": true
+  }
 }

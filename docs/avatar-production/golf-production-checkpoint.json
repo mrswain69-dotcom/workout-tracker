@@ -1,0 +1,7 @@
+{
+  "sport": "golf",
+  "branch": "feature/golf-paired-avatars",
+  "state": "integration_verified",
+  "accepted_portraits": 16,
+  "resume": "Golf complete: publish validated PR, check exact-head CI then merge and verify live. Climbing Bronze accepted, remaining tiers in progress."
+}

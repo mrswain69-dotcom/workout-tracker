@@ -1,0 +1,66 @@
+{
+  "bronze": {
+    "story": "Bronze begins with a club resting safely beside the shoes and a willingness to explore something new. This curious newcomer enjoys learning how a comfortable stance and patient attention shape practice. Mistakes offer useful clues, while manageable attempts provide small reasons to return and keep discovering.",
+    "traits": [
+      "Curious",
+      "Patient",
+      "Receptive"
+    ]
+  },
+  "silver": {
+    "story": "Silver finds a comfortable side stance with growing familiarity. The participation medallion celebrates returning to practice and listening to useful guidance. This player enjoys making manageable adjustments, appreciates encouragement from others and understands that a rewarding session can include uncertain attempts alongside small moments of confidence.",
+    "traits": [
+      "Attentive",
+      "Steady",
+      "Encouraging"
+    ]
+  },
+  "gold": {
+    "story": "Gold holds a bronze practice medal as a reminder of persistence. Familiar preparation now leaves room to explore timing, balance and a thoughtful next attempt. This player welcomes feedback, notices small discoveries and understands that a difficult practice can still offer something useful to carry forward.",
+    "traits": [
+      "Reflective",
+      "Persistent",
+      "Open-minded"
+    ]
+  },
+  "platinum": {
+    "story": "Platinum steps forward in a comfortable knitted layer with preparation shaped by experience. The silver rising-arc honour recognises continued participation. This player remembers early uncertainty, welcomes newcomers and enjoys discovering fresh details within familiar routines, knowing that interests and plans can change without removing the pleasure of learning.",
+    "traits": [
+      "Prepared",
+      "Welcoming",
+      "Adaptable"
+    ]
+  },
+  "diamond": {
+    "story": "Diamond brings a grounded stance and curiosity about the details of practice. The gold rising-arc honour celebrates commitment rather than a competitive title. This player values useful guidance and recovery, respects different learning rhythms and enjoys how ordinary attempts can continue to offer meaningful discoveries over time.",
+    "traits": [
+      "Composed",
+      "Considerate",
+      "Committed"
+    ]
+  },
+  "elite": {
+    "story": "Elite offers a quiet open-hand gesture of satisfaction. The crystal rising-arc honour and medallion reflect sustained participation without claiming professional status. This player enjoys recognising progress in others, shares encouragement freely and remembers that confidence often develops through patient attention, manageable adjustments and returning to familiar practice.",
+    "traits": [
+      "Assured",
+      "Generous",
+      "Patient"
+    ]
+  },
+  "champion": {
+    "story": "Champion carries perspective into a composed stance with hands loosely joined. The rising-arc honour beside the shoes recalls changing plans, useful guidance and discoveries shared through years of practice. This player remains interested in learning and makes room for newcomers to find enjoyment through a pace that suits them.",
+    "traits": [
+      "Grounded",
+      "Supportive",
+      "Resilient"
+    ]
+  },
+  "unreal": {
+    "story": "Unreal brings years of golf practice to a composed formal portrait. The crystal and gold rising-arc honour reflects sustained curiosity, participation and encouragement of others. Beneath the tailored suit remains the same attentive learner, grateful for useful guidance and interested in the details that make another ordinary practice worthwhile.",
+    "traits": [
+      "Experienced",
+      "Humble",
+      "Inquisitive"
+    ]
+  }
+}
