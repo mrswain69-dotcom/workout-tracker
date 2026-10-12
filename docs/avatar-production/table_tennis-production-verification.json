@@ -1,0 +1,35 @@
+{
+  "sport": "table_tennis",
+  "portraits": 16,
+  "original_hashes_verified": true,
+  "collection_visual_review": "Bronze compared with all24 prior pairs; full16 collection passes identities, adult age progression, pose/kit/award variety, compact bat/ball accuracy, natural hands and alpha/margin checks.",
+  "session_routing": {
+    "explicit_aliases": [
+      "table tennis",
+      "tabletennis",
+      "ping pong",
+      "pingpong"
+    ],
+    "cutover": "2026-10-13",
+    "historical_table_tennis_attribution": "Tennis preserved before cutover; no historical inference/backfill.",
+    "maximum_sessions_per_sport_per_day": 1,
+    "native_cardio_strength_and_earlier_named_sport_precedence": "preserved",
+    "unrelated_fragments_excluded": true
+  },
+  "local_tests": {
+    "timezone": "UTC",
+    "files": 212,
+    "passed": 1277
+  },
+  "build": "passed",
+  "production_dependency_audit": "0 vulnerabilities",
+  "live_rpc": "Rollback-only ownership, claims, variants, sanitised group sync, complete XP/reward/history invariance and default restore passed",
+  "edge_functions": {
+    "group-xp-leaderboard": 25,
+    "group-seasons-awards": 24,
+    "jwt_preserved": true,
+    "other_live_files_unchanged": true
+  },
+  "advisor_comparison": "Unchanged categories/counts:15INFO,80authenticated definer WARN,1auth configuration WARN",
+  "release_state": "integration_verified"
+}
