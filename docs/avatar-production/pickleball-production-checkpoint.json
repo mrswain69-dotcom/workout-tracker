@@ -1,7 +1,7 @@
 {
   "sport": "pickleball",
   "branch": "feature/pickleball-paired-avatars",
-  "state": "integration_verified",
+  "state": "production_verified",
   "accepted_portraits": 16,
-  "resume": "Publish Pickleball PR; verify exact head CI/preview, merge and verify deployed paths without public/ prefix and bundle registration. Then Table Tennis."
+  "resume": "Complete; preserve all16 originals. Continue Table Tennis."
 }
