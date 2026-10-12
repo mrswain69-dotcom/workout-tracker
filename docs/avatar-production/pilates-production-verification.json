@@ -24,5 +24,83 @@
     "other_live_files_unchanged": true
   },
   "advisor_comparison": "Unchanged categories/counts:15 INFO,80 authenticated definer WARN,1 auth configuration WARN",
-  "release_state": "awaiting exact-head CI and Vercel build status"
+  "release_state": "production_verified",
+  "tested_head": "10950dc6d1862a46d7553ee95ffbc5e45d65f33c",
+  "merge_commit": "97615942e1ee508735e0a28400590eaf58376485",
+  "ci_run": 38236078289,
+  "preview": "Vercel READY; exact-head CI passed. Protected preview access remains unavailable to connector account; public production hashes/bundle verified.",
+  "production": {
+    "assets": [
+      {
+        "path": "/avatars/sport/pilates_bronze_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_bronze_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_unreal_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_unreal_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_silver_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_silver_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_gold_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_gold_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_platinum_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_platinum_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_diamond_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_diamond_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_elite_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_elite_female_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_champion_male_v2.png",
+        "matches": true
+      },
+      {
+        "path": "/avatars/sport/pilates_champion_female_v2.png",
+        "matches": true
+      }
+    ],
+    "matched": 16,
+    "bundle": [
+      "/assets/index-Dxyfc7S2.js"
+    ],
+    "sport_registered": true,
+    "cutover_in_bundle": true
+  }
 }
