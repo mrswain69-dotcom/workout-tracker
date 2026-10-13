@@ -14,7 +14,7 @@
 .badgeTierLabel--silver{color:#e1e8f0}
 .badgeTierLabel--platinum{color:#a8efff}
 .badgeTierLabel--diamond{color:#c5bdff}
-.badgeTierLabel--pro{color:#ffbcd5}
+.badgeTierLabel--pro,.badgeTierLabel--elite{color:#ffbcd5}
 .badgeTierLabel--champion{color:#ffdc85}
 .badgeTierLabel--unreal{color:#cbb0ff}
 .badgeTierLabel--locked{background:#e2e8f0;color:#64748b;letter-spacing:0}
@@ -95,3 +95,5 @@
 .masteryCabinet--embedded .masteryArtButton{width:min(100%,140px)}
 .masteryCabinet--embedded .masteryArtButton .masteryBadgeArt{width:100%}
 @media(max-width:380px){.masteryDisclosure--badge .masteryDisclosureToggle{grid-template-columns:minmax(0,1fr)}.masteryDisclosure--badge .masteryDisclosureStatus{width:100%;max-width:none;justify-content:space-between}}
+
+.masteryDisclosureStatus>.badgeTierLabel{font-size:9px;min-width:0;padding:3px 5px;letter-spacing:.02em}
