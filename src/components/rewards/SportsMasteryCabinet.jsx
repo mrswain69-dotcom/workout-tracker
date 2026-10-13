@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MasteryBadgeArt } from "./MasteryBadgeArt.jsx";
 import SportsMasteryMilestones from "./SportsMasteryMilestones.jsx";
+import { performanceBadgeDescription } from "../../config/performanceBadgeDescriptions.js";
 import "./SportsMasteryCabinet.css";
 
 const label = tier => tier.charAt(0).toUpperCase() + tier.slice(1);
 
 
 function BadgeDetails({ card, state, claimedKeys, onClose, onClaim, busy, error, lastDate, faceText, requirementText, progressText, verification, formatValue, onOpenLog }) {
+  const explanation = performanceBadgeDescription(card);
   const ref = useRef(null);
   const close = useRef(null);
   useEffect(() => {
@@ -41,6 +43,11 @@ function BadgeDetails({ card, state, claimedKeys, onClose, onClaim, busy, error,
           {error && <p role="alert">{error}</p>}
         </div>
       </div>
+      {explanation && <section className="masteryExplanation" aria-label="About this performance badge">
+        <h3>What this badge means</h3>
+        <p>{explanation.purpose}</p>
+        <dl>{[["What is measured",explanation.measurement],["Which activities count",explanation.activities],["How it is calculated",explanation.method],["Example",explanation.example],["Important details",explanation.limits],["Badge rewards",explanation.rewards]].filter(([,text])=>text).map(([title,text])=><React.Fragment key={title}><dt>{title}</dt><dd>{text}</dd></React.Fragment>)}</dl>
+      </section>}
       {verification && <section className="masteryEvidence" aria-label="Performance verification">
         <h3>Performance verification</h3>
         <p className="masteryNote">{verification.status==="loading"?"Checking verification…":verification.status==="error"?"Verification could not be loaded. Reopen Rewards to retry.":verification.verified?"★ Verified performance — linked source data supports this achievement.":"This achievement is not verified by the available source data."}</p>

@@ -26,6 +26,7 @@ const cumulative = {
   badge_early:{targets:[150,250,400,600],step:100},
   badge_night:{targets:[150,250,400,600],step:100},
   badge_overload:{targets:[90,150,240,400],step:100},
+  badge_personal_bests:{targets:[50,100,150,250],step:50},
   badge_session_sets:{targets:[20,50,100,200],step:50,statKey:"stats.sessions.strengthTrainingDays",unit:"strength days with 10+ sets", note:"After Diamond, build consistency: each recorded day with at least 10 strength sets counts once. Extra sets that day do not advance prestige."},
   badge_pace_imp:{targets:[6,12,24,40],step:10,statKey:"stats.intelligence.paceImprovementDays",unit:"qualifying improvement days",note:"After Diamond, count distinct activity dates showing at least 3% pace improvement in a 28-day window against the preceding 28 days. Each date counts once across all distances and sports."},
 };

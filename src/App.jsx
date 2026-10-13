@@ -3138,6 +3138,9 @@ function getTierRequirementText(card, tier) {
   if (statKey === "stats.intelligence.progressiveOverloadEvents") {
     return `${threshold}+ events · +${xp} XP`;
   }
+  if (statKey === "stats.intelligence.personalBestDays") {
+    return `${threshold}+ PB days · +${xp} XP`;
+  }
 
   return `${threshold}+ · +${xp} XP`;
 }

@@ -44,3 +44,14 @@ it("can verify time-of-day from strength source timing without inventing strengt
   expect(evidence.verifiedStats.behaviour.earlyBirdSessions).toBe(1);
   expect(evidence.verifiedStats.lifts.totalSets).toBe(0);
 });
+it("shows the established PB's contributing date without verifying entered strength metrics",()=>{
+  const logs=[1,2,3,4].map(d=>({id:`log-${d}`,date_ymd:`2026-10-0${d}`,log:{blocks:[{id:'lift',typeId:'strength',movements:[{id:'squat'}],sets:{squat:[{weight:20,reps:d===4?11:10}]}}]}}));
+  const stats=buildBadgeStatsV2({allLogs:logs,todayYmd,isAdult:true});
+  const pb=BADGE_CARDS.find(c=>c.id==='personal_bests');
+  const state=performanceBadgeState(pb,stats.intelligence.personalBestDays);
+  const evidence=buildPerformanceEvidence({logs,data:{},todayYmd,isAdult:true});
+  const result=performanceEvidenceForCard(pb,state,evidence,stats);
+  expect(result.entries).toHaveLength(1);
+  expect(result.entries[0]).toMatchObject({date:'2026-10-04',verified:false});
+  expect(result.verified).toBe(false);
+});

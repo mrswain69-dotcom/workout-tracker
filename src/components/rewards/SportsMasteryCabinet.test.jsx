@@ -109,3 +109,15 @@ it("embeds a badge shelf without duplicating its disclosure heading", () => {
   expect(screen.queryByRole("heading")).toBeNull();
   expect(screen.getByRole("button",{name:"Details"})).toBeTruthy();
 });
+
+it.each(['personal_bests','progressive_overload','pace_improvement'])("explains %s only inside its Details popup",id=>{
+  const card=BADGE_CARDS.find(c=>c.id===id);
+  showPerformance(card,0);
+  expect(screen.queryByText('What this badge means')).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Details'}));
+  const dialog=screen.getByRole('dialog');
+  for(const label of ['What this badge means','What is measured','Which activities count','How it is calculated','Badge rewards'])
+    expect(within(dialog).getByText(label)).toBeTruthy();
+  if(id==='personal_bests')expect(within(dialog).getByText(/first three comparable recording dates/)).toBeTruthy();
+  if(id==='pace_improvement')expect(within(dialog).getByText(/For each supported sport and target distance/)).toBeTruthy();
+});
