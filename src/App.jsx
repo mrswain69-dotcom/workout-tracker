@@ -12737,7 +12737,7 @@ const cardioProgress = useMemo(() => {
       paceImprovementBestSport: badgeStats?.intelligence?.paceImprovementBestSport,
     },
   }) : card.desc;
-  const cabinet = <SportsMasteryCabinet key={`${activeProfileId}:${card.id}`} card={card} state={state}
+  const cabinet = <SportsMasteryCabinet embedded key={`${activeProfileId}:${card.id}`} card={card} state={state}
     claimedKeys={claimedRewardsSet} lastDate={badgeStats?.sportMastery?.[card.sportKey]?.lastDate}
     faceText={card.badgeGroup === "sport_mastery" ? getSportBadgeFaceText(card) : getBadgeFaceText(card)}
     requirementText={tier => getTierRequirementText(card, tier)} progressText={progressText}
@@ -12746,8 +12746,10 @@ const cardioProgress = useMemo(() => {
     onOpenLog={date=>{setSelectedDate(date);setTab("log");}}
     flash={card.tiers.some(tier => tier.key === lastClaimedKey) || card.starTiers?.some(tier=>tier.key===lastClaimedKey) || (card.sportKey && lastClaimedKey.startsWith(`badge_sport_${card.sportKey}_mastery_unreal_star_`))}
     onClaim={element => claimBadgeCabinet(card, element)} />;
-  return card.badgeGroup === "sport_mastery" ? <MasteryDisclosure key={`${activeProfileId}:${card.id}`} title={card.title}
-    subtitle={`${state.value} counted sessions`} status={state.currentTier?.tier || "Not started"} claimable={Boolean(state.nextClaimable)}>{cabinet}</MasteryDisclosure> : cabinet;
+  return <MasteryDisclosure badge key={`${activeProfileId}:${badgeView}:${card.id}`} title={card.title}
+    defaultExpanded={badgeView === "earned"} status={state.currentTier?.tier}
+    verified={card.badgeGroup !== "sport_mastery" && performanceEvidence && performanceEvidenceForCard(card,state,performanceEvidence,badgeStats).verified}
+    claimable={Boolean(state.nextClaimable)}>{cabinet}</MasteryDisclosure>;
 })}
           </div>
 

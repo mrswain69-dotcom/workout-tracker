@@ -5,14 +5,23 @@
 .masteryPrevious button{border-radius:5px}
 .masteryShelf{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
 .masteryCurrent,.masteryTarget{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0}
-.masteryBadgeArt{--trophy-size:clamp(90px,12vw,140px);display:block;position:relative;width:var(--trophy-size);height:calc(var(--trophy-size) + 10px);max-width:100%}
-.masteryBadgeShell{width:100%;height:var(--trophy-size);object-fit:contain;display:block}
-.masteryBadgeSport{position:absolute;top:30%;left:10%;width:80%;font-size:clamp(9px,1vw,12px);font-weight:900;line-height:1.05;color:rgba(255,255,255,.22);text-align:center;text-transform:uppercase;overflow-wrap:anywhere}
-.masteryBadgeIcon{position:absolute;left:21%;top:25%;width:58%;height:58%;object-fit:contain;filter:drop-shadow(0 4px 7px #0007)}
-.masteryBadgeTier{position:absolute;bottom:0;left:50%;transform:translateX(-50%);padding:2px 8px;border-radius:6px;background:#101827;color:#f7c85d;font-size:11px;font-weight:900;white-space:nowrap;text-transform:uppercase;line-height:1.2}
+.masteryBadgeArt{--trophy-size:clamp(90px,12vw,140px);display:block;position:relative;width:var(--trophy-size);aspect-ratio:1 / 1.12;max-width:100%}
+.masteryBadgeShell{width:100%;height:auto;aspect-ratio:1;object-fit:contain;display:block}
+.masteryBadgeSport{position:absolute;top:24%;left:20%;width:60%;max-height:26%;font-size:9px;font-weight:900;line-height:1.1;color:rgba(255,255,255,.35);text-align:center;text-transform:uppercase;overflow-wrap:anywhere;overflow:hidden}
+.masteryBadgeIcon{position:absolute;left:27%;top:43%;width:46%;height:38%;object-fit:contain;filter:drop-shadow(0 4px 7px #0007)}
+.badgeTierLabel{display:inline-block;padding:3px 8px;border-radius:6px;background:#101827;color:#f7c85d;font-family:inherit;font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;line-height:1.2;white-space:nowrap}
+.badgeTierLabel--bronze{color:#e5ae77}
+.badgeTierLabel--silver{color:#e1e8f0}
+.badgeTierLabel--platinum{color:#a8efff}
+.badgeTierLabel--diamond{color:#c5bdff}
+.badgeTierLabel--pro{color:#ffbcd5}
+.badgeTierLabel--champion{color:#ffdc85}
+.badgeTierLabel--unreal{color:#cbb0ff}
+.badgeTierLabel--locked{background:#e2e8f0;color:#64748b;letter-spacing:0}
+.masteryBadgeTier{position:absolute;bottom:0;left:50%;transform:translateX(-50%)}
 .masteryBadgeArt--muted{filter:grayscale(1);opacity:.42}
 .masteryBadgeArt--tiny{--trophy-size:32px;height:34px}
-.masteryBadgeArt--tiny .masteryBadgeIcon{top:23%}
+.masteryBadgeArt--tiny .masteryBadgeIcon{top:23%;left:21%;width:58%;height:58%}
 .masteryLocked{font-size:12px;color:var(--muted,#64748b);line-height:1.5}
 .masteryEmpty{height:calc(clamp(90px,12vw,140px) + 10px);display:flex;flex-direction:column;justify-content:center;text-align:center;color:var(--muted,#64748b);font-size:13px}
 .masteryEarnedStars{color:#d89d13;letter-spacing:2px;text-align:center;overflow-wrap:anywhere;font-size:19px;max-width:100%}
@@ -72,3 +81,17 @@
 .masteryEvidenceRow small{color:#cbd5e1}
 .masteryStarMilestone{position:relative}
 .masteryStarMilestone--locked strong{color:#94a3b8}
+
+.masteryDisclosure--badge{padding:14px!important}
+.masteryDisclosure--badge .masteryDisclosureToggle{font:inherit;align-items:center;gap:10px}
+.masteryDisclosureTitle{font-family:inherit;font-size:15px;font-weight:900;line-height:1.35}
+.masteryDisclosureSubtitle{font-size:12px;line-height:1.5;margin-top:4px;color:var(--muted,#64748b)}
+.masteryDisclosure--badge .masteryDisclosureHeading{flex:1}
+.masteryDisclosure--badge .masteryDisclosureStatus{gap:8px;color:inherit}
+.masteryDisclosure--badge .masteryDisclosureStatus>.badgeTierLabel{font-size:11px;min-width:0}
+.masteryDisclosure--badge .masteryDisclosureSymbol{font-size:22px}
+.masteryDisclosure--badge .masteryDisclosureContent{margin-top:14px;border-top:1px solid #dce5ef;padding-top:12px;min-width:0}
+.masteryCabinet.masteryCabinet--embedded{padding:0!important;border:0;background:transparent;box-shadow:none}
+.masteryCabinet--embedded .masteryArtButton{width:min(100%,140px)}
+.masteryCabinet--embedded .masteryArtButton .masteryBadgeArt{width:100%}
+@media(max-width:380px){.masteryDisclosure--badge .masteryDisclosureToggle{flex-wrap:wrap}.masteryDisclosure--badge .masteryDisclosureHeading{flex-basis:100%}.masteryDisclosure--badge .masteryDisclosureStatus{width:100%;max-width:none;justify-content:space-between}}

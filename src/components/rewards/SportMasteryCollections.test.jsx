@@ -56,3 +56,23 @@ it("explains an empty earned view and resets disclosure state for another profil
   result.rerender(<MasteryDisclosure key="profile-b" title="Golf" claimable={false}>Profile B</MasteryDisclosure>);
   expect(screen.queryByText("Profile B")).toBeNull();
 });
+
+it("badge views open Earned, collapse All including claimable badges, and keep manual toggles", () => {
+  const view = (tab, claimable) => <MasteryDisclosure key={tab} badge title="Strength Training Mastery"
+    status="platinum" defaultExpanded={tab === "earned"} claimable={claimable}><span>Badge shelf</span></MasteryDisclosure>;
+  const result = render(view("earned", false));
+  expect(screen.getByText("Badge shelf")).toBeTruthy();
+  expect(screen.getByText("Platinum").className).toContain("badgeTierLabel--platinum");
+  result.rerender(view("all", true));
+  expect(screen.queryByText("Badge shelf")).toBeNull();
+  result.rerender(view("all", false));
+  result.rerender(view("all", true));
+  expect(screen.queryByText("Badge shelf")).toBeNull();
+  const toggle = screen.getByRole("button", { name: /Strength Training Mastery/ });
+  fireEvent.click(toggle);
+  expect(screen.getByText("Badge shelf")).toBeTruthy();
+  fireEvent.click(toggle);
+  expect(screen.queryByText("Badge shelf")).toBeNull();
+  result.rerender(view("earned", true));
+  expect(screen.getByText("Badge shelf")).toBeTruthy();
+});
