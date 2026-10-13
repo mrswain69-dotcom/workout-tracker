@@ -1,0 +1,500 @@
+{
+  "scope": "read-only replay; all supplied records inspected, no historical awards changed",
+  "minimumHistoryDates": 3,
+  "comparisonWindow": {
+    "start": "2026-09-12",
+    "end": "2026-10-12",
+    "baselineHistory": "all available prior records; eligible matched baseline limited to 28 days"
+  },
+  "scoreBase": "production b0b9ab9018b40df33dd39adbc1b50fb1253ff043",
+  "scenarios": {
+    "current": "existing earned-XP engine",
+    "layoutOnly": "only strength/cardio/duration base aggregation substituted; category bonus once daily; walking factor per work; all other earned components unchanged",
+    "matchedPreview": "layoutOnly plus exploratory matched strength improvement using 2 * matchedSlots * relativeGain * 5, 100 ceiling; legacy cardio improvement and other components retained; NOT final whole-rule payout"
+  },
+  "assumptions": [
+    "Replay-local IDs preserve work under transformations, not proof of native deduplication",
+    "No automatic mobility/skills classification by name",
+    "Ordinal matching and legacy weight-unit identity are provisional, not certified",
+    "Current-plan task XP used by production scorer; dated task snapshots unavailable",
+    "Completion audit uses saved fields, not guaranteed immutable targets; no completion/streak changes applied",
+    "No overall daily cap applied; canonical cap/milestone policy requires calibration",
+    "Three profiles from one family are not population or physiological validation"
+  ],
+  "checks": {
+    "layoutChecks": 4320,
+    "nonemptyLayoutChecks": 2968,
+    "duplicateChecks": 540,
+    "omissionChecks": 63,
+    "preservationChecks": 540,
+    "pairedChecks": 216
+  },
+  "profiles": [
+    {
+      "alias": "A",
+      "totalRecords": 167,
+      "nativeBlockRecords": 164,
+      "comparisonDates": 15,
+      "activeBaseDates": 11,
+      "currentEarned": 695,
+      "layoutOnlyEarned": 670,
+      "layoutChangePct": -3.6,
+      "exploratoryMatchedEarned": 592,
+      "matchedChangePct": -14.8,
+      "currentStrengthImprovement": 80,
+      "exploratoryStrengthImprovement": 2,
+      "readiness": {
+        "recordedSets": 56,
+        "nativeStableSetIDs": 0,
+        "classifiedBlocks": 0,
+        "totalBlocks": 23,
+        "probedMovements": 19,
+        "eligibleUnderInferredProtocol": 1,
+        "improvedUnderInferredProtocol": 1,
+        "notEligibleReasons": {
+          "insufficient recent history": 18
+        },
+        "certifiedImprovementComparisons": 0
+      },
+      "completionAudit": {
+        "strictlyPartial": 7,
+        "currentlyGreenButMissingRequiredSets": 5,
+        "unknown": 7,
+        "provisionalComplete": 1,
+        "immutableSnapshotsCertified": 0
+      },
+      "unchangedEarnedComponents": {
+        "tasks": 0,
+        "dailyClaims": 75,
+        "streaks": 55,
+        "completion": 130,
+        "sessions": 0,
+        "recovery": 20,
+        "cardioImprovement": 40
+      },
+      "latest": {
+        "date": "2026-10-12",
+        "earnedCurrent": 91,
+        "layoutOnly": 91,
+        "matchedPreview": 63,
+        "currentBase": 36,
+        "revisedBase": 36,
+        "cancellationExcludedBase": 36,
+        "legacyStrengthImprovement": 30,
+        "exploratoryStrengthImprovement": 2,
+        "qualified": 1,
+        "legacyUnchangedComponents": 25,
+        "cosmeticXp": 0
+      },
+      "weekly": [
+        {
+          "week": "2026-09-14",
+          "current": 106,
+          "layoutOnly": 91,
+          "matchedPreview": 81
+        },
+        {
+          "week": "2026-09-21",
+          "current": 223,
+          "layoutOnly": 223,
+          "matchedPreview": 213
+        },
+        {
+          "week": "2026-09-28",
+          "current": 275,
+          "layoutOnly": 265,
+          "matchedPreview": 235
+        },
+        {
+          "week": "2026-10-12",
+          "current": 91,
+          "layoutOnly": 91,
+          "matchedPreview": 63
+        }
+      ],
+      "partitionEvidence": [
+        {
+          "date": "2026-10-12",
+          "sets": 12,
+          "oneBlockCurrent": 29,
+          "oneSetPerBlockCurrent": 84,
+          "revised": 29
+        },
+        {
+          "date": "2026-09-28",
+          "sets": 9,
+          "oneBlockCurrent": 23,
+          "oneSetPerBlockCurrent": 63,
+          "revised": 23
+        }
+      ]
+    },
+    {
+      "alias": "B",
+      "totalRecords": 167,
+      "nativeBlockRecords": 153,
+      "comparisonDates": 6,
+      "activeBaseDates": 5,
+      "currentEarned": 493,
+      "layoutOnlyEarned": 453,
+      "layoutChangePct": -8.1,
+      "exploratoryMatchedEarned": 423,
+      "matchedChangePct": -14.2,
+      "currentStrengthImprovement": 30,
+      "exploratoryStrengthImprovement": 0,
+      "readiness": {
+        "recordedSets": 69,
+        "nativeStableSetIDs": 0,
+        "classifiedBlocks": 0,
+        "totalBlocks": 31,
+        "probedMovements": 42,
+        "eligibleUnderInferredProtocol": 0,
+        "improvedUnderInferredProtocol": 0,
+        "notEligibleReasons": {
+          "insufficient recent history": 42
+        },
+        "certifiedImprovementComparisons": 0
+      },
+      "completionAudit": {
+        "strictlyPartial": 3,
+        "currentlyGreenButMissingRequiredSets": 1,
+        "unknown": 3,
+        "provisionalComplete": 0,
+        "immutableSnapshotsCertified": 0
+      },
+      "unchangedEarnedComponents": {
+        "tasks": 10,
+        "dailyClaims": 15,
+        "streaks": 10,
+        "completion": 40,
+        "sessions": 30,
+        "recovery": 0,
+        "cardioImprovement": 20
+      },
+      "latest": null,
+      "weekly": [
+        {
+          "week": "2026-09-21",
+          "current": 227,
+          "layoutOnly": 207,
+          "matchedPreview": 207
+        },
+        {
+          "week": "2026-09-28",
+          "current": 256,
+          "layoutOnly": 236,
+          "matchedPreview": 206
+        },
+        {
+          "week": "2026-10-05",
+          "current": 10,
+          "layoutOnly": 10,
+          "matchedPreview": 10
+        }
+      ],
+      "partitionEvidence": [
+        {
+          "date": "2026-09-21",
+          "sets": 10,
+          "oneBlockCurrent": 25,
+          "oneSetPerBlockCurrent": 70,
+          "revised": 25
+        },
+        {
+          "date": "2026-09-28",
+          "sets": 10,
+          "oneBlockCurrent": 25,
+          "oneSetPerBlockCurrent": 70,
+          "revised": 25
+        }
+      ]
+    },
+    {
+      "alias": "C",
+      "totalRecords": 206,
+      "nativeBlockRecords": 191,
+      "comparisonDates": 20,
+      "activeBaseDates": 16,
+      "currentEarned": 1563,
+      "layoutOnlyEarned": 1438,
+      "layoutChangePct": -8,
+      "exploratoryMatchedEarned": 1154,
+      "matchedChangePct": -26.2,
+      "currentStrengthImprovement": 310,
+      "exploratoryStrengthImprovement": 26,
+      "readiness": {
+        "recordedSets": 233,
+        "nativeStableSetIDs": 0,
+        "classifiedBlocks": 0,
+        "totalBlocks": 98,
+        "probedMovements": 145,
+        "eligibleUnderInferredProtocol": 19,
+        "improvedUnderInferredProtocol": 10,
+        "notEligibleReasons": {
+          "insufficient recent history": 126
+        },
+        "certifiedImprovementComparisons": 0
+      },
+      "completionAudit": {
+        "strictlyPartial": 7,
+        "currentlyGreenButMissingRequiredSets": 3,
+        "unknown": 13,
+        "provisionalComplete": 0,
+        "immutableSnapshotsCertified": 0
+      },
+      "unchangedEarnedComponents": {
+        "tasks": 40,
+        "dailyClaims": 15,
+        "streaks": 25,
+        "completion": 110,
+        "sessions": 40,
+        "recovery": 10,
+        "cardioImprovement": 80
+      },
+      "latest": {
+        "date": "2026-10-12",
+        "earnedCurrent": 255,
+        "layoutOnly": 235,
+        "matchedPreview": 111,
+        "currentBase": 105,
+        "revisedBase": 85,
+        "cancellationExcludedBase": 85,
+        "legacyStrengthImprovement": 150,
+        "exploratoryStrengthImprovement": 26,
+        "qualified": 19,
+        "legacyUnchangedComponents": 0,
+        "cosmeticXp": 500
+      },
+      "weekly": [
+        {
+          "week": "2026-09-14",
+          "current": 78,
+          "layoutOnly": 78,
+          "matchedPreview": 78
+        },
+        {
+          "week": "2026-09-21",
+          "current": 271,
+          "layoutOnly": 231,
+          "matchedPreview": 231
+        },
+        {
+          "week": "2026-09-28",
+          "current": 444,
+          "layoutOnly": 399,
+          "matchedPreview": 339
+        },
+        {
+          "week": "2026-10-05",
+          "current": 515,
+          "layoutOnly": 495,
+          "matchedPreview": 395
+        },
+        {
+          "week": "2026-10-12",
+          "current": 255,
+          "layoutOnly": 235,
+          "matchedPreview": 111
+        }
+      ],
+      "partitionEvidence": [
+        {
+          "date": "2026-09-16",
+          "sets": 14,
+          "oneBlockCurrent": 33,
+          "oneSetPerBlockCurrent": 98,
+          "revised": 33
+        },
+        {
+          "date": "2026-10-05",
+          "sets": 12,
+          "oneBlockCurrent": 29,
+          "oneSetPerBlockCurrent": 84,
+          "revised": 29
+        }
+      ]
+    }
+  ],
+  "weeklyRankings": [
+    {
+      "week": "2026-09-14",
+      "current": [
+        {
+          "alias": "A",
+          "xp": 106
+        },
+        {
+          "alias": "C",
+          "xp": 78
+        },
+        {
+          "alias": "B",
+          "xp": 0
+        }
+      ],
+      "layoutOnly": [
+        {
+          "alias": "A",
+          "xp": 91
+        },
+        {
+          "alias": "C",
+          "xp": 78
+        },
+        {
+          "alias": "B",
+          "xp": 0
+        }
+      ],
+      "matchedPreview": [
+        {
+          "alias": "A",
+          "xp": 81
+        },
+        {
+          "alias": "C",
+          "xp": 78
+        },
+        {
+          "alias": "B",
+          "xp": 0
+        }
+      ]
+    },
+    {
+      "week": "2026-09-21",
+      "current": [
+        {
+          "alias": "C",
+          "xp": 271
+        },
+        {
+          "alias": "B",
+          "xp": 227
+        },
+        {
+          "alias": "A",
+          "xp": 223
+        }
+      ],
+      "layoutOnly": [
+        {
+          "alias": "C",
+          "xp": 231
+        },
+        {
+          "alias": "A",
+          "xp": 223
+        },
+        {
+          "alias": "B",
+          "xp": 207
+        }
+      ],
+      "matchedPreview": [
+        {
+          "alias": "C",
+          "xp": 231
+        },
+        {
+          "alias": "A",
+          "xp": 213
+        },
+        {
+          "alias": "B",
+          "xp": 207
+        }
+      ]
+    },
+    {
+      "week": "2026-09-28",
+      "current": [
+        {
+          "alias": "C",
+          "xp": 444
+        },
+        {
+          "alias": "A",
+          "xp": 275
+        },
+        {
+          "alias": "B",
+          "xp": 256
+        }
+      ],
+      "layoutOnly": [
+        {
+          "alias": "C",
+          "xp": 399
+        },
+        {
+          "alias": "A",
+          "xp": 265
+        },
+        {
+          "alias": "B",
+          "xp": 236
+        }
+      ],
+      "matchedPreview": [
+        {
+          "alias": "C",
+          "xp": 339
+        },
+        {
+          "alias": "A",
+          "xp": 235
+        },
+        {
+          "alias": "B",
+          "xp": 206
+        }
+      ]
+    },
+    {
+      "week": "2026-10-05",
+      "current": [
+        {
+          "alias": "C",
+          "xp": 515
+        },
+        {
+          "alias": "B",
+          "xp": 10
+        },
+        {
+          "alias": "A",
+          "xp": 0
+        }
+      ],
+      "layoutOnly": [
+        {
+          "alias": "C",
+          "xp": 495
+        },
+        {
+          "alias": "B",
+          "xp": 10
+        },
+        {
+          "alias": "A",
+          "xp": 0
+        }
+      ],
+      "matchedPreview": [
+        {
+          "alias": "C",
+          "xp": 395
+        },
+        {
+          "alias": "B",
+          "xp": 10
+        },
+        {
+          "alias": "A",
+          "xp": 0
+        }
+      ]
+    }
+  ]
+}

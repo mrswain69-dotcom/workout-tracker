@@ -4,7 +4,65 @@
 
 This recommendation supersedes the separate competition-economy recommendation in `research/scoring/README.md` and the earlier PDF. Existing group rankings already use earned XP and exclude cosmetic reward XP. Keep that architecture.
 
-## Latest revision checks against the supplied specifications
+## Actual-log comparison and revised baseline recommendation
+
+13 October 2026. Queried all 540 saved records for the three relevant family profiles read-only (167 / 167 / 206), recovered the research branch, and verified that the current main XP source remains at production base `b0b9ab9018b40df33dd39adbc1b50fb1253ff043`. No new scoring was activated. Group history scope begins 12 September 2026; the primary comparison uses 12 September through 12 October, with all prior records available for history and matched probes limited to 28 days. Schedule snapshots are passed exactly as the group backend does. Aliases A/B/C are used in saved aggregate reports; raw profiles, plans, notes, movement names and log payloads are not committed.
+
+### What was compared
+
+`actual-replay.mjs` adapts actual recorded strength/cardio/duration work to the revised aggregation contracts. It retains strength-format holds as strength when explicit mobility classification is absent; it does not classify by movement name. One trace identity per original entry makes the transformations reproducible; these are replay-local identities, not newly certified or persisted set IDs. The existing scorer counts all retained strength set data, including orphan movement IDs; the adapter does the same for base scoring. Cancellation exclusion is a separate sensitivity, so it is not hidden in an aggregation-only result.
+
+There are three scenarios: the existing earned-XP engine; aggregation only (base strength/cardio/duration categories changed, other components unchanged); and an exploratory matched-strength-improvement preview. The exploratory preview uses the provisional weighted scale from the earlier lab, rejects dropped weaker slots, compares repetitions at fixed load or load at fixed repetitions, and uses only the best qualifying probe rather than stacking both. Missing ordinal entries are not renumbered. Recorded hold times have a separate probe. Unit identity and positional set matching remain assumptions because legacy logs do not certify them. Cardio improvement, Session awards, recovery, tasks, daily claims, completion and streaks remain legacy in these preview totals. No overall daily cap or revised completion policy is applied. These are isolated experiments, not final all-rule competitive scores.
+
+### Actual earning effects
+
+| Profile alias | Current earned XP in comparison period | Aggregation only | Change | Exploratory matched preview with one prior comparable date |
+| --- | ---: | ---: | ---: | ---: |
+| A | 695 | 670 | -3.6% | 602 |
+| B | 493 | 453 | -8.1% | 429 |
+| C | 1,563 | 1,438 | -8.0% | 1,189 |
+
+On 12 October, current / aggregation-only / exploratory one-prior-date totals are 91 / 91 / 69 for A and 255 / 235 / 130 for C. C's 500 cosmetic bonus XP stays excluded from each earned-XP comparison. Neither exploratory result is a promised award. These figures differ from earlier previews because the newer experiment substitutes only defined components and uses matched metric probes rather than the mixed-unit average `scoreSets` formula.
+
+### What is proven about layout
+
+The full-history replay passes 4,320 layout transformations; 2,968 are on nonempty base-activity dates (371 dates), the rest are empty controls. It also passes 540 replay deduplication checks, 540 historical-row preservation checks and 63 omission checks on eligible inferred comparisons. The deduplication checks preserve replay identities; they cannot prove that existing logs natively deduplicate imported or copied work.
+
+For 216 actual strength blocks with multiple logged sets, an isolated current-engine replay compares the same work in one block with the same intact sets distributed across separate blocks. It confirms the existing component rises solely due to five-XP block awards. For example, 12 unchanged sets give 29 versus 84 strength XP under the current engine; the revised aggregate is 29 in either layout. This is the **strength component**, not whole-day earned XP. The aggregation prototype also eliminates cardio/duration partition and rounding advantages without changing the actual recorded distance or duration.
+
+This demonstrates removal of specific representational biases. It does not prove equal physiological effort between workouts, fairness of every rate, truthful set reporting, or fairness of a changed weekly winner.
+
+### Baseline sensitivity changes the recommendation
+
+| Minimum prior comparable dates | A eligible movement comparisons | B eligible movement comparisons | C eligible movement comparisons |
+| --- | ---: | ---: | ---: |
+| 1 | 8 / 19 | 14 / 42 | 84 / 145 |
+| 2 | 2 / 19 | 0 / 42 | 39 / 145 |
+| 3 | 1 / 19 | 0 / 42 | 19 / 145 |
+
+All three-date rejections in this comparison arise from insufficient recent **matching** history. This includes changed protocols and sparse/new-plan identities; it is not equivalent to saying those users had no previous training. The three-date gate systematically favors repeated stable plans and should not be the sole gateway to every improvement award. A two-date gate still leaves B with zero eligibility. The one-date variant passes the same omission protection used by the three-date variant, although this does not establish full resistance to manipulated baselines.
+
+Revised recommendation: allow modest, work-weighted **beat-last-comparable-workout** recognition after one genuine prior comparable date; require sufficient multi-date evidence for a **rolling-baseline** award. Do not stack the same underlying gain twice. New work without comparable history earns base activity XP. Exact tier scales, baselines and caps still require calibration. This remains one shared earned-XP economy, not a separate competition currency. Canonical movement/protocol IDs should preserve comparability across copied/new plans where the exercise genuinely stays the same, without matching unrelated exercises by name.
+
+### Completion and data readiness
+
+Within the group-period sample, nine currently green dates still have fewer logged required sets than the saved movement set counts (A 5, B 1, C 3). This is a provisional count audit: saved requirements can themselves have changed or been adjusted, so it is not proof those users failed their workouts. Other days remain unknown because cardio targets are text, Session completion is a flag, recovery eligibility needs existing policy, or cancelled work lacks an immutable adjustment record. No streak or completion award was removed.
+
+The compared logs contain 358 performed strength sets and 152 recorded blocks: zero native stable set IDs and zero explicit `activityPurpose` classifications. The input also lacks certified immutable per-set/protocol targets. There are therefore zero **certified** improvement comparisons, even where the exploratory adapter finds plausible matches. Full rules cannot safely reinterpret historical logs as if those fields had always existed. Explicit capture and snapshot integration must precede final score activation.
+
+### Historical group-table check
+
+Read the existing frozen group weekly results and compare their highest saved score version with a current-log/current-engine replay. Six of fifteen saved member-week rows differ; some were frozen under earlier score versions, and current records can also have been edited after the result froze. This diagnostic does not identify an app defect or establish a new winner. Saved historical standings remain authoritative and were not modified. Weekly rankings in `actual-results.json` compare scenarios applied to the **same current logs**, not replacements for frozen results. A layout-only reranking of the week beginning 21 September illustrates possible sensitivity; it is not evidence that a past placement was unfair.
+
+### Validation and next implementation step
+
+90 research tests plus 17 existing XP/integration/streak tests pass (107 total). The actual replay additionally runs the data-level assertions above. Ten new adapter tests check orphan sets, cancellation isolation, suspended recovery, missing ordinal slots, changed load protocols, input immutability, privacy of report output, component decomposition, known example scores and history sensitivity. Existing diagnostic tests still assert known flaws and must not be described as full fairness acceptance.
+
+The evidence now supports implementing daily aggregation and trusted identity/classification capture, followed by a two-tier comparison experiment (last comparable workout / rolling baseline). Keep base earning rates stable initially, preserve historical awards and frozen standings, standardize task/daily/streak eligibility, and reconcile the specification's cap/milestone policy before activating a final formula. Genuine extra work should still earn XP; smaller totals alone are not a fairness target. Tests using this one family's logs establish concrete layout behavior, not universal competitive balance.
+
+Reproduce the private replay with `node research/xp-economy/actual-replay.mjs /path/to/private-profiles.json /path/to/aggregate-results.json`. Pass `scheduleSnapshots` alongside each profile's `plan_json` and `records`. Raw input is intentionally not included in the repository. Committed aggregate outputs are `actual-results.json`, `history-sensitivity.json` and `frozen-comparison.json`.
+
+## Earlier revision checks against the supplied specifications
 
 Added research-only contracts in `revision-rules.mjs` and 49 new checks in `revision.checks.mjs`. These operate on normalized facts with trusted IDs, protocol and unit metadata, and saved target snapshots. They are **not integrated into the live log format**, nor a calibrated replacement XP formula. There are 80 research checks plus 17 existing XP/integration/streak checks passing (97 total). The older exposure checks deliberately assert known flaws; their success is not acceptance of the old candidate.
 
