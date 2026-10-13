@@ -72,13 +72,14 @@ export function performanceEvidenceForCard(card,state,evidence,stats) {
   const target=state.stars?card.starTiers[state.stars-1]:state.currentTier;
   const path=target?.statKey||card.statKey;
   const specialDates=path==="stats.sessions.strengthTrainingDays"?stats?.sessions?.strengthTrainingDates:
+    path==="stats.intelligence.personalBestDays"?stats?.intelligence?.personalBestDates:
     path==="stats.intelligence.paceImprovementDays"?stats?.intelligence?.paceImprovementDates:
     path==="stats.intelligence.progressiveOverloadEvents"?stats?.intelligence?.overloadDates:
     path==="stats.intelligence.paceImprovementBestPct"?stats?.intelligence?.paceImprovementDates:null;
   const entries=evidence.daily.filter(day=>specialDates?specialDates.includes(day.date):
     card.comparator==="lte"? target && isPerformanceTierEarned(card,target,performanceStat(day.stats,path)) : Number(performanceStat(day.stats,path))>0)
     .map(day=>({date:day.date,value:specialDates?null:performanceStat(day.stats,path),sources:day.sources,
-      verified:specialDates?path.includes("paceImprovement")&&(evidence.verifiedStats.intelligence?.paceImprovementDates||[]).includes(day.date):card.comparator==="lte"?!!target&&isPerformanceTierEarned(card,target,performanceStat(day.verifiedStats,path)):
+      verified:specialDates?(path.includes("paceImprovement")&&(evidence.verifiedStats.intelligence?.paceImprovementDates||[]).includes(day.date))||(path.includes("personalBest")&&(evidence.verifiedStats.intelligence?.personalBestDates||[]).includes(day.date)):card.comparator==="lte"?!!target&&isPerformanceTierEarned(card,target,performanceStat(day.verifiedStats,path)):
         Number(performanceStat(day.verifiedStats,path))>=Number(performanceStat(day.stats,path))&&Number(performanceStat(day.stats,path))>0}));
-  return {verified:!!target&&verifiedKeys.has(target.key),verifiedKeys,entries:entries.sort((a,b)=>b.date.localeCompare(a.date)),supportsMeasuredVerification:!path.includes("lifts.")&&!path.includes("sessions.")&&!path.includes("progressiveOverload")};
+  return {verified:!!target&&verifiedKeys.has(target.key),verifiedKeys,entries:entries.sort((a,b)=>b.date.localeCompare(a.date)),supportsMeasuredVerification:!path.includes("lifts.")&&!path.includes("sessions.")&&!path.includes("progressiveOverload")&&!path.includes("personalBest")};
 }

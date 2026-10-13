@@ -685,6 +685,20 @@ const SPORT_PACKS = {
   );
 }
 
+// Established personal-best days; initial attempts establish the benchmark.
+{
+  const idPrefix = "badge_personal_bests";
+  const title = "Personal Bests";
+  const desc = "Beat an established PB on distinct training days";
+  const family = "intelligence";
+  const iconFile = "icon_crown.png";
+  const tiers = [1,3,5,10,25].map((threshold,index)=>({tier:TIERS[index],threshold,xp:[25,35,45,60,80][index],hidden:index===1||index===3||index===4}));
+  const { tierDefs, tierRules } = makeTierDefs({idPrefix,title,desc,family,iconFile,tiers});
+  addCard({id:"personal_bests",title,desc,family,iconFile,statKey:"stats.intelligence.personalBestDays",comparator:COMPARATOR.GTE,tiers:tierRules,
+    getProgressText:({value,nextTier})=>{const v=Math.floor(safeNum(value));return nextTier?`${v} PB days — ${Math.max(0,nextTier.threshold-v)} more to reach ${nextTier.tier.toUpperCase()} and +${nextTier.xp} XP.`:`Established PB days: ${v}.`;}
+  },tierDefs);
+}
+
 // 14) Progressive Overload Detected
 {
   const idPrefix = "badge_overload";

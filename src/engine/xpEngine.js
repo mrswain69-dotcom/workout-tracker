@@ -1,7 +1,13 @@
 import { BADGE_XP_BY_KEY } from "./xpRewardMap.generated.js";
 import { buildWorkoutStreakSeries } from "./workoutStreakEngine.js";
 
-export const XP_ENGINE_SCORE_VERSION = 3;
+import { revisedActivityXp } from "./xpActivityRules.js";
+import { buildProgressionXpByDate } from "./xpProgressionEngine.js";
+import { buildPersonalBestBadgeStats } from "./personalBestBadgeEngine.js";
+import { XP_RULES_ACTIVATION_DATE, XP_PROGRESSION_RULES, xpRuleVersionForDate } from "./xpRuleVersions.js";
+export { XP_RULES_ACTIVATION_DATE, XP_PROGRESSION_RULES, xpRuleVersionForDate } from "./xpRuleVersions.js";
+
+export const XP_ENGINE_SCORE_VERSION = 4;
 export const SESSION_COMPLETION_XP = 10;
 
 export const XP_RULES = Object.freeze({
@@ -378,7 +384,11 @@ function computeStreakBonusMap(records, plan, options = {}) {
 }
 
 export function buildXpDebugRows(inputRecords, plan, options = {}) {
-  const records = normaliseXpRecords(inputRecords);
+  const records = normaliseXpRecords(inputRecords).filter(row =>
+    !options.todayYmd || row.date_ymd < XP_RULES_ACTIVATION_DATE || row.date_ymd <= options.todayYmd);
+  const hasRevisedDays = records.some(row => row.date_ymd >= XP_RULES_ACTIVATION_DATE);
+  const progressionByDate = hasRevisedDays ? buildProgressionXpByDate(records) : new Map();
+  const personalBestDates = new Set(hasRevisedDays ? buildPersonalBestBadgeStats(records, options.todayYmd).personalBestDates : []);
   const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(plan);
   const groupChallengeXpByDate = computeGroupChallengeRewardsXpByDate(plan);
   if (!records.length && !Object.keys(claimedBadgeXpByDate).length && !Object.keys(groupChallengeXpByDate).length) return [];
@@ -504,17 +514,34 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
     const streakXp = streakXpByDate[date] || 0;
     const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
     const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;
+    let personalBestXp = 0;
+    let progressionDetails = [];
+    let progressionWins = progressCount + Number(cardioProgressXp > 0);
+    let categoryBonuses = null;
+    const ruleVersion = xpRuleVersionForDate(date);
+    if (ruleVersion === 4) {
+      const activity = revisedActivityXp(log);
+      ({strengthXp, cardioXp, durationXp, sessionXp, recoveryXp, setsXp, setsLogged, cardioKm, customMin, cardioMode, categoryBonuses} = activity);
+      const progression = progressionByDate.get(date);
+      ({strengthProgressXp, cardioProgressXp, strengthComparableCount, cardioComparable, progressionDetails, progressionWins} = progression);
+      personalBestXp = personalBestDates.has(date) ? XP_PROGRESSION_RULES.personalBestDaily : 0;
+    }
     const nonBonusXp = strengthXp + cardioXp + durationXp + sessionXp + recoveryXp + tasksXp + dayCompleteXp;
     const progXp = strengthProgressXp + cardioProgressXp;
-    const earnedXp = nonBonusXp + progXp + streakXp + dailyBonusXp;
+    const earnedXp = nonBonusXp + progXp + personalBestXp + streakXp + dailyBonusXp;
     const bonusXp = badgeClaimXp;
     const totalXp = earnedXp + bonusXp;
-    const progressComparableCount = strengthComparableCount + (cardioComparable ? 1 : 0);
+    const progressComparableCount = ruleVersion === 4 ? progressionByDate.get(date).progressComparableCount : strengthComparableCount + (cardioComparable ? 1 : 0);
 
     rows.push({
       date,
       weekday,
       kind: "blocks",
+      ruleVersion,
+      personalBestXp,
+      progressionDetails,
+      progressionWins,
+      categoryBonuses,
       complete,
       totalXp,
       earnedXp,
@@ -650,6 +677,7 @@ export function buildXpDebugRows(inputRecords, plan, options = {}) {
   let runningEarned = rows.reduce((sum, row) => sum + safeNumber(row.earnedXp), 0);
   let runningBonus = rows.reduce((sum, row) => sum + safeNumber(row.bonusXp), 0);
   for (const row of rows) {
+    row.ruleVersion = xpRuleVersionForDate(row.date);
     row.runningTotalXp = running;
     row.runningEarnedXp = runningEarned;
     row.runningBonusXp = runningBonus;

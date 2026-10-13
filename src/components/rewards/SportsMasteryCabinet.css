@@ -97,3 +97,8 @@
 @media(max-width:380px){.masteryDisclosure--badge .masteryDisclosureToggle{grid-template-columns:minmax(0,1fr)}.masteryDisclosure--badge .masteryDisclosureStatus{width:100%;max-width:none;justify-content:space-between}}
 
 .masteryDisclosureStatus>.badgeTierLabel{font-size:9px;min-width:0;padding:3px 5px;letter-spacing:.02em}
+/* Explanations remain in Details so the badge shelf stays compact. */
+.masteryExplanation{margin-top:20px;padding-top:16px;border-top:1px solid var(--border,#dbe3ec)}
+.masteryExplanation dl{margin:12px 0;line-height:1.6;overflow-wrap:anywhere}
+.masteryExplanation dt{font-weight:750;margin-top:12px}
+.masteryExplanation dd{margin:3px 0 0;color:var(--text,#334155)}

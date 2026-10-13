@@ -4,6 +4,7 @@ import {
   sessionBlockIsComplete,
 } from "./sessionCore.js";
 import { profileRecoveryBlockComplete } from "./recoveryModeEngine.js";
+import { buildPersonalBestBadgeStats } from "./personalBestBadgeEngine.js";
 
 //
 // Builds stats used by badges.js.
@@ -1290,6 +1291,7 @@ if (latestHour != null && latestHour >= nightCutoffHour) {
     cardio,
     sportMastery,
         intelligence: {
+      ...buildPersonalBestBadgeStats(rows, today),
       progressiveOverloadEvents,
       overloadDates: [...overloadDates].sort(),
 
