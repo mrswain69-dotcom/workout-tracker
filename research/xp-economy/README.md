@@ -4,7 +4,67 @@
 
 This recommendation supersedes the separate competition-economy recommendation in `research/scoring/README.md` and the earlier PDF. Existing group rankings already use earned XP and exclude cosmetic reward XP. Keep that architecture.
 
-## Actual-log comparison and revised baseline recommendation
+## Explainable plan-first policy experiments
+
+User direction: reward following an appropriate self-chosen plan, habits and personal progression; extra work can help, but should not dominate or require changing training purely to earn XP. XP rules must be visible and easy to explain.
+
+Added `simple-plan.mjs`, 55 tests in `simple-plan.checks.mjs`, and `simple-plan-results.json`. These simulate explicit accepted plans, completion fractions, actual durations and qualified progression facts. They do not claim to derive those facts reliably from legacy logs. All 145 research tests and 17 existing production XP/integration/streak checks pass (162 total), including diagnostic tests intentionally demonstrating unresolved weaknesses. Two new partition sweeps each check 120 activity layouts.
+
+### Compared policies
+
+Five policies were simulated: fixed daily plan rewards of 60 or 40, an unrestricted 180-XP weekly adherence allowance, a guarded weekly allowance of 180 with 60/60 progress/activity caps, and a guarded higher-pacing version with up to 300 plan XP and 100/100 progress/activity caps. The daily policies give more plan XP solely for having more planned days. The unguarded weekly allowance gives a one-minute one-day token plan 180 adherence XP; this is unacceptable as a default.
+
+The guarded higher-pacing version is the strongest candidate **for another policy/capture trial**, not a production-ready scoring engine. Its entire earning schedule can be shown in a small table:
+
+| Component | Trial visible rule | Limit |
+| --- | --- | --- |
+| Follow the accepted plan | One planned training day makes 100 adherence XP available; two make 200; three or more make 300, divided across the scheduled days. Earn the completed fraction. | 300/week |
+| Personal progress | 10 for beating last comparable workout; 20 for beating the rolling baseline; 30 for a new established lifetime best. Apply only the highest qualifying tier that day. | 100/week |
+| Recorded activity | First 30 minutes: up to 10 XP; next 30: up to 5; next 60: up to 5. Proportionate credit within each band. Planned work and extras consume the same daily allowance. | 20/day, 100/week |
+
+All figures are hypothetical calibration values. At most 500 earned XP/week is available in the higher-pacing trial, with adherence 60% of the maximum budget. In these rules a one-day schedule can earn at most 150 in that day, below the existing specification's 250 absolute daily limit. Lifetime earned XP does not reset when the weekly allowance renews. The prototypes omit current daily claims, tasks and streak XP from candidate earned totals; those cannot be silently added outside the new budgets. Recovery, illness, approved schedule changes and streak treatment remain explicit integration/policy work. Existing awarded totals, badges, avatar claims and frozen results are untouched.
+
+Guard against token plans: the trial prorates adherence below **10 actual planned-work minutes**; e.g. one minute earns at most 10% of its available daily adherence award. Unplanned extra activity cannot fill this guard. Ten minutes is an arbitrary product-test parameter, not a health recommendation or a settled universal minimum. Short rehab and legitimate short habit plans need an accepted alternative path. The prototype requires a trusted link between activity and required planned work, not a user-editable flag in production. A manual actual-duration entry is possible; no mandatory timer or wearable advantage is implied.
+
+### Representative simulated results
+
+All examples below fully complete their hypothetical accepted weekly plans, have adequate planned activity duration, and receive **no progression awards**:
+
+| Scenario | Trial weekly XP |
+| --- | ---: |
+| Three days with dog walk, run, mobility and weights; 140 minutes/day | 360 |
+| Five gym days; 90 minutes/day | 387.5 |
+| Five gym days plus rugby training on one gym day and a match on a sixth day | 400 |
+| Three one-hour pool sessions and three separate one-hour gardening sessions | 390 |
+| Three one-hour planned workouts | 345 |
+| Five one-hour planned workouts | 375 |
+
+The close scores are a consequence of the declared plan allowance and activity limits, not evidence of equivalent physical effort. Purposeful extra work still contributes: a 60-minute day earns 15 activity XP; extending it to 90 minutes adds 2.5. Beyond 120 minutes that day, more work remains in the history but earns no additional activity XP. Changing the order of gym, walk or other blocks does not change the score. A separate new block receives no fresh full-rate allowance.
+
+A three-day one-hour plan with verified-in-the-fixture rolling-baseline improvement on each day earns 405, while five unchanged 90-minute gym days earn 387.5. This checks the intended direction of incentives; the test passes trusted improvement facts and does not implement physiological improvement detection. An unplanned seven-day grind with maximum qualified progress earns at most 200, below a fully completed three-day one-hour plan's 345. Current pure set/block counts do not enter these scores, so two substantial sets versus twenty shorter sets with identical trusted completion and actual duration receive equal XP. That invariance is conditional on truthful completion/time; it does not certify how to derive those inputs.
+
+### What is successfully bounded
+
+Tests cover block and set-count invariance, daily accumulation before diminishing returns, activity order, extra-flag bypass, no per-block rounding awards, source replay on the same or a different date, conflicting planned/extra labels, weekly progress and activity ceilings, non-stacking improvement tiers, missing prior history, no award for merely repeating a record, accepted snapshots, partial completion, invalid input and input immutability. Existing effort after the reward limit still appears in history.
+
+### Remaining exploits and product tradeoffs
+
+The tests intentionally reproduce these issues. Passing them is diagnostic evidence, not a claim that the system is cheat-proof:
+
+* Reducing future commitments from five days to three while doing the same three workouts raises adherence XP from 180 to 300 in the higher version. The accepted snapshot prevents editing away missed days retrospectively, but cannot alone judge whether a prospective easier plan is appropriate. Personalized plan acceptance and meaningful goals are the main unresolved fairness gate.
+* The ten-minute guard prevents one-minute token plans receiving full XP, but a genuinely completed modest ten-minute plan still receives the same adherence award as a longer appropriate plan. This reflects adherence-first scoring, not fitness ranking. Arbitrary self-approved plans can still exploit that distinction.
+* Identical minutes spread across two days can earn more activity XP than on one day (120 minutes in one day = 20; two 60-minute days = 30). The weekly cap bounds the difference. This deliberately supports regular activity, but means schedule layout still matters across days. If total weekly work must have identical activity XP regardless of schedule, the activity bands should run weekly instead; that is a different policy choice.
+* Distinct IDs for the same manual/wearable activity can double count it. Source-ID deduplication alone cannot detect overlapping time or duplicate observations; the capture adapter needs activity matching and interval reconciliation.
+* A small easy movement's claimed PR could unlock the same daily progress tier as substantial improvement. Qualifying progression must be grounded in comparable meaningful work and accepted goals, rather than any improved label. No genuine-work threshold for that is settled here.
+* Universal minutes are transparent, but do not equalize walking, swimming, weights or gardening physiologically. Estimated programme duration cannot be substituted for recorded actual activity. Choosing time as a bounded secondary component deliberately limits that approximation's impact; still confirm that users accept the recording burden.
+
+### Reward pacing
+
+In the higher-pacing no-progress examples, 345–400 earned XP/week makes a 1,000 XP gap about 2.5–2.9 weeks, a 2,000 gap about 5.0–5.8 weeks, and a 5,000 gap about 12.5–14.5 weeks. At the 500 maximum, those gaps take 2, 4 and 10 weeks. These calculations use sustained hypothetical rates without cosmetic badge bonuses, existing balances or interruptions. They are not forecasts for Paul/Wilf/Xander. A journey from zero to 120,000 at 390/week would take about 308 weeks before other reward sources, so long-horizon pacing needs deliberate review. Existing avatar thresholds remain the authority and were not changed.
+
+The next recommended experiment is to validate trusted plan completion, appropriate prospective plan changes and meaningful progression qualification, then compare the 180/60/60 versus 300/100/100 budgets against real captured weeks and desired reward intervals. The weekly plan structure offers clearer control than per-set/per-block XP. It still needs these gates before release. Keep the shared earned-XP economy and show the weekly budget and each applied band/tier in the user's breakdown.
+
+## Earlier actual-log comparison and revised baseline recommendation
 
 13 October 2026. Queried all 540 saved records for the three relevant family profiles read-only (167 / 167 / 206), recovered the research branch, and verified that the current main XP source remains at production base `b0b9ab9018b40df33dd39adbc1b50fb1253ff043`. No new scoring was activated. Group history scope begins 12 September 2026; the primary comparison uses 12 September through 12 October, with all prior records available for history and matched probes limited to 28 days. Schedule snapshots are passed exactly as the group backend does. Aliases A/B/C are used in saved aggregate reports; raw profiles, plans, notes, movement names and log payloads are not committed.
 
