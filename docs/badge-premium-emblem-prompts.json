@@ -1,0 +1,21 @@
+{
+  "mode": "Built-in image_gen",
+  "styleReferences": [
+    "public/badges/icons/icon_volume.png",
+    "public/badges/icons/icon_swim_750m.png"
+  ],
+  "sharedPrompt": "Use case: stylized-concept. Create exactly ONE standalone sport achievement ICON asset. Match the polished detailed dimensional game-emblem illustration of the reference images: strong 3D shading, crisp specular metal, believable texture, deep shadows, controlled electric cyan highlights. Main equipment dominates and reads at 64px. Square centered composition with 12% safe transparent margin. True transparent background. No words, numbers, logos, watermark, badge shell, hexagon or outer frame. Not flat vector graphics, thin line art or stick figures. Subject: ",
+  "subjects": {
+    "boxing": "A pair of substantial black and deep crimson boxing gloves, realistic padded leather panels, chrome wrist trim, one forward-facing glove and the other turned in three-quarter perspective, compact electric cyan energy ribbon beneath, no hands or people.",
+    "pilates": "A compact premium Pilates reformer carriage viewed three-quarter perspective with clearly visible padded platform, springs and footbar, accompanied by a curved metallic Pilates resistance ring; polished dark steel and teal padding, compact balanced emblem silhouette, no person.",
+    "dance": "A pair of premium black dance trainers with articulated split soles, one planted in three-quarter view and one tilted to suggest movement, satin silver panels, a flowing sculptural cyan and warm gold rhythm ribbon encircling the shoes, no person.",
+    "gymnastics": "Two substantial suspended gymnastics rings with black webbing straps and polished silver rings, white leather gymnast hand grips and a small cyan chalk burst beneath; compact strong centered emblem, realistic equipment, no person.",
+    "padel": "A premium black carbon-fibre padel racket in dynamic three-quarter angle, broad perforated solid face with visible circular holes, metallic silver bevels and teal edge detail, one small neon yellow fuzzy tennis-style ball beside it, compact electric cyan motion swoosh underneath. This is a padel racket, not a string tennis racket or pickleball paddle.",
+    "pickleball": "One premium carbon-fibre pickleball paddle, broad rounded rectangular solid unperforated face, thick textured black face with turquoise edge guard and short grip, viewed three-quarter angle, alongside a neon yellow-green plastic pickleball with large visible circular holes. Compact electric cyan motion beneath. Paddle has no holes or strings; the ball has holes.",
+    "table_tennis": "One table tennis bat with a broad red rubber circular face, visible layered wooden edge and short natural wood handle in three-quarter view, one small smooth white plastic table tennis ball nearby, crisp silver highlights and a compact electric cyan motion ribbon underneath. Bat has no strings or holes. Ball is smooth white, not a tennis ball.",
+    "volleyball": "One large realistic blue, white and warm yellow volleyball in dynamic three-quarter view, curved stitched leather panel pattern, premium dimensional shading, chrome-like bright edge highlights, compact electric cyan motion ribbon underneath. No racket, net or other equipment.",
+    "golf": "A polished metallic golf iron head and short section of dark shaft at a diagonal, distinctive grooved silver club face, one realistic white dimpled golf ball on a small wood tee, restrained cyan sweep of energy beneath, compact balanced collectible sports equipment emblem.",
+    "climbing": "A substantial polished silver locking climbing carabiner with gold screw gate attached to a folded loop of vivid teal climbing rope with realistic woven fibre texture, a dark textured climbing shoe alongside, compact cyan chalk or energy trail beneath. Clear chunky equipment silhouettes, no person, mountain scenery or stick figure.",
+    "strength_training": "Chunky chrome dumbbell with heavy stacked weight plates, dark carbon grip and compact cyan rim lighting and energy underneath."
+  }
+}
