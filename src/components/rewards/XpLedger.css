@@ -1,0 +1,9 @@
+.xpRulesInfo{max-height:520px;overflow:auto;line-height:1.6}
+.xpRulesChange{padding:12px 14px;border-left:3px solid #2aaf85;border-radius:6px;background:rgba(42,175,133,.09);line-height:1.6}
+.xpLedgerScroll{max-height:440px;overflow:auto;width:100%}
+.xpLedgerTable{min-width:1180px}
+.xpLedgerTable th:not(:first-child),.xpLedgerTable td{text-align:right}
+.xpLedgerTable th[scope=row]{text-align:left;font-weight:400;white-space:nowrap}
+.xpLedgerVersion{display:block;color:var(--muted,#64748b);font-size:11px}
+.xpLedgerBoundary td{border-top:3px solid #2aaf85!important;text-align:left!important;font-weight:700;padding:12px!important;background:rgba(42,175,133,.1)}
+.xpLedgerDetail td{text-align:left!important;font-size:11px;color:var(--muted,#64748b);padding-top:2px;line-height:1.5;white-space:normal}

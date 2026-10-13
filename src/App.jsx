@@ -56,6 +56,8 @@ import {
   updateFamilyOnboardingState,
 } from "./db";
 
+import XpRulesInfo from "./components/rewards/XpRulesInfo.jsx";
+import XpLedger from "./components/rewards/XpLedger.jsx";
 import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS, formatTimeMMSS } from "./config/badges";
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 import {
@@ -4542,6 +4544,11 @@ const badgeStats = useMemo(() => {
       reps: m?.reps ?? "",
       trackWeight: !!m?.trackWeight,
       trackDuration: !!m?.trackDuration,
+      progressionRewards: m?.progressionRewards !== false,
+      activityPurpose: m?.activityPurpose || "work",
+      performanceKey: m?.performanceKey || m?.id,
+      protocolId: m?.protocolId || "recorded",
+      weightUnit: m?.weightUnit || "kg",
       initialTarget: m?.initialTarget ?? "",
       coachNote:
         typeof m?.coachNote === "string" ? m.coachNote : "",
@@ -5377,313 +5384,12 @@ for (const [date, log] of map.entries()) {
 
 // ---- XP breakdown rows (Rewards tab + overall XP) ----
 
-const buildXpDebugRows = (records, plan) => {
-  if (!Array.isArray(records) || !records.length) return [];
-
-  const streakXpByDate = computeStreakBonusMap(records);
-  const rows = [];
-
-  for (const r of records) {
-    const date = r?.date_ymd || r?.date;
-    const log = r?.log;
-    if (!date || !log) continue;
-
-    const weekday = log.weekday || weekdayFromYMD(date);
-    const complete = isDayGreen(log);
-    const blocks = Array.isArray(log.blocks) ? log.blocks : [];
-
-    let setsLogged = 0;
-    let cardioKm = 0;
-    let customMin = 0;
-    let tasksDone = 0;
-
-    // Cardio mode classification (progressive vs casual)
-    let anyCardio = false;
-    let allCardioAreWalk = true;
-    let cardioMode = CARDIO_MODE.PROGRESSIVE;
-
-    let setsXp = 0;
-    let movementsXp = 0; // not used in V3 but kept for compatibility
-    let extraXp = 0;
-
-    // XP buckets (so ledger can show exactly where XP came from)
-    let strengthXp = 0;
-    let cardioXp = 0;
-    let durationXp = 0;
-    let sessionXp = 0;
-    let recoveryXp = 0;
-let tasksXp = 0;
-let dayCompleteXp = 0;
-
-// Bonuses
-let strengthProgressXp = 0;
-let cardioProgressXp = 0;
-
-let progressCount = 0;
-
-// Walk all blocks once and accumulate stats / XP
-
-    for (const block of blocks) {
-      if (!block || block.suspendedByRecoveryMode) continue;
-
-      switch (block.typeId) {
-        case "strength":
-        case "hiit":
-        case "box": {
-          // Strength / HIIT sets + progression
-          const setsByMovement =
-            block.sets && typeof block.sets === "object" ? block.sets : {};
-          const movements = Array.isArray(block.movements)
-            ? block.movements
-            : [];
-
-          for (const mov of movements) {
-            const movementSets = Array.isArray(setsByMovement[mov.id])
-              ? setsByMovement[mov.id]
-              : [];
-            const completedSets = movementSets.filter(setDidSomething);
-            if (!completedSets.length) continue;
-
-            setsLogged += completedSets.length;
-
-            const lastSets = findLastMovementSets(records, mov, date);
-            const lastScore = scoreSets(lastSets || []);
-            const curScore = scoreSets(movementSets);
-            if (curScore > lastScore && lastScore > 0) {
-              progressCount += 1;
-            }
-          }
-
-          const blockXp = xpForStrengthBlock(block);
-          strengthXp += blockXp;
-          setsXp += blockXp; // treat all base strength XP as "sets XP"
-
-          // +5 XP per completed strength/HIIT block
-          if (blockXp > 0) strengthXp += XP_RULES.blockComplete;
-          
-          break;
-        }
-
-          case "cardio": {
-          const c = block.cardio || {};
-          anyCardio = true;
-          const ct = block.cardioType || "run";
-          if (ct !== "walk") allCardioAreWalk = false;
-
-          const km = safeNumber(c.distanceKm);
-          const min = safeNumber(c.durationMin);
-          cardioKm += km;
-          customMin += min;
-
-          const blockXp = xpForCardioBlock(block);
-          cardioXp += blockXp;
-
-          // +5 XP per completed cardio block
-          if (blockXp > 0) cardioXp += XP_RULES.blockComplete;
-
-          break;
-        }
-
-        case "duration": {
-          const d = block.duration || {};
-          const mins = safeNumber(d.minutes);
-          customMin += mins;
-
-          const blockXp = xpForDurationBlock(block);
-          durationXp += blockXp;
-
-          // +5 XP per completed duration block
-          if (blockXp > 0) durationXp += XP_RULES.blockComplete;
-
-          break;
-        }
-
-        case "session": {
-          sessionXp += getSessionBlockXp(block);
-          break;
-        }
-
-        case "recovery": {
-          const blockXp = xpForRecoveryBlock(block);
-          recoveryXp += blockXp;
-          break;
-        }
-
-        case "tasks": {
-          const done = block.tasksDone || {};
-          tasksDone += Object.values(done).filter(Boolean).length;
-
-          const blockXp = xpForTasksBlock(block, plan);
-          tasksXp += blockXp;
-          break;
-        }
-
-        default:
-          break;
-      }
-    }
-
-            if (progressCount > 0) {
-      strengthProgressXp = progressCount * XP_RULES.progression;
-    }
-
-    // Cardio progression: compare today's summed cardio vs previous
-    let effectiveCardio = null;
-    if (cardioKm > 0 || customMin > 0) {
-      const avgSpeed =
-        cardioKm > 0 && customMin > 0
-          ? cardioKm / (customMin || 1)
-          : safeNumber(log.cardio?.avgSpeedKmh);
-
-      effectiveCardio = {
-        distanceKm: cardioKm,
-        durationMin: customMin,
-        avgSpeedKmh: avgSpeed,
-      };
-
-      const lastCardio = findLastCardio(records, date);
-      if (lastCardio && isCardioImproved(effectiveCardio, lastCardio)) {
-        cardioProgressXp = XP_RULES.cardioProgression;
-      }
-    }
-
-    // Apply cardio mode multiplier (progressive vs casual/commute)
-    if (anyCardio) {
-      if (allCardioAreWalk) {
-        cardioMode = CARDIO_MODE.CASUAL;
-      } else {
-        cardioMode = CARDIO_MODE.PROGRESSIVE;
-      }
-      cardioXp = Math.round(
-        cardioXp * (CARDIO_MODE_MULTIPLIER[cardioMode] || 1)
-      );
-    }
-
-        dayCompleteXp = completionBonusForLog(log);
-
-    const streakXp = streakXpByDate[date] || 0;
-
-    const claimedBadgeXpByDate = computeClaimedRewardsXpByDate(plan);
-    const badgeClaimXp = claimedBadgeXpByDate[date] || 0;
-const dailyBonusXp = log?.meta?.challengeClaimed ? 15 : 0;
-
-const nonBonusXp = strengthXp + cardioXp + durationXp + sessionXp + recoveryXp + tasksXp + dayCompleteXp;
-const progXp = strengthProgressXp + cardioProgressXp;
-
-const totalXp = nonBonusXp + progXp + streakXp + dailyBonusXp + badgeClaimXp;
-
-rows.push({
-  date,
-  weekday,
-  kind: "blocks",
-  complete,
-  // Totals
-  totalXp,
-  nonBonusXp,
-  // Base buckets
-  strengthXp,
-  cardioXp,
-  durationXp,
-  sessionXp,
-  recoveryXp,
-  tasksXp,
-  dayCompleteXp,
-  // Bonuses
-  dailyBonusXp,
-  strengthProgressXp,
-  cardioProgressXp,
-  progXp,
-  streakXp,
-  badgeClaimXp,
-
-  // Kept for older bits of UI that expect these names
-  baseXp: nonBonusXp,
-  progressXp: strengthProgressXp,
-  extraXp: cardioXp, // legacy column used as "cardio" previously
-  bonus: dayCompleteXp,
-
-  oneOffDone: false,
-  oneOffXp: 0,
-
-  setsXp,
-  movementsXp,
-
-  tasksDone,
-  tasksXp_legacy: 0,
-
-  // Cardio mode for debugging / ledger display
-  cardioMode: anyCardio ? cardioMode : null,
-
-  setsLogged,
-  cardioKm,
-  customMin,
+const buildXpDebugRows = (records, plan) => buildXpDebugRowsEngine(records, plan, {
+  todayYmd, scheduleSnapshots: streakScheduleSnapshots,
 });
-  }
-
-  
-  // Add synthetic rows for badge-claims on days with no log record,
-  // so XP totals and the ledger still reflect the claim immediately.
-    const _claimedBadgeXpByDateAll = computeClaimedRewardsXpByDate(plan);
-    const _existingDates = new Set(rows.map((r) => r.date));
-  for (const [d, xp] of Object.entries(_claimedBadgeXpByDateAll)) {
-    if (!xp) continue;
-    if (_existingDates.has(d)) continue;
-    rows.push({
-      date: d,
-      weekday: weekdayFromYMD(d),
-      kind: "badge_claim",
-      complete: false,
-      totalXp: xp,
-      nonBonusXp: 0,
-      strengthXp: 0,
-      cardioXp: 0,
-      durationXp: 0,
-      sessionXp: 0,
-      tasksXp: 0,
-      dayCompleteXp: 0,
-      dailyBonusXp: 0,
-      strengthProgressXp: 0,
-      cardioProgressXp: 0,
-      progXp: 0,
-      streakXp: 0,
-      badgeClaimXp: xp,
-      baseXp: 0,
-      progressXp: 0,
-      extraXp: xp,
-      bonus: 0,
-      oneOffDone: false,
-      oneOffXp: 0,
-      setsXp: 0,
-      movementsXp: 0,
-      tasksDone: 0,
-      tasksXp_legacy: 0,
-      setsLogged: 0,
-      cardioKm: 0,
-      customMin: 0,
-      cardioMode: null,
-    });
-  }
-
-  // newest first
-  rows.sort((a, b) => (a.date < b.date ? 1 : -1));
-
-  // Running balance like a bank statement:
-  // newest row shows current total XP, then steps down as you go back in time.
-  let running = rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
-  for (const r of rows) {
-    r.runningTotalXp = running;
-    running -= r.totalXp || 0;
-  }
-
-  return rows;
-};
-
-
-const computeXpFromLogs = (records, plan) => {
-  const rows = buildXpDebugRows(records, plan);
-  // rows already include badgeClaimXp per day (based on claim date)
-  return rows.reduce((sum, r) => sum + (r.totalXp || 0), 0);
-};
+const computeXpFromLogs = (records, plan) => computeXpFromLogsEngine(records, plan, {
+  todayYmd, scheduleSnapshots: streakScheduleSnapshots,
+});
 
 useEffect(() => {
   setXp(computeXpFromLogsEngine(allLogs, plan, {
@@ -5864,18 +5570,7 @@ const selectedDayBonusXp = useMemo(
 
 const selectedDayTotalXp = selectedDayEarnedXp + selectedDayBonusXp;
 
-const selectedDayProgressWins = useMemo(() => {
-  const strengthWins = Math.max(
-    0,
-    Math.round(
-      safeNumber(selectedDayBlockXpRow?.strengthProgressXp) /
-        XP_RULES.progression
-    )
-  );
-  const cardioWins =
-    safeNumber(selectedDayBlockXpRow?.cardioProgressXp) > 0 ? 1 : 0;
-  return strengthWins + cardioWins;
-}, [selectedDayBlockXpRow]);
+const selectedDayProgressWins = safeNumber(selectedDayBlockXpRow?.progressionWins);
 
 const selectedDayProgressComparableCount = safeNumber(
   selectedDayBlockXpRow?.progressComparableCount
@@ -12028,6 +11723,12 @@ const cardioProgress = useMemo(() => {
                                   Track duration
                                 </label>
 
+                                <label className="checkboxLabel ml12">
+                                  <input type="checkbox" checked={m.progressionRewards === false}
+                                    onChange={e => updateMovementField(block.id, m.id, "progressionRewards", !e.target.checked)} />
+                                  Record only (no improvement/PB awards)
+                                </label>
+
                                 <SecondaryButton
                                   className="btnTiny mlAuto"
                                   onClick={() =>
@@ -13168,22 +12869,7 @@ const cardioProgress = useMemo(() => {
               </SecondaryButton>
             </div>
 
-            {showXpRules && (
-              <div className="stack mt8 mini" style={{ maxHeight: 420, overflow: "auto" }}>
-                <div><b>Strength / HIIT:</b> +2 XP per completed set, +5 XP when the block is logged</div>
-                <div><b>Cardio:</b> XP from time + distance (runs / cycles / walks / swims / rows).
-                  XP is based on minutes and km (auto) - +1 XP per 2 minutes & +1 XP per 0.5km, plus 5 XP per logged cardio block. If you only know time
-                  and not distance, use a Duration block instead.</div>
-                <div><b>Duration:</b> XP from minutes (2 XP per 10 minutes, plus 5 XP per logged duration block)</div>
-                <div><b>Sessions:</b> +10 XP when a structured Session is completed. Drill counts/results do not add XP.</div>
-                <div><b>Tasks:</b> XP per task completed (as shown on the task log)</div>
-                <div><b>Progression bonuses:</b> beat your last time/effort (+20 XP for Cardio blocks and +10 XP for Strength movements)</div>
-                <div><b>Streak bonuses:</b> keep days green 🔥 (2→5XP, 3→10XP, 5→20XP, 10→50XP,
-                      30→100XP, 60→200XP, 90→300XP, 180→600XP, 365→2000XP)</div>
-                <div><b>Badges / reward awards:</b> these add Bonus XP. Bonus XP increases Total XP and progression unlocks, but does not count in Group Earned XP competition.</div>
-                <div><b>Day complete:</b> +10 XP when all workout blocks (not tasks) for that day are logged</div>
-              </div>
-            )}
+            {showXpRules && <XpRulesInfo />}
           </div>
 
           <div className="panel mt16">
@@ -13199,88 +12885,7 @@ const cardioProgress = useMemo(() => {
               </button>
             </div>
 
-            {showXpLedger && (
-  <div
-    className="mt12"
-    style={{ maxHeight: 360, overflowX: "auto", overflowY: "auto", width: "100%", }}
-  >
-    <table className="table" style={{ minWidth: 760 }}>
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th style={{ textAlign: "right" }}>Earned</th>
-      <th style={{ textAlign: "right" }}>Bonus</th>
-      <th style={{ textAlign: "right" }}>Total</th>
-      <th style={{ textAlign: "right" }}>Balance</th>
-      <th style={{ textAlign: "right" }}>Strength</th>
-      <th style={{ textAlign: "right" }}>Cardio</th>
-      <th style={{ textAlign: "right" }}>Duration</th>
-      <th style={{ textAlign: "right" }}>Session</th>
-      <th style={{ textAlign: "right" }}>Tasks</th>
-      <th style={{ textAlign: "right" }}>Day</th>
-      <th style={{ textAlign: "right" }}>Daily</th>
-      <th style={{ textAlign: "right" }}>Prog</th>
-      <th style={{ textAlign: "right" }}>Streak</th>
-      <th style={{ textAlign: "right" }}>Badges</th>
-    </tr>
-  </thead>
-  <tbody>
-    {(xpDebugRows || []).slice(0, 21).map((r, rowIndex) => (
-      <tr key={`${r.date}-${r.kind || "xp"}-${rowIndex}`}>
-        <td>{r.date}</td>
-        <td style={{ textAlign: "right" }}>
-          <b>{r.earnedXp || 0}</b>
-        </td>
-        <td style={{ textAlign: "right" }}>{r.bonusXp || 0}</td>
-        <td style={{ textAlign: "right" }}>{r.totalXp || 0}</td>
-        <td style={{ textAlign: "right" }}>
-          {r.runningTotalXp ?? ""}
-        </td>
-        <td
-  style={{
-    textAlign: "right",
-    borderLeft: "1px solid rgba(1,1,1,0.06)", // only on Strength
-  }}
->
-  {r.strengthXp || 0}
-</td>
-
-<td style={{ textAlign: "right" }}>
-  {r.cardioXp || 0}
-  {r.cardioMode === "casual" ? " *" : ""}
-</td>
-
-<td style={{ textAlign: "right" }}>{r.durationXp || 0}</td>
-<td style={{ textAlign: "right" }}>{r.sessionXp || 0}</td>
-<td style={{ textAlign: "right" }}>{r.tasksXp || 0}</td>
-
-<td
-  style={{
-    textAlign: "right",
-    borderRight: "1px solid rgba(1,1,1,0.06)", // only on Day
-  }}
->
-  {r.dayCompleteXp || 0}
-</td>
-        <td style={{ textAlign: "right" }}>{r.dailyBonusXp || 0}</td>
-        <td style={{ textAlign: "right" }}>{r.progXp || 0}</td>
-        <td style={{ textAlign: "right" }}>{r.streakXp || 0}</td>
-        <td style={{ textAlign: "right" }}>{r.badgeClaimXp || 0}</td>
-      </tr>
-    ))}
-  </tbody>
-</table>
-            </div>
-            )}
-
-
-            <div className="mini muted mt8">
-  * Cardio rows marked with a star were treated as casual/commute (walk-only) days
-  and earned 60% of normal cardio XP.
-</div>
-<div className="mini muted mt4">
-  Earned XP includes logged activity, tasks, day completion, progression, streak and normal daily challenge XP. Bonus XP contains claimed badges, mastery/avatar reward XP and Group award rewards.
-</div>
+            {showXpLedger && <XpLedger rows={xpDebugRows || []} />}
           </div>
 
         </div>

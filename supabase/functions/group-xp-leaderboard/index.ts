@@ -9,6 +9,9 @@ import {
   sumXpRowsInRange,
 } from "./xpEngine.js";
 
+import { revisedPhysicalXpAllocations } from "./xpActivityRules.js";
+import { XP_RULES_ACTIVATION_DATE } from "./xpRuleVersions.js";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -234,10 +237,11 @@ function buildVerificationSummary(
       ? row.log_json.blocks
       : [];
 
-    for (const block of blocks) {
+    const revisedAllocations = date >= XP_RULES_ACTIVATION_DATE ? revisedPhysicalXpAllocations(row.log_json) : null;
+    for (const [blockIndex, block] of blocks.entries()) {
       if (!physicalBlockHasData(block)) continue;
       eligibleCount += 1;
-      const physicalXp = verificationEligiblePhysicalXp(block);
+      const physicalXp = revisedAllocations ? revisedAllocations.get(blockIndex) || 0 : verificationEligiblePhysicalXp(block);
       eligiblePhysicalXp += physicalXp;
 
       const exactKey = `${row.id}::${String(block.id || "")}`;
