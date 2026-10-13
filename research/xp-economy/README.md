@@ -4,7 +4,56 @@
 
 This recommendation supersedes the separate competition-economy recommendation in `research/scoring/README.md` and the earlier PDF. Existing group rankings already use earned XP and exclude cosmetic reward XP. Keep that architecture.
 
-## Explainable plan-first policy experiments
+## Latest narrow proposal one daily award per activity category
+
+User explicitly proposed retaining the existing XP economy and limiting repeated category awards: strength, cardio and duration each get one 5-XP award per day; base sets/minutes/distance still earn XP; completed Sessions remain 10 each; recovery/illness/physio receive one daily award. This experiment takes precedence over the larger weekly-budget proposals as the latest requested scope. None is deployed.
+
+Added `bonus-cap.mjs`, `bonus-cap.checks.mjs`, `bonus-cap-replay.mjs` and `bonus-cap-results.json`. All 29 new narrow-rule tests pass, together with 145 earlier research tests and 17 production XP/integration/streak tests (191 total). Actual replay assertions additionally verify 4,336 unchanged-component values and exact preservation of all 540 pre-activation log rows. The default activation date is a test fixture, not a scheduled release. The read-only comparison explicitly applies the candidate retrospectively in memory to measure its effect; no stored historical award or frozen standing changes.
+
+### Exact narrow rules tested
+
+* Keep 2 XP per qualifying recorded strength set. Strength, HIIT and Box share one strength category. Allow one nominal 5-XP strength award per date.
+* Keep current cardio minute/distance rates and per-block rounding, with one nominal 5-XP cardio award per date. Retain the existing whole-day walking factor, including its effect on the award. That factor means the final walking-only award is discounted rather than becoming an undiscounted 5 XP.
+* Keep current duration rate and per-block rounding, with one 5-XP duration award per date.
+* Keep 10 XP for each completed Session; no daily Session-count cap is introduced.
+* Recovery, illness and injury share one daily award. Use the highest qualifying value: 5 for recovery/illness, 10 for physio. They do not stack, and logging order does not decide the result.
+* Strength/cardio progression, tasks, daily claims, day completion, streaks, cosmetic bonus XP, cancellations and recovery suspensions otherwise retain existing behavior. No new aggregate earning cap, timer, activity classification, weekly budget or reward threshold is introduced. Duplicate per-profile date records require reconciliation rather than creating multiple daily awards.
+
+### Actual-log effect
+
+Fresh read-only queries retrieved all 540 saved family records and the same schedule snapshots used by the group backend. Compare the group period 12 September to 12 October using the unchanged production source at `b0b9ab9018b40df33dd39adbc1b50fb1253ff043`:
+
+| Profile alias | Existing earned XP | Daily category awards | Removed | Change |
+| --- | ---: | ---: | ---: | ---: |
+| A | 695 | 675 | 20 | -2.9% |
+| B | 493 | 453 | 40 | -8.1% |
+| C | 1,563 | 1,438 | 125 | -8.0% |
+
+The removed amounts are entirely repeated category awards: A 20 strength; B 40 strength; C 115 strength and 10 cardio. There are no repeated recovery awards to remove in that period. The lower A reduction differs from the prior aggregation-only preview because this latest proposal deliberately retains per-block base rounding rather than aggregating it.
+
+On 12 October, A remains 91; C changes from 255 to 235. C's existing 150 strength improvement XP is retained, versus A's 30; C also has more recorded sets. This simple proposal removes the duplicate block-award advantage but does not explain away the whole example gap. Cosmetic bonus XP remains excluded from all earned comparisons and unchanged in total reward progression.
+
+### Meaning of completed block
+
+The **main comparison** isolates the daily award limit while retaining existing eligibility, which currently gives the five award when a block contains any qualifying recorded activity. The current function calls that a completion award but does not require all planned sets.
+
+A separate `required-work` sensitivity honors a literal completed-block requirement for the award: all required strength set counts must be recorded (not every performance goal met), duration must meet an explicit planned-duration target, and cardio must meet explicit numeric target(s). Any fully completed block in the category can unlock its one daily award even if another remains incomplete. Base activity XP is still credited on partial work. It does not change day-complete or streak rules. Missing target information is flagged; no target is inferred from ambiguous cardio text.
+
+This stricter sensitivity gives period totals 637 / 438 / 1,393. On 12 October A becomes 86 because the duration block lacks a usable target for the five award, while C remains 235. These are not approved scoring results: uncertain completion data must not be silently penalized. Strength has usable numeric set targets in the active compared blocks; cardio has 5 / 3 / 11 active blocks with unknown numeric targets, and A has one duration block with unknown target. Define explicit completion authority before implementing this additional eligibility change. The primary results should not be advertised as testing literal complete-block eligibility.
+
+### What it fixes and leaves intact
+
+For the same twelve intact sets, one versus twelve strength blocks currently gives 29 versus 84 strength-component XP. Daily category awards give 29 in both layouts. The same 120 intact sets remain 245 strength XP across all 120 tested block partitions. Genuine additional sets still earn 2 XP each. Three completed Sessions still earn 30 Session XP; repeated recovery entries earn 5 once and repeated physio earns 10 once. These are direct regression checks of the user's specified exceptions.
+
+Three known representational advantages remain deliberately unchanged:
+
+1. One twelve-rep set versus twelve one-rep sets still gives 7 versus 29 strength XP, because base set count is unchanged.
+2. Per-block rounding remains: the same 3 km / 30-minute run in one versus ten blocks gives 26 versus 35 cardio-component XP even after the five award is limited. Twenty duration minutes in one versus twenty blocks gives 9 versus 25 duration-component XP. Rounding once per day would be an additional small rule, not part of this test.
+3. Movement-based progression still pays 10 per improved movement, and multiple completed Sessions still pay ten each as requested. Thus movement/Session restructuring can still affect awards; these tests do not claim complete resistance to farming.
+
+There is no earning-pace overhaul: only the redundant awards disappear, and all original badge/reward sources and avatar thresholds stay intact. The tests support this as a focused first adjustment. A similarly simple next adjustment could aggregate fractional base amounts before rounding, followed by a separate decision about progression awards and genuine set size. Do not bundle the prior weekly-budget/time-based model into this change. App and authoritative group scoring need the same dated rule implementation if this prototype is approved later.
+
+## Earlier explainable plan-first policy experiments
 
 User direction: reward following an appropriate self-chosen plan, habits and personal progression; extra work can help, but should not dominate or require changing training purely to earn XP. XP rules must be visible and easy to explain.
 
