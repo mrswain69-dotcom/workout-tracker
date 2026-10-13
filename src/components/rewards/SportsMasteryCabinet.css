@@ -7,8 +7,8 @@
 .masteryCurrent,.masteryTarget{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0}
 .masteryBadgeArt{--trophy-size:clamp(90px,12vw,140px);display:block;position:relative;width:var(--trophy-size);aspect-ratio:1 / 1.12;max-width:100%}
 .masteryBadgeShell{width:100%;height:auto;aspect-ratio:1;object-fit:contain;display:block}
-.masteryBadgeSport{position:absolute;top:24%;left:20%;width:60%;max-height:26%;font-size:9px;font-weight:900;line-height:1.1;color:rgba(255,255,255,.35);text-align:center;text-transform:uppercase;overflow-wrap:anywhere;overflow:hidden}
-.masteryBadgeIcon{position:absolute;left:27%;top:43%;width:46%;height:38%;object-fit:contain;filter:drop-shadow(0 4px 7px #0007)}
+.masteryBadgeSport{position:absolute;top:24%;left:22%;width:56%;font-size:9px;font-weight:900;line-height:1.1;color:rgba(255,255,255,.35);text-align:center;text-transform:uppercase;white-space:normal;overflow-wrap:anywhere}
+.masteryBadgeIcon{position:absolute;left:10%;top:9%;width:80%;height:72%;object-fit:contain;filter:drop-shadow(0 4px 7px #0007)}
 .badgeTierLabel{display:inline-block;padding:3px 8px;border-radius:6px;background:#101827;color:#f7c85d;font-family:inherit;font-size:11px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;line-height:1.2;white-space:nowrap}
 .badgeTierLabel--bronze{color:#e5ae77}
 .badgeTierLabel--silver{color:#e1e8f0}
@@ -83,10 +83,10 @@
 .masteryStarMilestone--locked strong{color:#94a3b8}
 
 .masteryDisclosure--badge{padding:14px!important}
-.masteryDisclosure--badge .masteryDisclosureToggle{font:inherit;align-items:center;gap:10px}
-.masteryDisclosureTitle{font-family:inherit;font-size:15px;font-weight:900;line-height:1.35}
+.masteryDisclosure--badge .masteryDisclosureToggle{font:inherit;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;white-space:normal}
+.masteryDisclosureTitle{display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;font-family:inherit;font-size:14px;font-weight:900;line-height:1.35}
 .masteryDisclosureSubtitle{font-size:12px;line-height:1.5;margin-top:4px;color:var(--muted,#64748b)}
-.masteryDisclosure--badge .masteryDisclosureHeading{flex:1}
+.masteryDisclosure--badge .masteryDisclosureHeading{min-width:0;white-space:normal}
 .masteryDisclosure--badge .masteryDisclosureStatus{gap:8px;color:inherit}
 .masteryDisclosure--badge .masteryDisclosureStatus>.badgeTierLabel{font-size:11px;min-width:0}
 .masteryDisclosure--badge .masteryDisclosureSymbol{font-size:22px}
@@ -94,4 +94,4 @@
 .masteryCabinet.masteryCabinet--embedded{padding:0!important;border:0;background:transparent;box-shadow:none}
 .masteryCabinet--embedded .masteryArtButton{width:min(100%,140px)}
 .masteryCabinet--embedded .masteryArtButton .masteryBadgeArt{width:100%}
-@media(max-width:380px){.masteryDisclosure--badge .masteryDisclosureToggle{flex-wrap:wrap}.masteryDisclosure--badge .masteryDisclosureHeading{flex-basis:100%}.masteryDisclosure--badge .masteryDisclosureStatus{width:100%;max-width:none;justify-content:space-between}}
+@media(max-width:380px){.masteryDisclosure--badge .masteryDisclosureToggle{grid-template-columns:minmax(0,1fr)}.masteryDisclosure--badge .masteryDisclosureStatus{width:100%;max-width:none;justify-content:space-between}}
