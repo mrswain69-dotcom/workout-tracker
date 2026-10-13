@@ -4,7 +4,34 @@
 
 This recommendation supersedes the separate competition-economy recommendation in `research/scoring/README.md` and the earlier PDF. Existing group rankings already use earned XP and exclude cosmetic reward XP. Keep that architecture.
 
-## Recommended candidate
+## Deeper review: revised recommendation
+
+The best direction remains amending the shared earned-XP engine. The exact weighted preview below is **not ready for production**. The deeper review found six reproducible gaps; the proposed daily caps and history thresholds should remain provisional.
+
+A read-only replay of 36 logged dates across the two profiles discussed, from 31 August through 12 October, reproduces their 12 October existing scores exactly: 255 and 91 earned XP. With hypothetical activation at the start of that window and no invented classification, the candidate gives 114 and 62 on that date. Across the available window, profile A changes from 1,563 to 1,078 (-31.0%); profile B from 645 to 457 (-29.1%). These are preview outputs, not corrected awards or evidence that either reduction is fair. This is two profiles, not population validation. Empty/rest/cancelled logs are included in the 36 dates.
+
+Improvement XP falls from 390 to 29 and from 70 to 1 respectively. Three-history-date eligibility and baseline selection contribute to that reduction. All 122 recorded blocks lack the new explicit `activityPurpose` classification. Existing cardio targets are also represented by `targetText`, whereas the preview expects numeric targets. The scorer therefore cannot reliably apply all proposed classification and target checks to existing data. Raw logs remain outside the repository.
+
+| Reproduced gap | Result in current candidate | Required change before release |
+| --- | --- | --- |
+| Twelve equal repetitions logged as one set or twelve sets | Strength component 7 versus 29 XP | Define a valid work unit; durable IDs alone cannot establish that twelve genuine sets occurred |
+| Unchanged strongest set, weaker set omitted | 0 becomes 2 improvement XP despite less work | Compare like-for-like sets/protocols and bound rewarded work to matched baseline coverage |
+| Empty Session marked completed | 20 earned XP including completion | Require meaningful completed work evidence; retain generic compatibility awards only with explicit eligibility |
+| One repetition against a twelve-repetition target | Counts as complete | Snapshot and validate actual target semantics, including optional/extra/recovery work |
+| Ancient cardio baseline | Still earns improvement after more than a year | Apply the same freshness and comparability requirements across activity types |
+| 180-day streak milestone | 617 uncapped becomes 150 total earned XP | Calibrate budgets and milestone treatment before adding a hard all-component cap |
+
+The exposure tests pass because they assert the observed flaws. They are diagnostic evidence, not successful fairness acceptance tests. There are 24 original candidate checks, six exposure checks plus their result-writing check, and 17 existing XP/integration/streak tests, all passing (48 total). Run `node --test research/xp-economy/deeper.checks.mjs research/xp-economy/evaluate.checks.mjs`. `shadow.mjs` replays local private input without writes to the database.
+
+Revised implementation sequence:
+
+1. Keep the existing earned-XP group architecture and historical scoring. Start with daily aggregation, removal of per-block/rounding advantages, per-type walking factors and trustworthy duplicate handling. Do not claim this fixes cross-sport equivalence.
+2. Add explicit activity classification, durable work/protocol identities and immutable required-target snapshots. Resolve real field mappings and meaningful Session completion. Target completion concerns scheduled work; extra activity must not make an otherwise completed planned day incomplete.
+3. Prototype improvement on matched work under the same unit, exercise variant and protocol. Do not compare a mixed-unit `scoreSets` total as a universal strength-performance measure. Reject cherry-picked or insufficiently comparable evidence; reward additional volume as volume rather than a fabricated performance gain. Recheck new-program onboarding so three prior dates does not unduly suppress legitimate progress.
+4. Repeat the read-only comparison after those changes, with recovery, novices, changing plans, mixed activities, reward-unlock pace and weekly rankings. Tune progression scales and budgets then. Hold back the 150/100 hard caps until this calibration resolves milestone treatment and earning pace.
+5. Release app and group scorer together using a dated version, unchanged historical awards, parity checks and rollback. No activation date or production change is scheduled by this research.
+
+## Experimental candidate evaluated
 
 Use the existing shared XP engine with daily aggregation and work-weighted relative improvement. Keep 2 XP per genuine logged strength set, current cardio minute/distance rates, and the current duration rate. Group equivalent work across block names and ordinary/structured Session formats. Aggregate before rounding. Award the 5 XP category activity bonus once per day, not per block. Apply the walking factor only to walking work.
 
@@ -44,7 +71,7 @@ Future completion must check recorded required sets/targets; one entry in a larg
 
 No mandatory whole-workout timer is needed for the core changes. Sets remain a unit of recorded strength work. One genuine set falsely reported as several newly identified sets cannot be detected just from existing numeric logs. Stable set IDs, source deduplication and completion evidence improve this, but meaningful effort and truthful reporting still matter. Never describe this proposal as a perfect measure of physiological effort.
 
-## Implementation plan
+## Original implementation outline (revised sequence above takes precedence)
 
 1. Agree the candidate relative-gain scale, minimum-history rule and daily budget. Check expected weekly earning pace against real representative logs and avatar thresholds. Do not rewrite historical XP to keep the cosmetic economy stable.
 2. Add a dated rules version to the existing shared engine. Keep legacy scoring for pre-activation dates. Use one earned-XP result everywhere, including groups; exclude cosmetic bonuses exactly as today.
@@ -58,4 +85,4 @@ No mandatory whole-workout timer is needed for the core changes. Sets remain a u
 
 This is a reproducible candidate wrapper around the real current engine, not a production patch. UI/permission checks, immutable target snapshots, durable set/protocol identifiers, task settings constraints, missing-duration prompts, offline reconciliation, actual user calibration, app/backend deployment and cap-aware debug-field updates remain to be built. The preview assumes explicit classification and target data where tested; it does not invent the missing evidence in older logs.
 
-The proposed three-leaderboard/time-based scoring lab remains useful research but is not needed for this focused amendment. Paul/Xander screenshots do not expose actual per-set improvement percentages or full histories, so their exact new earned XP cannot yet be stated.
+The proposed three-leaderboard/time-based scoring lab remains useful research but is not needed for this focused amendment. The read-only replay above now supplies actual-log candidate outputs; missing classification and target semantics still prevent treating those outputs as final fair awards.
