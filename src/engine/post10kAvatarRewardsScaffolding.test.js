@@ -19,10 +19,11 @@ describe("post-10k avatar rewards scaffolding", () => {
       "mythic_prestige",
       "infinite_mastery",
     ]);
-    expect(Math.max(...AVATAR_PACKS.map((pack) => pack.unlockAtXp))).toBe(20000);
+    expect(Math.max(...AVATAR_PACKS.map((pack) => pack.unlockAtXp))).toBe(30000);
     expect(AVATAR_PACK_GROUPS.map((era) => era.key)).toEqual([
       "athlete_journey",
       "legends_beyond_sport",
+      "elite_machines_operators",
     ]);
     expect(AVATAR_PACK_GROUPS[1].packs.map((pack) => pack.key)).toEqual(
       expect.arrayContaining([

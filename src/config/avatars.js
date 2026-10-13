@@ -1,3 +1,4 @@
+import { ELITE_XP_AVATAR_PACKS } from "./eliteXpAvatars.js";
 // src/config/avatars.js
 
 // V1 avatar packs (emoji pack + Velocity Pulse pack)
@@ -810,6 +811,7 @@ export const AVATAR_PACKS = [
   },
 
 
+  ...ELITE_XP_AVATAR_PACKS,
 ];
 
 // Post-10k reward eras.
