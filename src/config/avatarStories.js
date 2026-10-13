@@ -1,6 +1,8 @@
+import { ELITE_XP_AVATAR_STORIES } from "./eliteXpAvatars.js";
 // Character-specific lore. Each entry deliberately describes what this
 // character does, practises and believes rather than repeating a pack template.
 export const AVATAR_STORY_PROFILES = {
+  ...ELITE_XP_AVATAR_STORIES,
   "sport_avatar_dance_bronze": {"story": "Bronze begins by finding a beat and trying a step. A comfortable practice outfit leaves room to move, while a curious expression welcomes the unfamiliar. This dancer listens, experiments and enjoys small discoveries, learning that there is room for personality even when the first sequence still feels uncertain.", "traits": ["Playful", "Curious", "Attentive"]},
   "sport_avatar_dance_silver": {"story": "Silver starts to recognise a familiar rhythm. A raised heel and an easy open hand show growing confidence in trying something new. The participation medallion celebrates returning to practice, while this dancer still welcomes guidance and enjoys the moment when an awkward transition begins to flow.", "traits": ["Expressive", "Steady", "Receptive"]},
   "sport_avatar_dance_gold": {"story": "Gold brings a little inventiveness to familiar steps. A head tilt, a change of timing or a thoughtful pause can make the same sequence feel fresh. This dancer values feedback without losing a personal sense of expression, carrying the practice medal as a reminder of patient experimentation.", "traits": ["Inventive", "Reflective", "Warm"]},

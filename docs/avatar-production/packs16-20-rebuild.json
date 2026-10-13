@@ -1,0 +1,397 @@
+[
+  {
+    "number": 16,
+    "title": "Rocket Rumble Crew",
+    "xp": 22000,
+    "avatars": [
+      {
+        "name": "Rocket Rumbler",
+        "subtitle": "Rocket Rally Leader",
+        "design": "wide cobalt and orange rocket-assisted open-cage offroad buggy, large four knobby tyres and twin cylindrical rear boosters; front-left three-quarter",
+        "story": "Built for rough routes, Rocket Rumbler balances grip with power. Its open cage makes every mechanical choice visible, while twin boosters wait for a clear line. It carries the crew's belief that preparation makes acceleration worthwhile.",
+        "index": 0,
+        "id": "p16_rocket_rumbler",
+        "file": "rocket-rumbler.png"
+      },
+      {
+        "name": "Nitro Fang",
+        "subtitle": "Fang Speedster",
+        "design": "low crimson ivory open-wheel racer, slick tyres, split fang-shaped nose, tiny black cockpit and copper exhaust; front-right angle",
+        "story": "Nitro Fang studies corners before chasing speed. Its split nose and exposed suspension turn tiny adjustments into clean movement. A patient driver finds the smooth line first, then carries that control into the next challenge.",
+        "index": 1,
+        "id": "p16_nitro_fang",
+        "file": "nitro-fang.png"
+      },
+      {
+        "name": "Drift Brick",
+        "subtitle": "Drift Specialist",
+        "design": "mustard yellow cream-roof boxy short-wheelbase drift hatchback, rectangular flared wheel arches, black wheels and silver side intercooler; front-right",
+        "story": "Drift Brick began as an overlooked workshop hatchback. A squared shell and tuned cooling system hide a playful specialist that treats every sideways correction as another chance to learn control and return with confidence.",
+        "index": 2,
+        "id": "p16_drift_brick",
+        "file": "drift-brick.png"
+      },
+      {
+        "name": "Boost Bandit",
+        "subtitle": "Three-Wheel Racer",
+        "design": "emerald gold three-wheel enclosed racer, one front wheel two back wheels, tall narrow clear canopy and offset side booster; front-left",
+        "story": "Boost Bandit takes an unconventional route with three wheels and an offset booster. Balance comes from constant small corrections, proving that unusual equipment can still deliver dependable progress with careful preparation and an attentive driver.",
+        "index": 3,
+        "id": "p16_boost_bandit",
+        "file": "boost-bandit.png"
+      },
+      {
+        "name": "Turbo Tank",
+        "subtitle": "Tracked Powerhouse",
+        "design": "massive graphite safety-yellow industrial tracked racing crawler, two broad rubber tracks, squat cab exposed rear flywheel and protective bumper; no turret",
+        "story": "Turbo Tank carries momentum across ground that stops lighter racers. Broad tracks and a protected flywheel favour patient force, making it the crew's choice when a difficult route demands lasting traction and a measured approach.",
+        "index": 4,
+        "id": "p16_turbo_tank",
+        "file": "turbo-tank.png"
+      },
+      {
+        "name": "Plasma Coupe",
+        "subtitle": "Ceramic Grand Tourer",
+        "design": "smooth pearl white futuristic grand touring coupe, single violet glass canopy four partially covered wheels turquoise trim; front-left",
+        "story": "Plasma Coupe was shaped around smooth transitions. Ceramic curves and enclosed wheels reduce distractions, reflecting a racer that values calm inputs, measured effort and an unbroken rhythm through every changing corner along the route.",
+        "index": 5,
+        "id": "p16_plasma_coupe",
+        "file": "plasma-coupe.png"
+      },
+      {
+        "name": "Thunder Wagon",
+        "subtitle": "Expedition Wagon",
+        "design": "tall long matte forest-green copper six-wheel expedition wagon, roof cargo frame, tan packs side cylindrical tool cases; front-right",
+        "story": "Thunder Wagon brings the tools that keep an expedition moving. Six wheels and a loaded roof frame support long journeys, while its quiet strength reminds the crew to prepare beyond the starting line and travel together.",
+        "index": 6,
+        "id": "p16_thunder_wagon",
+        "file": "thunder-wagon.png"
+      },
+      {
+        "name": "Blaze Rocket",
+        "subtitle": "Land-Speed Pioneer",
+        "design": "narrow vermilion ivory silver teardrop landspeed turbine vehicle, central black canopy enclosed back wheels slender outriggers and rear turbine fin; front-left",
+        "story": "Blaze Rocket makes each adjustment count before a straight-line attempt. A narrow body and single turbine leave little room for wasted movement, celebrating precise preparation and the courage to trust practiced control when the moment arrives.",
+        "index": 7,
+        "id": "p16_blaze_rocket",
+        "file": "blaze-rocket.png"
+      }
+    ]
+  },
+  {
+    "number": 17,
+    "title": "Shadow Recon Unit",
+    "xp": 24000,
+    "avatars": [
+      {
+        "name": "Shadow Recon",
+        "subtitle": "Recon Leader",
+        "design": "tall dark-skinned adult male close cropped hair, charcoal asymmetric high-collar mantle slate chest armour moss trim, map tablet held upright",
+        "story": "Shadow Recon reads the route before asking the unit to move. A folded collar shelters a patient observer who uses a map tablet to turn scattered details into a clear shared decision that everyone understands.",
+        "index": 0,
+        "id": "p17_shadow_recon",
+        "file": "shadow-recon.png"
+      },
+      {
+        "name": "Ghost Ranger",
+        "subtitle": "Silent Pathfinder",
+        "design": "lean adult female silver cropped hair ivory maroon hooded cape grey woven harness, side crouch hands on coiled climbing rope",
+        "story": "Ghost Ranger travels lightly and listens carefully. A pale hood and coiled rope belong to a pathfinder who chooses secure footholds, keeps options open and returns with knowledge the whole unit can use on its next journey.",
+        "index": 1,
+        "id": "p17_ghost_ranger",
+        "file": "ghost-ranger.png"
+      },
+      {
+        "name": "Stealth Vex",
+        "subtitle": "Precision Scout",
+        "design": "compact nonhuman four-legged purple brass recon robot triangular single amber lens head spring joint legs, poised crouch",
+        "story": "Stealth Vex keeps its sensor low and its four legs ready. Small suspension adjustments let this quiet machine inspect unstable ground, finding useful information through patient movement rather than a hurried advance into unknown terrain.",
+        "index": 2,
+        "id": "p17_stealth_vex",
+        "file": "stealth-vex.png"
+      },
+      {
+        "name": "Night Scout",
+        "subtitle": "Trail Watcher",
+        "design": "stocky brown-skinned adult male stubble curly hair rust-orange quilted navy jacket goggles on forehead, adjusting wrist compass",
+        "story": "Night Scout notices what others overlook after a long day. Circular goggles and a wrist compass support a technician who checks bearings twice, welcomes questions and makes the next step feel manageable for the whole team.",
+        "index": 3,
+        "id": "p17_night_scout",
+        "file": "night-scout.png"
+      },
+      {
+        "name": "Echo Blade",
+        "subtitle": "Ridge Navigator",
+        "design": "athletic East Asian adult female short black hair teal climbing suit white forearm guards folded poles on back, twisting over shoulder glance",
+        "story": "Echo Blade treats every ridge as a problem to understand. Folded climbing poles and practical forearm guards accompany a navigator who tests balance, studies the line and shares useful lessons with the team before moving onward.",
+        "index": 4,
+        "id": "p17_echo_blade",
+        "file": "echo-blade.png"
+      },
+      {
+        "name": "Signal Hawk",
+        "subtitle": "Comms Drone",
+        "design": "avian mechanical recon drone with folded angular cobalt gold wings, narrow beaked lens head and two mechanical perching legs; entire body",
+        "story": "Signal Hawk carries messages through unfamiliar terrain. Folded mechanical wings and a sharply angled sensor head make a watchful scout that saves movement until needed, keeping the unit connected through thoughtful positioning and a reliable return.",
+        "index": 5,
+        "id": "p17_signal_hawk",
+        "file": "signal-hawk.png"
+      },
+      {
+        "name": "Phantom Trace",
+        "subtitle": "Veiled Tracker",
+        "design": "elongated humanoid android smooth featureless oval silver face, navy plum cape silver ribbed armour, one open synthetic hand presenting scanner puck",
+        "story": "Phantom Trace turns a scanner puck with delicate synthetic fingers. Beneath a quiet mantle, this tracker compares small changes over time, showing how an attentive pause can reveal more than an impatient search for easy answers.",
+        "index": 6,
+        "id": "p17_phantom_trace",
+        "file": "phantom-trace.png"
+      },
+      {
+        "name": "Blackline",
+        "subtitle": "Heavy Pathfinder",
+        "design": "broad dark-skinned bald adult male operator black rubber utility armour cream angular shoulder pads orange webbing, hands resting on chest straps",
+        "story": "Blackline carries the supplies that make a return journey possible. Broad protective shoulders and bright webbing reflect a steady operator who checks the straps, supports the unit and never mistakes haste for readiness on a difficult route.",
+        "index": 7,
+        "id": "p17_blackline",
+        "file": "blackline.png"
+      }
+    ]
+  },
+  {
+    "number": 18,
+    "title": "Tide Vanguard Fleet",
+    "xp": 26000,
+    "avatars": [
+      {
+        "name": "Tide Vanguard",
+        "subtitle": "Ocean Lead",
+        "design": "dark-skinned adult female braided bun navy long high-collar waterproof coat coral life harness pale brass buckles holding rolled chart upright",
+        "story": "Tide Vanguard checks the route and crew before departure. A rolled chart and dependable life harness belong to a leader who treats calm planning, clear communication and a safe return as shared achievements worth preparing for.",
+        "index": 0,
+        "id": "p18_tide_vanguard",
+        "file": "tide-vanguard.png"
+      },
+      {
+        "name": "Reef Marshal",
+        "subtitle": "Reef Surveyor",
+        "design": "slim brown-skinned adult male curly hair seafoam short wetsuit cream shoulder shell dark harness presenting clear coral specimen case",
+        "story": "Reef Marshal records the smallest discoveries with care. A protected sample case travels with this ocean surveyor, whose curiosity is balanced by patience and respect for the fragile places the fleet visits and hopes to understand.",
+        "index": 1,
+        "id": "p18_reef_marshal",
+        "file": "reef-marshal.png"
+      },
+      {
+        "name": "Storm Diver",
+        "subtitle": "Deep Explorer",
+        "design": "bulky helmeted deep-sea diver round domed copper helmet brass grille ivory pressure suit teal bellows chest gauges open gloved hand",
+        "story": "Storm Diver works where movement must be deliberate. A domed helmet and pressure gauges shelter a patient explorer who checks each connection, conserves effort and understands that a careful return completes the expedition as surely as discovery.",
+        "index": 2,
+        "id": "p18_storm_diver",
+        "file": "storm-diver.png"
+      },
+      {
+        "name": "Harbor Sentinel",
+        "subtitle": "Dock Guardian",
+        "design": "compact orange crab-like maintenance robot rounded hard shell four lateral jointed legs two small repair pincers and rectangular camera, weathered enamel",
+        "story": "Harbor Sentinel inspects the dock through a square camera lens. Four compact legs and precise repair pincers help this maintenance robot find small faults early, keeping busy routes dependable through ordinary, repeated attention to the details.",
+        "index": 3,
+        "id": "p18_harbor_sentinel",
+        "file": "harbor-sentinel.png"
+      },
+      {
+        "name": "Breakwater",
+        "subtitle": "Heavy Rescuer",
+        "design": "massive broad shoulder cobalt white marine robot flat trapezoid head black ribbed joints chest winch coil, arms low strong full-body stance",
+        "story": "Breakwater was assembled for heavy recovery work. Broad ceramic shoulders and a chest winch provide strength, but the machine's defining habit is a measured pull that protects the crew and everything it carries back to safety.",
+        "index": 4,
+        "id": "p18_breakwater",
+        "file": "breakwater.png"
+      },
+      {
+        "name": "Blue Wake",
+        "subtitle": "Hydrofoil Scout",
+        "design": "sleek unmanned aqua white graphite rescue hydrofoil forked bow long hull three thin carbon foil struts glass sensor dome, whole craft front-right",
+        "story": "Blue Wake skims toward a signal on slender hydrofoils. Its forked bow and central sensor dome belong to a rescue scout that chooses a stable course, conserving power so help can reach further when it is needed.",
+        "index": 5,
+        "id": "p18_blue_wake",
+        "file": "blue-wake.png"
+      },
+      {
+        "name": "Trident Ace",
+        "subtitle": "Current Navigator",
+        "design": "East Asian adult female short black hair mustard navy drysuit triple-pronged compact sensor antenna backpack adjusting shoulder strap in side turn",
+        "story": "Trident Ace listens for changing currents through a three-pronged sensor. A mustard drysuit and carefully checked harness accompany a navigator who adjusts the route without losing sight of the fleet's shared destination and safe return.",
+        "index": 6,
+        "id": "p18_trident_ace",
+        "file": "trident-ace.png"
+      },
+      {
+        "name": "Saltstrike",
+        "subtitle": "Coastal Mechanic",
+        "design": "older light-skinned stocky male grey beard cream beanie burgundy heavy waterproof jacket steel tool forearm brace arms folded warm expression",
+        "story": "Saltstrike knows a worn fastening by feel. A heavy waterproof jacket and practical tool brace suit a mechanic who values repair, teaches patient checks and keeps useful equipment working through many more journeys along the coast.",
+        "index": 7,
+        "id": "p18_saltstrike",
+        "file": "saltstrike.png"
+      }
+    ]
+  },
+  {
+    "number": 19,
+    "title": "Sky Marshal Wing",
+    "xp": 28000,
+    "avatars": [
+      {
+        "name": "Sky Marshal",
+        "subtitle": "Wing Leader",
+        "design": "surviving original",
+        "story": "Sky Marshal carries experience into the briefing. A structured jacket and flight helmet mark a leader who checks the conditions, hears the crew and gives every departure a clear purpose and return plan before the engines start.",
+        "index": 0,
+        "id": "p19_sky_marshal",
+        "file": "sky-marshal.png"
+      },
+      {
+        "name": "Jetstream",
+        "subtitle": "Fast Courier",
+        "design": "slender adult light-skinned male auburn tousled hair teal charcoal slim flightsuit raised silver visor on forehead leaning checking cuff",
+        "story": "Jetstream likes a quick route but begins with an instrument check. A raised visor and fitted flight suit belong to a courier who learns that smooth timing often saves more effort than extra speed over a long journey.",
+        "index": 1,
+        "id": "p19_jetstream",
+        "file": "jetstream.png"
+      },
+      {
+        "name": "Falcon Vector",
+        "subtitle": "Aerial Surveyor",
+        "design": "bird inspired fixed-wing autonomous survey drone, sand cream maroon graphite swept wide wings narrow falcon sensor beak and three landing feet; aircraft ONLY",
+        "story": "Falcon Vector surveys a route with wide swept wings and a narrow sensor head. This autonomous scout records clear bearings, returning useful observations that help the wing choose its next movement with confidence and careful preparation.",
+        "index": 2,
+        "id": "p19_falcon_vector",
+        "file": "falcon-vector.png"
+      },
+      {
+        "name": "Vapor Wing",
+        "subtitle": "Cloud Scout",
+        "design": "compact feminine android pale lilac white ceramic torso clear smoke shoulders cobalt neck oval lens face split temple fins, calm halfturn open hands",
+        "story": "Vapor Wing reads the instruments through a quiet synthetic face. Translucent shoulder panels and a light ceramic shell suit an android who practices gentle corrections, keeping each movement calm when conditions become uncertain and the route changes.",
+        "index": 3,
+        "id": "p19_vapor_wing",
+        "file": "vapor-wing.png"
+      },
+      {
+        "name": "Sonic Pilot",
+        "subtitle": "Test Specialist",
+        "design": "stocky dark-skinned adult male short beard cream orange padded pressure suit holding round black flighthelmet in front, friendly face",
+        "story": "Sonic Pilot tests an adjustment before calling it an improvement. A padded pressure suit and carefully held helmet reflect a specialist who values repeatable results, honest notes and the patience to try again with a clearer purpose.",
+        "index": 4,
+        "id": "p19_sonic_pilot",
+        "file": "sonic-pilot.png"
+      },
+      {
+        "name": "Cloudbreaker",
+        "subtitle": "Heavy Lift",
+        "design": "bulky mustard yellow graphite silver cargo-rescue drone four ducted fans boxy central cabin underbody rectangular clasp; drone ONLY",
+        "story": "Cloudbreaker lifts what the wing cannot leave behind. Four protected fans and a central cargo clasp give this rescue drone a broad silhouette, while steady power and balanced loading keep its work dependable through repeated careful journeys.",
+        "index": 5,
+        "id": "p19_cloudbreaker",
+        "file": "cloudbreaker.png"
+      },
+      {
+        "name": "Horizon Ace",
+        "subtitle": "Long-Range Navigator",
+        "design": "older light-skinned adult woman silver braid plum woven flight coat long lapels bronze binoculars held low ivory scarf relaxed shoulder turn",
+        "story": "Horizon Ace brings a long view to every route. Binoculars and an ivory scarf accompany a navigator who watches changing conditions, shares practical experience and leaves room for a thoughtful change of plan before uncertainty becomes trouble.",
+        "index": 6,
+        "id": "p19_horizon_ace",
+        "file": "horizon-ace.png"
+      },
+      {
+        "name": "Afterburn",
+        "subtitle": "Turbine Racer",
+        "design": "helmeted nonhuman red ivory black carbon athletic biped flight robot swept triangular head two compact turbine pods behind shoulders forward fists-up waist portrait",
+        "story": "Afterburn keeps its twin turbine pods ready without wasting a burst. A swept sensor head and strong carbon frame belong to a flight machine that channels preparation into one clear, controlled moment when the route opens.",
+        "index": 7,
+        "id": "p19_afterburn",
+        "file": "afterburn.png"
+      }
+    ]
+  },
+  {
+    "number": 20,
+    "title": "Iron Revenants",
+    "xp": 30000,
+    "avatars": [
+      {
+        "name": "Iron Revenant",
+        "subtitle": "Rebuilt Champion",
+        "design": "broad industrial humanoid robot hammer-shaped flat head exposed riveted iron copper chest asymmetric repaired cream enamel shoulder quiet upright waist portrait",
+        "story": "Iron Revenant carries repairs as part of its identity. Riveted plates and mismatched enamel record difficult returns, while the rebuilt frame shows that patient restoration can make an old machine useful in new ways for another generation.",
+        "index": 0,
+        "id": "p20_iron_revenant",
+        "file": "iron-revenant.png"
+      },
+      {
+        "name": "Steel Warden",
+        "subtitle": "Precision Guardian",
+        "design": "tall slender silver steel android smooth rectangular blue narrow visor head navy woven joints integrated shield-shaped left forearm, halfturn waist portrait",
+        "story": "Steel Warden checks alignment before taking a step. A narrow articulated frame and shield-shaped forearm belong to a guardian whose confidence comes from precision, protecting the team through predictable movement and steady attention to changing conditions.",
+        "index": 1,
+        "id": "p20_steel_warden",
+        "file": "steel-warden.png"
+      },
+      {
+        "name": "Core Hunter",
+        "subtitle": "Salvage Tracker",
+        "design": "compact low six-legged bronze graphite salvage robot spherical caged core narrow single lens head small repair gripper, whole body",
+        "story": "Core Hunter searches forgotten equipment for useful parts. Six legs hold a caged bronze core above uneven ground, while a small gripper shows a patient salvager that sees possibility where others see scrap and forgotten work.",
+        "index": 2,
+        "id": "p20_core_hunter",
+        "file": "core-hunter.png"
+      },
+      {
+        "name": "Volt Marauder",
+        "subtitle": "Power Technician",
+        "design": "squat stocky mustard yellow silver black robot big rectangular forearms round recessed camera face coiled chest cable, fullbody planted stance",
+        "story": "Volt Marauder manages power through a coiled chest cable. Oversized forearms and a compact body suit a technician who handles heavy tasks carefully, making stored strength useful through good timing and secure connections before each movement.",
+        "index": 3,
+        "id": "p20_volt_marauder",
+        "file": "volt-marauder.png"
+      },
+      {
+        "name": "Alloy Specter",
+        "subtitle": "Quiet Sentinel",
+        "design": "elongated mint silver burgundy humanoid robot hollow ring-shaped head long elegant blade-like shoulder panels ribbed burgundy joints waist side turn open hand",
+        "story": "Alloy Specter listens through a hollow sensor ring. Elegant ceramic panels shelter a watchful machine that uses small gestures and quiet checks, finding a place in the team through attention rather than noise or unnecessary display.",
+        "index": 4,
+        "id": "p20_alloy_specter",
+        "file": "alloy-specter.png"
+      },
+      {
+        "name": "Titan Shade",
+        "subtitle": "Heavy Restorer",
+        "design": "surviving original",
+        "story": "Titan Shade restores structures with great mechanical care. Huge knuckles and a recessed sensor head give it formidable strength, but its best work comes from slow adjustments that protect fragile connections under a heavy load.",
+        "index": 5,
+        "id": "p20_titan_shade",
+        "file": "titan-shade.png"
+      },
+      {
+        "name": "Chrome Reaper",
+        "subtitle": "Harvest Mechanic",
+        "design": "tall slender agricultural tripod robot circular shutter camera head green white polished chrome narrow vertical torso two folded small tool arms, wholebody no scythe",
+        "story": "Chrome Reaper tends the harvest with folded tool arms and balanced tripod feet. A shutter camera studies each plant, helping this slender machine turn patient observation into careful work through the changing seasons and another dependable harvest.",
+        "index": 6,
+        "id": "p20_chrome_reaper",
+        "file": "chrome-reaper.png"
+      },
+      {
+        "name": "Rift Machine",
+        "subtitle": "Modular Explorer",
+        "design": "surviving original",
+        "story": "Rift Machine rearranges its tools around a faceted central body. Compact stabiliser fins keep a modular explorer balanced, while adaptable hands show that a thoughtful change of approach can open a route that force cannot clear.",
+        "index": 7,
+        "id": "p20_rift_machine",
+        "file": "rift-machine.png"
+      }
+    ]
+  }
+]
