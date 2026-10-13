@@ -102,3 +102,10 @@ it("shows source verification separately from stars and opens a contributing log
   fireEvent.click(within(dialog).getByText("Open log · 2026-10-08"));
   expect(onOpenLog).toHaveBeenCalledWith("2026-10-08");expect(screen.queryByRole("dialog")).toBeNull();
 });
+
+it("embeds a badge shelf without duplicating its disclosure heading", () => {
+  render(<SportsMasteryCabinet embedded card={card} state={sportsMasteryState(card,5,new Set())}
+    claimedKeys={new Set()} onClaim={vi.fn()} />);
+  expect(screen.queryByRole("heading")).toBeNull();
+  expect(screen.getByRole("button",{name:"Details"})).toBeTruthy();
+});

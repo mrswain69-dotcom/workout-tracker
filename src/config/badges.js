@@ -100,21 +100,21 @@ const REP_TIERS = [
 
 
 export const SPORT_MASTERY_PACKS = {
-  climbing: { label: "Climbing", family: "sport", iconFile: "icon_flame.png" },
-  golf: { label: "Golf", family: "sport", iconFile: "icon_flame.png" },
-  volleyball: { label: "Volleyball", family: "sport", iconFile: "icon_flame.png" },
-  table_tennis: { label: "Table Tennis", family: "sport", iconFile: "icon_sport_tennis.png" },
-  pickleball: { label: "Pickleball", family: "sport", iconFile: "icon_flame.png" },
-  padel: { label: "Padel", family: "sport", iconFile: "icon_flame.png" },
-  gymnastics: { label: "Gymnastics", family: "sport", iconFile: "icon_flame.png" },
-  dance: { label: "Dance", family: "sport", iconFile: "icon_flame.png" },
-  pilates: { label: "Pilates", family: "sport", iconFile: "icon_sport_yoga.png" },
-  boxing: { label: "Boxing", family: "sport", iconFile: "icon_sport_martial_arts.png" },
+  climbing: { label: "Climbing", family: "sport", iconFile: "icon_sport_climbing.svg" },
+  golf: { label: "Golf", family: "sport", iconFile: "icon_sport_golf.svg" },
+  volleyball: { label: "Volleyball", family: "sport", iconFile: "icon_sport_volleyball.svg" },
+  table_tennis: { label: "Table Tennis", family: "sport", iconFile: "icon_sport_table_tennis.svg" },
+  pickleball: { label: "Pickleball", family: "sport", iconFile: "icon_sport_pickleball.svg" },
+  padel: { label: "Padel", family: "sport", iconFile: "icon_sport_padel.svg" },
+  gymnastics: { label: "Gymnastics", family: "sport", iconFile: "icon_sport_gymnastics.svg" },
+  dance: { label: "Dance", family: "sport", iconFile: "icon_sport_dance.svg" },
+  pilates: { label: "Pilates", family: "sport", iconFile: "icon_sport_pilates.svg" },
+  boxing: { label: "Boxing", family: "sport", iconFile: "icon_sport_boxing.svg" },
   hiking: { label: "Hiking", family: "sport", iconFile: "icon_walk_5k.png" },
   strength_training: {
     label: "Strength Training",
     family: "sport",
-    iconFile: "icon_reps.png",
+    iconFile: "icon_sport_strength_training.svg",
   },
 
   swimming: {

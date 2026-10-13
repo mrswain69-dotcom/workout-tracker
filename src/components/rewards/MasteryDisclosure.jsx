@@ -1,20 +1,21 @@
 import React, { useEffect, useId, useRef, useState } from "react";
+import BadgeTierLabel from "./BadgeTierLabel.jsx";
 
 // Local presentation state only: returning to the section starts a new visit.
-export default function MasteryDisclosure({ title, subtitle, status, claimable, children }) {
-  const [expanded, setExpanded] = useState(Boolean(claimable));
+export default function MasteryDisclosure({ title, subtitle, status, claimable, children, badge = false, defaultExpanded, verified = false }) {
+  const [expanded, setExpanded] = useState(defaultExpanded ?? Boolean(claimable));
   const previousClaimable = useRef(Boolean(claimable));
   const contentId = useId();
   useEffect(() => {
-    if (claimable && !previousClaimable.current) setExpanded(true);
+    if (defaultExpanded === undefined && claimable && !previousClaimable.current) setExpanded(true);
     previousClaimable.current = Boolean(claimable);
-  }, [claimable]);
-  return <section className="panel sportAvatarSeriesCard masteryDisclosure">
+  }, [claimable, defaultExpanded]);
+  return <section className={`panel sportAvatarSeriesCard masteryDisclosure${badge ? " masteryDisclosure--badge" : ""}`}>
     <button type="button" className="masteryDisclosureToggle" aria-expanded={expanded}
       aria-controls={expanded ? contentId : undefined} onClick={() => setExpanded(value => !value)}>
-      <span><span className="h3">{title}</span>{subtitle ? <span className="mini muted mt4">{subtitle}</span> : null}</span>
-      <span className="masteryDisclosureStatus">{claimable ? "Ready to claim" : status}<span aria-hidden="true">{expanded ? "−" : "+"}</span></span>
+      <span className="masteryDisclosureHeading"><span className="masteryDisclosureTitle">{title}</span>{subtitle ? <span className="masteryDisclosureSubtitle">{subtitle}</span> : null}{verified && <span className="masteryVerifiedLabel">★ Verified</span>}</span>
+      <span className="masteryDisclosureStatus">{badge ? <BadgeTierLabel tier={status} /> : claimable ? "Ready to claim" : status}<span className="masteryDisclosureSymbol" aria-hidden="true">{expanded ? "−" : "+"}</span></span>
     </button>
-    {expanded ? <div id={contentId}>{children}</div> : null}
+    {expanded ? <div className="masteryDisclosureContent" id={contentId}>{children}</div> : null}
   </section>;
 }

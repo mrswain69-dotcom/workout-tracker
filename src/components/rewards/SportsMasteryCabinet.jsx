@@ -55,7 +55,7 @@ function BadgeDetails({ card, state, claimedKeys, onClose, onClaim, busy, error,
   </dialog>, document.body);
 }
 
-export default function SportsMasteryCabinet({ card, state, claimedKeys, onClaim, lastDate, flash, faceText, requirementText, progressText, verification, formatValue, onOpenLog }) {
+export default function SportsMasteryCabinet({ card, state, claimedKeys, onClaim, lastDate, flash, faceText, requirementText, progressText, verification, formatValue, onOpenLog, embedded = false }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -77,8 +77,8 @@ export default function SportsMasteryCabinet({ card, state, claimedKeys, onClaim
     catch { setError("Could not finish claiming. Please try again."); return false; }
     finally { claiming.current = false; setBusy(false); }
   }
-  return <article className={`panel masteryCabinet${flash ? " masteryCabinet--flash" : ""}`}>
-    <h3>{card.title}{verification?.verified && <span className="masteryVerifiedLabel"> · Verified</span>}</h3>
+  return <article className={`${embedded ? "" : "panel "}masteryCabinet${embedded ? " masteryCabinet--embedded" : ""}${flash ? " masteryCabinet--flash" : ""}`}>
+    {!embedded && <h3>{card.title}{verification?.verified && <span className="masteryVerifiedLabel"> · Verified</span>}</h3>}
     <div className="masteryPrevious" aria-label="Earlier earned badges">
       {previous.map(tier => <button key={tier.key} type="button" onClick={openDetails}
         title={`${label(tier.tier)} · ${claimedKeys.has(tier.key) ? "Claimed" : "Earned"}`}
