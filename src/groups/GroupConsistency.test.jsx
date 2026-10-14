@@ -68,10 +68,10 @@ describe("GroupConsistency", () => {
     expect(screen.getByText("No planned days due")).toBeTruthy();
   });
 
-  it("shows Top 3 while emphasizing self and immediate neighbours", async () => {
+  it("highlights the leading rows, self and immediate neighbours", async () => {
     const { container } = render(<GroupConsistency group={group} membership={membership} />);
-    await screen.findByLabelText("Consistency Top 3");
-    expect(container.querySelectorAll(".groupXpPodium")).toHaveLength(3);
+    await screen.findByRole("table", { name: "Consistency standings" });
+    expect(container.querySelectorAll(".groupXpStandingRow.leader")).toHaveLength(3);
     expect(container.querySelectorAll(".groupXpStandingRow.self")).toHaveLength(1);
     expect(container.querySelectorAll(".groupXpStandingRow.neighbour")).toHaveLength(2);
   });
@@ -86,16 +86,16 @@ describe("GroupConsistency", () => {
     ];
     loadGroupConsistencyLeaderboard.mockResolvedValueOnce({ data: tied, error: null });
     const { container } = render(<GroupConsistency group={group} membership={membership} />);
-    await screen.findByLabelText("Consistency Top 3");
-    expect(container.querySelectorAll(".groupXpPodium")).toHaveLength(4);
+    await screen.findByRole("table", { name: "Consistency standings" });
+    expect(container.querySelectorAll(".groupXpStandingRow.leader")).toHaveLength(4);
   });
 
   it("opens the four completed-week history choices", async () => {
     render(<GroupConsistency group={group} membership={membership} />);
     await screen.findByText("Consistency");
     fireEvent.click(screen.getByRole("button", { name: "Last 4 weeks" }));
-    const picker = screen.getByRole("group", { name: "Choose Consistency week" });
-    expect(picker.querySelectorAll("button")).toHaveLength(4);
+    const picker = screen.getByRole("combobox", { name: "Choose completed week" });
+    expect(picker.querySelectorAll("option")).toHaveLength(4);
     expect(screen.getByText("This Group had not started yet.")).toBeTruthy();
   });
 

@@ -1,0 +1,51 @@
+.groupHubBoardPage .groupHubHeader { padding:12px 16px; align-items:center; }
+.groupBoardPageHeading { display:flex; align-items:center; gap:14px; min-width:0; }
+.groupBoardPageHeading h2 { font-size:1.12rem; margin:0; overflow-wrap:anywhere; }
+.groupBackButton { border:0; background:transparent; color:#9adfe8; font:inherit; font-size:.78rem; padding:8px 0; min-height:40px; cursor:pointer; white-space:nowrap; }
+.groupHubBoardPage .groupHubWorkspace, .groupHubPickerPage .groupHubWorkspace { display:block; }
+.groupHubBoardPage .groupHubDetail { padding:0 16px 16px; }
+.groupHubPickerPage .groupHubHeader { padding:16px; }
+.groupHubPickerPage .groupHubHeader h2 { font-size:1.3rem; }
+.groupHubPickerPage .groupHubTabs { padding:10px 16px; }
+.groupHubPickerPage .groupHubTabs button { min-height:38px; padding:7px 14px; font-size:.85rem; }
+.groupHubPickerPage .groupHubGroupList { padding:16px; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; border:0; }
+.groupHubPickerPage .groupHubSectionTitle { grid-column:1 / -1; }
+.groupHubPickerPage .groupHubGroupList > button { display:grid; grid-template-columns:48px minmax(0,1fr); gap:4px 12px; text-align:left; min-height:82px; padding:12px; }
+.groupHubPickerPage .groupHubGroupList > button .groupXpAvatar { grid-row:1 / 3; width:48px; height:48px; }
+.groupHubPickerPage .groupHubGroupList > button strong,.groupHubPickerPage .groupHubGroupList > button span:last-child { grid-column:2; }
+.groupBoardTabs { display:flex; gap:4px; overflow-x:auto; padding:10px 0 6px; scrollbar-width:thin; }
+.groupBoardTabs button { flex:0 0 auto; border:1px solid transparent; background:transparent; color:#9ba9b8; min-height:40px; padding:7px 12px; border-radius:10px; font:inherit; font-size:.85rem; font-weight:750; cursor:pointer; }
+.groupBoardTabs button[aria-pressed=true] { color:#f0fdff; border-color:#247d89; background:rgba(0,229,255,.11); }
+.groupBoardTabs button:focus-visible,.groupBackButton:focus-visible { outline:2px solid #00e5ff; outline-offset:2px; }
+.groupBoardControls { display:flex; justify-content:flex-end; padding:2px 0 6px; }
+.groupBoardControls label,.groupBoardHistoryPicker { display:flex; align-items:center; gap:8px; color:#99a9b7; font-size:.74rem; }
+.groupBoardControls select,.groupBoardHistoryPicker select { max-width:100%; min-height:36px; border:1px solid #35434c; border-radius:8px; padding:5px 24px 5px 9px; color:#e6f3f6; background:#161e27; font:inherit; cursor:pointer; }
+.groupBoardHistoryPicker { justify-content:flex-end; margin:8px 0; }
+.groupBoardSurface > .groupHubPanel { margin:0; padding:12px; border-radius:14px; }
+.groupBoardSurface .groupXpHeading { gap:8px; }
+.groupBoardSurface .groupXpHeading h4 { font-size:1rem; margin:0 0 3px; }
+.groupBoardSurface .groupXpHeading p { font-size:.73rem; }
+.groupBoardSurface .groupXpEyebrow { display:none; }
+.groupBoardSurface .groupXpRefresh { min-width:36px; min-height:36px; border-radius:10px; font-size:1.05rem; }
+.groupBoardSurface .groupXpPeriodMeta { margin:10px 0 8px; font-size:.77rem; }
+.groupBoardSurface .groupXpPeriodMeta span { font-size:.63rem; letter-spacing:.04em; }
+.groupBoardSurface .groupDetailedTable .groupXpStandingRow { min-height:72px; }
+.groupBoardSurface .groupDetailedTable .groupXpIdentity .groupXpAvatar { width:44px; height:44px; }
+.groupBoardSurface .groupXpStandingRow.leader .groupXpRank { color:#d7bd72; }
+.groupBoardSurface .groupXpStandingRow.rank1 .groupXpRank { color:#ffdf56; }
+.groupBoardSurface .groupXpStandingRow.rank1 { border-left:2px solid rgba(255,215,0,.45); }
+.groupBoardSurface .groupXpStandingRow.self { box-shadow:inset 3px 0 0 #00e5ff; }
+.groupHubBoardPage .groupHubFooterActions { margin-top:12px; }
+@media(max-width:600px) {
+ .groupHubBoardPage .groupHubHeader { padding:10px 12px; }
+ .groupHubBoardPage .groupHubDetail { padding:0 10px 12px; }
+ .groupBoardPageHeading { gap:10px; }
+ .groupBoardPageHeading h2 { font-size:1rem; }
+ .groupBoardSurface > .groupHubPanel { padding:10px; }
+ .groupBoardTabs button { padding:6px 10px; font-size:.78rem; }
+ .groupBoardSurface .groupXpPeriodMeta { align-items:center; }
+}
+.groupBoardSurface .groupXpIdentity { gap:7px; }
+@media(max-width:600px) {
+ .groupBoardTabs button { padding:6px 4px; font-size:.72rem; }
+}

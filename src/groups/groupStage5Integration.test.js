@@ -9,9 +9,9 @@ describe("Group Stage 5 Improvement integration contract", () => {
     expect(db).not.toMatch(/from\("profile_weekly_improvement_baselines"\)/);
   });
 
-  it("renders Improvement immediately after the existing Consistency surface", () => {
-    const consistency = fs.readFileSync(new URL("./GroupConsistency.jsx", import.meta.url), "utf8");
-    const consistencyPanel = consistency.indexOf('className="groupHubPanel groupXpPanel groupConsistencyPanel"');
+  it("keeps Improvement alongside Consistency in board navigation", () => {
+    const consistency = fs.readFileSync(new URL("./GroupBoards.jsx", import.meta.url), "utf8");
+    const consistencyPanel = consistency.indexOf("<GroupConsistency");
     const improvementPanel = consistency.indexOf("<GroupImprovement");
     expect(consistencyPanel).toBeGreaterThan(-1);
     expect(improvementPanel).toBeGreaterThan(consistencyPanel);

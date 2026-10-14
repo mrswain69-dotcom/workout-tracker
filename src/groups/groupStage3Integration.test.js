@@ -10,7 +10,7 @@ describe("Group Stage 3 integration contract", () => {
   });
 
   it("renders Weekly XP before the member-management panel", () => {
-    const hub = fs.readFileSync(new URL("./GroupHub.jsx", import.meta.url), "utf8");
+    const hub = fs.readFileSync(new URL("./GroupBoards.jsx", import.meta.url), "utf8") + fs.readFileSync(new URL("./GroupHub.jsx", import.meta.url), "utf8");
     expect(hub.indexOf("<GroupWeeklyXp")).toBeGreaterThan(-1);
     expect(hub.indexOf("<GroupWeeklyXp")).toBeLessThan(hub.indexOf("<summary>Members"));
   });

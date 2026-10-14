@@ -27,10 +27,9 @@ import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
 import { resolveAvatarIdentity } from "../config/avatarIdentity";
 import { loadGroupAvatarIdentityStats } from "../avatarIdentityDb";
 import AvatarIdentityView from "../components/avatar/AvatarIdentityView.jsx";
-import GroupWeeklyXp from "./GroupWeeklyXp.jsx";
-import GroupConsistency from "./GroupConsistency.jsx";
+import GroupBoards from "./GroupBoards.jsx";
+import { GroupAvatar } from "./GroupIdentityTrigger.jsx";
 import GroupAvatarPicker from "./GroupAvatarPicker.jsx";
-import GroupChallenges from "./GroupChallenges.jsx";
 import "./GroupHub.css";
 import "./GroupStage10.css";
 
@@ -114,6 +113,13 @@ function MemberIdentity({ member, isSelf = false, onOpen = null }) {
   );
 }
 
+function readLastGroup(profileId) {
+  try { return window.localStorage.getItem(`wt_last_group_${profileId}`) || ""; } catch { return ""; }
+}
+function rememberGroup(profileId, groupId) {
+  try { if (groupId) window.localStorage.setItem(`wt_last_group_${profileId}`, groupId); else window.localStorage.removeItem(`wt_last_group_${profileId}`); } catch { /* Storage can be disabled. */ }
+}
+
 export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [], onClose }) {
   const pendingJoinCodeRef = useRef(readPendingJoinCode());
   const deepLinkPreviewedRef = useRef(false);
@@ -173,7 +179,16 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
     });
   }
 
-  async function refreshGroups(preferredGroupId = "") {
+  function openGroup(groupId) {
+    setSelectedGroupId(groupId);
+    setView("board");
+    rememberGroup(profileId, groupId);
+    setNotice("");
+    setError("");
+    requestAnimationFrame(() => document.querySelector(".groupHubShell")?.scrollTo?.({ top: 0 }));
+  }
+
+  async function refreshGroups(preferredGroupId = "", restoreView = false) {
     if (!profileId) {
       setGroups([]);
       setSelectedGroupId("");
@@ -190,7 +205,13 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
     const next = data || [];
     setGroups(next);
     const wanted = preferredGroupId || selectedGroupId;
-    setSelectedGroupId(next.some((group) => group.id === wanted) ? wanted : next[0]?.id || "");
+    const restored = next.some(group => group.id === wanted);
+    setSelectedGroupId(restored ? wanted : next[0]?.id || "");
+    if (restoreView && !pendingJoinCodeRef.current) {
+      setView(current => current === "groups" ? (restored && preferredGroupId ? "board" : "groups") : current);
+      if (!restored) rememberGroup(profileId, "");
+    }
+    if (!next.length) setView(current => current === "board" ? "groups" : current);
   }
 
   async function refreshSelected(group = selectedGroup) {
@@ -265,7 +286,7 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
       setView("join");
       setJoinCode(pendingJoinCodeRef.current);
     }
-    refreshGroups();
+    refreshGroups(readLastGroup(profileId), !pendingJoinCodeRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId]);
 
@@ -297,8 +318,8 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
     if (!created?.group_id) return;
     setCreateName("");
     setCreateDescription("");
-    setView("groups");
     await refreshGroups(created.group_id);
+    openGroup(created.group_id);
   }
 
   async function handlePreview(event) {
@@ -324,8 +345,8 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
     setNotice("Group joined.");
     setJoinCode("");
     setJoinPreview(null);
-    setView("groups");
     await refreshGroups(result.group_id);
+    openGroup(result.group_id);
   }
 
   async function handleGroupAvatar(avatarId, appearance) {
@@ -349,6 +370,8 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
     const result = await run(() => leaveGroup(selectedGroup.id, profileId), "Group left.");
     if (result === null && error) return;
     setSelectedGroupId("");
+    setView("groups");
+    rememberGroup(profileId, "");
     await refreshGroups();
   }
 
@@ -485,21 +508,17 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
 
   return (
     <div className="groupHubBackdrop" role="dialog" aria-modal="true" aria-label="Groups">
-      <section className="groupHubShell">
+      <section className={`groupHubShell ${view === "board" ? "groupHubBoardPage" : "groupHubPickerPage"}`}>
         <header className="groupHubHeader">
-          <div>
-            <div className="groupHubEyebrow">GROUPS & TEAMS</div>
-            <h2>Train together. Improve together.</h2>
-            <p>{activeProfile ? `Group identity for ${activeProfile.name}` : "Choose an athlete profile first."}</p>
-          </div>
+          {view === "board" ? <div className="groupBoardPageHeading"><button type="button" className="groupBackButton" onClick={()=>setView("groups")}>← My Groups</button><h2>{selectedGroup?.name || "Loading group…"}</h2></div> : <div><div className="groupHubEyebrow">GROUPS &amp; TEAMS</div><h2>{view === "groups" ? "My Groups" : view === "join" ? "Join a Group" : "Create a Group"}</h2><p>{activeProfile?.name}</p></div>}
           <button className="groupHubClose" type="button" onClick={onClose} aria-label="Close Groups">×</button>
         </header>
 
-        <nav className="groupHubTabs" aria-label="Group actions">
+{view !== "board" ? (        <nav className="groupHubTabs" aria-label="Group actions">
           <button className={view === "groups" ? "active" : ""} onClick={() => setView("groups")}>My Groups</button>
           <button className={view === "join" ? "active" : ""} onClick={() => setView("join")}>Join</button>
           <button className={view === "create" ? "active" : ""} onClick={() => setView("create")}>Create</button>
-        </nav>
+        </nav>) : null}
 
         {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
         {notice ? <div className="groupHubMessage success" role="status">{notice}</div> : null}
@@ -548,32 +567,24 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
           </div>
         ) : (
           <div className="groupHubWorkspace">
-            <aside className="groupHubGroupList">
+            {view === "groups" ? <aside className="groupHubGroupList">
               <div className="groupHubSectionTitle">My Groups</div>
               {loading ? <div className="groupHubMuted">Loading…</div> : groups.length ? groups.map((group) => (
-                <button key={group.id} className={group.id === selectedGroupId ? "selected" : ""} onClick={() => setSelectedGroupId(group.id)}>
+                <button key={group.id} className={group.id === selectedGroupId ? "selected" : ""} onClick={() => openGroup(group.id)}>
+                  <GroupAvatar member={group.membership} />
                   <strong>{group.name}</strong>
                   <span>{group.membership.nickname} · {group.membership.role === "admin" ? "Admin" : "Member"}</span>
                 </button>
               )) : (
                 <div className="groupHubEmpty compact">No Groups yet. Create one or join with a Group code.</div>
               )}
-            </aside>
-
-            <main className="groupHubDetail">
+            </aside> : <main className="groupHubDetail">
               {!selectedGroup ? (
                 <div className="groupHubEmpty">Your Groups will appear here.</div>
               ) : (
                 <>
-                  <div className="groupHubGroupHeading">
-                    <div><span className="groupHubType">{selectedGroup.group_type === "squad" ? "SQUAD" : selectedGroup.group_type === "club" ? "CLUB" : "PRIVATE"}</span><h3>{selectedGroup.name}</h3><p>{selectedGroup.description || "Private performance group."}</p></div>
-
-                  </div>
-
-                  <GroupWeeklyXp group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} onOpenIdentity={openMemberIdentity} directory={directory} />
-                  <GroupConsistency group={selectedGroup} membership={ownMembership} onOpenIdentity={openMemberIdentity} directory={directory} />
-                  <details className="groupCompactDetails groupHubPanel" key={`challenges-${selectedGroup.id}`}><summary>Group challenges</summary><GroupChallenges group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} /></details>
-<details className="groupCompactDetails groupHubPanel" key={`settings-${selectedGroup.id}`}><summary>Group settings <small>{directory.length} members{pendingRequests.length ? ` · ${pendingRequests.length} requests` : ""}</small></summary><div className="groupCompactDetailsBody">{isAdmin ? <button className="groupHubSecondary" onClick={handleEditGroup} disabled={busy}>Edit Group</button> : null}                  <div className="groupHubOwnIdentity">
+                  <GroupBoards key={`${profileId}-${selectedGroup.id}`} group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} onOpenIdentity={openMemberIdentity} directory={directory} />
+<details className="groupCompactDetails groupHubPanel" key={`settings-${selectedGroup.id}`}><summary>Group settings <small>{directory.length} members{pendingRequests.length ? ` · ${pendingRequests.length} requests` : ""}</small></summary><div className="groupCompactDetailsBody"><p>{selectedGroup.description || "Private performance group."}</p>{isAdmin ? <button className="groupHubSecondary" onClick={handleEditGroup} disabled={busy}>Edit Group</button> : null}                  <div className="groupHubOwnIdentity">
                     <MemberIdentity
                       member={{ ...ownMembership, ...directory.find(member => member.membership_id === ownMembership.id), membership_id: ownMembership.id }}
                       isSelf
@@ -741,11 +752,11 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
                     </div>
                   </details>
 
-                  </div></details>
                   <div className="groupHubFooterActions"><button className="groupHubDanger" onClick={handleLeave} disabled={busy}>Leave Group</button>{isAdmin ? <span>Last Admins must promote another Admin before leaving.</span> : null}</div>
+                  </div></details>
                 </>
               )}
-            </main>
+            </main>}
           </div>
         )}
       </section>

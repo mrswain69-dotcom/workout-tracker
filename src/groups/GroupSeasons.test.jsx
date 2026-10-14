@@ -95,7 +95,7 @@ describe("GroupSeasons", () => {
   it("shows frozen completed months as final standings", async () => {
     render(<GroupSeasons group={group} membership={membership} />);
     await screen.findByRole("table", { name: "Monthly XP standings" });
-    fireEvent.click(screen.getByRole("button", { name: "Aug 2026" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Choose long-cycle period" }), { target: { value: "0" } });
     expect(await screen.findByText("Final standings")).toBeTruthy();
     const table = screen.getByRole("table", { name: "Monthly XP standings" });
     expect(within(table).getByText("2,100 XP")).toBeTruthy();
@@ -107,4 +107,15 @@ describe("GroupSeasons", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("long-cycle down");
   });
+  it("renders only the chosen monthly metric and keeps awards in their own view", async () => {
+    const {rerender}=render(<GroupSeasons group={group} membership={membership} boardMetric="consistency" boardPeriod="month" display="standings" />);
+    expect(await screen.findByRole("table", {name:"Monthly Consistency standings"})).toBeTruthy();
+    expect(screen.queryByRole("group", {name:"Long-cycle metric"})).toBeNull();
+    expect(screen.queryByText("Progress Awards")).toBeNull();
+    rerender(<GroupSeasons group={group} membership={membership} display="awards" />);
+    expect(await screen.findByRole("heading", {name:"Progress Awards"})).toBeTruthy();
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.queryByRole("combobox", {name:"Choose long-cycle period"})).toBeNull();
+  });
+
 });

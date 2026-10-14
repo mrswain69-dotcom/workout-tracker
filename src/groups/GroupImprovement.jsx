@@ -4,8 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupImprovementLeaderboard } from "./groupDb";
 import { withGroupCosmetics } from "./groupIdentity";
 import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
-import GroupSeasons from "./GroupSeasons.jsx";
-import GroupTeamView from "./GroupTeamView.jsx";
 import "./GroupWeeklyXp.css";
 import "./GroupImprovement.css";
 
@@ -58,27 +56,6 @@ function scoreTone(row) {
   return "neutral";
 }
 
-function TopThree({ rows = [], selfId, onOpenIdentity }) {
-  const top = rows.filter(
-    (row) => numericScore(row) !== null && Number(row?.rank || 99) <= 3
-  );
-  if (!top.length) return null;
-
-  return (
-    <div className="groupXpTopThree groupCompactTopThree groupImprovementTopThree" aria-label="Improvement Top 3">
-      {top.map((row) => (
-        <div
-          key={row.membership_id}
-          className={`groupXpPodium rank${row.rank} ${row.membership_id === selfId ? "self" : ""}`}
-        >
-          <span className="groupXpMedal">#{row.rank}</span>
-          <GroupIdentityTrigger member={row} isSelf={row.membership_id === selfId} onOpen={onOpenIdentity} className="groupPodiumIdentityTrigger" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Standings({ rows = [], selfId, onOpenIdentity }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
   return (
@@ -96,7 +73,7 @@ function Standings({ rows = [], selfId, onOpenIdentity }) {
         return (
           <div
             key={row.membership_id}
-            className={`groupXpStandingRow ${self ? "self" : ""} ${neighbour ? "neighbour" : ""} ${excluded ? "excluded" : ""}`}
+            className={`groupXpStandingRow ${row.rank && row.rank <= 3 ? `leader rank${row.rank}` : ""} ${self ? "self" : ""} ${neighbour ? "neighbour" : ""} ${excluded ? "excluded" : ""}`}
             role="row"
           >
             <span className="groupXpRank" role="cell">{row.rank ? `#${row.rank}` : "—"}</span>
@@ -120,8 +97,9 @@ function Standings({ rows = [], selfId, onOpenIdentity }) {
   );
 }
 
-export default function GroupImprovement({ group, membership, onOpenIdentity, directory = [] }) {
-  const [mode, setMode] = useState("current");
+export default function GroupImprovement({ group, membership, onOpenIdentity, directory = [], periodMode }) {
+  const [localMode, setMode] = useState("current");
+  const mode = periodMode ?? localMode;
   const [historyIndex, setHistoryIndex] = useState(0);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -175,25 +153,15 @@ export default function GroupImprovement({ group, membership, onOpenIdentity, di
           <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Improvement">↻</button>
         </div>
 
-        <div className="groupXpPeriodToggle" role="group" aria-label="Improvement period">
+{periodMode === undefined ? (        <div className="groupXpPeriodToggle" role="group" aria-label="Improvement period">
           <button type="button" className={mode === "current" ? "active" : ""} onClick={() => setMode("current")}>This week</button>
           <button type="button" className={mode === "history" ? "active" : ""} onClick={() => setMode("history")}>Last 4 weeks</button>
-        </div>
+        </div>) : null}
 
         {mode === "history" && weekButtons.length ? (
-          <div className="groupXpWeekPicker" role="group" aria-label="Choose Improvement week">
-            {weekButtons.map((week) => (
-              <button
-                type="button"
-                key={week.index}
-                className={historyIndex === week.index ? "active" : ""}
-                disabled={week.disabled}
-                onClick={() => setHistoryIndex(week.index)}
-              >
-                {week.label || `Week ${week.index + 1}`}
-              </button>
-            ))}
-          </div>
+<label className="groupBoardHistoryPicker">Week <select aria-label="Choose completed week" value={historyIndex} onChange={event=>setHistoryIndex(Number(event.target.value))}>
+            {weekButtons.map(week=><option key={week.index} value={week.index} disabled={week.disabled}>{week.label || `Week ${week.index + 1}`}</option>)}
+          </select></label>
         ) : null}
 
         {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
@@ -210,7 +178,6 @@ export default function GroupImprovement({ group, membership, onOpenIdentity, di
               <div className="groupHubEmpty compact">This Group had not started yet.</div>
             ) : rows.length ? (
               <>
-              <TopThree rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
               <Standings rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
               </>
             ) : (
@@ -223,8 +190,6 @@ export default function GroupImprovement({ group, membership, onOpenIdentity, di
           <strong>How it stays fair:</strong> comparable metrics are measured against each athlete’s own preceding 28-day average, then weighted equally. Declines count as well as gains, unsafe percentage metrics are excluded, practice volume does not become performance, and each metric has a ±50% outlier cap.
         </div></div></details>
       </section>
-      <GroupSeasons directory={directory} group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
-      <GroupTeamView directory={directory} group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
     </>
   );
 }
