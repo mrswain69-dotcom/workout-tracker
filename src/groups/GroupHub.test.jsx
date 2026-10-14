@@ -65,6 +65,7 @@ function group(overrides = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
+  localStorage.clear();
   window.history.replaceState({}, "", "/");
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
@@ -93,6 +94,14 @@ beforeEach(() => {
 });
 
 afterEach(() => cleanup());
+
+async function openGroupSettings() {
+  fireEvent.click(await screen.findByRole("button", { name: /Falcons Performance/ }));
+  fireEvent.click(await screen.findByText(/^Group settings/));
+  const invites = screen.queryByText(/^Invites/);
+  if (invites) fireEvent.click(invites);
+  fireEvent.click(screen.getByText(/^Members ·/));
+}
 
 describe("Group Hub scalable onboarding", () => {
   it("renders empty Create and Join paths", async () => {
@@ -145,6 +154,7 @@ describe("Group Hub scalable onboarding", () => {
     ], error: null });
     groupDb.listGroupJoinRequests.mockResolvedValue({ data: [{ request_id: "request-1", nickname: "New Player", avatar_id: "emoji_bolt", avatar_frame: "", avatar_frames_enabled: true, requested_at: "2026-09-15T18:00:00Z" }], error: null });
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    await openGroupSettings();
     expect(await screen.findByText("ABCD-EF12-3456-7890")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Copy invite link" })).toBeTruthy();
     expect(await screen.findByText("New Player")).toBeTruthy();
@@ -158,6 +168,7 @@ describe("Group Hub scalable onboarding", () => {
       { membership_id: "membership-other", nickname: "Shadow", role: "member", avatar_id: "emoji_tiger", avatar_frame: "", avatar_frames_enabled: true },
     ], error: null });
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    await openGroupSettings();
     expect(await screen.findByText("Shadow")).toBeTruthy();
     expect(screen.getByText("Manage")).toBeTruthy();
   });
@@ -175,6 +186,7 @@ describe("Group Hub scalable onboarding", () => {
     });
 
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    await openGroupSettings();
     const toggle = await screen.findByRole("checkbox", {
       name: /Show XP evidence to this Group/i,
     });
@@ -200,6 +212,7 @@ describe("Group Hub scalable onboarding", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    await openGroupSettings();
     await screen.findByText("Shadow");
     fireEvent.click(screen.getAllByText("Manage")[0]);
     fireEvent.click(screen.getByRole("button", { name: "Exclude from competition" }));
@@ -232,6 +245,7 @@ describe("Group Hub scalable onboarding", () => {
     });
 
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    await openGroupSettings();
     fireEvent.click(await screen.findByText("Invite settings"));
     const createButton = screen.getByRole("button", { name: "Create one-use invite" });
     fireEvent.click(createButton);
@@ -249,9 +263,37 @@ describe("Group Hub scalable onboarding", () => {
     groupDb.listProfileGroups.mockResolvedValue({ data: [group({ membership: { ...group().membership, role: "member" } })], error: null });
     groupDb.listGroupDirectory.mockResolvedValue({ data: [{ membership_id: "membership-self", nickname: "WS10", role: "member", avatar_id: "emoji_bolt", avatar_frame: "", avatar_frames_enabled: true }], error: null });
     render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
-    expect(await screen.findByText("WS10 · You")).toBeTruthy();
+    await openGroupSettings();
+    expect((await screen.findAllByText("WS10 · You")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Copy invite link" })).toBeNull();
     expect(groupDb.getGroupJoinSettings).not.toHaveBeenCalled();
     expect(groupDb.listGroupJoinRequests).not.toHaveBeenCalled();
   });
+  it("opens a selected group into its boards and remembers it per profile", async () => {
+    groupDb.listProfileGroups.mockResolvedValue({ data: [group()], error: null });
+    render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    const card=await screen.findByRole("button", { name: /Falcons Performance/ });
+    expect(screen.queryByText("Weekly Earned XP")).toBeNull();
+    fireEvent.click(card);
+    expect(await screen.findByRole("navigation", { name: "Group boards" })).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: "Group actions" })).toBeNull();
+    expect(localStorage.getItem("wt_last_group_profile-1")).toBe("group-1");
+    fireEvent.click(screen.getByRole("button", { name: "Discipline" }));
+    expect(await screen.findByRole("region", { name: "Discipline board" })).toBeTruthy();
+    await waitFor(()=>expect(groupDb.loadGroupConsistencyLeaderboard).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "← My Groups" }));
+    expect(await screen.findByRole("button", { name: /Falcons Performance/ })).toBeTruthy();
+    cleanup();
+    render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    expect(await screen.findByRole("navigation", { name: "Group boards" })).toBeTruthy();
+  });
+  it("discards a remembered group that is no longer available", async () => {
+    localStorage.setItem("wt_last_group_profile-1", "old-group");
+    groupDb.listProfileGroups.mockResolvedValue({data:[group()],error:null});
+    render(<GroupHub profiles={profiles} activeProfileId="profile-1" onClose={vi.fn()} />);
+    expect(await screen.findByRole("button", { name: /Falcons Performance/ })).toBeTruthy();
+    expect(localStorage.getItem("wt_last_group_profile-1")).toBeNull();
+    expect(screen.queryByRole("navigation", {name:"Group boards"})).toBeNull();
+  });
+
 });

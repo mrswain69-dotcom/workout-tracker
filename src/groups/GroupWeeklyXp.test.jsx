@@ -73,8 +73,8 @@ describe("GroupWeeklyXp", () => {
 
   it("shows Top 3 and emphasizes self plus the rows immediately around self", async () => {
     const { container } = render(<GroupWeeklyXp group={group} membership={membership} />);
-    await screen.findByLabelText("Weekly Earned XP Top 3");
-    expect(container.querySelectorAll(".groupXpPodium")).toHaveLength(3);
+    await screen.findByRole("table", { name: "Weekly Earned XP standings" });
+    expect(container.querySelectorAll(".groupXpStandingRow.leader")).toHaveLength(3);
     expect(container.querySelectorAll(".groupXpStandingRow.self")).toHaveLength(1);
     expect(container.querySelectorAll(".groupXpStandingRow.neighbour")).toHaveLength(2);
   });
@@ -109,8 +109,8 @@ describe("GroupWeeklyXp", () => {
     render(<GroupWeeklyXp group={group} membership={membership} />);
     await screen.findByText("Weekly Earned XP");
     fireEvent.click(screen.getByRole("button", { name: "Last 4 weeks" }));
-    const picker = screen.getByRole("group", { name: "Choose completed week" });
-    expect(picker.querySelectorAll("button")).toHaveLength(4);
+    const picker = screen.getByRole("combobox", { name: "Choose completed week" });
+    expect(picker.querySelectorAll("option")).toHaveLength(4);
     expect(screen.getByText("This Group had not started yet.")).toBeTruthy();
   });
 

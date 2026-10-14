@@ -10,7 +10,7 @@ describe("Group Stage 8 Private Challenges integration contract", () => {
   });
 
   it("renders Challenges inside the private Group Hub rather than as a public navigation surface", () => {
-    const hub = fs.readFileSync(new URL("./GroupHub.jsx", import.meta.url), "utf8");
+    const hub = fs.readFileSync(new URL("./GroupBoards.jsx", import.meta.url), "utf8");
     expect(hub).toContain('import GroupChallenges from "./GroupChallenges.jsx"');
     expect(hub).toContain("<GroupChallenges");
   });

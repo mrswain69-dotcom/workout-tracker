@@ -82,7 +82,7 @@ function metricEvidence(row, metric) {
   return `${count} comparable ${count === 1 ? "metric" : "metrics"}`;
 }
 
-function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity, directory = [] }) {
+function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity, directory = [], boardMetric, boardPeriod, display = "all" }) {
   const rows = useMemo(() => {
     const rankKey = metric === "xp" ? "xpRank" : metric === "consistency" ? "consistencyRank" : "improvementRank";
     return [...withGroupCosmetics(period?.rows || [], directory, period?.state === "frozen")].sort((a, b) => {
@@ -112,7 +112,7 @@ function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity, d
         return (
           <div
             key={row.membership_id}
-            className={`groupXpStandingRow ${self ? "self" : ""} ${excluded ? "excluded" : ""}`}
+            className={`groupXpStandingRow ${rank && rank <= 3 ? `leader rank${rank}` : ""} ${self ? "self" : ""} ${excluded ? "excluded" : ""}`}
             role="row"
           >
             <span className="groupXpRank" role="cell">{rank ? `#${rank}` : "—"}</span>
@@ -126,7 +126,7 @@ function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity, d
             </span>
             <span className="groupSeasonScoreCell" role="cell">
               <strong>{metricValue(row, "xp")}</strong>
-            </span><span role="cell">{metricValue(row, "consistency")}</span><span role="cell">{row.completedDays ?? "—"} / {row.plannedDays ?? "—"}</span><span role="cell">{metricValue(row, "improvement")}</span><span role="cell">{row.metricCount ?? "—"}</span>
+            </span><span role="cell">{metricValue(row, "consistency")}</span><span role="cell">{row.completedDays ?? "—"} / {row.plannedDays ?? "—"}</span><span role="cell">{metricValue(row, "improvement")}</span><span role="cell">{row.improvementMetricCount ?? "—"}</span>
             <GroupBlockCountCells row={row} />
           </div>
         );
@@ -158,12 +158,14 @@ function AwardCard({ award, selfId, onOpenIdentity }) {
   );
 }
 
-export default function GroupSeasons({ group, membership, onOpenIdentity, directory = [] }) {
+export default function GroupSeasons({ group, membership, onOpenIdentity, directory = [], boardMetric, boardPeriod, display = "all" }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [periodType, setPeriodType] = useState("month");
-  const [metric, setMetric] = useState("xp");
+  const [localPeriodType, setPeriodType] = useState("month");
+  const periodType = boardPeriod ?? localPeriodType;
+  const [localMetric, setMetric] = useState("xp");
+  const metric = boardMetric ?? localMetric;
   const [historyIndex, setHistoryIndex] = useState(-1);
 
   async function refresh() {
@@ -192,6 +194,8 @@ export default function GroupSeasons({ group, membership, onOpenIdentity, direct
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group?.id, membership?.id]);
 
+  useEffect(() => { setHistoryIndex(-1); }, [boardPeriod]);
+
   const current = periodType === "month" ? data?.monthly?.current : data?.season?.current;
   const history = periodType === "month" ? data?.monthly?.history : data?.season?.history;
   const periods = Array.isArray(history) ? history : [];
@@ -203,13 +207,13 @@ export default function GroupSeasons({ group, membership, onOpenIdentity, direct
       <div className="groupXpHeading">
         <div>
           <span className="groupXpEyebrow groupSeasonsEyebrow">🏆 LONG GAME</span>
-          <h4>Seasons & Awards</h4>
-          <p>Monthly standings and 8-week seasons.</p>
+          <h4>{display === "awards" ? "Progress Awards" : display === "standings" ? `${metric === "xp" ? "Earned XP" : metric === "consistency" ? "Discipline" : "Improvement"} · ${periodType === "month" ? "Monthly" : "Season"}` : "Seasons & Awards"}</h4>
+          <p>{display === "awards" ? "Your group’s completed-period achievements." : display === "standings" ? "" : "Monthly standings and 8-week seasons."}</p>
         </div>
         <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Seasons and Awards">↻</button>
       </div>
 
-      <div className="groupXpPeriodToggle" role="group" aria-label="Long-cycle period">
+{display === "all" ? <>      <div className="groupXpPeriodToggle" role="group" aria-label="Long-cycle period">
         <button type="button" className={periodType === "month" ? "active" : ""} onClick={() => { setPeriodType("month"); setHistoryIndex(-1); }}>Month</button>
         <button type="button" className={periodType === "season" ? "active" : ""} onClick={() => { setPeriodType("season"); setHistoryIndex(-1); }}>8-week season</button>
       </div>
@@ -220,21 +224,16 @@ export default function GroupSeasons({ group, membership, onOpenIdentity, direct
         ))}
       </div>
 
+</> : null}
       {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
       {loading ? <div className="groupHubMuted groupXpLoading">Calculating Seasons & Awards…</div> : null}
 
-      {!loading && period ? (
+      {display !== "awards" && !loading && period ? (
         <>
-          <div className="groupSeasonPeriodNav" role="group" aria-label="Choose long-cycle period">
-            <button type="button" className={historyIndex < 0 ? "active" : ""} onClick={() => setHistoryIndex(-1)}>
-              {periodType === "month" ? "This month" : `Season ${current?.seasonNumber || 1}`}
-            </button>
-            {periods.map((item, index) => (
-              <button type="button" key={`${item.startDate}-${index}`} className={historyIndex === index ? "active" : ""} onClick={() => setHistoryIndex(index)}>
-                {periodType === "month" ? formatMonth(item.startDate) : `Season ${item.seasonNumber}`}
-              </button>
-            ))}
-          </div>
+<label className="groupBoardHistoryPicker">Period <select aria-label="Choose long-cycle period" value={historyIndex} onChange={event=>setHistoryIndex(Number(event.target.value))}>
+            <option value={-1}>{periodType === "month" ? "This month" : `Season ${current?.seasonNumber || 1}`}</option>
+            {periods.map((item,index)=><option key={`${item.startDate}-${index}`} value={index}>{periodType === "month" ? formatMonth(item.startDate) : `Season ${item.seasonNumber}`}</option>)}
+          </select></label>
 
           <div className="groupXpPeriodMeta groupSeasonMeta">
             <strong>{periodType === "season" ? `Season ${period.seasonNumber} · ${formatPeriod(period.startDate, period.endDate)}` : formatMonth(period.startDate)}</strong>
@@ -245,7 +244,7 @@ export default function GroupSeasons({ group, membership, onOpenIdentity, direct
         </>
       ) : null}
 
-      <div className="groupSeasonAwardsHeader">
+{display !== "standings" ? <>      <div className="groupSeasonAwardsHeader">
         <strong>Progress Awards</strong>
         <span>Final awards are issued only when a month or 8-week season closes.</span>
       </div>
@@ -257,6 +256,7 @@ export default function GroupSeasons({ group, membership, onOpenIdentity, direct
         <div className="groupHubMuted groupSeasonNoAwards">No completed-period awards yet — the first ones will lock when a month or season finishes.</div>
       )}
 
+</> : null}
 <details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Block counts show completed recorded Strength, Cardio, Duration, Session and Task blocks in this period, including extra blocks. They follow the app’s completion rules. These totals reflect current logs; final standings remain fixed.</p><p>Calendar-month standings and fixed 8-week seasons. XP standings use Earned XP only; reward/award Bonus XP does not influence competition.</p>      <div className="groupSeasonRuleNote">
         <strong>Truth rules:</strong> XP is earned XP inside the eligible period; Consistency is completed planned days ÷ planned days across the whole period; Improvement compares that period’s compatible performance with the athlete’s own locked preceding 28-day baseline. Genuine ties share the award.
       </div></div></details>

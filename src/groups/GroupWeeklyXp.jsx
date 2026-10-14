@@ -34,30 +34,6 @@ function formatStartDate(value) {
   });
 }
 
-function TopThree({ rows = [], selfId, onOpenIdentity }) {
-  const top = rows.filter((row) => Number(row?.xp || 0) > 0 && Number(row?.rank || 99) <= 3);
-  if (!top.length) return null;
-
-  return (
-    <div className="groupXpTopThree groupCompactTopThree" aria-label="Weekly Earned XP Top 3">
-      {top.map((row) => (
-        <div
-          key={row.membership_id}
-          className={`groupXpPodium rank${row.rank} ${row.membership_id === selfId ? "self" : ""}`}
-        >
-          <span className="groupXpMedal">#{row.rank}</span>
-          <GroupIdentityTrigger
-            member={row}
-            isSelf={row.membership_id === selfId}
-            onOpen={onOpenIdentity}
-            className="groupPodiumIdentityTrigger"
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function VerificationBadge({ row, onOpenEvidence }) {
   const pct =
     row?.verificationPct === null || row?.verificationPct === undefined
@@ -100,7 +76,7 @@ function Standings({ rows = [], selfId, onOpenIdentity, onOpenEvidence }) {
         return (
           <div
             key={row.membership_id}
-            className={`groupXpStandingRow ${self ? "self" : ""} ${neighbour ? "neighbour" : ""} ${excluded ? "excluded" : ""}`}
+            className={`groupXpStandingRow ${row.rank && row.rank <= 3 ? `leader rank${row.rank}` : ""} ${self ? "self" : ""} ${neighbour ? "neighbour" : ""} ${excluded ? "excluded" : ""}`}
             role="row"
           >
             <span className="groupXpRank" role="cell">
@@ -230,8 +206,9 @@ function XpEvidenceDialog({ row, period, onClose }) {
   );
 }
 
-export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGroupChanged, onOpenIdentity, directory = [] }) {
-  const [mode, setMode] = useState("current");
+export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGroupChanged, onOpenIdentity, directory = [], periodMode }) {
+  const [localMode, setMode] = useState("current");
+  const mode = periodMode ?? localMode;
   const [historyIndex, setHistoryIndex] = useState(0);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -304,25 +281,15 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
         </button>
       </div>
 
-      <div className="groupXpPeriodToggle" role="group" aria-label="Weekly Earned XP period">
+{periodMode === undefined ? (      <div className="groupXpPeriodToggle" role="group" aria-label="Weekly Earned XP period">
         <button type="button" className={mode === "current" ? "active" : ""} onClick={() => setMode("current")}>This week</button>
         <button type="button" className={mode === "history" ? "active" : ""} onClick={() => setMode("history")}>Last 4 weeks</button>
-      </div>
+      </div>) : null}
 
       {mode === "history" && weekButtons.length ? (
-        <div className="groupXpWeekPicker" role="group" aria-label="Choose completed week">
-          {weekButtons.map((week) => (
-            <button
-              type="button"
-              key={week.index}
-              className={historyIndex === week.index ? "active" : ""}
-              disabled={week.disabled}
-              onClick={() => setHistoryIndex(week.index)}
-            >
-              {week.label || `Week ${week.index + 1}`}
-            </button>
-          ))}
-        </div>
+<label className="groupBoardHistoryPicker">Week <select aria-label="Choose completed week" value={historyIndex} onChange={event=>setHistoryIndex(Number(event.target.value))}>
+            {weekButtons.map(week=><option key={week.index} value={week.index} disabled={week.disabled}>{week.label || `Week ${week.index + 1}`}</option>)}
+          </select></label>
       ) : null}
 
       {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
@@ -345,7 +312,6 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
             <div className="groupHubEmpty compact">This Group had not started yet.</div>
           ) : rows.length ? (
             <>
-              <TopThree rows={rows} selfId={membership.id} onOpenIdentity={onOpenIdentity} />
               <Standings
                 rows={rows}
                 selfId={membership.id}

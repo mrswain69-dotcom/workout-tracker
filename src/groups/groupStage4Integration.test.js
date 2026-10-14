@@ -8,8 +8,8 @@ describe("Group Stage 4 Consistency integration contract", () => {
     expect(db).not.toMatch(/from\("group_weekly_consistency_results"\).*\.(insert|update|upsert|delete)/s);
   });
 
-  it("renders Consistency after Weekly XP and before member management", () => {
-    const hub = fs.readFileSync(new URL("./GroupHub.jsx", import.meta.url), "utf8");
+  it("keeps metric boards above member management", () => {
+    const hub = fs.readFileSync(new URL("./GroupBoards.jsx", import.meta.url), "utf8") + fs.readFileSync(new URL("./GroupHub.jsx", import.meta.url), "utf8");
     const xpIndex = hub.indexOf("<GroupWeeklyXp");
     const consistencyIndex = hub.indexOf("<GroupConsistency");
     const membersIndex = hub.indexOf("<summary>Members");
