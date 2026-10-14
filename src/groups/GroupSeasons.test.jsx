@@ -80,7 +80,7 @@ describe("GroupSeasons", () => {
     fireEvent.click(screen.getByRole("button", { name: "Consistency" }));
     const table = screen.getByRole("table", { name: "Monthly Consistency standings" });
     expect(within(table).getByText("87.5%")).toBeTruthy();
-    expect(within(table).getByText("7 / 8 planned days")).toBeTruthy();
+    expect(within(table).getByText("7 / 8")).toBeTruthy();
   });
 
   it("shows the fixed eight-week season and its current week", async () => {

@@ -9312,7 +9312,12 @@ const cardioProgress = useMemo(() => {
 {showGroups && (
   <React.Suspense fallback={<div className="groupHubBackdrop"><div className="groupHubShell"><div className="groupHubEmpty">Loading Groups…</div></div></div>}>
     <GroupHub
+      key={activeProfileId}
       profiles={profiles}
+      avatarIds={[
+        ...AVATAR_PACKS.filter(pack => unlockedAvatarPacksSet.has(pack.key)).flatMap(pack => pack.avatars.map(avatar => avatar.id)),
+        ...sportAvatarSeries.flatMap(series => series.artworkReady ? series.avatars.filter(avatar => avatar.claimed).map(avatar => avatar.id) : []),
+      ]}
       activeProfileId={activeProfileId}
       onClose={() => setShowGroups(false)}
     />

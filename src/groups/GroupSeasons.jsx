@@ -1,5 +1,7 @@
+import "./GroupCompact.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupSeasonsAwards } from "./groupDb";
+import { withGroupCosmetics } from "./groupIdentity";
 import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import "./GroupWeeklyXp.css";
 import "./GroupSeasons.css";
@@ -79,27 +81,27 @@ function metricEvidence(row, metric) {
   return `${count} comparable ${count === 1 ? "metric" : "metrics"}`;
 }
 
-function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity }) {
+function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity, directory = [] }) {
   const rows = useMemo(() => {
     const rankKey = metric === "xp" ? "xpRank" : metric === "consistency" ? "consistencyRank" : "improvementRank";
-    return [...(Array.isArray(period?.rows) ? period.rows : [])].sort((a, b) => {
+    return [...withGroupCosmetics(period?.rows || [], directory, period?.state === "frozen")].sort((a, b) => {
       const ar = a?.[rankKey] ?? Number.MAX_SAFE_INTEGER;
       const br = b?.[rankKey] ?? Number.MAX_SAFE_INTEGER;
       if (ar !== br) return ar - br;
       return String(a?.nickname || "").localeCompare(String(b?.nickname || ""), "en", { sensitivity: "base" });
     });
-  }, [period?.rows, metric]);
+  }, [period, metric, directory]);
 
   if (!period?.available) return <div className="groupHubEmpty compact">This Group had not started for this period.</div>;
   if (!rows.length) return <div className="groupHubEmpty compact">No long-cycle standings are available yet.</div>;
 
   const label = `${periodType === "month" ? "Monthly" : "Season"} ${METRICS.find((item) => item.id === metric)?.label || metric} standings`;
   return (
-    <div className="groupXpStandings groupSeasonStandings" role="table" aria-label={label}>
+    <> <div className="groupTableScroll" role="region" aria-label="Season table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable season" role="table" aria-label={label}>
       <div className="groupXpStandingHeader" role="row">
         <span role="columnheader">Rank</span>
         <span role="columnheader">Athlete</span>
-        <span role="columnheader">{METRICS.find((item) => item.id === metric)?.label || metric}</span>
+        <span role="columnheader">Earned XP</span><span role="columnheader">Consistency</span><span role="columnheader">Completed / due</span><span role="columnheader">Improvement</span><span role="columnheader">Metrics</span>
       </div>
       {rows.map((row) => {
         const rank = metricRank(row, metric);
@@ -121,13 +123,12 @@ function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity })
               ) : null}
             </span>
             <span className="groupSeasonScoreCell" role="cell">
-              <strong>{metricValue(row, metric)}</strong>
-              <small>{metricEvidence(row, metric)}</small>
-            </span>
+              <strong>{metricValue(row, "xp")}</strong>
+            </span><span role="cell">{metricValue(row, "consistency")}</span><span role="cell">{row.completedDays ?? "—"} / {row.plannedDays ?? "—"}</span><span role="cell">{metricValue(row, "improvement")}</span><span role="cell">{row.metricCount ?? "—"}</span>
           </div>
         );
       })}
-    </div>
+    </div></div><span className="groupTableHint">Scroll sideways for more →</span></>
   );
 }
 
@@ -154,7 +155,7 @@ function AwardCard({ award, selfId, onOpenIdentity }) {
   );
 }
 
-export default function GroupSeasons({ group, membership, onOpenIdentity }) {
+export default function GroupSeasons({ group, membership, onOpenIdentity, directory = [] }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -200,7 +201,7 @@ export default function GroupSeasons({ group, membership, onOpenIdentity }) {
         <div>
           <span className="groupXpEyebrow groupSeasonsEyebrow">🏆 LONG GAME</span>
           <h4>Seasons & Awards</h4>
-          <p>Calendar-month standings and fixed 8-week seasons. XP standings use Earned XP only; reward/award Bonus XP does not influence competition.</p>
+          <p>Monthly standings and 8-week seasons.</p>
         </div>
         <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Seasons and Awards">↻</button>
       </div>
@@ -237,7 +238,7 @@ export default function GroupSeasons({ group, membership, onOpenIdentity }) {
             <span>{period.state === "frozen" ? "Final standings" : periodType === "season" ? `Live · week ${period.weekNumber || 1} of 8` : "Live monthly standings"}</span>
           </div>
 
-          <PeriodStandings period={period} metric={metric} selfId={membership.id} periodType={periodType} onOpenIdentity={onOpenIdentity} />
+          <PeriodStandings directory={directory} period={period} metric={metric} selfId={membership.id} periodType={periodType} onOpenIdentity={onOpenIdentity} />
         </>
       ) : null}
 
@@ -253,9 +254,9 @@ export default function GroupSeasons({ group, membership, onOpenIdentity }) {
         <div className="groupHubMuted groupSeasonNoAwards">No completed-period awards yet — the first ones will lock when a month or season finishes.</div>
       )}
 
-      <div className="groupSeasonRuleNote">
+<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Calendar-month standings and fixed 8-week seasons. XP standings use Earned XP only; reward/award Bonus XP does not influence competition.</p>      <div className="groupSeasonRuleNote">
         <strong>Truth rules:</strong> XP is earned XP inside the eligible period; Consistency is completed planned days ÷ planned days across the whole period; Improvement compares that period’s compatible performance with the athlete’s own locked preceding 28-day baseline. Genuine ties share the award.
-      </div>
+      </div></div></details>
     </section>
   );
 }

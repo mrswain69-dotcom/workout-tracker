@@ -63,7 +63,8 @@ describe("GroupConsistency", () => {
   it("shows percentages and completed-versus-planned evidence without rewarding no-plan days", async () => {
     render(<GroupConsistency group={group} membership={membership} />);
     expect(await screen.findAllByText("75%")).not.toHaveLength(0);
-    expect(screen.getAllByText("3 / 4 planned days")).not.toHaveLength(0);
+    expect(screen.getByRole("columnheader", { name: "Completed" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Planned due" })).toBeTruthy();
     expect(screen.getByText("No planned days due")).toBeTruthy();
   });
 

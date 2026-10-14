@@ -43,6 +43,6 @@ describe("GroupWeeklyXp tied Top 3", () => {
 
     await screen.findByLabelText("Weekly Earned XP Top 3");
     expect(container.querySelectorAll(".groupXpPodium")).toHaveLength(4);
-    expect(screen.getAllByText("110 XP")).toHaveLength(4);
+    expect(screen.getAllByText("110 XP")).toHaveLength(2);
   });
 });

@@ -17,7 +17,7 @@ async function listProfileGroupsOnce(profileId) {
 
   const { data: memberships, error: membershipError } = await supabase
     .from("group_memberships")
-    .select("id,group_id,role,nickname,avatar_id,avatar_frame,avatar_frames_enabled,xp_evidence_visible,competition_excluded,competition_exclusion_label,joined_at")
+    .select("id,group_id,role,nickname,avatar_id,group_avatar_override,group_avatar_appearance,avatar_frame,avatar_frames_enabled,xp_evidence_visible,competition_excluded,competition_exclusion_label,joined_at")
     .eq("profile_id", profileId)
     .eq("status", "active")
     .order("joined_at", { ascending: true });
@@ -324,4 +324,14 @@ export async function loadGroupSeasonsAwards(groupId, membershipId, referenceDat
   if (referenceDate) body.referenceDate = referenceDate;
   const { data, error } = await supabase.functions.invoke("group-seasons-awards", { body });
   return { data: data || null, error };
+}
+
+
+export async function setGroupAvatar(groupId, profileId, avatarId, appearance = null) {
+  if (!supabase) return unavailable();
+  const { data, error } = await supabase.rpc("group_set_avatar", {
+    p_group_id: groupId, p_profile_id: profileId,
+    p_avatar_id: avatarId, p_appearance: appearance,
+  });
+  return { data, error };
 }

@@ -1,5 +1,7 @@
+import "./GroupCompact.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupImprovementLeaderboard } from "./groupDb";
+import { withGroupCosmetics } from "./groupIdentity";
 import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import GroupSeasons from "./GroupSeasons.jsx";
 import GroupTeamView from "./GroupTeamView.jsx";
@@ -62,7 +64,7 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
   if (!top.length) return null;
 
   return (
-    <div className="groupXpTopThree groupImprovementTopThree" aria-label="Improvement Top 3">
+    <div className="groupXpTopThree groupCompactTopThree groupImprovementTopThree" aria-label="Improvement Top 3">
       {top.map((row) => (
         <div
           key={row.membership_id}
@@ -70,8 +72,6 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
         >
           <span className="groupXpMedal">#{row.rank}</span>
           <GroupIdentityTrigger member={row} isSelf={row.membership_id === selfId} onOpen={onOpenIdentity} className="groupPodiumIdentityTrigger" />
-          <span className={`groupImprovementPodiumScore ${scoreTone(row)}`}>{scoreLabel(row)}</span>
-          <small>{evidenceLabel(row)}</small>
         </div>
       ))}
     </div>
@@ -81,11 +81,11 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
 function Standings({ rows = [], selfId, onOpenIdentity }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
   return (
-    <div className="groupXpStandings" role="table" aria-label="Improvement standings">
+    <> <div className="groupTableScroll" role="region" aria-label="Improvement table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable improvement" role="table" aria-label="Improvement standings">
       <div className="groupXpStandingHeader" role="row">
         <span role="columnheader">Rank</span>
         <span role="columnheader">Athlete</span>
-        <span role="columnheader">Improvement</span>
+        <span role="columnheader">Improvement</span><span role="columnheader">Metrics</span><span role="columnheader">Improved</span><span role="columnheader">Declined</span>
       </div>
       {rows.map((row, index) => {
         const self = row.membership_id === selfId;
@@ -108,16 +108,16 @@ function Standings({ rows = [], selfId, onOpenIdentity }) {
             </span>
             <span className={`groupImprovementScoreCell ${scoreTone(row)}`} role="cell">
               <strong>{scoreLabel(row)}</strong>
-              <small>{evidenceLabel(row)}</small>
-            </span>
+              {!Number(row.metricCount) ? <small>{evidenceLabel(row)}</small> : null}
+                </span><span role="cell">{row.metricCount ?? "—"}</span><span role="cell">{row.improvedMetricCount ?? "—"}</span><span role="cell">{row.declinedMetricCount ?? "—"}</span>
           </div>
         );
       })}
-    </div>
+    </div></div><span className="groupTableHint">Scroll sideways for more →</span></>
   );
 }
 
-export default function GroupImprovement({ group, membership, onOpenIdentity }) {
+export default function GroupImprovement({ group, membership, onOpenIdentity, directory = [] }) {
   const [mode, setMode] = useState("current");
   const [historyIndex, setHistoryIndex] = useState(0);
   const [data, setData] = useState(null);
@@ -150,7 +150,7 @@ export default function GroupImprovement({ group, membership, onOpenIdentity }) 
 
   const history = Array.isArray(data?.history) ? data.history : [];
   const period = mode === "history" ? history[historyIndex] || history[0] || null : data?.current || null;
-  const rows = Array.isArray(period?.rows) ? period.rows : [];
+  const rows = withGroupCosmetics(period?.rows || [], directory, period?.state === "frozen");
   const weekButtons = useMemo(
     () => history.map((week, index) => ({
       index,
@@ -167,7 +167,7 @@ export default function GroupImprovement({ group, membership, onOpenIdentity }) 
           <div>
             <span className="groupXpEyebrow groupImprovementEyebrow">↗ SELF VS SELF</span>
             <h4>Improvement</h4>
-            <p>Current recorded performance versus your own locked rolling 4-week baseline. It compares change, not body size or absolute strength.</p>
+            <p>Current performance vs 4-week baseline.</p>
           </div>
           <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Improvement">↻</button>
         </div>
@@ -216,12 +216,12 @@ export default function GroupImprovement({ group, membership, onOpenIdentity }) 
           </>
         ) : null}
 
-        <div className="groupImprovementRuleNote">
+<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Current recorded performance versus your own locked rolling 4-week baseline. It compares change, not body size or absolute strength.</p>        <div className="groupImprovementRuleNote">
           <strong>How it stays fair:</strong> comparable metrics are measured against each athlete’s own preceding 28-day average, then weighted equally. Declines count as well as gains, unsafe percentage metrics are excluded, practice volume does not become performance, and each metric has a ±50% outlier cap.
-        </div>
+        </div></div></details>
       </section>
-      <GroupSeasons group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
-      <GroupTeamView group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
+      <GroupSeasons directory={directory} group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
+      <GroupTeamView directory={directory} group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
     </>
   );
 }
