@@ -710,20 +710,20 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const withBlockCounts = (period: any) => attachGroupBlockCounts(period, allMemberships, allLogs, (_member: any, selected: any) => ({
+      eligibleFrom: scopeMode === "group_start" ? maxYmd(selected.startDate, groupStart) : selected.startDate,
+      eligibleThrough: selected.endDate < referenceDate ? selected.endDate : referenceDate,
+    }));
     return json({
       scoreVersion: XP_ENGINE_SCORE_VERSION,
       scoreMode: "earned_xp",
       scopeMode,
       competitionStartDate: groupStart,
-      current,
-      history,
+      current: withBlockCounts(current),
+      history: history.map(withBlockCounts),
     });
   } catch (error) {
     console.error("Group Weekly XP failure", error);
-    const withBlockCounts = (period: any) => attachGroupBlockCounts(period, allMemberships, allLogs, (_member: any, selected: any) => ({
-      eligibleFrom: scopeMode === "group_start" ? maxYmd(selected.startDate, groupStart) : selected.startDate,
-      eligibleThrough: selected.endDate < referenceDate ? selected.endDate : referenceDate,
-    }));
     return json({ error: "Could not calculate Group Weekly XP" }, 500);
   }
 });

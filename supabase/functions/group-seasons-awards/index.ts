@@ -545,6 +545,9 @@ Deno.serve(async (req: Request) => {
       .order("award_type", { ascending: true });
     if (awardsError) throw awardsError;
 
+    const withBlockCounts = (period: any) => attachGroupBlockCounts(period, allMemberships, logs, (member: any, selected: any) =>
+      memberBounds(member, groupStart, selected, referenceDate, selected.state !== "frozen")
+    );
     return json({
       scoreVersion: GROUP_PERIOD_SCORE_VERSION,
       competitionStartDate: groupStart,
@@ -554,9 +557,6 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     console.error("Group Seasons & Awards failure", error);
-    const withBlockCounts = (period: any) => attachGroupBlockCounts(period, allMemberships, logs, (member: any, selected: any) =>
-      memberBounds(member, groupStart, selected, referenceDate, selected.state !== "frozen")
-    );
     return json({ error: "Could not calculate Group Seasons & Awards" }, 500);
   }
 });
