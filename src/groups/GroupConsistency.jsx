@@ -1,5 +1,7 @@
+import "./GroupCompact.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupConsistencyLeaderboard } from "./groupDb";
+import { withGroupCosmetics } from "./groupIdentity";
 import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import GroupImprovement from "./GroupImprovement.jsx";
 import "./GroupWeeklyXp.css";
@@ -38,7 +40,7 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
   if (!top.length) return null;
 
   return (
-    <div className="groupXpTopThree groupConsistencyTopThree" aria-label="Consistency Top 3">
+    <div className="groupXpTopThree groupCompactTopThree groupConsistencyTopThree" aria-label="Consistency Top 3">
       {top.map((row) => (
         <div
           key={row.membership_id}
@@ -46,8 +48,6 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
         >
           <span className="groupXpMedal">#{row.rank}</span>
           <GroupIdentityTrigger member={row} isSelf={row.membership_id === selfId} onOpen={onOpenIdentity} className="groupPodiumIdentityTrigger" />
-          <span className="groupConsistencyPodiumScore">{scoreLabel(row)}</span>
-          <small>{ratioLabel(row)}</small>
         </div>
       ))}
     </div>
@@ -57,11 +57,11 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
 function Standings({ rows = [], selfId, onOpenIdentity }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
   return (
-    <div className="groupXpStandings" role="table" aria-label="Consistency standings">
+    <> <div className="groupTableScroll" role="region" aria-label="Consistency table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable consistency" role="table" aria-label="Consistency standings">
       <div className="groupXpStandingHeader" role="row">
         <span role="columnheader">Rank</span>
         <span role="columnheader">Athlete</span>
-        <span role="columnheader">Consistency</span>
+        <span role="columnheader">Consistency</span><span role="columnheader">Completed</span><span role="columnheader">Planned due</span>
       </div>
       {rows.map((row, index) => {
         const self = row.membership_id === selfId;
@@ -84,12 +84,12 @@ function Standings({ rows = [], selfId, onOpenIdentity }) {
             </span>
             <span className="groupConsistencyScoreCell" role="cell">
               <strong>{scoreLabel(row)}</strong>
-              <small>{ratioLabel(row)}</small>
-            </span>
+              {!Number(row.plannedDays) ? <small>{ratioLabel(row)}</small> : null}
+                </span><span role="cell">{row.completedDays ?? "—"}</span><span role="cell">{row.plannedDays ?? "—"}</span>
           </div>
         );
       })}
-    </div>
+    </div></div><span className="groupTableHint">Scroll sideways for more →</span></>
   );
 }
 
@@ -126,14 +126,7 @@ export default function GroupConsistency({ group, membership, onOpenIdentity, di
 
   const history = Array.isArray(data?.history) ? data.history : [];
   const period = mode === "history" ? history[historyIndex] || history[0] || null : data?.current || null;
-  const rows = useMemo(() => {
-    const cosmetics = new Map(directory.map(member => [member.membership_id, member]));
-    return (Array.isArray(period?.rows) ? period.rows : []).map(row => ({
-      ...row,
-      sport_avatar_appearance: cosmetics.get(row.membership_id)?.avatar_id === row.avatar_id
-        ? cosmetics.get(row.membership_id)?.sport_avatar_appearance : null,
-    }));
-  }, [period, directory]);
+  const rows = withGroupCosmetics(period?.rows || [], directory, period?.state === "frozen");
   const weekButtons = useMemo(
     () => history.map((week, index) => ({
       index,
@@ -150,7 +143,7 @@ export default function GroupConsistency({ group, membership, onOpenIdentity, di
           <div>
             <span className="groupXpEyebrow groupConsistencyEyebrow">🛡️ DISCIPLINE</span>
             <h4>Consistency</h4>
-            <p>Completed planned performance and recovery days ÷ planned days. It rewards following the plan, not doing the most work.</p>
+            <p>Completed planned days ÷ planned days due.</p>
           </div>
           <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Consistency">
             ↻
@@ -201,12 +194,12 @@ export default function GroupConsistency({ group, membership, onOpenIdentity, di
           </>
         ) : null}
 
-        <div className="groupConsistencyRuleNote">
+<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Completed planned performance and recovery days ÷ planned days. It rewards following the plan, not doing the most work.</p>        <div className="groupConsistencyRuleNote">
           <strong>What counts:</strong> a planned performance or recovery day is complete only when every planned training/recovery block is recorded on that day. Task-only days and Streak Saver do not count as completed planned days.
-        </div>
+        </div></div></details>
       </section>
 
-      <GroupImprovement group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
+      <GroupImprovement directory={directory} group={group} membership={membership} onOpenIdentity={onOpenIdentity} />
     </>
   );
 }

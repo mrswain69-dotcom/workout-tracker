@@ -1,0 +1,43 @@
+.groupCompactDetails { min-width:0; border-top:1px solid rgba(255,255,255,.1); margin-top:14px; }
+.groupCompactDetails > summary { cursor:pointer; min-height:44px; padding:12px 0; color:#e4edf2; font-weight:750; }
+.groupCompactDetails > summary::marker { color:#00dced; }
+.groupCompactDetails > summary small { margin-left:8px; color:#94a3b8; font-size:.75rem; font-weight:500; }
+.groupCompactDetails > summary:focus-visible, .groupTableScroll:focus-visible { outline:2px solid #00e5ff; outline-offset:3px; border-radius:8px; }
+.groupCompactDetailsBody { padding:4px 0 12px; display:grid; gap:12px; color:rgba(255,255,255,.68); }
+.groupCompactDetailsBody > p { margin:0; line-height:1.45; font-size:.84rem; }
+.groupCompactDetails.groupHubPanel > summary { padding:0; display:list-item; }
+.groupCompactDetails.groupHubPanel[open] > summary { padding-bottom:14px; }
+.groupCompactDetails .groupHubPanel { margin-top:12px; }
+.groupXpTopThree.groupCompactTopThree { display:flex; gap:8px; overflow-x:auto; padding:3px; margin:10px 0 14px; }
+.groupCompactTopThree .groupXpPodium { display:flex; flex:1 0 90px; flex-direction:column; gap:3px; padding:8px 5px; border-radius:12px; min-width:0; }
+.groupCompactTopThree .groupXpPodium .groupPodiumIdentityTrigger { display:flex; flex-direction:column; gap:4px; width:100%; text-align:center; font-size:.78rem; }
+.groupCompactTopThree .groupXpPodium .groupXpAvatar { width:40px; height:40px; }
+.groupCompactTopThree .groupXpMedal { font-size:.73rem; }
+.groupTableScroll { width:100%; max-width:100%; overflow-x:auto; overscroll-behavior-inline:contain; border:1px solid rgba(255,255,255,.1); border-radius:14px; scrollbar-color:#397786 #171d26; scrollbar-width:thin; }
+.groupTableScroll .groupDetailedTable { border:0; border-radius:0; width:max-content; min-width:100%; max-width:none; }
+.groupTableScroll .groupDetailedTable .groupXpStandingHeader, .groupTableScroll .groupDetailedTable .groupXpStandingRow { grid-template-columns:44px minmax(160px,1fr) 120px 110px 140px; width:auto; min-width:650px; padding:10px 12px; gap:12px; box-sizing:border-box; }
+.groupTableScroll .groupDetailedTable.improvement .groupXpStandingHeader, .groupTableScroll .groupDetailedTable.improvement .groupXpStandingRow { grid-template-columns:44px minmax(160px,1fr) 120px 80px 90px 90px; min-width:680px; }
+.groupTableScroll .groupDetailedTable.season .groupXpStandingHeader, .groupTableScroll .groupDetailedTable.season .groupXpStandingRow { grid-template-columns:44px minmax(160px,1fr) 110px 115px 130px 120px 80px; min-width:850px; }
+.groupDetailedTable .groupXpIdentity strong { overflow-wrap:anywhere; }
+.groupDetailedTable .groupXpStandingHeader { font-size:.65rem; letter-spacing:.05em; }
+.groupDetailedTable .groupXpStandingRow { font-size:.84rem; }
+.groupDetailedTable .groupXpIdentity .groupXpAvatar { width:36px; height:36px; }
+.groupDetailedTable .groupXpStandingRow > [role=cell]:nth-child(n+3) { text-align:right; }
+.groupTableHint { display:block; margin-top:6px; color:#8f9cae; font-size:.7rem; text-align:right; }
+.groupTableAction { border:0; background:transparent; color:#6ee7f2; cursor:pointer; padding:8px 0; font:inherit; }
+.groupAvatarPicker { display:grid; gap:10px; }
+.groupAvatarPickerControls { display:flex; flex-wrap:wrap; gap:8px; }
+.groupAvatarPickerGrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(88px,1fr)); max-height:300px; overflow-y:auto; gap:8px; padding:4px; }
+.groupAvatarChoice { border:1px solid #39404b; background:#171d26; color:#fff; border-radius:12px; padding:8px; display:grid; justify-items:center; gap:6px; cursor:pointer; font-size:.72rem; }
+.groupAvatarChoice[aria-pressed=true] { border-color:#00e5ff; background:#103039; }
+.groupAvatarChoice:disabled { opacity:.5; cursor:wait; }
+.groupAvatarChoice img { width:56px; height:56px; object-fit:contain; }
+.groupAvatarChoice > span:first-child { font-size:2rem; }
+@media (max-width:600px) {
+  .groupTableScroll .groupDetailedTable .groupXpStandingHeader,
+  .groupTableScroll .groupDetailedTable .groupXpStandingRow { grid-template-columns:36px 120px 88px 90px 132px; min-width:538px; gap:10px; }
+  .groupTableScroll .groupDetailedTable.improvement .groupXpStandingHeader,
+  .groupTableScroll .groupDetailedTable.improvement .groupXpStandingRow { grid-template-columns:36px 120px 90px 70px 80px 80px; min-width:550px; gap:10px; }
+  .groupTableScroll .groupDetailedTable.season .groupXpStandingHeader,
+  .groupTableScroll .groupDetailedTable.season .groupXpStandingRow { grid-template-columns:36px 120px 90px 100px 120px 110px 70px; min-width:730px; gap:10px; }
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupImprovementLeaderboard, loadGroupSeasonsAwards } from "./groupDb";
 import { loadGroupTeamPrBoard } from "./groupTeamDb";
+import { withGroupCosmetics } from "./groupIdentity";
 import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import {
   buildTeamImprovementSeries,
@@ -163,7 +164,7 @@ function PrBoard({ rows = [], selfId, label, onOpenIdentity }) {
   );
 }
 
-export default function GroupTeamView({ group, membership, onOpenIdentity }) {
+export default function GroupTeamView({ group, membership, onOpenIdentity, directory = [] }) {
   const teamMode = group?.group_type === "squad" || group?.group_type === "club";
   const [seasonData, setSeasonData] = useState(null);
   const [improvementData, setImprovementData] = useState(null);
@@ -198,13 +199,14 @@ export default function GroupTeamView({ group, membership, onOpenIdentity }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group?.id, group?.group_type, membership?.id]);
 
-  const season = seasonData?.season?.current || null;
+  const rawSeason = seasonData?.season?.current;
+  const season = useMemo(() => rawSeason ? { ...rawSeason, rows: withGroupCosmetics(rawSeason.rows || [], directory, rawSeason.state === "frozen") } : null, [rawSeason, directory]);
   const summary = useMemo(() => buildTeamSeasonSummary(season), [season]);
   const improvementSeries = useMemo(
     () => buildTeamImprovementSeries(improvementData?.current || null, improvementData?.history || []),
     [improvementData]
   );
-  const prRows = Array.isArray(prData?.current?.rows) ? prData.current.rows : [];
+  const prRows = withGroupCosmetics(prData?.current?.rows || [], directory);
 
   if (!teamMode) return null;
 
@@ -217,7 +219,7 @@ export default function GroupTeamView({ group, membership, onOpenIdentity }) {
         <div>
           <span className="groupXpEyebrow groupTeamEyebrow">◎ {teamLabel.toUpperCase()} PERFORMANCE</span>
           <h4>{teamLabel} View</h4>
-          <p>One team picture built from the same truthful competition engines. Earned XP, Consistency, Improvement and PR views all honour Group integrity exclusions.</p>
+          <p>Your team’s season at a glance.</p>
         </div>
         <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label={`Refresh ${teamLabel} View`}>↻</button>
       </div>
@@ -278,9 +280,9 @@ export default function GroupTeamView({ group, membership, onOpenIdentity }) {
           </div>
           <PrBoard rows={prRows} selfId={membership.id} label={teamLabel} onOpenIdentity={onOpenIdentity} />
 
-          <div className="groupTeamPrivacyNote">
+          <details className="groupCompactDetails"><summary>Details &amp; privacy</summary><div className="groupTeamPrivacyNote">
             <strong>Team-safe by design:</strong> the PR board shares only PR counts and the latest PR date. Exercise names, weights, raw workout data, body information and Assessment results stay private. A first-ever result is a baseline, not a PR.
-          </div>
+          </div></details>
         </>
       ) : !loading ? (
         <div className="groupHubMuted groupTeamEmptyLine">This team season has not started yet.</div>

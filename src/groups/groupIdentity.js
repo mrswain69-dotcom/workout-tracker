@@ -30,3 +30,15 @@ export function groupAvatarFrameClass({ avatarFrame, avatarFramesEnabled } = {})
   const frame = typeof avatarFrame === "string" ? avatarFrame.trim() : "";
   return frame ? `avatarFrame-${frame}` : "";
 }
+
+
+// Live rows use the current group identity; final results retain their recorded avatar.
+export function withGroupCosmetics(rows = [], directory = [], frozen = false) {
+  const members = new Map(directory.map(member => [member.membership_id, member]));
+  return rows.map(row => {
+    const member = members.get(row.membership_id);
+    if (!member) return row;
+    if (frozen) return { ...row, sport_avatar_appearance: row.sport_avatar_appearance || (member.avatar_id === row.avatar_id ? member.sport_avatar_appearance : null) };
+    return { ...row, avatar_id: member.avatar_id, sport_avatar_appearance: member.sport_avatar_appearance, avatar_frame: member.avatar_frame, avatar_frames_enabled: member.avatar_frames_enabled };
+  });
+}

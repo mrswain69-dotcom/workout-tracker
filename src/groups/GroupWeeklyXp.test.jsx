@@ -67,7 +67,7 @@ describe("GroupWeeklyXp", () => {
     expect(await screen.findByText("Weekly Earned XP")).toBeTruthy();
     expect(screen.getByRole("button", { name: "This week" }).className).toContain("active");
     expect(await screen.findAllByText(/WS10/)).not.toHaveLength(0);
-    expect(screen.getAllByText("170 XP")).toHaveLength(2);
+    expect(screen.getAllByText("170 XP")).toHaveLength(1);
     expect(loadGroupXpLeaderboard).toHaveBeenCalledWith("group-1", "m2");
   });
 

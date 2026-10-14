@@ -1,3 +1,4 @@
+import "./GroupCompact.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   createGroup,
@@ -20,6 +21,7 @@ import {
   setGroupCompetitionExclusion,
   updateGroupDetails,
   updateGroupNickname,
+  setGroupAvatar,
 } from "./groupDb";
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
 import { resolveAvatarIdentity } from "../config/avatarIdentity";
@@ -27,6 +29,7 @@ import { loadGroupAvatarIdentityStats } from "../avatarIdentityDb";
 import AvatarIdentityView from "../components/avatar/AvatarIdentityView.jsx";
 import GroupWeeklyXp from "./GroupWeeklyXp.jsx";
 import GroupConsistency from "./GroupConsistency.jsx";
+import GroupAvatarPicker from "./GroupAvatarPicker.jsx";
 import GroupChallenges from "./GroupChallenges.jsx";
 import "./GroupHub.css";
 import "./GroupStage10.css";
@@ -111,7 +114,7 @@ function MemberIdentity({ member, isSelf = false, onOpen = null }) {
   );
 }
 
-export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
+export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [], onClose }) {
   const pendingJoinCodeRef = useRef(readPendingJoinCode());
   const deepLinkPreviewedRef = useRef(false);
   const activeProfile = useMemo(
@@ -323,6 +326,13 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
     setJoinPreview(null);
     setView("groups");
     await refreshGroups(result.group_id);
+  }
+
+  async function handleGroupAvatar(avatarId, appearance) {
+    const saved = await run(() => setGroupAvatar(selectedGroup.id, profileId, avatarId, appearance), "Group avatar updated.");
+    if (!saved) return;
+    await refreshGroups(selectedGroup.id);
+    await refreshSelected();
   }
 
   async function handleNicknameSave() {
@@ -557,18 +567,22 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                 <>
                   <div className="groupHubGroupHeading">
                     <div><span className="groupHubType">{selectedGroup.group_type === "squad" ? "SQUAD" : selectedGroup.group_type === "club" ? "CLUB" : "PRIVATE"}</span><h3>{selectedGroup.name}</h3><p>{selectedGroup.description || "Private performance group."}</p></div>
-                    {isAdmin ? <button className="groupHubSecondary" onClick={handleEditGroup} disabled={busy}>Edit Group</button> : null}
+
                   </div>
 
-                  <div className="groupHubOwnIdentity">
+                  <GroupWeeklyXp group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} onOpenIdentity={openMemberIdentity} directory={directory} />
+                  <GroupConsistency group={selectedGroup} membership={ownMembership} onOpenIdentity={openMemberIdentity} directory={directory} />
+                  <details className="groupCompactDetails groupHubPanel" key={`challenges-${selectedGroup.id}`}><summary>Group challenges</summary><GroupChallenges group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} /></details>
+<details className="groupCompactDetails groupHubPanel" key={`settings-${selectedGroup.id}`}><summary>Group settings <small>{directory.length} members{pendingRequests.length ? ` · ${pendingRequests.length} requests` : ""}</small></summary><div className="groupCompactDetailsBody">{isAdmin ? <button className="groupHubSecondary" onClick={handleEditGroup} disabled={busy}>Edit Group</button> : null}                  <div className="groupHubOwnIdentity">
                     <MemberIdentity
-                      member={{ ...ownMembership, membership_id: ownMembership.id }}
+                      member={{ ...ownMembership, ...directory.find(member => member.membership_id === ownMembership.id), membership_id: ownMembership.id }}
                       isSelf
                       onOpen={() => openMemberIdentity({ ...ownMembership, membership_id: ownMembership.id })}
                     />
                     <button className="groupHubSecondary" onClick={handleNicknameSave} disabled={busy}>Edit nickname</button>
                   </div>
 
+                  <GroupAvatarPicker key={`${selectedGroup.id}-${profileId}`} membership={ownMembership} avatarIds={avatarIds} busy={busy} onSelect={handleGroupAvatar} />
                   <div className="groupXpEvidencePrivacySetting">
                     <label>
                       <input
@@ -590,12 +604,10 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                     </label>
                   </div>
 
-                  <GroupWeeklyXp group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} onGroupChanged={refreshGroups} onOpenIdentity={openMemberIdentity} directory={directory} />
-                  <GroupConsistency group={selectedGroup} membership={ownMembership} onOpenIdentity={openMemberIdentity} directory={directory} />
-                  <GroupChallenges group={selectedGroup} membership={ownMembership} isAdmin={isAdmin} />
+
 
                   {isAdmin ? (
-                    <section className="groupHubPanel groupJoinAdminPanel">
+                    <details className="groupCompactDetails groupJoinAdminPanel"><summary>Invites{pendingRequests.length ? ` · ${pendingRequests.length} pending` : ""}</summary>
                       <div className="groupHubPanelHeading">
                         <div><h4>Invite people</h4><span>{pendingRequests.length ? `${pendingRequests.length} pending` : formatJoinMode(joinSettings?.join_mode)}</span></div>
                       </div>
@@ -681,11 +693,10 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                           </details>
                         </>
                       ) : <div className="groupHubMuted">Loading invite settings…</div>}
-                    </section>
+                    </details>
                   ) : null}
 
-                  <section className="groupHubPanel">
-                    <div className="groupHubPanelHeading"><div><h4>Members</h4><span>{directory.length} / {selectedGroup.max_members}</span></div></div>
+                  <details className="groupCompactDetails"><summary>Members · {directory.length} / {selectedGroup.max_members}</summary>
                     <div className="groupMemberList">
                       {directory.map((member) => {
                         const self = member.membership_id === ownMembership.id;
@@ -728,8 +739,9 @@ export default function GroupHub({ profiles = [], activeProfileId, onClose }) {
                         );
                       })}
                     </div>
-                  </section>
+                  </details>
 
+                  </div></details>
                   <div className="groupHubFooterActions"><button className="groupHubDanger" onClick={handleLeave} disabled={busy}>Leave Group</button>{isAdmin ? <span>Last Admins must promote another Admin before leaving.</span> : null}</div>
                 </>
               )}

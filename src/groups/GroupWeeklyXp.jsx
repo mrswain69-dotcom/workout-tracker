@@ -1,8 +1,10 @@
+import "./GroupCompact.css";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   loadGroupXpLeaderboard,
   updateGroupXpHistoryScope,
 } from "./groupDb";
+import { withGroupCosmetics } from "./groupIdentity";
 import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
 import "./GroupWeeklyXp.css";
 
@@ -36,7 +38,7 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
   if (!top.length) return null;
 
   return (
-    <div className="groupXpTopThree" aria-label="Weekly Earned XP Top 3">
+    <div className="groupXpTopThree groupCompactTopThree" aria-label="Weekly Earned XP Top 3">
       {top.map((row) => (
         <div
           key={row.membership_id}
@@ -49,7 +51,6 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
             onOpen={onOpenIdentity}
             className="groupPodiumIdentityTrigger"
           />
-          <span>{Number(row.xp || 0).toLocaleString()} XP</span>
         </div>
       ))}
     </div>
@@ -84,11 +85,11 @@ function Standings({ rows = [], selfId, onOpenIdentity, onOpenEvidence }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
 
   return (
-    <div className="groupXpStandings" role="table" aria-label="Weekly Earned XP standings">
+    <> <div className="groupTableScroll" role="region" aria-label="Weekly Earned XP table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable xp" role="table" aria-label="Weekly Earned XP standings">
       <div className="groupXpStandingHeader" role="row">
         <span role="columnheader">Rank</span>
         <span role="columnheader">Athlete</span>
-        <span role="columnheader">Earned XP</span>
+        <span role="columnheader">Earned XP</span><span role="columnheader">Verified</span><span role="columnheader">Evidence</span>
       </div>
       {rows.map((row, index) => {
         const self = row.membership_id === selfId;
@@ -115,7 +116,7 @@ function Standings({ rows = [], selfId, onOpenIdentity, onOpenEvidence }) {
                   {row.competition_exclusion_label || "Gamed XP"}
                 </small>
               ) : null}
-              <VerificationBadge row={row} onOpenEvidence={onOpenEvidence} />
+
             </span>
             <span className="groupXpScoreCell" role="cell">
               {row.evidence ? (
@@ -133,10 +134,12 @@ function Standings({ rows = [], selfId, onOpenIdentity, onOpenEvidence }) {
                 </strong>
               )}
             </span>
+            <span role="cell"><VerificationBadge row={row} onOpenEvidence={onOpenEvidence} /></span>
+            <span role="cell">{row.evidence ? <button className="groupTableAction" type="button" onClick={() => onOpenEvidence?.(row)}>View breakdown</button> : "Private"}</span>
           </div>
         );
       })}
-    </div>
+    </div></div><span className="groupTableHint">Scroll sideways for more →</span></>
   );
 }
 
@@ -259,14 +262,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
 
   const history = Array.isArray(data?.history) ? data.history : [];
   const period = mode === "history" ? history[historyIndex] || history[0] || null : data?.current || null;
-  const rows = useMemo(() => {
-    const cosmetics = new Map(directory.map(member => [member.membership_id, member]));
-    return (Array.isArray(period?.rows) ? period.rows : []).map(row => ({
-      ...row,
-      sport_avatar_appearance: cosmetics.get(row.membership_id)?.avatar_id === row.avatar_id
-        ? cosmetics.get(row.membership_id)?.sport_avatar_appearance : null,
-    }));
-  }, [period, directory]);
+  const rows = withGroupCosmetics(period?.rows || [], directory, period?.state === "frozen");
   const scope = data?.scopeMode || group?.xp_history_scope || "group_start";
 
   const weekButtons = useMemo(
@@ -298,7 +294,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
         <div>
           <span className="groupXpEyebrow">LEADERBOARD</span>
           <h4>Weekly Earned XP</h4>
-          <p>Group competition uses Earned XP only — training, tasks, completion, progress and consistency. Reward/award Bonus XP never increases the leaderboard score.</p>
+          <p>Earned XP this week. Bonus XP excluded.</p>
         </div>
         <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading || busy} aria-label="Refresh Weekly Earned XP">
           ↻
@@ -360,7 +356,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
         </>
       ) : null}
 
-      <div className="groupXpScopeNote">
+<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Group competition uses Earned XP only — training, tasks, completion, progress and consistency. Reward/award Bonus XP never increases the leaderboard score.</p>      <div className="groupXpScopeNote">
         {scope === "all_history"
           ? "This Group compares eligible athlete history even from before the Group began."
           : `Only activity dated on or after ${formatStartDate(data?.competitionStartDate || group?.competition_start_date)} counts for this Group.`}
@@ -398,7 +394,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
           </div>
         </div>
       ) : null}
-      {evidenceRow ? (
+</div></details>      {evidenceRow ? (
         <XpEvidenceDialog
           row={evidenceRow}
           period={period}

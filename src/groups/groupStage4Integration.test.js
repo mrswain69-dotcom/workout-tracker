@@ -12,7 +12,7 @@ describe("Group Stage 4 Consistency integration contract", () => {
     const hub = fs.readFileSync(new URL("./GroupHub.jsx", import.meta.url), "utf8");
     const xpIndex = hub.indexOf("<GroupWeeklyXp");
     const consistencyIndex = hub.indexOf("<GroupConsistency");
-    const membersIndex = hub.indexOf("<h4>Members</h4>");
+    const membersIndex = hub.indexOf("<summary>Members");
     expect(xpIndex).toBeGreaterThan(-1);
     expect(consistencyIndex).toBeGreaterThan(xpIndex);
     expect(consistencyIndex).toBeLessThan(membersIndex);
