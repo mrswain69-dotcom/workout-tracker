@@ -357,18 +357,18 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    return json({
-      scoreVersion: CONSISTENCY_SCORE_VERSION,
-      competitionStartDate: groupStart,
-      current,
-      history,
-    });
-  } catch (error) {
-    console.error("Group Consistency failure", error);
     const withBlockCounts = (period: any) => attachGroupBlockCounts(period, allMemberships, logsResult.data || [], (member: any, selected: any) => {
       const bounds = memberEligibility(member, groupStart, selected);
       return { ...bounds, eligibleThrough: minYmd(bounds.eligibleThrough, referenceDate) };
     });
+    return json({
+      scoreVersion: CONSISTENCY_SCORE_VERSION,
+      competitionStartDate: groupStart,
+      current: withBlockCounts(current),
+      history: history.map(withBlockCounts),
+    });
+  } catch (error) {
+    console.error("Group Consistency failure", error);
     return json({ error: "Could not calculate Group Consistency" }, 500);
   }
 });
