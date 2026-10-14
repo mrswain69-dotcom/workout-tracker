@@ -1,3 +1,4 @@
+import { GroupBlockCountHeaders, GroupBlockCountCells } from "./GroupBlockCountCells.jsx";
 import "./GroupCompact.css";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -85,11 +86,12 @@ function Standings({ rows = [], selfId, onOpenIdentity, onOpenEvidence }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
 
   return (
-    <> <div className="groupTableScroll" role="region" aria-label="Weekly Earned XP table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable xp" role="table" aria-label="Weekly Earned XP standings">
+    <> <div className="groupTableScroll" role="region" aria-label="Weekly Earned XP table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable withBlockCounts xp" role="table" aria-label="Weekly Earned XP standings">
       <div className="groupXpStandingHeader" role="row">
         <span role="columnheader">Rank</span>
         <span role="columnheader">Athlete</span>
         <span role="columnheader">Earned XP</span><span role="columnheader">Verified</span><span role="columnheader">Evidence</span>
+        <GroupBlockCountHeaders />
       </div>
       {rows.map((row, index) => {
         const self = row.membership_id === selfId;
@@ -136,6 +138,7 @@ function Standings({ rows = [], selfId, onOpenIdentity, onOpenEvidence }) {
             </span>
             <span role="cell"><VerificationBadge row={row} onOpenEvidence={onOpenEvidence} /></span>
             <span role="cell">{row.evidence ? <button className="groupTableAction" type="button" onClick={() => onOpenEvidence?.(row)}>View breakdown</button> : "Private"}</span>
+            <GroupBlockCountCells row={row} />
           </div>
         );
       })}
@@ -356,7 +359,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
         </>
       ) : null}
 
-<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Group competition uses Earned XP only — training, tasks, completion, progress and consistency. Reward/award Bonus XP never increases the leaderboard score.</p>      <div className="groupXpScopeNote">
+<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Block counts show completed recorded Strength, Cardio, Duration, Session and Task blocks in this period, including extra blocks. They follow the app’s completion rules. These totals reflect current logs; final standings remain fixed.</p><p>Group competition uses Earned XP only — training, tasks, completion, progress and consistency. Reward/award Bonus XP never increases the leaderboard score.</p>      <div className="groupXpScopeNote">
         {scope === "all_history"
           ? "This Group compares eligible athlete history even from before the Group began."
           : `Only activity dated on or after ${formatStartDate(data?.competitionStartDate || group?.competition_start_date)} counts for this Group.`}

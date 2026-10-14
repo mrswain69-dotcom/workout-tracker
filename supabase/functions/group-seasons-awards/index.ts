@@ -1,3 +1,4 @@
+import { attachGroupBlockCounts } from "./groupBlockCounts.js";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 import { buildXpDebugRows, sumXpRowsInRange } from "./xpEngine.js";
@@ -547,12 +548,15 @@ Deno.serve(async (req: Request) => {
     return json({
       scoreVersion: GROUP_PERIOD_SCORE_VERSION,
       competitionStartDate: groupStart,
-      monthly: { current: monthlyCurrent, history: monthlyHistory.filter(Boolean) },
-      season: { current: seasonCurrent, history: completedSeasons.filter(Boolean) },
+      monthly: { current: withBlockCounts(monthlyCurrent), history: monthlyHistory.filter(Boolean).map(withBlockCounts) },
+      season: { current: withBlockCounts(seasonCurrent), history: completedSeasons.filter(Boolean).map(withBlockCounts) },
       awards: (awardRows || []).map(awardRow),
     });
   } catch (error) {
     console.error("Group Seasons & Awards failure", error);
+    const withBlockCounts = (period: any) => attachGroupBlockCounts(period, allMemberships, logs, (member: any, selected: any) =>
+      memberBounds(member, groupStart, selected, referenceDate, selected.state !== "frozen")
+    );
     return json({ error: "Could not calculate Group Seasons & Awards" }, 500);
   }
 });

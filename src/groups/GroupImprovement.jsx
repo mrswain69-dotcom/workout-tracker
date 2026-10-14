@@ -1,3 +1,4 @@
+import { GroupBlockCountHeaders, GroupBlockCountCells } from "./GroupBlockCountCells.jsx";
 import "./GroupCompact.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupImprovementLeaderboard } from "./groupDb";
@@ -81,11 +82,12 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
 function Standings({ rows = [], selfId, onOpenIdentity }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
   return (
-    <> <div className="groupTableScroll" role="region" aria-label="Improvement table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable improvement" role="table" aria-label="Improvement standings">
+    <> <div className="groupTableScroll" role="region" aria-label="Improvement table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable withBlockCounts improvement" role="table" aria-label="Improvement standings">
       <div className="groupXpStandingHeader" role="row">
         <span role="columnheader">Rank</span>
         <span role="columnheader">Athlete</span>
         <span role="columnheader">Improvement</span><span role="columnheader">Metrics</span><span role="columnheader">Improved</span><span role="columnheader">Declined</span>
+        <GroupBlockCountHeaders />
       </div>
       {rows.map((row, index) => {
         const self = row.membership_id === selfId;
@@ -110,6 +112,7 @@ function Standings({ rows = [], selfId, onOpenIdentity }) {
               <strong>{scoreLabel(row)}</strong>
               {!Number(row.metricCount) ? <small>{evidenceLabel(row)}</small> : null}
                 </span><span role="cell">{row.metricCount ?? "—"}</span><span role="cell">{row.improvedMetricCount ?? "—"}</span><span role="cell">{row.declinedMetricCount ?? "—"}</span>
+            <GroupBlockCountCells row={row} />
           </div>
         );
       })}
@@ -216,7 +219,7 @@ export default function GroupImprovement({ group, membership, onOpenIdentity, di
           </>
         ) : null}
 
-<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Current recorded performance versus your own locked rolling 4-week baseline. It compares change, not body size or absolute strength.</p>        <div className="groupImprovementRuleNote">
+<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Block counts show completed recorded Strength, Cardio, Duration, Session and Task blocks in this period, including extra blocks. They follow the app’s completion rules. These totals reflect current logs; final standings remain fixed.</p><p>Current recorded performance versus your own locked rolling 4-week baseline. It compares change, not body size or absolute strength.</p>        <div className="groupImprovementRuleNote">
           <strong>How it stays fair:</strong> comparable metrics are measured against each athlete’s own preceding 28-day average, then weighted equally. Declines count as well as gains, unsafe percentage metrics are excluded, practice volume does not become performance, and each metric has a ±50% outlier cap.
         </div></div></details>
       </section>

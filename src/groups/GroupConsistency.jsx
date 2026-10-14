@@ -1,3 +1,4 @@
+import { GroupBlockCountHeaders, GroupBlockCountCells } from "./GroupBlockCountCells.jsx";
 import "./GroupCompact.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupConsistencyLeaderboard } from "./groupDb";
@@ -57,11 +58,12 @@ function TopThree({ rows = [], selfId, onOpenIdentity }) {
 function Standings({ rows = [], selfId, onOpenIdentity }) {
   const selfIndex = rows.findIndex((row) => row.membership_id === selfId);
   return (
-    <> <div className="groupTableScroll" role="region" aria-label="Consistency table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable consistency" role="table" aria-label="Consistency standings">
+    <> <div className="groupTableScroll" role="region" aria-label="Consistency table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable withBlockCounts consistency" role="table" aria-label="Consistency standings">
       <div className="groupXpStandingHeader" role="row">
         <span role="columnheader">Rank</span>
         <span role="columnheader">Athlete</span>
         <span role="columnheader">Consistency</span><span role="columnheader">Completed</span><span role="columnheader">Planned due</span>
+        <GroupBlockCountHeaders />
       </div>
       {rows.map((row, index) => {
         const self = row.membership_id === selfId;
@@ -86,6 +88,7 @@ function Standings({ rows = [], selfId, onOpenIdentity }) {
               <strong>{scoreLabel(row)}</strong>
               {!Number(row.plannedDays) ? <small>{ratioLabel(row)}</small> : null}
                 </span><span role="cell">{row.completedDays ?? "—"}</span><span role="cell">{row.plannedDays ?? "—"}</span>
+            <GroupBlockCountCells row={row} />
           </div>
         );
       })}
@@ -194,7 +197,7 @@ export default function GroupConsistency({ group, membership, onOpenIdentity, di
           </>
         ) : null}
 
-<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Completed planned performance and recovery days ÷ planned days. It rewards following the plan, not doing the most work.</p>        <div className="groupConsistencyRuleNote">
+<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Block counts show completed recorded Strength, Cardio, Duration, Session and Task blocks in this period, including extra blocks. They follow the app’s completion rules. These totals reflect current logs; final standings remain fixed.</p><p>Completed planned performance and recovery days ÷ planned days. It rewards following the plan, not doing the most work.</p>        <div className="groupConsistencyRuleNote">
           <strong>What counts:</strong> a planned performance or recovery day is complete only when every planned training/recovery block is recorded on that day. Task-only days and Streak Saver do not count as completed planned days.
         </div></div></details>
       </section>

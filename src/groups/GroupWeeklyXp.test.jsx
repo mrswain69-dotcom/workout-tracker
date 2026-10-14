@@ -101,7 +101,7 @@ describe("GroupWeeklyXp", () => {
     await screen.findByText("Weekly Earned XP");
     fireEvent.click(screen.getByRole("button", { name: /140 XP/ }));
     expect(screen.getByRole("dialog", { name: /WS10 XP evidence/ })).toBeTruthy();
-    expect(screen.getByText("Strength")).toBeTruthy();
+    expect(screen.getAllByText("Strength")[0]).toBeTruthy();
     expect(screen.getByText("✓ Verified")).toBeTruthy();
   });
 

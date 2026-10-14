@@ -1,3 +1,4 @@
+import { attachGroupBlockCounts } from "./groupBlockCounts.js";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 import {
@@ -719,6 +720,10 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     console.error("Group Weekly XP failure", error);
+    const withBlockCounts = (period: any) => attachGroupBlockCounts(period, allMemberships, allLogs, (_member: any, selected: any) => ({
+      eligibleFrom: scopeMode === "group_start" ? maxYmd(selected.startDate, groupStart) : selected.startDate,
+      eligibleThrough: selected.endDate < referenceDate ? selected.endDate : referenceDate,
+    }));
     return json({ error: "Could not calculate Group Weekly XP" }, 500);
   }
 });
