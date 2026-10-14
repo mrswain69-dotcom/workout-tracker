@@ -1,3 +1,4 @@
+import { attachGroupBlockCounts } from "./groupBlockCounts.js";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 import {
@@ -443,6 +444,10 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     console.error("Group Improvement failure", error);
+    const withBlockCounts = (period: any) => attachGroupBlockCounts(period, allMemberships, logs, (member: any, selected: any) => {
+      const bounds = memberEligibility(member, groupStart, selected);
+      return { ...bounds, eligibleThrough: minYmd(bounds.eligibleThrough, referenceDate) };
+    });
     return json({ error: "Could not calculate Group Improvement" }, 500);
   }
 });

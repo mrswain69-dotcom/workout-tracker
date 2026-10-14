@@ -41,3 +41,10 @@
   .groupTableScroll .groupDetailedTable.season .groupXpStandingHeader,
   .groupTableScroll .groupDetailedTable.season .groupXpStandingRow { grid-template-columns:36px 120px 90px 100px 120px 110px 70px; min-width:730px; gap:10px; }
 }
+.groupTableScroll .groupDetailedTable.withBlockCounts .groupXpStandingHeader,
+.groupTableScroll .groupDetailedTable.withBlockCounts .groupXpStandingRow { grid-template-columns:36px 120px 88px 90px 132px repeat(6,90px); min-width:1138px; gap:10px; }
+.groupTableScroll .groupDetailedTable.improvement.withBlockCounts .groupXpStandingHeader,
+.groupTableScroll .groupDetailedTable.improvement.withBlockCounts .groupXpStandingRow { grid-template-columns:36px 120px 90px 70px 80px 80px repeat(6,90px); min-width:1150px; }
+.groupTableScroll .groupDetailedTable.season.withBlockCounts .groupXpStandingHeader,
+.groupTableScroll .groupDetailedTable.season.withBlockCounts .groupXpStandingRow { grid-template-columns:36px 120px 90px 100px 120px 110px 70px repeat(6,90px); min-width:1330px; }
+.groupBlockCount { color:#c8d8e2; font-variant-numeric:tabular-nums; }

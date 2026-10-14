@@ -1,3 +1,4 @@
+import { GroupBlockCountHeaders, GroupBlockCountCells } from "./GroupBlockCountCells.jsx";
 import "./GroupCompact.css";
 import React, { useEffect, useMemo, useState } from "react";
 import { loadGroupSeasonsAwards } from "./groupDb";
@@ -97,11 +98,12 @@ function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity, d
 
   const label = `${periodType === "month" ? "Monthly" : "Season"} ${METRICS.find((item) => item.id === metric)?.label || metric} standings`;
   return (
-    <> <div className="groupTableScroll" role="region" aria-label="Season table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable season" role="table" aria-label={label}>
+    <> <div className="groupTableScroll" role="region" aria-label="Season table — scroll for more" tabIndex={0}><div className="groupXpStandings groupDetailedTable withBlockCounts season" role="table" aria-label={label}>
       <div className="groupXpStandingHeader" role="row">
         <span role="columnheader">Rank</span>
         <span role="columnheader">Athlete</span>
         <span role="columnheader">Earned XP</span><span role="columnheader">Consistency</span><span role="columnheader">Completed / due</span><span role="columnheader">Improvement</span><span role="columnheader">Metrics</span>
+        <GroupBlockCountHeaders />
       </div>
       {rows.map((row) => {
         const rank = metricRank(row, metric);
@@ -125,6 +127,7 @@ function PeriodStandings({ period, metric, selfId, periodType, onOpenIdentity, d
             <span className="groupSeasonScoreCell" role="cell">
               <strong>{metricValue(row, "xp")}</strong>
             </span><span role="cell">{metricValue(row, "consistency")}</span><span role="cell">{row.completedDays ?? "—"} / {row.plannedDays ?? "—"}</span><span role="cell">{metricValue(row, "improvement")}</span><span role="cell">{row.metricCount ?? "—"}</span>
+            <GroupBlockCountCells row={row} />
           </div>
         );
       })}
@@ -254,7 +257,7 @@ export default function GroupSeasons({ group, membership, onOpenIdentity, direct
         <div className="groupHubMuted groupSeasonNoAwards">No completed-period awards yet — the first ones will lock when a month or season finishes.</div>
       )}
 
-<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Calendar-month standings and fixed 8-week seasons. XP standings use Earned XP only; reward/award Bonus XP does not influence competition.</p>      <div className="groupSeasonRuleNote">
+<details className="groupCompactDetails"><summary>Details &amp; scoring</summary><div className="groupCompactDetailsBody"><p>Block counts show completed recorded Strength, Cardio, Duration, Session and Task blocks in this period, including extra blocks. They follow the app’s completion rules. These totals reflect current logs; final standings remain fixed.</p><p>Calendar-month standings and fixed 8-week seasons. XP standings use Earned XP only; reward/award Bonus XP does not influence competition.</p>      <div className="groupSeasonRuleNote">
         <strong>Truth rules:</strong> XP is earned XP inside the eligible period; Consistency is completed planned days ÷ planned days across the whole period; Improvement compares that period’s compatible performance with the athlete’s own locked preceding 28-day baseline. Genuine ties share the award.
       </div></div></details>
     </section>
