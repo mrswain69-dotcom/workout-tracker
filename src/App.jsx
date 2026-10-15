@@ -151,6 +151,8 @@ import FirstRunTutorial, {
 } from "./components/onboarding/FirstRunTutorial.jsx";
 import PublicSite from "./components/public/PublicSite.jsx";
 import AccountPrivacyPanel from "./components/settings/AccountPrivacyPanel.jsx";
+import AdminUsagePanel from "./components/admin/AdminUsagePanel.jsx";
+import { useAppUsage } from "./adminUsage.js";
 import { sendWelcomeTutorialEmail } from "./accountLifecycleDb.js";
 import {
   removeLibraryTrainingProgramAddOn,
@@ -3362,6 +3364,7 @@ useEffect(() => {
   }; // log | stats | plan | rewards | settings
   const [sessionReady, setSessionReady] = useState(false);
   const [authed, setAuthed] = useState(false);
+  useAppUsage(authed);
   const [accountLoadState, setAccountLoadState] = useState("idle");
   const [accountLoadError, setAccountLoadError] = useState("");
   const [accountLoadRevision, setAccountLoadRevision] = useState(0);
@@ -13360,6 +13363,8 @@ const cardioProgress = useMemo(() => {
                   </SecondaryButton>
                 </div>
               </div>
+
+              <AdminUsagePanel />
 
               <AccountPrivacyPanel
                 ensureUnlocked={ensureUnlocked}

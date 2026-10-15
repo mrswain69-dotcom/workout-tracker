@@ -1,6 +1,6 @@
 import React from "react";
 
-export const LEGAL_UPDATED = "1 October 2026";
+export const LEGAL_UPDATED = "15 October 2026";
 export const LEGAL_OPERATOR = "Swain Digital Ltd";
 export const LEGAL_CONTACT = "support@workouttrackerapp.io";
 
@@ -35,6 +35,8 @@ export function PrivacyNotice() {
           Creating an account requires an email address and authentication information. Using Workout Tracker can also create
           profile names, optional age-group and body-weight information, weekly plans, workout and activity logs, performance
           history, XP, badges, streaks, Assessment results, recovery settings and estimated readiness information.
+          We also record the dates and most recent times a signed-in account opens or uses the app in the foreground,
+          to understand account activation and service usage. This does not track browsing on other websites.
         </p>
         <p>
           If you join a Group, Workout Tracker also stores the Group membership and the safe Group identity you choose to share.
@@ -47,7 +49,8 @@ export function PrivacyNotice() {
         <p>
           We use account and training information to provide the service you ask for: saving plans and logs, calculating progress,
           showing history, running rewards and Group features, protecting accounts, supporting connected activity verification
-          and responding to support requests. Workout Tracker does not sell personal information or use workout data for advertising.
+          and responding to support requests. Authorised administrators can view account-level signup and usage summaries
+          to understand whether people get started and continue using the service. Workout Tracker does not sell personal information or use workout data for advertising.
         </p>
       </Section>
 
