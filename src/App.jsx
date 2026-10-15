@@ -13396,7 +13396,7 @@ const cardioProgress = useMemo(() => {
     aria-modal="true"
     onClick={() => setHistoryModal(null)}
   >
-    <div className="historyModal" onClick={(e) => e.stopPropagation()}>
+    <div className={"historyModal" + (movementPersonalBest ? " historyModal--withPb" : "")} onClick={(e) => e.stopPropagation()}>
       <div className="historyModalTop">
         <div>
           <div className="historyTitle">{historyModal.title}</div>

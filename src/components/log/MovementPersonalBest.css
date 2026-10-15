@@ -1,3 +1,4 @@
+.historyModal--withPb{max-height:calc(100dvh - 32px);overflow-y:auto}
 .movementPb{margin:14px 0;padding:14px 16px;border:1px solid #56c9ac66;border-radius:12px;background:linear-gradient(120deg,#153a3c77,#11253199);color:#e9fff8;line-height:1.5}
 .movementPb__heading{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
 .movementPb__heading strong{font-size:16px;color:#a5f3d9}
