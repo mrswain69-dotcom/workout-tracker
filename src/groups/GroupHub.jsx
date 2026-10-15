@@ -1,3 +1,4 @@
+import { invalidateGroupBoards } from './groupBoardCache';
 import "./GroupCompact.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -248,6 +249,7 @@ export default function GroupHub({ profiles = [], activeProfileId, avatarIds = [
     try {
       const result = await action();
       if (result?.error) throw result.error;
+      if (selectedGroup?.id) invalidateGroupBoards(selectedGroup.id);
       if (successText) setNotice(successText);
       return result?.data;
     } catch (err) {

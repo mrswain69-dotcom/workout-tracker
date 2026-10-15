@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import useGroupBoardResource from './useGroupBoardResource';
+import React, { useMemo, useState } from "react";
 import {
   GROUP_CHALLENGE_DURATIONS,
   GROUP_CHALLENGE_TEMPLATES,
@@ -113,32 +114,16 @@ function ChallengeCard({ challenge, isAdmin, busy, onCancel }) {
 
 export default function GroupChallenges({ group, membership, isAdmin = false }) {
   const today = londonToday();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [templateKey, setTemplateKey] = useState(GROUP_CHALLENGE_TEMPLATES[0].key);
   const [durationDays, setDurationDays] = useState(14);
   const [startDate, setStartDate] = useState(today);
 
-  async function refresh() {
-    if (!group?.id || !membership?.id) return;
-    setLoading(true);
-    setError("");
-    const result = await loadGroupChallenges(group.id, membership.id);
-    setLoading(false);
-    if (result.error) {
-      setError(errorText(result.error));
-      return;
-    }
-    setData(result.data || null);
-  }
+  const { data, loading, error: loadError, refresh } = useGroupBoardResource("challenges", group, membership, loadGroupChallenges, errorText);
 
-  useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group?.id, membership?.id]);
+  const [error, setError] = useState("");
+  const visibleError = error || loadError;
 
   const preview = useMemo(
     () => buildGroupChallengeDefinition({ templateKey, durationDays, startDate }),
@@ -189,7 +174,7 @@ export default function GroupChallenges({ group, membership, isAdmin = false }) 
       </div>
 
       <div className="groupChallengePrinciple">Fixed dates. Controlled targets. One shared reward pool. No feed, no public ranking and no open-ended XP farming.</div>
-      {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
+      {visibleError ? <div className="groupHubMessage error" role="alert">{visibleError}</div> : null}
       {notice ? <div className="groupHubMessage success">{notice}</div> : null}
 
       {isAdmin ? (

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import useGroupBoardResource from './useGroupBoardResource';
+import React, { useMemo, useState } from "react";
 import { loadGroupImprovementLeaderboard, loadGroupSeasonsAwards } from "./groupDb";
 import { loadGroupTeamPrBoard } from "./groupTeamDb";
 import { withGroupCosmetics } from "./groupIdentity";
@@ -166,38 +167,18 @@ function PrBoard({ rows = [], selfId, label, onOpenIdentity }) {
 
 export default function GroupTeamView({ group, membership, onOpenIdentity, directory = [] }) {
   const teamMode = group?.group_type === "squad" || group?.group_type === "club";
-  const [seasonData, setSeasonData] = useState(null);
-  const [improvementData, setImprovementData] = useState(null);
-  const [prData, setPrData] = useState(null);
   const [spotlightMetric, setSpotlightMetric] = useState("xp");
-  const [loading, setLoading] = useState(teamMode);
-  const [error, setError] = useState("");
-
-  async function refresh() {
-    if (!teamMode || !group?.id || !membership?.id) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError("");
-    const [seasonResult, improvementResult, prResult] = await Promise.all([
-      loadGroupSeasonsAwards(group.id, membership.id),
-      loadGroupImprovementLeaderboard(group.id, membership.id),
-      loadGroupTeamPrBoard(group.id, membership.id),
-    ]);
-    setSeasonData(seasonResult.data || null);
-    setImprovementData(improvementResult.data || null);
-    setPrData(prResult.data || null);
-    const firstError = seasonResult.error || improvementResult.error || prResult.error;
-    if (firstError) setError(errorText(firstError));
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    setSpotlightMetric("xp");
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group?.id, group?.group_type, membership?.id]);
+  const enabledGroup = teamMode ? group : null;
+  const seasons = useGroupBoardResource('seasons', enabledGroup, membership, loadGroupSeasonsAwards, errorText);
+  const improvements = useGroupBoardResource('improvement', enabledGroup, membership, loadGroupImprovementLeaderboard, errorText);
+  const prs = useGroupBoardResource('team-pr', enabledGroup, membership, loadGroupTeamPrBoard, errorText);
+  const seasonData = seasons.data;
+  const improvementData = improvements.data;
+  const prData = prs.data;
+  const loading = seasons.loading || improvements.loading || prs.loading;
+  const refreshing = seasons.refreshing || improvements.refreshing || prs.refreshing;
+  const error = seasons.error || improvements.error || prs.error;
+  async function refresh() { await Promise.all([seasons.refresh(), improvements.refresh(), prs.refresh()]); }
 
   const rawSeason = seasonData?.season?.current;
   const season = useMemo(() => rawSeason ? { ...rawSeason, rows: withGroupCosmetics(rawSeason.rows || [], directory, rawSeason.state === "frozen") } : null, [rawSeason, directory]);
@@ -221,7 +202,7 @@ export default function GroupTeamView({ group, membership, onOpenIdentity, direc
           <h4>{teamLabel} View</h4>
           <p>Your team’s season at a glance.</p>
         </div>
-        <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label={`Refresh ${teamLabel} View`}>↻</button>
+        <button className="groupXpRefresh" aria-busy={refreshing} type="button" onClick={refresh} disabled={refreshing} aria-label={`Refresh ${teamLabel} View`}>↻</button>
       </div>
 
       {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}

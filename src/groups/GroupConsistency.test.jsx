@@ -1,3 +1,4 @@
+import { clearGroupBoardCache } from './groupBoardCache';
 // @vitest-environment jsdom
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -45,6 +46,7 @@ function payload() {
 
 describe("GroupConsistency", () => {
   beforeEach(() => {
+    clearGroupBoardCache();
     vi.clearAllMocks();
     loadGroupConsistencyLeaderboard.mockResolvedValue({ data: payload(), error: null });
   });

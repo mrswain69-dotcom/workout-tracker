@@ -1,3 +1,4 @@
+import { clearGroupBoardCache } from './groupBoardCache';
 // @vitest-environment jsdom
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -55,6 +56,7 @@ function payload() {
 
 describe("GroupWeeklyXp", () => {
   beforeEach(() => {
+    clearGroupBoardCache();
     vi.clearAllMocks();
     loadGroupXpLeaderboard.mockResolvedValue({ data: payload(), error: null });
     updateGroupXpHistoryScope.mockResolvedValue({ data: { xp_history_scope: "all_history" }, error: null });

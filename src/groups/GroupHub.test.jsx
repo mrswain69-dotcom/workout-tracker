@@ -1,3 +1,4 @@
+import { clearGroupBoardCache } from './groupBoardCache';
 // @vitest-environment jsdom
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -24,6 +25,7 @@ vi.mock("./groupDb", () => ({
   setGroupCompetitionExclusion: vi.fn(),
   updateGroupDetails: vi.fn(),
   updateGroupNickname: vi.fn(),
+  loadGroupSeasonsAwards: vi.fn().mockResolvedValue({data:null,error:null}),
   loadGroupXpLeaderboard: vi.fn(),
   loadGroupConsistencyLeaderboard: vi.fn(),
   loadGroupImprovementLeaderboard: vi.fn(),
@@ -63,6 +65,7 @@ function group(overrides = {}) {
 }
 
 beforeEach(() => {
+    clearGroupBoardCache();
   vi.clearAllMocks();
   sessionStorage.clear();
   localStorage.clear();

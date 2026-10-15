@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import { groupBoardKey, warmGroupBoards } from './groupBoardCache';
+import { loadGroupXpLeaderboard, loadGroupConsistencyLeaderboard, loadGroupImprovementLeaderboard, loadGroupSeasonsAwards } from './groupDb';
+import { loadGroupChallenges } from './groupChallengeDb';
+import { loadGroupTeamPrBoard } from './groupTeamDb';
+import React, { useEffect, useState } from 'react';
 import GroupWeeklyXp from './GroupWeeklyXp.jsx';
 import GroupConsistency from './GroupConsistency.jsx';
 import GroupImprovement from './GroupImprovement.jsx';
@@ -12,11 +16,28 @@ export default function GroupBoards({ group, membership, isAdmin, onGroupChanged
  const [metric,setMetric]=useState('xp');
  const [period,setPeriod]=useState('current');
  const team=group.group_type==='squad' || group.group_type==='club';
+ useEffect(() => {
+  if (!group?.id || !membership?.id) return;
+  const definitions = [
+   ['xp', loadGroupXpLeaderboard, group.xp_history_scope],
+   ['consistency', loadGroupConsistencyLeaderboard],
+   ['improvement', loadGroupImprovementLeaderboard],
+   ['seasons', loadGroupSeasonsAwards],
+   ['challenges', loadGroupChallenges],
+   ...(team ? [['team-pr', loadGroupTeamPrBoard]] : []),
+  ];
+  const warmup = warmGroupBoards(definitions.map(([type, load, scope]) => ({
+   key: groupBoardKey(type, group.id, membership.id, scope),
+   load: () => load(group.id, membership.id),
+  })));
+  return warmup.cancel;
+ }, [group?.id, membership?.id, group?.xp_history_scope, team]);
  const boards=team ? [...tabs,{id:'team',label:'Team'}] : tabs;
  const scored=['xp','consistency','improvement'].includes(metric);
  const shared={group,membership,onOpenIdentity,directory};
  function selectTab(next) { setMetric(next); }
  return <div className="groupBoards">
+  <div className="groupBoardTabHint">Choose a board</div>
   <nav className="groupBoardTabs" aria-label="Group boards">
    {boards.map(tab=><button type="button" key={tab.id} aria-pressed={metric===tab.id} onClick={()=>selectTab(tab.id)}>{tab.label}</button>)}
   </nav>

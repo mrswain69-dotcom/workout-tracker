@@ -1,3 +1,4 @@
+import { clearGroupBoardCache } from './groupBoardCache';
 // @vitest-environment jsdom
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -58,6 +59,7 @@ function payload() {
 }
 
 beforeEach(() => {
+    clearGroupBoardCache();
   vi.clearAllMocks();
   loadGroupSeasonsAwards.mockResolvedValue({ data: payload(), error: null });
 });

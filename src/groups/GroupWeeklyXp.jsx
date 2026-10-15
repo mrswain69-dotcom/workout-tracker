@@ -1,6 +1,7 @@
+import useGroupBoardResource from './useGroupBoardResource';
 import { GroupBlockCountHeaders, GroupBlockCountCells } from "./GroupBlockCountCells.jsx";
 import "./GroupCompact.css";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   loadGroupXpLeaderboard,
   updateGroupXpHistoryScope,
@@ -210,35 +211,13 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
   const [localMode, setMode] = useState("current");
   const mode = periodMode ?? localMode;
   const [historyIndex, setHistoryIndex] = useState(0);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const [evidenceRow, setEvidenceRow] = useState(null);
 
-  async function refresh() {
-    if (!group?.id || !membership?.id) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError("");
-    const result = await loadGroupXpLeaderboard(group.id, membership.id);
-    setLoading(false);
-    if (result.error) {
-      setError(errorText(result.error));
-      return;
-    }
-    setData(result.data || null);
-    setHistoryIndex(0);
-  }
+  const { data, loading, refreshing, error: loadError, refresh } = useGroupBoardResource("xp", group, membership, loadGroupXpLeaderboard, errorText, group?.xp_history_scope);
 
-  useEffect(() => {
-    setMode("current");
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group?.id, membership?.id, group?.xp_history_scope]);
+  const [error, setError] = useState("");
+  const visibleError = error || loadError;
 
   const history = Array.isArray(data?.history) ? data.history : [];
   const period = mode === "history" ? history[historyIndex] || history[0] || null : data?.current || null;
@@ -276,7 +255,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
           <h4>Weekly Earned XP</h4>
           <p>Earned XP this week. Bonus XP excluded.</p>
         </div>
-        <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading || busy} aria-label="Refresh Weekly Earned XP">
+        <button className="groupXpRefresh" aria-busy={refreshing} type="button" onClick={refresh} disabled={refreshing || busy} aria-label="Refresh Weekly Earned XP">
           ↻
         </button>
       </div>
@@ -292,7 +271,7 @@ export default function GroupWeeklyXp({ group, membership, isAdmin = false, onGr
           </select></label>
       ) : null}
 
-      {error ? <div className="groupHubMessage error" role="alert">{error}</div> : null}
+      {visibleError ? <div className="groupHubMessage error" role="alert">{visibleError}</div> : null}
       {loading ? <div className="groupHubMuted groupXpLoading">Calculating Earned XP…</div> : null}
 
       {!loading && period ? (
