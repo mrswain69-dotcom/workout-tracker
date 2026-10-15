@@ -34,7 +34,11 @@ export function buildMovementPersonalBest(allLogs, movement, todayYmd) {
     }
   }
   for (const [kind,label] of [['reps','Most reps in one set'],['hold','Longest hold']]) {
-    const record = recordAtBest(observations.filter(row => row.kind === kind), (a,b) => a.value-b.value);
+    // A weighted set still establishes a repetition record. Keep its actual
+    // load as context, without changing the separate reward comparisons.
+    const candidates = observations.filter(row => row.kind === kind || (kind === 'reps' && row.kind === 'weighted'))
+      .map(row => row.kind === 'weighted' ? { ...row, kind:'reps', value:row.reps, unit:movement.weightUnit || 'kg' } : row);
+    const record = recordAtBest(candidates, (a,b) => a.value-b.value);
     if (record) records.push({ ...record, label });
   }
   const latestKind = observations.at(-1)?.kind;
