@@ -249,9 +249,9 @@ export default function PublicSite({ children }) {
             <span>START WITH YOUR PLAN</span>
             <h2>Build your own plan. Make your progress visible.</h2>
             <p>
-              Start with a blank weekly plan and make it yours. Built first for our family, Workout Tracker is now being tested
-              with family and small groups ahead of wider release. Bring your own routine or your coach’s programme;
-              Workout Tracker gives you the place to plan it, record it and see your progress.
+              Start with a blank weekly plan and make it yours. Bring your own routine or your coach’s programme.
+              Workout Tracker brings your plan, detailed training log and progress together — so you can see what you did,
+              what improved and what to aim for next.
             </p>
           </div>
           <div className="accountPanel">{children}</div>
