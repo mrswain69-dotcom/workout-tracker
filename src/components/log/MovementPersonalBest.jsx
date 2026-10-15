@@ -6,7 +6,7 @@ const dateLabel = value => new Date(`${value}T00:00:00Z`).toLocaleDateString('en
 function resultText(record) {
   if (record.kind === 'cardio') return `${number(record.distanceKm)} km in ${Math.floor(record.value / 60)}m ${number(record.value % 60)}s`;
   if (record.kind === 'weighted') return `${number(record.weight)} ${record.unit} × ${number(record.reps)} reps`;
-  if (record.kind === 'reps') return `${number(record.value)} reps`;
+  if (record.kind === 'reps') return `${number(record.value)} reps${record.weight ? ` at ${number(record.weight)} ${record.unit}` : ''}`;
   const minutes = Math.floor(record.value / 60), seconds = record.value % 60;
   return minutes ? `${minutes}m ${number(seconds)}s` : `${number(seconds)}s`;
 }
@@ -25,6 +25,8 @@ export default function MovementPersonalBest({ summary, alreadyAwarded = false }
         priorDates < required ? `PB baseline: ${priorDates}/${required} earlier comparable dates. Beat an established PB to earn +${xp} XP once per day.` :
           `Beat an established, like-for-like PB to earn +${xp} XP — once per day across all movements and Cardio.`}</p>
       <p className="movementPb__note">{records.some(record=>record.kind==='weighted') ? 'Weight and reps above come from the same actual set. Weighted rewards also require three prior dates supporting the comparable load/reps benchmark. ' : ''}
+        {'Dates show when each record was first achieved; matching it keeps the original date. '}
+        {summary.comparison !== 'cardio' ? 'Most reps includes sets with and without added weight, with the recorded load shown where available. ' : ''}
         {summary.comparison === 'cardio' ? 'Cardio PBs compare the same sport and exact recorded distance, across matching protocols.' : 'Records use matching movement, protocol and units. Older results matched only by name can appear in the chart without qualifying for PB rewards.'}</p>
       </details>
     </>}

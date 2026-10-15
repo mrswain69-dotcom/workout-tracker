@@ -10,7 +10,8 @@ it('renders an actual weighted PB, its date and the early-history reward require
  render(<MovementPersonalBest summary={summary}/>);
  expect(screen.getByRole('region',{name:'Current personal best'})).toBeTruthy();
  expect(screen.getByText('50 kg × 12 reps')).toBeTruthy();
- expect(screen.getByText('1 Oct 2026').getAttribute('datetime')).toBe('2026-10-01');
+ expect(screen.getByText('12 reps at 50 kg')).toBeTruthy();
+ expect(screen.getAllByText('1 Oct 2026').map(node=>node.getAttribute('datetime'))).toEqual(['2026-10-01','2026-10-01']);
  expect(screen.getByText(/1\/3 earlier comparable dates/)).toBeTruthy();
  expect(screen.getByText(/independent of chart range/)).toBeTruthy();
 });

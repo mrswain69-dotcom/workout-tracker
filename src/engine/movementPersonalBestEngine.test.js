@@ -16,8 +16,22 @@ describe('current movement PB evidence',()=>{
  });
  it('uses the best reps at the highest load and the earliest date on a tie',()=>{
   const result=summary([row('2026-10-13',[{weight:50,reps:12}]),row('2026-10-01',[{weight:50,reps:10}]),row('2026-10-12',[{weight:50,reps:12}])]);
-  expect(result.records).toHaveLength(1);
+  expect(result.records).toHaveLength(2);
   expect(result.records[0]).toMatchObject({weight:50,reps:12,date:'2026-10-12'});
+  expect(result.records[1]).toMatchObject({kind:'reps',value:12,date:'2026-10-12'});
+ });
+ it('dates a rep record from its first weighted achievement rather than a later unweighted match',()=>{
+  const result=summary([row('2026-06-08',[{reps:20}]),row('2026-03-09',[{weight:25,reps:20}]),row('2026-10-14',[{weight:25,reps:20}])]);
+  expect(result.records.find(r=>r.label==='Heaviest set')).toMatchObject({weight:25,reps:20,date:'2026-03-09'});
+  expect(result.records.find(r=>r.label==='Most reps in one set')).toMatchObject({value:20,weight:25,date:'2026-03-09'});
+ });
+ it('changes a rep record date only for a higher result and retains its first achievement on repeats',()=>{
+  const result=summary([row('2026-10-14',[{reps:21}]),row('2026-03-09',[{weight:25,reps:20}]),row('2026-06-08',[{weight:20,reps:21}])]);
+  expect(result.records.find(r=>r.kind==='reps')).toMatchObject({value:21,date:'2026-06-08'});
+ });
+ it('retains the earliest hold record when later dates match it',()=>{
+  const result=summary([row('2026-10-14',[{timeSeconds:95}]),row('2026-03-09',[{timeSeconds:95}])]);
+  expect(result.records[0]).toMatchObject({kind:'hold',value:95,date:'2026-03-09'});
  });
  it('shows rep and hold records without needing three dates to display the result',()=>{
   const result=summary([row('2026-10-13',[{reps:30},{timeSeconds:95}])]);
@@ -66,6 +80,10 @@ it('uses the latest recorded block distance on empty days, excluding cancelled a
 it('does not invent Cardio PBs from duration-only work or unsupported sports',()=>{
  expect(buildCardioPersonalBest([run('2026-10-01',30,0)],{id:'run'},'2026-10-15').records).toEqual([]);
  expect(buildCardioPersonalBest([run('2026-10-01',30,5,'tennis')],{id:'run'},'2026-10-15').records).toEqual([]);
+});
+it('retains the first Cardio record date when the same time is matched later',()=>{
+ const result=buildCardioPersonalBest([run('2026-10-14',29),run('2026-03-09',29),run('2026-02-01',30)],{id:'run'},'2026-10-15');
+ expect(result.records[0]).toMatchObject({value:1740,date:'2026-03-09'});
 });
 
 it('does not treat old unweighted results as an established weighted baseline',()=>{
