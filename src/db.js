@@ -69,29 +69,14 @@ export async function signOut() {
 }
 
 // --- family/profile/plans/logs ---
-export async function getOrCreateFamily(defaultFamilyName = "Family") {
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData?.user;
-  if (!user) return { family: null, error: new Error("Not logged in") };
-
-  // Find existing family
-  const { data: fam, error: fErr } = await supabase
-    .from("families")
-    .select("*")
-    .eq("owner_user_id", user.id)
-    .maybeSingle();
-
-  if (fErr) return { family: null, error: fErr };
-  if (fam) return { family: fam, error: null };
-
-  // Create
-  const { data: created, error: cErr } = await supabase
-    .from("families")
-    .insert({ owner_user_id: user.id, name: defaultFamilyName })
-    .select("*")
-    .single();
-
-  return { family: created || null, error: cErr };
+export async function getOrCreateFamily(defaultFamilyName = "Family", initialPlan = null) {
+  // First login can run concurrently (StrictMode, retries, multiple tabs).
+  // The server initializes the family and its first profile atomically.
+  const { data, error } = await supabase.rpc("bootstrap_family_account", {
+    default_family_name: defaultFamilyName,
+    initial_plan: initialPlan,
+  }).single();
+  return { family: data || null, error };
 }
 
 export async function listProfiles(familyId) {
