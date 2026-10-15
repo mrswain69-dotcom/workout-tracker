@@ -10,6 +10,9 @@
 .movementPb__records time{font-size:11px;color:#a6bdc9}
 .movementPb p{margin:8px 0 0}
 .movementPb__reward{font-size:12px;color:#d8f9e9}
+.movementPb__secondary{border-top:1px solid #56c9ac33;margin-top:10px;padding-top:8px}
+.movementPb__secondary .movementPb__records li>strong{font-size:14px}
+.movementPb__subheading{font-size:12px;color:#c2d6df}
 .movementPb__explanation{margin-top:10px;border-top:1px solid #56c9ac33;padding-top:4px}
 .movementPb__explanation summary{padding:8px 0;cursor:pointer;font-size:12px;color:#a5f3d9}
 .movementPb__explanation summary:focus-visible{outline:2px solid #a5f3d9;outline-offset:3px;border-radius:3px}

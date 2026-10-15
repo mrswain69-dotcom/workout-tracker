@@ -7,7 +7,7 @@ describe('current movement PB evidence',()=>{
  it('shows an all-time record even when it lies outside the chart range',()=>{
   const result=summary([row('2025-01-01',[{weight:100,reps:5}]),row('2026-10-14',[{weight:50,reps:10}])]);
   expect(result.records[0]).toMatchObject({weight:100,reps:5,date:'2025-01-01'});
-  expect(result.records[1]).toMatchObject({weight:50,reps:10,label:'Best reps at your latest load'});
+  expect(result.currentRecords[0]).toMatchObject({weight:50,reps:10,label:'Best at your current load'});
  });
  it('retains actual weight/reps pairs rather than combining independent maxima',()=>{
   const result=summary([row('2026-10-01',[{weight:100,reps:5},{weight:50,reps:30}])]);
@@ -16,17 +16,18 @@ describe('current movement PB evidence',()=>{
  });
  it('uses the best reps at the highest load and the earliest date on a tie',()=>{
   const result=summary([row('2026-10-13',[{weight:50,reps:12}]),row('2026-10-01',[{weight:50,reps:10}]),row('2026-10-12',[{weight:50,reps:12}])]);
-  expect(result.records).toHaveLength(2);
+  expect(result.records).toHaveLength(1);
   expect(result.records[0]).toMatchObject({weight:50,reps:12,date:'2026-10-12'});
-  expect(result.records[1]).toMatchObject({kind:'reps',value:12,date:'2026-10-12'});
+  expect(result.currentRecords).toEqual([]);
  });
- it('dates a rep record from its first weighted achievement rather than a later unweighted match',()=>{
+ it('keeps the original weighted PB and omits an unrelated unweighted rep record',()=>{
   const result=summary([row('2026-06-08',[{reps:20}]),row('2026-03-09',[{weight:25,reps:20}]),row('2026-10-14',[{weight:25,reps:20}])]);
   expect(result.records.find(r=>r.label==='Heaviest set')).toMatchObject({weight:25,reps:20,date:'2026-03-09'});
-  expect(result.records.find(r=>r.label==='Most reps in one set')).toMatchObject({value:20,weight:25,date:'2026-03-09'});
+  expect(result.records).toHaveLength(1);
+  expect(result.recentRecords[0]).toMatchObject({weight:25,reps:20,date:'2026-10-14'});
  });
  it('changes a rep record date only for a higher result and retains its first achievement on repeats',()=>{
-  const result=summary([row('2026-10-14',[{reps:21}]),row('2026-03-09',[{weight:25,reps:20}]),row('2026-06-08',[{weight:20,reps:21}])]);
+  const result=summary([row('2026-10-14',[{reps:21}]),row('2026-03-09',[{reps:20}]),row('2026-06-08',[{reps:21}])]);
   expect(result.records.find(r=>r.kind==='reps')).toMatchObject({value:21,date:'2026-06-08'});
  });
  it('retains the earliest hold record when later dates match it',()=>{
@@ -89,4 +90,23 @@ it('retains the first Cardio record date when the same time is matched later',()
 it('does not treat old unweighted results as an established weighted baseline',()=>{
  const result=summary([row('2026-10-01',[{reps:30}]),row('2026-10-02',[{reps:30}]),row('2026-10-03',[{reps:30}]),row('2026-10-14',[{weight:50,reps:10}])]);
  expect(result.priorDates).toBe(1);
+});
+
+it('separates recent weighted best from the all-time PB and current-load history',()=>{
+ const result=summary([row('2026-03-09',[{weight:100,reps:8}]),row('2026-08-01',[{weight:50,reps:15}]),row('2026-10-01',[{weight:50,reps:10},{weight:20,reps:30}]),row('2026-10-14',[{weight:50,reps:10},{weight:20,reps:40}])]);
+ expect(result.records[0]).toMatchObject({weight:100,reps:8,date:'2026-03-09'});
+ expect(result.currentRecords[0]).toMatchObject({weight:50,reps:15,date:'2026-08-01'});
+ expect(result.recentRecords[0]).toMatchObject({weight:50,reps:10,date:'2026-10-01'});
+ expect(result.records).toHaveLength(1);
+});
+it('uses exactly 30 calendar dates, including today, and handles no recent results',()=>{
+ const result=summary([row('2026-09-15',[{reps:100}]),row('2026-09-16',[{reps:40}]),row('2026-10-15',[{reps:39}]),row('2026-10-16',[{reps:200}])]);
+ expect(result.records[0]).toMatchObject({value:100,date:'2026-09-15'});
+ expect(result.recentRecords[0]).toMatchObject({value:40,date:'2026-09-16'});
+ expect(summary([row('2026-09-15',[{reps:100}])]).recentRecords).toEqual([]);
+});
+it('separates recent Cardio results from older all-time records for the same distance',()=>{
+ const result=buildCardioPersonalBest([run('2026-03-09',25),run('2026-10-01',29),run('2026-10-14',29),run('2026-10-12',10,3)],{id:'run',typeId:'cardio',cardio:{sport:'run',distanceKm:5,durationMin:30}},'2026-10-15');
+ expect(result.records[0]).toMatchObject({value:1500,date:'2026-03-09'});
+ expect(result.recentRecords[0]).toMatchObject({value:1740,date:'2026-10-01',distanceKm:5});
 });
