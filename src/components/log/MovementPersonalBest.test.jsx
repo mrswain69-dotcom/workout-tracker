@@ -9,11 +9,14 @@ it('renders an actual weighted PB, its date and the early-history reward require
  const summary=buildMovementPersonalBest([{date:'2026-10-01',log:{blocks:[{typeId:'strength',movements:[{id:'bench'}],sets:{bench:[{weight:50,reps:12}]}}]}}],{id:'bench'},'2026-10-15');
  render(<MovementPersonalBest summary={summary}/>);
  expect(screen.getByRole('region',{name:'Current personal best'})).toBeTruthy();
- expect(screen.getByText('50 kg × 12 reps')).toBeTruthy();
- expect(screen.getByText('12 reps at 50 kg')).toBeTruthy();
+ expect(screen.getAllByText('50 kg × 12 reps')).toHaveLength(2);
+ expect(screen.queryByText('Most reps in one set')).toBeNull();
+ expect(screen.getByText('All-time PB')).toBeTruthy();
+ expect(screen.getByRole('region',{name:'Recent best'})).toBeTruthy();
+ expect(screen.getByText('How PB rewards work').closest('details').open).toBe(false);
  expect(screen.getAllByText('1 Oct 2026').map(node=>node.getAttribute('datetime'))).toEqual(['2026-10-01','2026-10-01']);
  expect(screen.getByText(/1\/3 earlier comparable dates/)).toBeTruthy();
- expect(screen.getByText(/independent of chart range/)).toBeTruthy();
+ expect(screen.getByText(/Independent of chart range/)).toBeTruthy();
 });
 it('shows hold time and the once-per-day bonus after the baseline exists',()=>{
  render(<MovementPersonalBest summary={{records:[{kind:'hold',label:'Longest hold',value:95,date:'2026-10-14'}],priorDates:3,disabled:false}}/>);
@@ -35,4 +38,10 @@ it('shows an exact-distance Cardio PB with its time and comparison scope',()=>{
  render(<MovementPersonalBest summary={{records:[{kind:'cardio',label:'Fastest recorded time',distanceKm:5,value:1740,date:'2026-10-14'}],priorDates:3,disabled:false,comparison:'cardio'}}/>);
  expect(screen.getByText('5 km in 29m 0s')).toBeTruthy();
  expect(screen.getByText(/Cardio PBs compare the same sport and exact recorded distance/)).toBeTruthy();
+});
+
+it('shows current-load evidence separately and explains an empty recent window',()=>{
+ render(<MovementPersonalBest summary={{records:[{kind:'weighted',label:'Heaviest set',weight:100,reps:8,unit:'kg',date:'2026-03-09'}],currentRecords:[{kind:'weighted',label:'Best at your current load',weight:50,reps:15,unit:'kg',date:'2026-08-01'}],recentRecords:[],priorDates:4,disabled:false}}/>);
+ expect(screen.getByRole('region',{name:'Best at your current load'}).textContent).toContain('50 kg × 15 reps');
+ expect(screen.getByRole('region',{name:'Recent best'}).textContent).toContain('No comparable results in the last 30 days.');
 });

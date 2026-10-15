@@ -4,6 +4,27 @@ function recordAtBest(rows, compare) {
   return rows.reduce((best, row) => !best || compare(row, best) > 0 ? row : best, null);
 }
 
+function recentStart(todayYmd) {
+  const date = new Date(`${todayYmd}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - 29);
+  return date.toISOString().slice(0,10);
+}
+
+const compareWeighted = (a,b) => a.weight-b.weight || a.reps-b.reps;
+function movementRecords(rows, weightedMode, unit) {
+  const records = [];
+  if (weightedMode) {
+    const best = recordAtBest(rows.filter(row=>row.kind==='weighted'), compareWeighted);
+    if (best) records.push({...best,label:'Heaviest set',unit});
+  }
+  for (const [kind,label] of [['reps','Most reps in one set'],['hold','Longest hold']]) {
+    if (weightedMode && kind === 'reps') continue;
+    const best = recordAtBest(rows.filter(row=>row.kind===kind),(a,b)=>a.value-b.value);
+    if (best) records.push({...best,label});
+  }
+  return records;
+}
+
 // Display evidence only. The XP and badge engines remain the reward authority.
 // Match the same stable movement/protocol/unit identity used for PB awards.
 export function buildMovementPersonalBest(allLogs, movement, todayYmd) {
@@ -22,28 +43,25 @@ export function buildMovementPersonalBest(allLogs, movement, todayYmd) {
   }
   // Earliest recorded date wins a tie, regardless of input order or chart range.
   observations.sort((a,b) => a.date.localeCompare(b.date));
-  const records = [];
   const weighted = observations.filter(row => row.kind === 'weighted');
+  const unit = movement.weightUnit || 'kg';
+  const records = movementRecords(observations, weighted.length > 0, unit);
+  const currentRecords = [];
   if (weighted.length) {
-    const heaviest = recordAtBest(weighted, (a,b) => a.weight-b.weight || a.reps-b.reps);
-    records.push({ ...heaviest, label: 'Heaviest set', unit:movement.weightUnit || 'kg' });
-    const latestLoad = weighted.at(-1).weight;
+    const heaviest = records[0];
+    // Use the heaviest recorded load on the latest date, independent of set order.
+    const latestLoad = recordAtBest(weighted.filter(row=>row.date===weighted.at(-1).date),compareWeighted).weight;
     if (latestLoad !== heaviest.weight) {
       const atLoad = recordAtBest(weighted.filter(row => row.weight === latestLoad), (a,b) => a.reps-b.reps);
-      records.push({ ...atLoad, label: 'Best reps at your latest load', unit:movement.weightUnit || 'kg' });
+      currentRecords.push({ ...atLoad, label: 'Best at your current load', unit });
     }
   }
-  for (const [kind,label] of [['reps','Most reps in one set'],['hold','Longest hold']]) {
-    // A weighted set still establishes a repetition record. Keep its actual
-    // load as context, without changing the separate reward comparisons.
-    const candidates = observations.filter(row => row.kind === kind || (kind === 'reps' && row.kind === 'weighted'))
-      .map(row => row.kind === 'weighted' ? { ...row, kind:'reps', value:row.reps, unit:movement.weightUnit || 'kg' } : row);
-    const record = recordAtBest(candidates, (a,b) => a.value-b.value);
-    if (record) records.push({ ...record, label });
-  }
+  const recentRecords = movementRecords(observations.filter(row=>row.date>=recentStart(todayYmd)),weighted.length>0,unit);
   const latestKind = observations.at(-1)?.kind;
   return {
     records,
+    currentRecords,
+    recentRecords,
     priorDates: new Set(observations.filter(row => row.kind === latestKind && row.date < todayYmd).map(row => row.date)).size,
     disabled: false,
   };
@@ -67,9 +85,12 @@ export function buildCardioPersonalBest(allLogs, block, todayYmd) {
   if (!reference) return {records:[],priorDates:0,disabled:false,comparison:'cardio'};
   const matching = observations.filter(row=>row.key===reference.key);
   const best = recordAtBest(matching,(a,b)=>b.value-a.value);
+  const recent = recordAtBest(matching.filter(row=>row.date>=recentStart(todayYmd)),(a,b)=>b.value-a.value);
   const [,sport,distance] = reference.key.split(':');
+  const displayRecord = record => ({...record,distanceKm:Number(distance),sport,label:'Fastest recorded time'});
   return {
-    records:best ? [{...best,distanceKm:Number(distance),sport,label:'Fastest recorded time'}] : [],
+    records:best ? [displayRecord(best)] : [],
+    recentRecords:recent ? [displayRecord(recent)] : [],
     priorDates:new Set(matching.filter(row=>row.date<todayYmd).map(row=>row.date)).size,
     disabled:false,
     comparison:'cardio',
