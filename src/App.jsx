@@ -58,6 +58,8 @@ import {
 
 import XpRulesInfo from "./components/rewards/XpRulesInfo.jsx";
 import XpLedger from "./components/rewards/XpLedger.jsx";
+import MovementPersonalBest from "./components/log/MovementPersonalBest.jsx";
+import { buildMovementPersonalBest, buildCardioPersonalBest } from "./engine/movementPersonalBestEngine.js";
 import { BADGE_CARDS, BADGE_DEFS, TIERS, SPORT_MASTERY_PACKS, formatTimeMMSS } from "./config/badges";
 import { buildBadgeStatsV2 } from "./engine/badgeStatsV2";
 import {
@@ -8080,6 +8082,13 @@ const historyIndex = useMemo(() => {
   return { movementHas, movementNameHas, cardioHas, durationHas, taskHas };
 }, [allLogs]);
 
+const movementPersonalBest = useMemo(() => historyModal?.kind === "movement"
+  ? buildMovementPersonalBest(allLogs, historyModal.movement || { id:historyModal.id }, todayYmd)
+  : historyModal?.kind === "cardio"
+  ? buildCardioPersonalBest(allLogs, historyModal.cardioBlock || { id:historyModal.id }, todayYmd)
+  : null, [allLogs, historyModal, todayYmd]);
+const personalBestXpEarnedToday = xpDebugRows.some(row => row.date === todayYmd && row.personalBestXp > 0);
+
 // When modal opens or range changes, rebuild chart series
 useEffect(() => {
   if (!historyModal) return;
@@ -9788,6 +9797,7 @@ const cardioProgress = useMemo(() => {
                                               setHistoryRange("8w");
                                               setHistoryModal({
                                                 kind: "movement",
+                                                movement: { ...mov },
                                                 id: mov.id,
                                                 name: mov.name,
                                                 title: mov.name,
@@ -10125,7 +10135,7 @@ const cardioProgress = useMemo(() => {
                 className="historyPill"
                 onClick={() => {
                   setHistoryRange("12w");
-                  setHistoryModal({ kind: "cardio", id: block.id, title: label });
+                  setHistoryModal({ kind: "cardio", id: block.id, title: label, cardioBlock: { ...block } });
                 }}
               >
                 History
@@ -13410,6 +13420,8 @@ const cardioProgress = useMemo(() => {
           ✕
         </button>
       </div>
+
+      {movementPersonalBest && <MovementPersonalBest summary={movementPersonalBest} alreadyAwarded={personalBestXpEarnedToday} />}
 
       <div className="historyRanges">
         {[
