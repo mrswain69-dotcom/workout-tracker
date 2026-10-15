@@ -1,0 +1,16 @@
+.adminUsage__toggle{display:flex;width:100%;justify-content:space-between;gap:16px;align-items:center;background:none;color:inherit;border:0;padding:4px 0;font:inherit;font-weight:800;text-align:left;cursor:pointer}
+.adminUsage__toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:16px 0}
+.adminUsage__toolbar label{display:flex;gap:8px;align-items:center;font-size:13px}
+.adminUsage__toolbar input{width:18px;height:18px}
+.adminUsage__toolbar button{border:1px solid #7b899a55;background:transparent;color:inherit;border-radius:10px;padding:9px 12px;cursor:pointer}
+.adminUsage__metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.adminUsage__metrics>div{padding:14px;border:1px solid #7b899a44;border-radius:12px;display:grid;gap:8px}
+.adminUsage__metrics span{font-size:12px;line-height:1.4;opacity:.8}.adminUsage__metrics strong{font-size:26px}
+.adminUsage__metrics--small{grid-template-columns:repeat(3,minmax(0,1fr))}
+.adminUsage__funnel{display:grid;gap:8px}.adminUsage__funnel>div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #7b899a33}.adminUsage__funnel dd{margin:0;font-weight:800}
+.adminUsage__chart{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));align-items:end;gap:5px;margin:16px 0 24px;overflow-x:auto}
+.adminUsage__chart>div{display:grid;justify-items:center;align-content:end;min-width:25px;font-size:10px;gap:5px;height:110px}.adminUsage__chart i{display:block;width:75%;background:#13bdc7;border-radius:4px 4px 0 0}
+.adminUsage__table{overflow-x:auto;margin-top:12px}.adminUsage table{border-collapse:collapse;width:100%;font-size:12px}.adminUsage th,.adminUsage td{padding:10px;text-align:left;border-bottom:1px solid #7b899a33;white-space:nowrap}.adminUsage th{font-size:11px}
+.adminUsage details{margin-top:18px}.adminUsage summary{cursor:pointer;font-size:13px;font-weight:700;padding:6px 0}.adminUsage__definitions p{font-size:12px;line-height:1.6;opacity:.8}
+.adminUsage button:focus-visible,.adminUsage summary:focus-visible{outline:2px solid #13bdc7;outline-offset:3px}
+@media(max-width:700px){.adminUsage__metrics,.adminUsage__metrics--small{grid-template-columns:repeat(2,minmax(0,1fr))}.adminUsage__chart{grid-template-columns:repeat(14,28px)}}
