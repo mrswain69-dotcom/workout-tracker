@@ -4070,7 +4070,7 @@ function toggleLogBlockFocus(blockId) {
 
   // --- After auth: family + profiles + plan ---
   async function refreshAll({ isCurrent = () => true } = {}) {
-    const { family: fam, error } = await getOrCreateFamily("My Family");
+    const { family: fam, error } = await getOrCreateFamily("My Family", blankPlanForNewProfile());
     if (error) throw error;
     if (!fam?.id) throw new Error("Your family account could not be loaded.");
     if (!isCurrent()) return null;
