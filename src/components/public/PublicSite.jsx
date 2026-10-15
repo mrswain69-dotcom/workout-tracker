@@ -13,9 +13,9 @@ function ProductScreen({ variant = "log" }) {
         <div className="screenAthlete">Athlete</div>
         <div className="screenNav"><b>Dashboard</b><span>Log</span><span>Progress</span><span>Rewards</span></div>
         <div className="screenCard screenCard--hero">
-          <div><small>THIS WEEK</small><strong>340 XP</strong></div>
+          <div><small>YOUR WEEKLY PLAN</small><strong>Training, your way</strong></div>
           <div className="screenProgress"><i style={{ width: "66%" }} /></div>
-          <span>Level progress · consistent effort</span>
+          <span>Strength · Cardio · Mobility</span>
         </div>
         <div className="screenCard">
           <div className="screenCardTitle"><b>Today’s plan</b><em>3 blocks</em></div>
@@ -23,11 +23,9 @@ function ProductScreen({ variant = "log" }) {
           <div className="screenTask"><span>2</span><div><b>Strength</b><small>Target ready</small></div></div>
           <div className="screenTask"><span>3</span><div><b>Mobility</b><small>10 min planned</small></div></div>
         </div>
-        <div className="screenReadiness">
-          <div><b>Body Readiness</b><em>Moderate</em></div>
-          <strong>68</strong>
-          <div className="readinessBar"><i style={{ left: "58%" }} /></div>
-          <span>Train well, but prioritise quality.</span>
+        <div className="screenCard">
+          <div className="screenCardTitle"><b>Make the plan yours</b></div>
+          <div className="screenTask"><span>+</span><div><b>Add an extra activity</b><small>Keep a record when plans change</small></div></div>
         </div>
       </div>
     );
@@ -122,7 +120,7 @@ export default function PublicSite({ children }) {
       <header className="publicHeader">
         <a className="publicBrand" href="#top" aria-label="Workout Tracker home">
           <img src="/icons/icon-192.png" alt="" />
-          <span><b>Workout Tracker</b><small>Build Strength. Build Habits.</small></span>
+          <span><b>Workout Tracker</b><small>Your training. Your way.</small></span>
         </a>
         <nav aria-label="Public site navigation">
           <a href="#why">Why it works</a>
@@ -135,19 +133,19 @@ export default function PublicSite({ children }) {
       <main id="top">
         <section className="publicHero">
           <div className="heroCopy">
-            <span className="heroEyebrow">PERFORMANCE-FIRST TRACKING & INTELLIGENCE</span>
-            <h1>Train hard. Train smart. Track progress. Build discipline.</h1>
+            <span className="heroEyebrow">CUSTOM PLANS · DETAILED LOGS · VISIBLE PROGRESS</span>
+            <h1>Your training. Your way.</h1>
             <p>
-              Workout Tracker brings plans, in-the-moment performance history, progress, rewards and body intelligence into one
-              focused system for athletes, families and small teams.
+              Build your own plan. Log the details. See your progress while you train.
+              Keep previous results, personal bests and targets close to every set and session.
             </p>
             <div className="heroActions">
               <button type="button" className="publicPrimary" onClick={() => openAuth("signup")}>Create an account</button>
               <button type="button" className="publicSecondary" onClick={() => openAuth("signin")}>Sign in</button>
             </div>
             <div className="heroProof">
-              <span><b>Performance leads</b> — see the information that matters while you train.</span>
-              <span><b>Progress stays personal</b> — improvement, consistency and intelligent effort matter.</span>
+              <span><b>Your plan, your choice</b> — strength, running, sport, mobility and more.</span>
+              <span><b>Useful at the next set</b> — last time, your best and today’s target.</span>
             </div>
           </div>
 
@@ -162,59 +160,61 @@ export default function PublicSite({ children }) {
           <h2>Know what you did last time — before you do it again.</h2>
           <p>
             A training log is most useful before the next set, run or session. Workout Tracker is built to put history, targets
-            and progress beside the action instead of burying them in reports you might never open.
+            and progress beside the action so you can see what to aim for while you log.
           </p>
         </section>
 
         <section className="featureGrid">
-          <Feature eyebrow="PERFORMANCE" title="The next action stays clear">
-            Plans can mix strength, cardio, duration, tasks, recovery and structured sessions. The Log keeps the work in focus
-            while still making history and targets available when they can change behaviour.
+          <Feature eyebrow="YOUR PLAN" title="Choose the training. Make it yours.">
+            Start with a blank weekly schedule and build around your own routine or your coach’s programme.
+            Mix strength, cardio, sport and mobility, change your plan, and add extra activity when life calls for it.
           </Feature>
-          <Feature eyebrow="PROGRESSION" title="Reward showing up and improving">
-            XP, badges, avatars, streaks and competition reinforce effort, improvement and consistency without turning volume
-            into the only way to win.
+          <Feature eyebrow="YOUR TRAINING LOG" title="Record the detail that matters.">
+            Log sets, reps, resistance, time and distance. See previous results, personal bests, trends and targets
+            from the workout itself, with a useful reference for your next set or session.
           </Feature>
-          <Feature eyebrow="INTELLIGENCE" title="Understand the body behind the performance">
-            Recovery and body-intelligence features connect training with the reasons adaptation, energy and smart recovery matter.
+          <Feature eyebrow="YOUR PROGRESS" title="See what is actually improving.">
+            Follow movement history, personal bests and activity trends over time. Keep strength, cardio and duration
+            in their own meaningful measures, and make room for planned recovery as well as training.
           </Feature>
-          <Feature eyebrow="FAMILY & TEAM" title="Competition that stays close">
-            Private Groups create a useful competitive layer for families, friends and small squads while keeping personal
-            workout and body information private.
+          <Feature eyebrow="YOUR MOTIVATION" title="Build habits that keep you coming back.">
+            Streaks, XP, badges and collectible avatars make consistency rewarding. Optional private groups add
+            friendly competition with family, friends or a small team — while your own progress stays the priority.
           </Feature>
         </section>
 
         <section className="screensSection" id="screens">
           <div className="sectionHeading">
-            <span>BUILT AROUND THE ATHLETE</span>
-            <h2>From today’s session to a long-term record of growth.</h2>
+            <span>YOUR WORK. YOUR RECORD.</span>
+            <h2>The detail of today. The progress over time.</h2>
           </div>
           <div className="screenShowcase">
             <div className="showcaseCard showcaseCard--real">
               <div className="showcaseActual">
-                <div className="actualAppLabel">ACTUAL APP VIEW · DETAILS ANONYMISED</div>
-                <img
-                  src="/screenshots/workout-log-mobile.webp"
-                  alt="Workout Tracker mobile training log showing planned cardio and session blocks"
-                  loading="lazy"
-                />
+                <div className="actualAppLabel">ACTUAL APP VIEW · TRAINING LOG</div>
+                <img src="/screenshots/training-detail-mobile.jpg" width="600" height="1536"
+                  alt="Completed strength workout with squats, bench press, incline press and flys, followed by stretching and mobility"
+                  loading="lazy" />
               </div>
-              <div><span>LOG</span><h3>Focus on what to do next.</h3><p>Real product view: planned work, logging controls and performance context stay together. Athlete-specific names have been anonymised for the public site.</p></div>
+              <div><span>LOG THE WORK</span><h3>Your routine, recorded properly.</h3><p>Keep movements, sets, reps, weights and duration together. A strength workout and post-workout mobility can sit side by side in the same day.</p></div>
             </div>
             <div className="showcaseCard showcaseCard--real">
-              <div className="showcaseActual showcaseActual--readiness">
-                <div className="actualAppLabel">ACTUAL BODY INTELLIGENCE VIEW</div>
-                <img
-                  src="/screenshots/body-readiness-mobile.webp"
-                  alt="Workout Tracker Body Readiness Status card with score, readiness scale and recommendation"
-                  loading="lazy"
-                />
+              <div className="showcaseActual">
+                <div className="actualAppLabel">ACTUAL APP VIEW · MOVEMENT HISTORY</div>
+                <img src="/screenshots/personal-best-mobile.jpg" width="600" height="1536"
+                  alt="Weighted squat history popup showing an all-time personal best of 25 kg for 20 reps, its first-achieved date and a movement chart"
+                  loading="lazy" />
               </div>
-              <div><span>BODY INTELLIGENCE</span><h3>Put readiness in context.</h3><p>Readiness gives the athlete a compact training-quality signal and recommendation rather than replacing judgement or coaching.</p></div>
+              <div><span>SEE YOUR BENCHMARK</span><h3>Know your best while you train.</h3><p>Open movement history from your log to see previous results, your all-time PB and recent bests. Keep the evidence close when you are ready for the next set.</p></div>
             </div>
-            <div className="showcaseCard">
-              <div className="showcasePhone"><ProductScreen variant="progress" /></div>
-              <div><span>PROGRESS</span><h3>Build a performance autobiography.</h3><p>Over time, sessions, trends and Assessments become a record of how the athlete developed.</p></div>
+            <div className="showcaseCard showcaseCard--real">
+              <div className="showcaseActual">
+                <div className="actualAppLabel">ACTUAL APP VIEW · ACTIVITY TRENDS</div>
+                <img src="/screenshots/activity-trends-mobile.jpg" width="600" height="1536"
+                  alt="Activity trends showing weekly strength sets and cardio minutes in separate charts with their own units"
+                  loading="lazy" />
+              </div>
+              <div><span>FOLLOW YOUR PROGRESS</span><h3>See the pattern behind the effort.</h3><p>Look back at what you have actually done. Separate activity trends make changes in your training visible without combining unrelated measures into one performance score.</p></div>
             </div>
           </div>
         </section>
@@ -222,12 +222,12 @@ export default function PublicSite({ children }) {
         <section className="principlesSection" id="principles">
           <div className="sectionHeading">
             <span>THE CULTURE</span>
-            <h2>Serious enough for performance. Human enough for families.</h2>
+            <h2>Your goals lead. Motivation supports them.</h2>
           </div>
           <div className="principlesGrid">
-            <div><b>Improvement &gt; volume</b><span>More logging is not automatically better training.</span></div>
-            <div><b>Discipline &gt; dominance</b><span>Consistency matters without locking the same person at the top forever.</span></div>
-            <div><b>Intelligence &gt; brute effort</b><span>Understanding training and recovery should sharpen performance.</span></div>
+            <div><b>Freedom to train</b><span>Use your own routine or a plan from your coach. You choose what goes into it.</span></div>
+            <div><b>Detail with purpose</b><span>Keep last time, your best and your targets close to the work.</span></div>
+            <div><b>Consistency with flexibility</b><span>Change the plan when you need to, include recovery and keep your history.</span></div>
             <div><b>Competition supports growth</b><span>Leaderboards are a tool for effort, not a measure of personal worth.</span></div>
           </div>
         </section>
@@ -246,10 +246,12 @@ export default function PublicSite({ children }) {
 
         <section className="accountSection" id="account">
           <div className="accountPitch">
-            <span>START WITH THE CORE</span>
-            <h2>Build the plan. Log the work. Learn from the result.</h2>
+            <span>START WITH YOUR PLAN</span>
+            <h2>Build your own plan. Make your progress visible.</h2>
             <p>
-              New accounts begin with a blank weekly plan so the system reflects real life rather than forcing a generic programme.
+              Start with a blank weekly plan and make it yours. Built first for our family, Workout Tracker is now being tested
+              with family and small groups ahead of wider release. Bring your own routine or your coach’s programme;
+              Workout Tracker gives you the place to plan it, record it and see your progress.
             </p>
           </div>
           <div className="accountPanel">{children}</div>
@@ -259,7 +261,7 @@ export default function PublicSite({ children }) {
       <footer className="publicFooter">
         <div className="publicBrand publicBrand--footer">
           <img src="/icons/icon-192.png" alt="" />
-          <span><b>Workout Tracker</b><small>Performance-first. Intelligence-embedded. Discipline-driven.</small></span>
+          <span><b>Workout Tracker</b><small>Your training. Your way. A product of Swain Digital Ltd.</small></span>
         </div>
         <div className="footerLinks">
           <button type="button" onClick={() => setLegal("privacy")}>Privacy</button>
