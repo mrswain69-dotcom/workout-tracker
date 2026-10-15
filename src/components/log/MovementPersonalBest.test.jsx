@@ -41,7 +41,8 @@ it('shows an exact-distance Cardio PB with its time and comparison scope',()=>{
 });
 
 it('shows current-load evidence separately and explains an empty recent window',()=>{
- render(<MovementPersonalBest summary={{records:[{kind:'weighted',label:'Heaviest set',weight:100,reps:8,unit:'kg',date:'2026-03-09'}],currentRecords:[{kind:'weighted',label:'Best at your current load',weight:50,reps:15,unit:'kg',date:'2026-08-01'}],recentRecords:[],priorDates:4,disabled:false}}/>);
- expect(screen.getByRole('region',{name:'Best at your current load'}).textContent).toContain('50 kg × 15 reps');
+ render(<MovementPersonalBest summary={{records:[{kind:'weighted',label:'Heaviest set',weight:100,reps:8,unit:'kg',date:'2026-03-09'}],currentRecords:[{kind:'weighted',label:'Most reps at your current weight',weight:50,reps:15,unit:'kg',date:'2026-08-01'}],recentRecords:[],priorDates:4,disabled:false}}/>);
+ expect(screen.getByRole('region',{name:'Most reps at your current weight'}).textContent).toContain('50 kg × 15 reps');
+ expect(screen.getByText('Most reps at your current weight · 50 kg')).toBeTruthy();
  expect(screen.getByRole('region',{name:'Recent best'}).textContent).toContain('No comparable results in the last 30 days.');
 });

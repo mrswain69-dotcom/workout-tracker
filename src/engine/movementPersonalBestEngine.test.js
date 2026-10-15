@@ -7,7 +7,7 @@ describe('current movement PB evidence',()=>{
  it('shows an all-time record even when it lies outside the chart range',()=>{
   const result=summary([row('2025-01-01',[{weight:100,reps:5}]),row('2026-10-14',[{weight:50,reps:10}])]);
   expect(result.records[0]).toMatchObject({weight:100,reps:5,date:'2025-01-01'});
-  expect(result.currentRecords[0]).toMatchObject({weight:50,reps:10,label:'Best at your current load'});
+  expect(result.currentRecords[0]).toMatchObject({weight:50,reps:10,label:'Most reps at your current weight'});
  });
  it('retains actual weight/reps pairs rather than combining independent maxima',()=>{
   const result=summary([row('2026-10-01',[{weight:100,reps:5},{weight:50,reps:30}])]);

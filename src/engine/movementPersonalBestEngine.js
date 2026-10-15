@@ -53,7 +53,7 @@ export function buildMovementPersonalBest(allLogs, movement, todayYmd) {
     const latestLoad = recordAtBest(weighted.filter(row=>row.date===weighted.at(-1).date),compareWeighted).weight;
     if (latestLoad !== heaviest.weight) {
       const atLoad = recordAtBest(weighted.filter(row => row.weight === latestLoad), (a,b) => a.reps-b.reps);
-      currentRecords.push({ ...atLoad, label: 'Best at your current load', unit });
+      currentRecords.push({ ...atLoad, label: 'Most reps at your current weight', unit });
     }
   }
   const recentRecords = movementRecords(observations.filter(row=>row.date>=recentStart(todayYmd)),weighted.length>0,unit);
