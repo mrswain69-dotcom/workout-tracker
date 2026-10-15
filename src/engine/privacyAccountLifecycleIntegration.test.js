@@ -6,14 +6,14 @@ function read(path) {
 }
 
 describe("public site, privacy and account lifecycle integration", () => {
-  it("publishes the performance-first public site and legal surfaces", () => {
+  it("publishes the training-led public site and legal surfaces", () => {
     const app = read("../App.jsx");
     const publicSite = read("../components/public/PublicSite.jsx");
     const legal = read("../components/legal/LegalContent.jsx");
 
     expect(app).toContain('import PublicSite from "./components/public/PublicSite.jsx"');
-    expect(publicSite).toContain("Train hard. Train smart. Track progress. Build discipline.");
-    expect(publicSite).toContain("PERFORMANCE-FIRST TRACKING & INTELLIGENCE");
+    expect(publicSite).toContain("Your training. Your way.");
+    expect(publicSite).toContain("CUSTOM PLANS · DETAILED LOGS · VISIBLE PROGRESS");
     expect(publicSite).toContain("PrivacyNotice");
     expect(publicSite).toContain("CookiesNotice");
     expect(publicSite).toContain("TermsOfUse");
