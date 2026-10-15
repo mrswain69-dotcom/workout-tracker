@@ -1,3 +1,4 @@
+import { clearGroupBoardCache } from './groupBoardCache';
 // @vitest-environment jsdom
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -26,6 +27,7 @@ function payload(overrides = {}) {
 }
 
 beforeEach(() => {
+    clearGroupBoardCache();
   vi.clearAllMocks();
   db.loadGroupChallenges.mockResolvedValue({ data: payload(), error: null });
   db.createGroupChallenge.mockResolvedValue({ data: { challenge: { id: "c-new" } }, error: null });

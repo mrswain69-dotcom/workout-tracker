@@ -1,6 +1,7 @@
+import useGroupBoardResource from './useGroupBoardResource';
 import { GroupBlockCountHeaders, GroupBlockCountCells } from "./GroupBlockCountCells.jsx";
 import "./GroupCompact.css";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { loadGroupConsistencyLeaderboard } from "./groupDb";
 import { withGroupCosmetics } from "./groupIdentity";
 import GroupIdentityTrigger from "./GroupIdentityTrigger.jsx";
@@ -78,33 +79,8 @@ export default function GroupConsistency({ group, membership, onOpenIdentity, di
   const [localMode, setMode] = useState("current");
   const mode = periodMode ?? localMode;
   const [historyIndex, setHistoryIndex] = useState(0);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  async function refresh() {
-    if (!group?.id || !membership?.id) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError("");
-    const result = await loadGroupConsistencyLeaderboard(group.id, membership.id);
-    setLoading(false);
-    if (result.error) {
-      setError(errorText(result.error));
-      return;
-    }
-    setData(result.data || null);
-    setHistoryIndex(0);
-  }
-
-  useEffect(() => {
-    setMode("current");
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group?.id, membership?.id]);
+  const { data, loading, refreshing, error, refresh } = useGroupBoardResource("consistency", group, membership, loadGroupConsistencyLeaderboard, errorText);
 
   const history = Array.isArray(data?.history) ? data.history : [];
   const period = mode === "history" ? history[historyIndex] || history[0] || null : data?.current || null;
@@ -127,7 +103,7 @@ export default function GroupConsistency({ group, membership, onOpenIdentity, di
             <h4>Consistency</h4>
             <p>Completed planned days ÷ planned days due.</p>
           </div>
-          <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Consistency">
+          <button className="groupXpRefresh" aria-busy={refreshing} type="button" onClick={refresh} disabled={refreshing} aria-label="Refresh Consistency">
             ↻
           </button>
         </div>

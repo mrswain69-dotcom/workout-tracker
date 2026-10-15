@@ -1,3 +1,4 @@
+import useGroupBoardResource from './useGroupBoardResource';
 import { GroupBlockCountHeaders, GroupBlockCountCells } from "./GroupBlockCountCells.jsx";
 import "./GroupCompact.css";
 import React, { useEffect, useMemo, useState } from "react";
@@ -159,41 +160,13 @@ function AwardCard({ award, selfId, onOpenIdentity }) {
 }
 
 export default function GroupSeasons({ group, membership, onOpenIdentity, directory = [], boardMetric, boardPeriod, display = "all" }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [localPeriodType, setPeriodType] = useState("month");
   const periodType = boardPeriod ?? localPeriodType;
   const [localMetric, setMetric] = useState("xp");
   const metric = boardMetric ?? localMetric;
   const [historyIndex, setHistoryIndex] = useState(-1);
 
-  async function refresh() {
-    if (!group?.id || !membership?.id) {
-      setData(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError("");
-    const result = await loadGroupSeasonsAwards(group.id, membership.id);
-    setLoading(false);
-    if (result.error) {
-      setError(errorText(result.error));
-      return;
-    }
-    setData(result.data || null);
-    setHistoryIndex(-1);
-  }
-
-  useEffect(() => {
-    setPeriodType("month");
-    setMetric("xp");
-    setHistoryIndex(-1);
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [group?.id, membership?.id]);
-
+  const { data, loading, refreshing, error, refresh } = useGroupBoardResource("seasons", group, membership, loadGroupSeasonsAwards, errorText);
   useEffect(() => { setHistoryIndex(-1); }, [boardPeriod]);
 
   const current = periodType === "month" ? data?.monthly?.current : data?.season?.current;
@@ -210,7 +183,7 @@ export default function GroupSeasons({ group, membership, onOpenIdentity, direct
           <h4>{display === "awards" ? "Progress Awards" : display === "standings" ? `${metric === "xp" ? "Earned XP" : metric === "consistency" ? "Discipline" : "Improvement"} · ${periodType === "month" ? "Monthly" : "Season"}` : "Seasons & Awards"}</h4>
           <p>{display === "awards" ? "Your group’s completed-period achievements." : display === "standings" ? "" : "Monthly standings and 8-week seasons."}</p>
         </div>
-        <button className="groupXpRefresh" type="button" onClick={refresh} disabled={loading} aria-label="Refresh Seasons and Awards">↻</button>
+        <button className="groupXpRefresh" aria-busy={refreshing} type="button" onClick={refresh} disabled={refreshing} aria-label="Refresh Seasons and Awards">↻</button>
       </div>
 
 {display === "all" ? <>      <div className="groupXpPeriodToggle" role="group" aria-label="Long-cycle period">
