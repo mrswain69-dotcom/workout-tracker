@@ -1,0 +1,20 @@
+.pwaInstall { margin-bottom: 20px; }
+.pwaInstall__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.pwaInstall__heading > div { flex: 1 1 240px; min-width: 0; }
+.pwaInstall h3 { margin: 4px 0 8px; font-size: 19px; }
+.pwaInstall p { margin: 8px 0; line-height: 1.5; }
+.pwaInstall__eyebrow { color: #a84406; font-size: 11px; font-weight: 800; letter-spacing: .1em; }
+.pwaInstall__help { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb; }
+.pwaInstall__help summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
+.pwaInstall__instructions { overflow-wrap: anywhere; }
+.pwaInstall__instructions h4 { margin: 14px 0 8px; }
+.pwaInstall__instructions ol { padding-left: 22px; margin: 8px 0 16px; }
+.pwaInstall__instructions li { padding-left: 3px; margin-bottom: 8px; line-height: 1.5; }
+.pwaInstall__status { padding: 12px; border-radius: 12px; background: #ecfdf5; color: #14532d; }
+.pwaInstallReminder { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 14px 0; padding: 14px 16px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; }
+.pwaInstallReminder > div:first-child { flex: 1 1 220px; }
+.pwaInstallReminder strong { color: #431407; font-size: 14px; }
+.pwaInstallReminder p { color: #784026; font-size: 13px; line-height: 1.4; margin: 4px 0 0; }
+.pwaInstallReminder__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pwaInstallReminder .btn { min-height: 44px; }
+.pwaInstall :is(button, summary):focus-visible, .pwaInstallReminder button:focus-visible { outline: 3px solid #c2410c; outline-offset: 3px; }
