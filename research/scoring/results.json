@@ -1,0 +1,136 @@
+{
+  "date": "2026-10-13",
+  "productionBase": "b0b9ab9018b40df33dd39adbc1b50fb1253ff043",
+  "prototypeVersion": "fairness-lab-1",
+  "tests": {
+    "prototypeTests": 33,
+    "partitionChecks": 1200,
+    "existingXpStreakTests": 17
+  },
+  "comparison": [
+    {
+      "name": "20-minute strength workout: 1 vs 6 movement groups",
+      "workUnits": [
+        16,
+        16
+      ],
+      "recordedTime": [
+        44.44,
+        44.44
+      ]
+    },
+    {
+      "name": "20-minute strength workout: 24 vs 240 repetitions",
+      "workUnits": [
+        2.67,
+        26.67
+      ],
+      "recordedTime": [
+        44.44,
+        44.44
+      ]
+    },
+    {
+      "name": "20-minute mobility: 1 vs 20 blocks",
+      "workUnits": [
+        17.78,
+        17.78
+      ],
+      "recordedTime": [
+        17.78,
+        17.78
+      ]
+    },
+    {
+      "name": "3km / 30-minute run: 1 vs 10 blocks",
+      "workUnits": [
+        66.67,
+        66.67
+      ],
+      "recordedTime": [
+        66.67,
+        66.67
+      ]
+    },
+    {
+      "name": "30-minute walk vs same walk plus six-second run",
+      "workUnits": [
+        40,
+        40.22
+      ],
+      "recordedTime": [
+        40,
+        40.22
+      ]
+    }
+  ],
+  "weighting": [
+    {
+      "name": "50/25/25",
+      "rankings": [
+        {
+          "name": "Improving athlete",
+          "score": 75
+        },
+        {
+          "name": "Steady athlete",
+          "score": 70
+        },
+        {
+          "name": "High volume, less consistent",
+          "score": 65
+        }
+      ]
+    },
+    {
+      "name": "60/20/20",
+      "rankings": [
+        {
+          "name": "Steady athlete",
+          "score": 72
+        },
+        {
+          "name": "Improving athlete",
+          "score": 72
+        },
+        {
+          "name": "High volume, less consistent",
+          "score": 72
+        }
+      ]
+    },
+    {
+      "name": "80/10/10",
+      "rankings": [
+        {
+          "name": "High volume, less consistent",
+          "score": 86
+        },
+        {
+          "name": "Steady athlete",
+          "score": 76
+        },
+        {
+          "name": "Improving athlete",
+          "score": 66
+        }
+      ]
+    }
+  ],
+  "screenshotComparison": {
+    "xander": {
+      "observedEarnedXp": 255,
+      "loggedSets": 40,
+      "displayedEstimatedMinutes": 55,
+      "progressWins": 15
+    },
+    "paul": {
+      "observedEarnedXp": 91,
+      "loggedSets": 12,
+      "displayedEstimatedMinutes": 25,
+      "progressWins": 3
+    },
+    "newAuditedScores": null,
+    "reason": "Screenshots lack recorded training time, classified mobility, benchmark baselines and frozen requirements; displayed time includes estimates."
+  }
+}
