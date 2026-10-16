@@ -27,8 +27,11 @@ describe('PWA install surfaces', () => {
     const { controller } = controllerFor('iPhone Safari');
     render(<><PwaInstallSettings controller={controller} /><PwaInstallReminder controller={controller} /></>);
     expect(screen.getByText('Install Workout Tracker')).toBeTruthy();
-    expect(screen.getByText('Add to Home Screen')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Add to Home Screen' })).toBeTruthy();
     expect(screen.getByText('Share')).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'iPhone installation steps' }).children).toHaveLength(3);
+    expect(screen.getByText('square with an arrow pointing up')).toBeTruthy();
+    expect(screen.getByText('Edit Actions')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByRole('complementary')).toBeNull();
   });
@@ -79,5 +82,7 @@ describe('PWA install surfaces', () => {
     expect(screen.getByRole('status').textContent).toContain('keep using the website');
     expect(screen.getByText('How to add it to your home screen').parentElement.open).toBe(true);
     expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByText(/normal Chrome tab/)).toBeTruthy();
+    expect(screen.queryByRole('list', { name: 'iPhone installation steps' })).toBeNull();
   });
 });

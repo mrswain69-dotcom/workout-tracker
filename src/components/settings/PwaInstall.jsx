@@ -1,5 +1,6 @@
 import React, { useEffect, useSyncExternalStore } from 'react';
 import { pwaInstall } from '../../pwaInstall';
+import IosInstallGuide from './IosInstallGuide';
 import './PwaInstall.css';
 
 function useInstall(controller) {
@@ -10,16 +11,10 @@ function useInstall(controller) {
 
 function PhoneInstructions({ platform }) {
   return <div className="pwaInstall__instructions">
-    {platform !== 'android' && <div>
-      <h4>iPhone or iPad</h4>
-      <ol>
-        <li>Open <strong>workouttrackerapp.io</strong> in Safari.</li>
-        <li>Tap <strong>Share</strong>, then <strong>Add to Home Screen</strong> (you may need to scroll).</li>
-        <li>If shown, leave <strong>Open as Web App</strong> on, then tap <strong>Add</strong>.</li>
-      </ol>
-    </div>}
+    {platform !== 'android' && <IosInstallGuide />}
     {platform !== 'ios' && <div>
       <h4>Android</h4>
+      <p className="mini muted">If you’re using Incognito, reopen the site in a normal Chrome tab before installing.</p>
       <ol>
         <li>Open <strong>workouttrackerapp.io</strong> in Chrome.</li>
         <li>Tap the browser menu <strong>⋮</strong>, then <strong>Install app</strong> or <strong>Add to home screen</strong>.</li>
