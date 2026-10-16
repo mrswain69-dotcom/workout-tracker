@@ -8,6 +8,7 @@ import MasteryDisclosure from "./components/rewards/MasteryDisclosure.jsx";
 import SportMasteryCollections from "./components/rewards/SportMasteryCollections.jsx";
 import { claimMasterySequence } from "./engine/masteryClaimSequence.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PwaInstallSettings, PwaInstallReminder } from './components/settings/PwaInstall.jsx';
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
 import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
@@ -9396,6 +9397,8 @@ const cardioProgress = useMemo(() => {
   </div>
 )}
 
+        <PwaInstallReminder visible={tab === "dashboard" && tutorialStep === null && !showGroups} />
+
         {tab === "dashboard" && (
           <PerformanceDashboard
             familyId={family?.id || ""}
@@ -13136,6 +13139,7 @@ const cardioProgress = useMemo(() => {
             {tab === "appsettings" && (
             <Card className="pad" style={{ gridColumn: "1 / -1" }}>
               <div ref={accountRef} />
+              <PwaInstallSettings />
               <section className="settingsDataNotes" aria-labelledby="settings-data-title">
                 <div className="settingsDataNotes__intro">
                   <div className="settingsDataNotes__eyebrow">ACCOUNT &amp; DATA</div>
