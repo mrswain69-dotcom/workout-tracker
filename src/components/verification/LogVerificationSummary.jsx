@@ -240,6 +240,7 @@ export default function LogVerificationSummary({
   profileId,
   dateYmd,
   manualLogId = "",
+  dataRevision = 0,
   blocks = [],
   logJson = null,
   onAutoPopulationChanged = null,
@@ -303,7 +304,7 @@ export default function LogVerificationSummary({
     }
     void check();
     return () => { active = false; };
-  }, [api, profileId, refreshKey]);
+  }, [api, profileId, refreshKey, dataRevision]);
 
   const model = useMemo(
     () => buildLogVerificationModel({ data: data || {}, dateYmd, manualLogId, blocks }),

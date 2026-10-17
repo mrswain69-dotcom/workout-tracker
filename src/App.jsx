@@ -16,7 +16,7 @@ import MovementCompletion from "./components/log/MovementCompletion.jsx";
 import FocusedLogBlock from "./components/log/FocusedLogBlock.jsx";
 import ActivityCalendar from "./components/log/ActivityCalendar.jsx";
 import { movementEntriesComplete } from "./engine/movementEntryCompletion.js";
-import { mapProfileHistoryRows } from "./engine/profileHistoryRows.js";
+import { mapProfileHistoryRows, mergeProfileHistoryWithCache } from "./engine/profileHistoryRows.js";
 import {
   LineChart,
   Line,
@@ -3536,6 +3536,25 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const [logsLoadError, setLogsLoadError] = useState("");
   const allLogsLoadRequestRef = useRef(0);
   const [externalLogRevision, setExternalLogRevision] = useState(0);
+  const [remoteLogRevision, setRemoteLogRevision] = useState(0);
+
+  useEffect(() => {
+    if (!authed || !family?.id || !activeProfileId) return;
+    let lastRefresh = 0;
+    const refresh = () => {
+      if (document.visibilityState === "hidden" || Date.now() - lastRefresh < 1000) return;
+      lastRefresh = Date.now();
+      setRemoteLogRevision((value) => value + 1);
+    };
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [authed, family?.id, activeProfileId]);
 
   // --- History pill / modal ---
 const [historyModal, setHistoryModal] = useState(null); 
@@ -4179,9 +4198,13 @@ function toggleLogBlockFocus(blockId) {
   let cancelled = false;
   const isCurrent = () => !cancelled && requestId === allLogsLoadRequestRef.current &&
     currentLogViewRef.current?.familyId === family.id && currentLogViewRef.current?.profileId === activeProfileId;
-  setLogsReadyKey("");
+  // Keep the current athlete visible during a background refresh.
+  if (logsReadyKey !== profileLoadKey) {
+    setLogsReadyKey("");
+    setAllLogs([]);
+  }
   setLogsLoadError("");
-  setAllLogs([]);
+  const readRevisions = captureLogReadRevisions();
 
   runAccountLoadWithRetry(async () => {
     const { data, error } = await listLogs(family.id, activeProfileId, 2000);
@@ -4192,7 +4215,7 @@ function toggleLogBlockFocus(blockId) {
 
     const mapped = mapProfileHistoryRows(data, activeProfileId);
 
-    setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId));
+    setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId, readRevisions));
     setLogsReadyKey(profileLoadKey);
   }).catch((error) => {
     if (!isCurrent()) return;
@@ -4201,7 +4224,7 @@ function toggleLogBlockFocus(blockId) {
     setLogsReadyKey("");
   });
   return () => { cancelled = true; };
-}, [family?.id, activeProfileId, externalLogRevision, accountLoadRevision]);
+}, [family?.id, activeProfileId, externalLogRevision, remoteLogRevision, accountLoadRevision]);
 
 useEffect(() => {
   if (!activeProfileId || !family?.id) {
@@ -4246,8 +4269,9 @@ useEffect(() => {
   const revisionAtLoadStart = cacheKey
     ? logSaveRevisionRef.current.get(cacheKey) || 0
     : 0;
+  const persistedAtLoadStart = cacheKey ? logPersistedRevisionRef.current.get(cacheKey) || 0 : 0;
   const cachedAtLoadStart = cacheKey
-    ? selectDayLogSnapshot({ cached: lastLogByDateRef.current[cacheKey], remote: historyLog, localRevision: revisionAtLoadStart })
+    ? selectDayLogSnapshot({ cached: lastLogByDateRef.current[cacheKey], remote: historyLog, localRevision: revisionAtLoadStart, persistedRevision: persistedAtLoadStart })
     : historyLog;
 
   setLogForDay(cachedAtLoadStart || null);
@@ -4296,11 +4320,11 @@ useEffect(() => {
 
     // Never let the result of an older load overwrite an edit made while that
     // request was in flight.
-    // Keep this session's local edits authoritative even after saving: a read
-    // overlapping the write can still contain an older snapshot.
+    // A read overlapping a local write may be stale even if the save has now
+    // finished. A later clean read can accept changes from another device.
     const rawLatest = hasPendingLocalEdit
       ? (liveCached || fromDb || null)
-      : selectDayLogSnapshot({ cached: liveCached || cachedAtLoadStart, remote: fromDb, localRevision: liveRevision });
+      : selectDayLogSnapshot({ cached: liveCached || cachedAtLoadStart, remote: fromDb, localRevision: liveRevision, persistedRevision, revisionAtLoadStart, persistedRevisionAtLoadStart: persistedAtLoadStart });
 
     // Snap the log to the *current* plan structure for this weekday so:
     // - blocks always line up with the active plan
@@ -4344,6 +4368,7 @@ useEffect(() => {
   selectedDate,
   plan,
   externalLogRevision,
+  remoteLogRevision,
   selectedProfileRecoveryMode,
 ]);
 
@@ -6654,26 +6679,25 @@ function cloneBlockForPlanPreserveIds(block) {
     return row?.log_json || row?.log || null;
   }
 
-  function mergeMappedLogsWithLocalCache(mappedRows, familyId, profileId) {
-    const next = mapProfileHistoryRows(mappedRows, profileId);
-    if (!familyId || !profileId) return next;
+  function captureLogReadRevisions() {
+    return { revisionsAtStart: new Map(logSaveRevisionRef.current),
+      persistedAtStart: new Map(logPersistedRevisionRef.current) };
+  }
 
-    const cache = lastLogByDateRef.current || {};
+  function mergeMappedLogsWithLocalCache(mappedRows, familyId, profileId, readRevisions) {
+    const cache = lastLogByDateRef.current;
+    const next = mergeProfileHistoryWithCache(mappedRows, { familyId, profileId, cache,
+      revisions: logSaveRevisionRef.current, persisted: logPersistedRevisionRef.current,
+      ...readRevisions });
+    // A clean cached day must advance too, otherwise the next edit would start
+    // from the stale copy even though the calendar now shows the server result.
     const prefix = `${familyId}:${profileId}:`;
-
-    for (const [key, cachedLog] of Object.entries(cache)) {
-      if (!key.startsWith(prefix) || !cachedLog) continue;
-
-      const dateYmd = key.slice(prefix.length);
-      const idx = next.findIndex((r) => (r?.date_ymd || r?.date) === dateYmd);
-
-      if (idx >= 0) {
-        next[idx] = { ...next[idx], date_ymd: dateYmd, log: cachedLog };
-      } else {
-        next.push({ profile_id: profileId, date_ymd: dateYmd, log: cachedLog });
-      }
+    for (const key of Object.keys(cache)) {
+      if (!key.startsWith(prefix)) continue;
+      const row = next.find((item) => item.date_ymd === key.slice(prefix.length));
+      if (row) cache[key] = row.log;
+      else delete cache[key];
     }
-
     return next;
   }
 
@@ -6986,6 +7010,7 @@ function stampLogTiming(prevLog, nextLog) {
         return [];
       }
 
+      const readRevisions = captureLogReadRevisions();
       const { data, error: historyError } = await listLogs(familyId, profileId, 2000);
       // A late save for another athlete must never replace the selected history.
       // Keep the optimistic history on read failure rather than showing an empty page.
@@ -6996,7 +7021,8 @@ function stampLogTiming(prevLog, nextLog) {
       const merged = mergeMappedLogsWithLocalCache(
         mapped,
         familyId,
-        profileId
+        profileId,
+        readRevisions
       );
 
       setAllLogs(merged);
@@ -9461,6 +9487,7 @@ const cardioProgress = useMemo(() => {
                 <LogVerificationSummary
                   profileId={activeProfileId}
                   dateYmd={selectedDate}
+                  dataRevision={remoteLogRevision}
                   manualLogId={selectedLogRowId}
                   blocks={(Array.isArray(logForDay?.blocks) && logForDay.blocks.length ? logForDay.blocks : plannedBlocksForSelectedDay).filter(
                     (block) =>

@@ -1,7 +1,15 @@
-// A local revision stays authoritative throughout this app session, including
-// after its write finishes: an overlapping read can still be an older snapshot.
-export function selectDayLogSnapshot({ cached, remote, localRevision = 0 }) {
-  return localRevision > 0 && cached ? cached : remote || cached || null;
+// Local edits win only while unsaved or when they overlap this particular read.
+// A read started after acknowledgement must be allowed to see other devices.
+export function hasProtectedLogEdit({ localRevision = 0, persistedRevision = 0,
+  revisionAtLoadStart = localRevision, persistedRevisionAtLoadStart = persistedRevision } = {}) {
+  return localRevision > persistedRevision || localRevision > revisionAtLoadStart ||
+    revisionAtLoadStart > persistedRevisionAtLoadStart;
+}
+
+export function selectDayLogSnapshot({ cached, remote, ...revisions }) {
+  if (hasProtectedLogEdit(revisions)) return cached ?? remote ?? null;
+  // An empty read is not a deletion acknowledgement; retain a known saved day.
+  return remote || cached || null;
 }
 
 export function sameLogView(view, familyId, profileId, date) {
