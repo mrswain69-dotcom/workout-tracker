@@ -22,7 +22,7 @@ export function createLogOutbox(storage) {
   return {
     put(input) {
       const entry = JSON.parse(JSON.stringify({ ...input, version: 1,
-        token: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+        token: input.replayToken || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
         updatedAt: new Date().toISOString(),
       }));
       if (!valid(entry)) throw new Error('Invalid pending workout identity or payload');
@@ -46,6 +46,16 @@ export function createLogOutbox(storage) {
       return [...keys].map(read).filter(e => e && e.ownerId === ownerId && e.familyId === familyId &&
         (!profileIds || profileIds.includes(e.profileId)));
     },
+    advanceBase(entry, rowVersion) {
+      const key = logOutboxKey(entry);
+      const current = read(key);
+      if (!current || current.clientId !== entry.clientId || current.expectedVersion !== entry.expectedVersion) return;
+      const next = { ...current, expectedVersion: rowVersion };
+      memory.set(key, next);
+      try { if (!storage) throw new Error(); storage.setItem(key, JSON.stringify(next)); volatile.delete(key); }
+      catch { volatile.add(key); }
+    },
+    current(entry) { return read(logOutboxKey(entry)); },
     isCurrent(entry) { return read(logOutboxKey(entry))?.token === entry.token; },
     acknowledge(entry) {
       const key = logOutboxKey(entry);
@@ -56,6 +66,17 @@ export function createLogOutbox(storage) {
       return true;
     },
     isDurable(entry) { return !volatile.has(logOutboxKey(entry)); },
+    purgeOwner(ownerId) {
+      if (!ownerId) return;
+      const prefix = LOG_OUTBOX_PREFIX + encodeURIComponent(ownerId) + ':';
+      const keys = new Set(memory.keys());
+      try { for (let i=0; i<(storage?.length || 0); i++) keys.add(storage.key(i)); } catch {}
+      for (const key of keys) {
+        if (!key?.startsWith(prefix)) continue;
+        try { storage?.removeItem(key); } catch {}
+        memory.delete(key); volatile.delete(key);
+      }
+    },
     clearMemory() { memory.clear(); volatile.clear(); },
   };
 }

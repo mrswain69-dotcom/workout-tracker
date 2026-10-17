@@ -295,3 +295,54 @@ it('never replays signed-out account drafts into a different signed-in account',
   fireEvent(window,new Event('online'));
   expect(db.upsertLog).toHaveBeenCalledTimes(calls);
 });
+
+describe('versioned log conflict review',()=>{
+  afterEach(()=>vi.unstubAllEnvs());
+  const dayLog=reps=>({blocks:[{id:'strength',typeId:'strength',label:'Shoulders and Triceps',movements:[{id:'press',name:'Shoulder Press',sets:3,trackWeight:true}],sets:{press:[{reps:String(reps),weight:'25'}]}}]});
+  async function versionedReady() {
+    vi.stubEnv('VITE_LOG_SYNC_MODE','versioned');
+    const row={id:'day-row',profile_id:'paul',date_ymd:'2026-10-01',row_version:3,log_json:dayLog(10)};
+    vi.mocked(db.listLogs).mockResolvedValue({data:[row]});vi.mocked(db.getLog).mockResolvedValue({data:row});
+    await ready();await waitFor(()=>expect(screen.getAllByRole('spinbutton')[0].value).toBe('10'));
+  }
+  it('retains local entries on conflict and lets the user choose the account version',async()=>{
+    await versionedReady();
+    const remote={id:'day-row',profile_id:'paul',date_ymd:'2026-10-01',row_version:4,log_json:dayLog(12)};
+    vi.mocked(db.upsertLog).mockResolvedValue({conflict:{row:remote}});
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'15'}});
+    fireEvent.click(await screen.findByRole('button',{name:'Review saved changes'},{timeout:2500}));
+    expect(screen.getByRole('dialog',{name:'Review workout changes'})).toBeTruthy();
+    expect(screen.getByText('15 reps · 25 kg')).toBeTruthy();expect(screen.getByText('12 reps · 25 kg')).toBeTruthy();
+    expect(db.upsertLog.mock.calls.at(-1)[4].expectedVersion).toBe(3);
+    fireEvent.click(screen.getByRole('button',{name:'Use account version'}));
+    await waitFor(()=>expect(screen.getAllByRole('spinbutton')[0].value).toBe('12'));
+    expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0);
+    fireEvent(window,new Event('online'));expect(db.upsertLog).toHaveBeenCalledTimes(1);
+  });
+  it('uses the reviewed server version when the user explicitly keeps their entries',async()=>{
+    await versionedReady();
+    const remote={id:'day-row',row_version:4,log_json:dayLog(12)};
+    vi.mocked(db.upsertLog).mockResolvedValueOnce({conflict:{row:remote}}).mockImplementation(async(_f,_p,_d,log)=>({data:{id:'day-row',row_version:5,log_json:log}}));
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'15'}});
+    fireEvent.click(await screen.findByRole('button',{name:'Review saved changes'},{timeout:2500}));
+    fireEvent.click(screen.getByRole('button',{name:'Keep my entries'}));
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalledTimes(2));
+    expect(db.upsertLog.mock.calls[1][4].expectedVersion).toBe(4);
+    await waitFor(()=>expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0));
+    expect(screen.getAllByRole('spinbutton')[0].value).toBe('15');
+  });
+  it('advances the next local write after an earlier in-flight save succeeds',async()=>{
+    await versionedReady();let finish;let version=3;
+    vi.mocked(db.upsertLog).mockImplementationOnce((_f,_p,_d,log)=>new Promise(resolve=>{finish=()=>resolve({data:{row_version:++version,log_json:log}});})).mockImplementation(async(_f,_p,_d,log)=>({data:{row_version:++version,log_json:log}}));
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'15'}});
+    await waitFor(()=>expect(finish).toBeTypeOf('function'),{timeout:2500});
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'16'}});
+    await act(async()=>finish());
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalledTimes(2),{timeout:2500});
+    expect(db.upsertLog.mock.calls[1][4].expectedVersion).toBe(4);
+    await waitFor(()=>expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0));
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'17'}});
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalledTimes(3),{timeout:2500});
+    expect(db.upsertLog.mock.calls[2][4].expectedVersion).toBe(5);
+  });
+});

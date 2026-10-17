@@ -13,6 +13,7 @@ import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./eng
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
 import { createLogOutbox } from "./engine/logOutbox.js";
 import PasswordRecovery from "./components/auth/PasswordRecovery.jsx";
+import LogConflictDialog from "./components/log/LogConflictDialog.jsx";
 import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
 import MovementCompletion from "./components/log/MovementCompletion.jsx";
 import FocusedLogBlock from "./components/log/FocusedLogBlock.jsx";
@@ -3551,6 +3552,17 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const logRetryWritesRef = useRef(new Map());
   const logWritingKeysRef = useRef(new Set());
   const restoredLogOwnerRef = useRef("");
+  const logRowVersionsRef = useRef(new Map());
+  const logClientIdRef = useRef(globalThis.crypto?.randomUUID?.() || String(Math.random()));
+  const logConflictsRef = useRef({});
+  const [logConflicts, setLogConflicts] = useState({});
+  const [reviewLogConflictKey, setReviewLogConflictKey] = useState("");
+  function setLogConflict(key, conflict) {
+    const next = { ...logConflictsRef.current };
+    if (conflict) next[key] = conflict; else delete next[key];
+    logConflictsRef.current = next; setLogConflicts(next);
+  }
+  const versionedLogSync = import.meta.env.VITE_LOG_SYNC_MODE === "versioned";
   function updateLogSyncState() {
     const pending = logOutboxRef.current.list(logOwnerRef.current, family?.id);
     setLogSyncState({ pending: pending.length, failed: logRetryWritesRef.current.size > 0,
@@ -3787,7 +3799,7 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
     if (restoredLogOwnerRef.current === scope) return;
     restoredLogOwnerRef.current = scope;
     for (const entry of logOutboxRef.current.list(logOwnerRef.current, family.id, profiles.map(p => p.id))) {
-      saveLog(entry.log, { identity: entry });
+      saveLog(entry.log, { identity: entry, replay: true });
     }
     updateLogSyncState();
   }, [authed, family?.id, profiles]);
@@ -4076,6 +4088,7 @@ function toggleLogBlockFocus(blockId) {
         for (const timer of logPersistTimersRef.current.values()) clearTimeout(timer);
         logPersistTimersRef.current.clear();
         logSaveRevisionRef.current.clear(); logPersistedRevisionRef.current.clear();
+        logRowVersionsRef.current.clear(); logConflictsRef.current = {}; setLogConflicts({}); setReviewLogConflictKey("");
         logOutboxRef.current.clearMemory(); restoredLogOwnerRef.current = "";
         setPasswordRecovery(false); setSessionReady(true);
         return;
@@ -4094,6 +4107,7 @@ function toggleLogBlockFocus(blockId) {
         for (const timer of logPersistTimersRef.current.values()) clearTimeout(timer);
         logPersistTimersRef.current.clear();
         logSaveRevisionRef.current.clear(); logPersistedRevisionRef.current.clear();
+        logRowVersionsRef.current.clear(); logConflictsRef.current = {}; setLogConflicts({}); setReviewLogConflictKey("");
         logOutboxRef.current.clearMemory(); restoredLogOwnerRef.current = "";
         setAccountLoadRevision(value => value + 1);
       }
@@ -4138,6 +4152,7 @@ function toggleLogBlockFocus(blockId) {
     lastLogByDateRef.current = {};
     logSaveRevisionRef.current.clear();
     logPersistedRevisionRef.current.clear();
+    logRowVersionsRef.current.clear(); logConflictsRef.current = {}; setLogConflicts({}); setReviewLogConflictKey("");
     logOutboxRef.current.clearMemory();
     setLogSyncState({ pending: 0, failed: false, volatile: false });
     setPasswordRecovery(false);
@@ -4334,6 +4349,10 @@ function toggleLogBlockFocus(blockId) {
     if (!isCurrent()) return;
 
     const mapped = mapProfileHistoryRows(data, activeProfileId);
+    for (const row of mapped) {
+      const key = makeLogCacheKey(family.id, activeProfileId, row.date_ymd);
+      if (!logSaveRevisionRef.current.get(key)) logRowVersionsRef.current.set(key, row.row_version);
+    }
 
     setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId));
     setLogsReadyKey(profileLoadKey);
@@ -4436,6 +4455,7 @@ useEffect(() => {
     const row = Array.isArray(data) ? data[0] : data;
     // Prefer the new log_json column, but fall back to legacy log if needed
     const fromDb = row?.log_json || row?.log || null;
+    if (!liveRevision && !hasPendingLocalEdit) logRowVersionsRef.current.set(cacheKey, row?.row_version ?? null);
 
     // Never let the result of an older load overwrite an edit made while that
     // request was in flight.
@@ -6953,7 +6973,7 @@ function stampLogTiming(prevLog, nextLog) {
   };
 }
   
-  async function saveLog(nextLog, { debounceMs = 0, identity = null } = {}) {
+  async function saveLog(nextLog, { debounceMs = 0, identity = null, replay = false } = {}) {
   // Capture identity at the moment the edit is made.
   const familyId = identity?.familyId || family?.id;
   const profileId = identity?.profileId || activeProfileId;
@@ -6974,7 +6994,7 @@ function stampLogTiming(prevLog, nextLog) {
     null;
 
   const logToStore = preparedLog
-    ? stampLogTiming(previousLatest, preparedLog)
+    ? (replay ? preparedLog : stampLogTiming(previousLatest, preparedLog))
     : null;
 
   // Every edit gets a monotonically increasing revision. Older DB responses
@@ -6986,7 +7006,14 @@ function stampLogTiming(prevLog, nextLog) {
 
   // Journal synchronously before debounce so an interrupted app can restore edits.
   const journalEntry = ownerId && familyId && profileId && dateKey && logToStore
-    ? logOutboxRef.current.put({ ownerId, familyId, profileId, dateKey, log: logToStore }) : null;
+    ? logOutboxRef.current.put({ ownerId, familyId, profileId, dateKey, log: logToStore,
+        clientId: logClientIdRef.current,
+        replayToken: replay ? identity?.token : null,
+        expectedVersion: identity ? identity.expectedVersion ?? null : logRowVersionsRef.current.get(cacheKey) ?? null,
+      }) : null;
+  if (logConflictsRef.current[cacheKey] && journalEntry) {
+    setLogConflict(cacheKey, { ...logConflictsRef.current[cacheKey], entry: journalEntry });
+  }
   updateLogSyncState();
   // Optimistic UI first: typing must never wait for the network.
   if (sameLogView(currentLogViewRef.current, familyId, profileId, dateKey)) setLogForDay(logToStore);
@@ -7038,6 +7065,7 @@ function stampLogTiming(prevLog, nextLog) {
 
   const persistRevision = async () => {
     if (ownerId !== logOwnerRef.current) return [];
+    if (logConflictsRef.current[cacheKey]) return [];
     if (journalEntry && !logOutboxRef.current.isCurrent(journalEntry)) return [];
     if (logWritingKeysRef.current.has(cacheKey)) return [];
     // A superseded debounced edit has nothing left to write.
@@ -7087,13 +7115,28 @@ function stampLogTiming(prevLog, nextLog) {
 
       // A newer edit may have arrived while the template library was loading.
       if (cacheKey && logSaveRevisionRef.current.get(cacheKey) !== revision) return [];
-      const { data: savedRow, error } = await upsertLog(
+      const writeEntry = journalEntry ? logOutboxRef.current.current(journalEntry) : null;
+      const { data: savedRow, error, conflict } = await upsertLog(
         familyId,
         profileId,
         dateKey,
-        preparedLog
+        preparedLog,
+        versionedLogSync ? { versioned: true, writeId: journalEntry.token,
+          expectedVersion: writeEntry?.expectedVersion ?? null } : {}
       );
 
+      if (ownerId !== logOwnerRef.current) return [];
+      if (conflict) {
+        const latestEntry = logOutboxRef.current.current(journalEntry);
+        setLogConflict(cacheKey, { entry: latestEntry || journalEntry, row: conflict.row });
+        logRetryWritesRef.current.delete(cacheKey);
+        return [];
+      }
+      if (versionedLogSync && Number.isSafeInteger(savedRow?.row_version)) {
+        logRowVersionsRef.current.set(cacheKey, savedRow.row_version);
+        // Advance only this tab's causally newer edits after its own write succeeds.
+        logOutboxRef.current.advanceBase(writeEntry, savedRow.row_version);
+      }
       if (error) {
         console.error("upsertLog failed", error);
         updateLogSyncState();
@@ -7199,6 +7242,35 @@ function stampLogTiming(prevLog, nextLog) {
   }
 
   return logWriteQueueRef.current(cacheKey, persistRevision);
+}
+
+async function resolveLogConflict(useLocal) {
+  const key = reviewLogConflictKey;
+  const conflict = logConflictsRef.current[key];
+  if (!conflict) return;
+  const entry = logOutboxRef.current.current(conflict.entry);
+  if (!entry || entry.ownerId !== logOwnerRef.current) return;
+  const row = conflict.row;
+  if (!useLocal && !logOutboxRef.current.acknowledge(entry)) return;
+  setReviewLogConflictKey("");
+  setLogConflict(key, null);
+  logRowVersionsRef.current.set(key, row?.row_version ?? null);
+  if (useLocal) {
+    await saveLog(entry.log, { identity: { ...entry, expectedVersion: row?.row_version ?? null } });
+    return;
+  }
+  logRetryWritesRef.current.delete(key);
+  logSaveRevisionRef.current.delete(key); logPersistedRevisionRef.current.delete(key);
+  const remoteLog = getLogRowPayload(row);
+  const cache = { ...lastLogByDateRef.current };
+  if (remoteLog) cache[key] = remoteLog; else delete cache[key];
+  lastLogByDateRef.current = cache;
+  if (sameLogView(currentLogViewRef.current, entry.familyId, entry.profileId, entry.dateKey)) setDayLogState({key,log:remoteLog});
+  if (historyIdentityIsCurrent(entry.familyId, entry.profileId)) setAllLogs(rows => {
+    const remaining = rows.filter(item => item.date_ymd !== entry.dateKey);
+    return remoteLog ? [...remaining, { ...row, log: remoteLog }] : remaining;
+  });
+  updateLogSyncState();
 }
 
 function latestLogForSelectedDay() {
@@ -9583,7 +9655,7 @@ const cardioProgress = useMemo(() => {
         <span className="syncText">{logSyncState.volatile
           ? "Not saved on this device — keep the app open"
           : isSavingLog ? "Syncing…" : "Saved on this device · waiting to sync"}</span>
-        {!isSavingLog && <button type="button" className="btn btn-secondary btnSmall" onClick={retryPendingLogWrites}>Retry sync</button>}
+        {!isSavingLog && !logConflicts[dayLogKey] && <button type="button" className="btn btn-secondary btnSmall" onClick={retryPendingLogWrites}>Retry sync</button>}
       </div>
     )}
     <SecondaryButton
@@ -9600,6 +9672,16 @@ const cardioProgress = useMemo(() => {
     </SecondaryButton>
   </div>
                 </div>
+
+                {logConflicts[dayLogKey] && <div className="panel pad" role="alert">
+                  <p>This day changed on another device. Your entries are kept here until you review the changes.</p>
+                  <button className="btn btn-primary" type="button" onClick={() => setReviewLogConflictKey(dayLogKey)}>Review saved changes</button>
+                </div>}
+                {reviewLogConflictKey && logConflicts[reviewLogConflictKey] && <LogConflictDialog
+                  localLog={logConflicts[reviewLogConflictKey].entry.log}
+                  remoteLog={getLogRowPayload(logConflicts[reviewLogConflictKey].row)}
+                  onUseLocal={() => resolveLogConflict(true)} onUseRemote={() => resolveLogConflict(false)}
+                  onClose={() => setReviewLogConflictKey("")}/>}
 
                 {profileRecoveryModeActive && (
                   <div
@@ -13498,6 +13580,7 @@ const cardioProgress = useMemo(() => {
               <AccountPrivacyPanel
                 ensureUnlocked={ensureUnlocked}
                 onDeleted={() => {
+                  logOutboxRef.current.purgeOwner(family?.owner_user_id || logOwnerRef.current);
                   setAuthed(false);
                   setFamily(null);
                   setProfiles([]);

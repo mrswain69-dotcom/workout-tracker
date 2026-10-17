@@ -263,10 +263,20 @@ export async function getLog(familyId, profileId, date_ymd) {
   return { data, error };
 }
 
-export async function upsertLog(familyId, profileId, date_ymd, log) {
+export async function upsertLog(familyId, profileId, date_ymd, log, options = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
+    if (options.versioned) {
+      const { data, error } = await supabase.rpc("save_workout_log_versioned", {
+        p_family_id: familyId, p_profile_id: profileId, p_date_ymd: date_ymd, p_log: log,
+        p_expected_version: options.expectedVersion ?? null, p_write_id: options.writeId,
+      }).abortSignal(controller.signal);
+      if (error) return { data: null, error };
+      if (data?.status === "conflict") return { data: null, error: null, conflict: { row: data.row || null } };
+      if (data?.status !== "saved" || !data.row) return { data: null, error: new Error("Save response could not be confirmed") };
+      return { data: data.row, error: null };
+    }
     const { data, error } = await supabase
       .from("logs")
       .upsert(

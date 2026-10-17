@@ -2,15 +2,15 @@
 
 This directory records implementation of the Native App Build Plan v1.0 (17 October 2026). Preserve current web features as free; no billing or paid access is enabled by this change.
 
-## First build chunk
+## Build chunks
 
-See [chunk-01.md](chunk-01.md) for the audited baseline, completed work, checks and remaining gates. This is a development foundation, not a store-ready release.
+See [chunk-01.md](chunk-01.md) for the audited baseline and [chunk-02.md](chunk-02.md) for isolated staging, versioned saves and current release gates. This is a development foundation, not a store-ready release.
 
 ## Build and sync
 
 Use Node 24 and `npm ci`. The web continues to build with `npm run build` into `dist/`. Native uses `npm run build:native` into `dist-native/` and `npm run native:sync` copies that bundle and plugin configuration into both platform projects.
 
-1. Create or finish the isolated Supabase test backend. Do not copy production data.
+1. Use the isolated Supabase test backend documented in chunk 02. Do not copy production data.
 2. Copy `.env.native.example` to `.env.native.local`; set the **test** Supabase URL and public/publishable key. Keep files ending in `.local` out of git. Never use service-role or secret keys in VITE variables.
 3. Add `io.workouttrackerapp.app://auth/callback` to the **test** project's auth redirect allowlist. Configure the test site's URL and email configuration separately from production.
 4. Run `npm run native:sync`.
@@ -35,9 +35,9 @@ The pending-save journal covers **day workout logs** routed through `saveLog`. I
 
 Signing out stops replay and clears in-memory training caches. Pending local drafts remain on that device and can be resumed only after signing back into their owning account. Clearing site/app data removes them. If local storage fails or fills up, the interface warns that the edit is not saved on the device and the app must remain open until sync succeeds.
 
-Day rows retain the existing unique UPSERT key `(family_id, profile_id, date_ymd)` so retries update one day rather than adding rows. No XP/reward rules or server database schema have changed. The app's existing local revision guards remain in force.
+Day rows retain the existing unique UPSERT key `(family_id, profile_id, date_ymd)` so retries update one day rather than adding rows. XP/reward rules are unchanged. Chunk 02 adds an opt-in versioned server endpoint; the app's existing local revision guards remain in force.
 
-Simultaneous editing of the same day on multiple devices is **not yet conflict safe**: the existing backend still accepts the last whole-day snapshot written. Do not call this a complete offline or multi-device sync solution. Before broad beta, implement and test a server version/conflict policy, including delayed offline replay, and review local-draft handling during account deletion.
+With `VITE_LOG_SYNC_MODE=versioned` and the matching database migration, stale day writes pause for review rather than silently overwriting. Production still uses the legacy path until reviewed rollout. This is day-level conflict handling, not field merging or offline support for every feature. Confirmed account deletion purges this account's drafts on the current device. See chunk 02 for testing and remaining gates.
 
 ## Security and dependency maintenance
 

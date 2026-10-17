@@ -37,3 +37,24 @@ it('keeps the latest edit writable when storage fills after an older draft was s
  expect(box.isCurrent(latest)).toBe(true);expect(box.isCurrent(old)).toBe(false);
  expect(box.list('owner','family')[0].log.blocks[0].id).toBe('new');
 });
+it('preserves an operation token for an exact replay after reopening',()=>{
+ const store=storage();const old=createLogOutbox(store).put({...input,clientId:'tab-a',expectedVersion:2});
+ const reopened=createLogOutbox(store);const replay=reopened.put({...old,replayToken:old.token});
+ expect(replay.token).toBe(old.token);expect(replay.expectedVersion).toBe(2);
+});
+it('advances only causally newer entries from the same client and base',()=>{
+ const box=createLogOutbox(storage());const a=box.put({...input,clientId:'tab-a',expectedVersion:2});
+ const b=box.put({...input,clientId:'tab-a',expectedVersion:2,log:{blocks:[]}});
+ box.advanceBase(a,3);expect(box.current(b).expectedVersion).toBe(3);
+ const other=box.put({...input,clientId:'tab-b',expectedVersion:3});
+ box.advanceBase({...b,expectedVersion:3},4);expect(box.current(other).expectedVersion).toBe(3);
+});
+
+it('purges a deleted owner across families without erasing another account',()=>{
+ const store=storage();const box=createLogOutbox(store);
+ box.put(input);box.put({...input,familyId:'old-family'});box.put({...input,ownerId:'another'});
+ box.purgeOwner('owner');
+ expect(createLogOutbox(store).list('owner','family')).toEqual([]);
+ expect(createLogOutbox(store).list('owner','old-family')).toEqual([]);
+ expect(createLogOutbox(store).list('another','family')).toHaveLength(1);
+});

@@ -25,7 +25,7 @@ describe("Rewards roadmap and log input reliability", () => {
     const saveEnd = app.indexOf("function latestLogForSelectedDay", saveStart);
     const saveBody = app.slice(saveStart, saveEnd);
 
-    expect(saveBody).toContain("const { data: savedRow, error } = await upsertLog");
+    expect(saveBody).toContain("const { data: savedRow, error, conflict } = await upsertLog");
     expect(saveBody).toContain("getLogRowPayload(savedRow) || preparedLog || null");
     expect(saveBody).not.toContain("const { data: dayData, error: dayError } = await getLog");
     expect(saveBody).toContain("The UPSERT already returns the row that was written");

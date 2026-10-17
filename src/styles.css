@@ -2276,3 +2276,5 @@ html.nativeApp body {
 }
 html.nativeApp input, html.nativeApp select, html.nativeApp textarea { font-size: max(16px, 1em); }
 .syncStatus { flex-wrap: wrap; max-width: 100%; }
+
+.logConflictVersions{display:grid;grid-template-columns:1fr 1fr;gap:16px}.logConflictVersions li{margin-bottom:12px;overflow-wrap:anywhere}@media(max-width:560px){.logConflictVersions{grid-template-columns:1fr}}
