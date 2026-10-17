@@ -25,7 +25,7 @@ For CI/configuration smoke tests only, run `NATIVE_SHELL_ONLY=1 npm run native:s
 
 ## Platform requirements and ownership
 
-The generated Capacitor 8 projects target Android SDK 36 (minimum 24) and iOS 15 or later. Use the current supported Android Studio/Java and Xcode versions from Capacitor documentation; native compilation has not been verified in this Linux workspace. Android development currently requires Java 21, beyond the available Java 17 installation. iOS requires macOS/Xcode. Keep signing keys and certificates in secure storage owned by the publisher. Do not commit signing files.
+The generated Capacitor 8 projects target Android SDK 36 (minimum 24) and iOS 15 or later. Use the current supported Android Studio/Java and Xcode versions from Capacitor documentation; Android debug compilation passed in GitHub CI (see chunk 02); iOS compilation has not been verified. Android development currently requires Java 21, beyond the available Java 17 installation. iOS requires macOS/Xcode. Keep signing keys and certificates in secure storage owned by the publisher. Do not commit signing files.
 
 The templates still have default Capacitor app icons/splash screens and provisional version identifiers. Replace and review these before beta distribution. Native back navigation handles modal dismissal, Dashboard return and minimising; verify actual platform behaviour on both devices.
 

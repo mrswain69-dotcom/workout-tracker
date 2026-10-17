@@ -40,6 +40,16 @@ Security advisors reported 19 informational RLS-enabled/no-policy findings and 8
 - RLS reference: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy
 - Function privilege reference: https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable
 
+## Completed build evidence and preview
+
+Code commit `3c2b4cd5f2263dac566b3b130ba817d19b33d7b4` passed both GitHub CI jobs. Final integrated suite: 241 files / 1,488 tests. Android `assembleDebug` succeeded with Java 21. The unconfigured APK is available in the [CI run](https://github.com/mrswain69-dotcom/workout-tracker/actions/runs/39042939874), artifact `Workout-Tracker-shell-debug` (approximately 449 MB ZIP; expires 31 October). This size makes asset optimization a beta gate. No iOS binary has been built.
+
+Created preview-only, branch-specific Vercel variables for `codex/native-foundation-save-reliability`: staging API URL, public key and versioned sync mode. Production/default preview values were not changed. Deployment `dpl_D7z4KzxgNu8CUiS3AMGXXWmDHZX6` is READY for the verified code commit, with target null (preview):
+
+https://workout-tracker-2xhcf9khp-pauls-projects-9d62e071.vercel.app
+
+The connected Vercel page-fetch operation failed with 403 at `read_protection_bypass`. Project protection was left enabled. No authenticated browser journey or deployed-bundle inspection was completed. Vercel connection access to this project/team must be corrected before automated protected-page verification can continue. The preview is development-only and email/callback/provider configuration is still unverified. Earlier preview deployments built before branch overrides should not be used as isolated test environments.
+
 ## Next release gates
 
 1. Configure staging auth site URL, native callback allowlist (`io.workouttrackerapp.app://auth/callback`) and test email delivery. Verify signup, confirmation, reset and cold/warm app callbacks on real devices.
