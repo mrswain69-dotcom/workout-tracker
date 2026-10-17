@@ -23,6 +23,12 @@ The native local environment has been configured against this staging URL with a
 
 The Supabase function inventory lists 16 active functions. Their staging secrets, provider callbacks, email delivery and runtime behavior have not been verified. Auth redirect settings are not exposed by the currently connected management tools. Do not treat the schema and bundle checks as a completed authentication/provider test.
 
+## Integration with current main
+
+Integrated `54342f4` (PR #145) after it landed during this chunk. Retained its clean-read handling for cross-device logs, verification refresh and account-cache service-worker fix. Day save confirmation still uses the write response rather than an immediate full-history read. Base versions now follow accepted clean reads while pending/overlapping edits retain their original base. Updated the older source-contract test that was failing on main's extended read arguments.
+
+Staging HTTP smoke checks returned 200 for auth settings (email signup enabled, email confirmation required) and 401/42501 for an anonymous call to the save RPC. Email delivery and callback allowlists still require end-to-end testing.
+
 ## Verification
 
 `supabase/tests/versioned_log_saves.sql` passed against the staging Postgres database after all schema batches. It exercises create, exact replay, versioned update, stale conflict, unknown-base conflict, legacy version advancement, family/profile mismatch and cross-account RLS. Synthetic fixtures are rolled back.

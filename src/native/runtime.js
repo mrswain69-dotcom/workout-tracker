@@ -31,8 +31,9 @@ export async function startNativeRuntime() {
   await NativeApp.addListener('backButton', ({ canGoBack }) => {
     // Let dialogs consume back first, then return to Dashboard. Do not exit
     // while a user may have pending changes.
-    if (document.querySelector('[role="dialog"]')) {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    const dialog = document.querySelector('[role="dialog"]');
+    if (dialog) {
+      dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       return;
     }
     const dashboard = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Dashboard');

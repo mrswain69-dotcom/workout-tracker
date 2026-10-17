@@ -51,6 +51,19 @@ function data() {
 }
 
 describe("LogVerificationSummary", () => {
+  it("reloads evidence added on another device when the parent requests a refresh", async () => {
+    const api = { loadVerifiedActivityData: vi.fn()
+      .mockResolvedValueOnce({ data: { connections: [] }, error: null })
+      .mockResolvedValue({ data: data(), error: null }) };
+    const props = { profileId: "paul", dateYmd: "2026-09-15", manualLogId: "log-1",
+      blocks: [{ id: "strength-1", typeId: "strength" }], api };
+    const view = render(<LogVerificationSummary {...props} dataRevision={0} />);
+    await waitFor(() => expect(api.loadVerifiedActivityData).toHaveBeenCalledTimes(1));
+    view.rerender(<LogVerificationSummary {...props} dataRevision={1} />);
+    await screen.findByRole("button", { name: /Verified/i });
+    expect(api.loadVerifiedActivityData).toHaveBeenCalledTimes(2);
+  });
+
   it("silently skips matching for profiles without a verification source", async () => {
     const api = {
       loadVerifiedActivityData: vi.fn(async () => ({ data: { connections: [] }, error: null })),
