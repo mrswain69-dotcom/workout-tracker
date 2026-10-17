@@ -1,0 +1,28 @@
+{
+  "status": "research contracts pass; production adapter and policy decisions remain",
+  "partitionChecks": 264,
+  "unlockSensitivity": [
+    {
+      "gap": 2000,
+      "currentDays": 13.333333333333334,
+      "atThirtyPercentLowerDays": 19.047619047619047
+    },
+    {
+      "gap": 5000,
+      "currentDays": 33.333333333333336,
+      "atThirtyPercentLowerDays": 47.61904761904762
+    },
+    {
+      "gap": 10000,
+      "currentDays": 66.66666666666667,
+      "atThirtyPercentLowerDays": 95.23809523809524
+    }
+  ],
+  "limitations": [
+    "genuine-set splitting remains unverifiable from numeric logs",
+    "trusted snapshots and canonical units not yet integrated",
+    "improvement evidence is not a calibrated XP formula",
+    "recovery eligibility policy remains the live accepted policy",
+    "caps in canonical engine spec require reconciliation before rollout"
+  ]
+}

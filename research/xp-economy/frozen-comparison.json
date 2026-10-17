@@ -1,0 +1,140 @@
+{
+  "status": "diagnostic only; saved standings remain authoritative; current-log replay may differ from previously frozen versions or edited logs",
+  "comparison": [
+    {
+      "name": "A",
+      "week_start": "2026-09-07",
+      "week_end": "2026-09-13",
+      "xp": 0,
+      "score_version": 2,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 0
+    },
+    {
+      "name": "B",
+      "week_start": "2026-09-07",
+      "week_end": "2026-09-13",
+      "xp": 0,
+      "score_version": 2,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 0
+    },
+    {
+      "name": "C",
+      "week_start": "2026-09-07",
+      "week_end": "2026-09-13",
+      "xp": 0,
+      "score_version": 2,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 0
+    },
+    {
+      "name": "A",
+      "week_start": "2026-09-14",
+      "week_end": "2026-09-20",
+      "xp": 106,
+      "score_version": 2,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 106
+    },
+    {
+      "name": "B",
+      "week_start": "2026-09-14",
+      "week_end": "2026-09-20",
+      "xp": 0,
+      "score_version": 2,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 0
+    },
+    {
+      "name": "C",
+      "week_start": "2026-09-14",
+      "week_end": "2026-09-20",
+      "xp": 68,
+      "score_version": 2,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 78
+    },
+    {
+      "name": "A",
+      "week_start": "2026-09-21",
+      "week_end": "2026-09-27",
+      "xp": 223,
+      "score_version": 1,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 223
+    },
+    {
+      "name": "B",
+      "week_start": "2026-09-21",
+      "week_end": "2026-09-27",
+      "xp": 272,
+      "score_version": 1,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 227
+    },
+    {
+      "name": "C",
+      "week_start": "2026-09-21",
+      "week_end": "2026-09-27",
+      "xp": 511,
+      "score_version": 1,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 271
+    },
+    {
+      "name": "A",
+      "week_start": "2026-09-28",
+      "week_end": "2026-10-04",
+      "xp": 260,
+      "score_version": 3,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 275
+    },
+    {
+      "name": "B",
+      "week_start": "2026-09-28",
+      "week_end": "2026-10-04",
+      "xp": 256,
+      "score_version": 3,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 256
+    },
+    {
+      "name": "C",
+      "week_start": "2026-09-28",
+      "week_end": "2026-10-04",
+      "xp": 276,
+      "score_version": 3,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 444
+    },
+    {
+      "name": "A",
+      "week_start": "2026-10-05",
+      "week_end": "2026-10-11",
+      "xp": 0,
+      "score_version": 3,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 0
+    },
+    {
+      "name": "B",
+      "week_start": "2026-10-05",
+      "week_end": "2026-10-11",
+      "xp": 10,
+      "score_version": 3,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 10
+    },
+    {
+      "name": "C",
+      "week_start": "2026-10-05",
+      "week_end": "2026-10-11",
+      "xp": 241,
+      "score_version": 3,
+      "scope_mode": "group_start",
+      "recomputedCurrent": 515
+    }
+  ]
+}
