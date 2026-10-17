@@ -1,5 +1,6 @@
 // Minimal DB layer for Supabase (family account with profiles)
 
+import { authRedirectUrl } from "./native/platform.js";
 import { supabase } from "./supabaseClient";
 
 export function isSupabaseReady() {
@@ -29,11 +30,19 @@ export async function clearLocalAuthSession() {
 }
 
 function getBrowserAuthRedirectUrl() {
-  if (typeof window === "undefined") return undefined;
-  const origin = String(window.location?.origin || "").trim();
-  if (!origin || origin === "null") return undefined;
-  if (!/^https?:\/\//i.test(origin)) return undefined;
-  return origin.endsWith("/") ? origin : `${origin}/`;
+  return authRedirectUrl();
+}
+
+export async function requestPasswordReset(email) {
+  if (!supabase) return { error: new Error("Account service unavailable") };
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
+  return { error };
+}
+
+export async function updatePassword(password) {
+  if (!supabase) return { error: new Error("Account service unavailable") };
+  const { error } = await supabase.auth.updateUser({ password });
+  return { error };
 }
 
 export async function signUp(email, password) {
@@ -255,16 +264,22 @@ export async function getLog(familyId, profileId, date_ymd) {
 }
 
 export async function upsertLog(familyId, profileId, date_ymd, log) {
-  const { data, error } = await supabase
-    .from("logs")
-    .upsert(
-      { family_id: familyId, profile_id: profileId, date_ymd, log_json: log },
-      { onConflict: "family_id,profile_id,date_ymd" }
-    )
-    .select("*")
-    .single();
-
-  return { data, error };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const { data, error } = await supabase
+      .from("logs")
+      .upsert(
+        { family_id: familyId, profile_id: profileId, date_ymd, log_json: log },
+        { onConflict: "family_id,profile_id,date_ymd" }
+      )
+      .select("*")
+      .single()
+      .abortSignal(controller.signal);
+    return { data, error };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function listLogs(familyId, profileId, limit = 500) {

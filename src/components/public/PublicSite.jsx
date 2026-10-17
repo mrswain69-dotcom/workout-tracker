@@ -1,3 +1,4 @@
+import { isNativeApp } from "../../native/platform.js";
 import React, { useState } from "react";
 import "./PublicSite.css";
 import { CookiesNotice, PrivacyNotice, TermsOfUse } from "../legal/LegalContent.jsx";
@@ -114,6 +115,18 @@ export default function PublicSite({ children }) {
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
     window.dispatchEvent(new CustomEvent("wt-public-auth-mode", { detail: mode }));
   };
+
+  if (isNativeApp()) return (
+    <div className="page">
+      <main className="wrap"><div style={{ maxWidth: 520, margin: "24px auto" }}>{children}</div></main>
+      <footer className="wrap row" aria-label="Account information">
+        <button className="btn btn-secondary" type="button" onClick={() => setLegal("privacy")}>Privacy</button>
+        <button className="btn btn-secondary" type="button" onClick={() => setLegal("terms")}>Terms</button>
+        <a className="btn btn-secondary" href="mailto:support@workouttrackerapp.io">Support</a>
+      </footer>
+      <LegalDialog type={legal} onClose={() => setLegal("")} />
+    </div>
+  );
 
   return (
     <div className="publicSite">

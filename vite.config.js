@@ -1,9 +1,21 @@
-import { defineConfig } from 'vite'
+import { validateNativeEnvironment } from './scripts/nativeBuildConfig.js'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const native = mode === 'native';
+  const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
+  if (native) validateNativeEnvironment(env);
+  const shellOnly = native && env.NATIVE_SHELL_ONLY === '1';
+  return {
+  // Shell smoke builds must never inherit a production API from .env.local.
+  define: shellOnly ? {
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(''),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(''),
+  } : {},
   plugins: [react()],
   build: {
+    outDir: native ? "dist-native" : "dist",
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -26,4 +38,5 @@ return 'vendor'
       },
     },
   },
+  };
 })

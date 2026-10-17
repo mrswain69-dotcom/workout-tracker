@@ -11,6 +11,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { PwaInstallSettings, PwaInstallReminder } from './components/settings/PwaInstall.jsx';
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
+import { createLogOutbox } from "./engine/logOutbox.js";
+import PasswordRecovery from "./components/auth/PasswordRecovery.jsx";
 import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
 import MovementCompletion from "./components/log/MovementCompletion.jsx";
 import FocusedLogBlock from "./components/log/FocusedLogBlock.jsx";
@@ -34,6 +36,7 @@ import {
   signUp,
   signOut,
   resendSignUpConfirmation,
+  requestPasswordReset,
   getOrCreateFamily,
   listProfiles,
   addProfile,
@@ -1612,6 +1615,17 @@ function AuthScreen({ onAuthed }) {
     }
   }
 
+  async function sendResetLink() {
+    if (busy) return;
+    if (!email.trim()) { setMsg("Enter your email address first, then tap Forgot password."); return; }
+    setBusy(true); setMsg("");
+    try {
+      const { error } = await requestPasswordReset(email.trim());
+      setMsg(error ? error.message : "If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.");
+    } catch { setMsg("The reset email could not be requested. Check your connection and try again."); }
+    finally { setBusy(false); }
+  }
+
   function switchMode(nextMode) {
     setMode(nextMode);
     setMsg("");
@@ -1695,6 +1709,7 @@ function AuthScreen({ onAuthed }) {
                   {mode === "signup" ? "Create account" : "Sign in"}
                 </PrimaryButton>
 
+                {mode === "signin" && <SecondaryButton disabled={busy} onClick={sendResetLink}>Forgot password</SecondaryButton>}
                 {pendingConfirmationEmail ? (
                   <SecondaryButton disabled={busy} onClick={resendConfirmation}>
                     Resend confirmation email
@@ -3312,6 +3327,11 @@ useEffect(() => {
   }; // log | stats | plan | rewards | settings
   const [sessionReady, setSessionReady] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [passwordRecovery, setPasswordRecovery] = useState(() => {
+    try { return new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery"; } catch { return false; }
+  });
+  const [nativeAuthError, setNativeAuthError] = useState(false);
+  const authEventRevisionRef = useRef(0);
   useAppUsage(authed);
   const [accountLoadState, setAccountLoadState] = useState("idle");
   const [accountLoadError, setAccountLoadError] = useState("");
@@ -3521,6 +3541,27 @@ useEffect(() => { planRef.current = plan; }, [plan]);
     setDayLogState({ key: dayLogKey, log });
   }
   const [isSavingLog, setIsSavingLog] = useState(false);
+  const [logSyncState, setLogSyncState] = useState({ pending: 0, failed: false, volatile: false });
+  const logOwnerRef = useRef(null);
+  const logOutboxRef = useRef(null);
+  if (!logOutboxRef.current) {
+    let storage; try { storage = window.localStorage; } catch {}
+    logOutboxRef.current = createLogOutbox(storage);
+  }
+  const logRetryWritesRef = useRef(new Map());
+  const logWritingKeysRef = useRef(new Set());
+  const restoredLogOwnerRef = useRef("");
+  function updateLogSyncState() {
+    const pending = logOutboxRef.current.list(logOwnerRef.current, family?.id);
+    setLogSyncState({ pending: pending.length, failed: logRetryWritesRef.current.size > 0,
+      volatile: pending.some(entry => !logOutboxRef.current.isDurable(entry)) });
+  }
+  function retryPendingLogWrites() {
+    if (!logOwnerRef.current || navigator.onLine === false) return;
+    for (const [key, write] of logRetryWritesRef.current) {
+      if (!logWritingKeysRef.current.has(key)) logWriteQueueRef.current(key, write).catch(() => {});
+    }
+  }
   const [allLogs, setAllLogs] = useState([]); // for stats
   const logForDay = dayLogState?.key === dayLogKey && dayLogState.log
     ? dayLogState.log
@@ -3738,6 +3779,38 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
       logPersistTimersRef.current.clear();
     };
   }, []);
+
+  // Restore only records belonging to this signed-in account and its profiles.
+  useEffect(() => {
+    if (!authed || !family?.id || !profiles.length || !logOwnerRef.current) return;
+    const scope = `${logOwnerRef.current}:${family.id}`;
+    if (restoredLogOwnerRef.current === scope) return;
+    restoredLogOwnerRef.current = scope;
+    for (const entry of logOutboxRef.current.list(logOwnerRef.current, family.id, profiles.map(p => p.id))) {
+      saveLog(entry.log, { identity: entry });
+    }
+    updateLogSyncState();
+  }, [authed, family?.id, profiles]);
+
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === "visible") retryPendingLogWrites(); };
+    const onUnload = (event) => {
+      if (!logRetryWritesRef.current.size && !logPersistTimersRef.current.size && !logSaveInFlightRef.current) return;
+      event.preventDefault(); event.returnValue = "";
+    };
+    const timer = setInterval(retryPendingLogWrites, 15000);
+    window.addEventListener("online", retryPendingLogWrites);
+    window.addEventListener("wt-app-resume", retryPendingLogWrites);
+    window.addEventListener("beforeunload", onUnload);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("online", retryPendingLogWrites);
+      window.removeEventListener("wt-app-resume", retryPendingLogWrites);
+      window.removeEventListener("beforeunload", onUnload);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [family?.id]);
 
   // Strength-like blocks for the selected day (planned + extra one-day)
   let allStrengthBlocksForDay = [];
@@ -3977,10 +4050,66 @@ function toggleLogBlockFocus(blockId) {
         setAuthed(false);
         return;
       }
+      const bootRevision = authEventRevisionRef.current;
       const { session } = await getSession();
+      if (bootRevision !== authEventRevisionRef.current) return;
+      logOwnerRef.current = session?.user?.id || null;
       setAuthed(!!session);
       setSessionReady(true);
     })();
+  }, []);
+
+  useEffect(() => {
+    const onAuth = (event) => {
+      authEventRevisionRef.current += 1;
+      const detail = event.detail || {};
+      if (detail.event === "TOKEN_REFRESHED") return;
+      if (detail.event === "SIGNED_OUT") {
+        accountLoadRequestRef.current += 1;
+        allLogsLoadRequestRef.current += 1;
+        loadDayLogReqRef.current += 1;
+        currentLogViewRef.current = null;
+        logOwnerRef.current = null;
+        setAuthed(false); setFamily(null); setProfiles([]); setPlan(null); setAllLogs([]); setDayLogState(null);
+        lastLogByDateRef.current = {};
+        logRetryWritesRef.current.clear();
+        for (const timer of logPersistTimersRef.current.values()) clearTimeout(timer);
+        logPersistTimersRef.current.clear();
+        logSaveRevisionRef.current.clear(); logPersistedRevisionRef.current.clear();
+        logOutboxRef.current.clearMemory(); restoredLogOwnerRef.current = "";
+        setPasswordRecovery(false); setSessionReady(true);
+        return;
+      }
+      if (!detail.session?.user?.id) return;
+      if (logOwnerRef.current && logOwnerRef.current !== detail.session.user.id) {
+        // An account changed in another tab. Invalidate every older request
+        // before rendering or replaying anything for the newly signed-in user.
+        accountLoadRequestRef.current += 1;
+        allLogsLoadRequestRef.current += 1;
+        loadDayLogReqRef.current += 1;
+        currentLogViewRef.current = null;
+        setFamily(null); setProfiles([]); setPlan(null); setAllLogs([]); setDayLogState(null);
+        lastLogByDateRef.current = {};
+        logRetryWritesRef.current.clear();
+        for (const timer of logPersistTimersRef.current.values()) clearTimeout(timer);
+        logPersistTimersRef.current.clear();
+        logSaveRevisionRef.current.clear(); logPersistedRevisionRef.current.clear();
+        logOutboxRef.current.clearMemory(); restoredLogOwnerRef.current = "";
+        setAccountLoadRevision(value => value + 1);
+      }
+      logOwnerRef.current = detail.session.user.id;
+      if (detail.recovery || detail.event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+      setNativeAuthError(false); setAuthed(true); setSessionReady(true);
+    };
+    const onError = () => setNativeAuthError(true);
+    window.addEventListener("wt-native-auth", onAuth);
+    window.addEventListener("wt-auth-state", onAuth);
+    window.addEventListener("wt-native-auth-error", onError);
+    return () => {
+      window.removeEventListener("wt-native-auth", onAuth);
+      window.removeEventListener("wt-auth-state", onAuth);
+      window.removeEventListener("wt-native-auth-error", onError);
+    };
   }, []);
 
   const ensureAudio = async () => {
@@ -4001,6 +4130,17 @@ function toggleLogBlockFocus(blockId) {
       return;
     }
 
+    logOwnerRef.current = null;
+    restoredLogOwnerRef.current = "";
+    logRetryWritesRef.current.clear();
+    for (const timer of logPersistTimersRef.current.values()) clearTimeout(timer);
+    logPersistTimersRef.current.clear();
+    lastLogByDateRef.current = {};
+    logSaveRevisionRef.current.clear();
+    logPersistedRevisionRef.current.clear();
+    logOutboxRef.current.clearMemory();
+    setLogSyncState({ pending: 0, failed: false, volatile: false });
+    setPasswordRecovery(false);
     setAuthed(false);
     setFamily(null);
     setProfiles([]);
@@ -4021,6 +4161,9 @@ function toggleLogBlockFocus(blockId) {
 
   // --- After auth: family + profiles + plan ---
   async function refreshAll({ isCurrent = () => true } = {}) {
+    const { session } = await getSession();
+    if (!isCurrent()) return null;
+    logOwnerRef.current = session?.user?.id || null;
     const { family: fam, error } = await getOrCreateFamily("My Family", blankPlanForNewProfile());
     if (error) throw error;
     if (!fam?.id) throw new Error("Your family account could not be loaded.");
@@ -6810,11 +6953,13 @@ function stampLogTiming(prevLog, nextLog) {
   };
 }
   
-  async function saveLog(nextLog, { debounceMs = 0 } = {}) {
+  async function saveLog(nextLog, { debounceMs = 0, identity = null } = {}) {
   // Capture identity at the moment the edit is made.
-  const familyId = family?.id;
-  const profileId = activeProfileId;
-  const dateKey = selectedDate;
+  const familyId = identity?.familyId || family?.id;
+  const profileId = identity?.profileId || activeProfileId;
+  const dateKey = identity?.dateKey || selectedDate;
+  const ownerId = logOwnerRef.current;
+  if (!ownerId || (identity && identity.ownerId !== ownerId)) return [];
   const cacheKey = makeLogCacheKey(familyId, profileId, dateKey);
 
   // Resolve newly planned Session blocks into immutable definition snapshots.
@@ -6825,7 +6970,7 @@ function stampLogTiming(prevLog, nextLog) {
 
   const previousLatest =
     (cacheKey && lastLogByDateRef.current?.[cacheKey]) ||
-    logForDay ||
+    (identity ? nextLog : logForDay) ||
     null;
 
   const logToStore = preparedLog
@@ -6839,8 +6984,12 @@ function stampLogTiming(prevLog, nextLog) {
     : 1;
   if (cacheKey) logSaveRevisionRef.current.set(cacheKey, revision);
 
+  // Journal synchronously before debounce so an interrupted app can restore edits.
+  const journalEntry = ownerId && familyId && profileId && dateKey && logToStore
+    ? logOutboxRef.current.put({ ownerId, familyId, profileId, dateKey, log: logToStore }) : null;
+  updateLogSyncState();
   // Optimistic UI first: typing must never wait for the network.
-  setLogForDay(logToStore);
+  if (sameLogView(currentLogViewRef.current, familyId, profileId, dateKey)) setLogForDay(logToStore);
 
   if (cacheKey) {
     const prev = lastLogByDateRef.current || {};
@@ -6888,6 +7037,9 @@ function stampLogTiming(prevLog, nextLog) {
   if (!familyId || !profileId || !dateKey) return [];
 
   const persistRevision = async () => {
+    if (ownerId !== logOwnerRef.current) return [];
+    if (journalEntry && !logOutboxRef.current.isCurrent(journalEntry)) return [];
+    if (logWritingKeysRef.current.has(cacheKey)) return [];
     // A superseded debounced edit has nothing left to write.
     if (
       cacheKey &&
@@ -6896,6 +7048,7 @@ function stampLogTiming(prevLog, nextLog) {
       return [];
     }
 
+    logWritingKeysRef.current.add(cacheKey);
     logSaveInFlightRef.current += 1;
     setIsSavingLog(true);
 
@@ -6943,9 +7096,11 @@ function stampLogTiming(prevLog, nextLog) {
 
       if (error) {
         console.error("upsertLog failed", error);
+        updateLogSyncState();
         return [];
       }
 
+      if (ownerId !== logOwnerRef.current) return [];
       // The UPSERT already returns the row that was written. Do not perform an
       // immediate GET and reconcile that response back into the controlled
       // inputs: a read that is even one request behind makes the first typed
@@ -6961,6 +7116,9 @@ function stampLogTiming(prevLog, nextLog) {
 
       const canonicalLog =
         getLogRowPayload(savedRow) || preparedLog || null;
+      const acknowledged = !journalEntry || logOutboxRef.current.acknowledge(journalEntry);
+      if (acknowledged && logRetryWritesRef.current.get(cacheKey) === persistRevision) logRetryWritesRef.current.delete(cacheKey);
+      updateLogSyncState();
 
       if (cacheKey) {
         logPersistedRevisionRef.current.set(cacheKey, revision);
@@ -6975,7 +7133,7 @@ function stampLogTiming(prevLog, nextLog) {
       }
 
       if (sameLogView(currentLogViewRef.current, familyId, profileId, dateKey)) {
-        setLogForDay(canonicalLog);
+        setDayLogState({ key: cacheKey, log: canonicalLog });
       }
 
       // A final revision check protects allLogs/XP from stale reconciliation.
@@ -6986,23 +7144,24 @@ function stampLogTiming(prevLog, nextLog) {
         return [];
       }
 
-      const { data, error: historyError } = await listLogs(familyId, profileId, 2000);
-      // A late save for another athlete must never replace the selected history.
-      // Keep the optimistic history on read failure rather than showing an empty page.
-      if (historyError || !historyIdentityIsCurrent(familyId, profileId)) return [];
-      if (cacheKey && logSaveRevisionRef.current.get(cacheKey) !== revision) return [];
-      const mapped = mapProfileHistoryRows(data, profileId);
+      if (!historyIdentityIsCurrent(familyId, profileId)) return [];
+      setAllLogs((rows) => {
+        if (!historyIdentityIsCurrent(familyId, profileId)) return rows;
+        const next = mapProfileHistoryRows(rows, profileId);
+        const index = next.findIndex(row => row.date_ymd === dateKey);
+        const confirmed = { ...(index >= 0 ? next[index] : {}), ...savedRow,
+          profile_id: profileId, date_ymd: dateKey, log: canonicalLog };
+        if (index >= 0) next[index] = confirmed; else next.push(confirmed);
+        return mergeMappedLogsWithLocalCache(next, familyId, profileId);
+      });
+      return mergeMappedLogsWithLocalCache(allLogs, familyId, profileId);
+    } catch (error) {
+      console.error("Workout save interrupted; pending entry retained", error);
+      return [];
 
-      const merged = mergeMappedLogsWithLocalCache(
-        mapped,
-        familyId,
-        profileId
-      );
-
-      setAllLogs(merged);
-      setXp(computeXpFromLogs(merged, planRef.current));
-      return merged;
     } finally {
+      logWritingKeysRef.current.delete(cacheKey);
+      updateLogSyncState();
       logSaveInFlightRef.current = Math.max(
         0,
         logSaveInFlightRef.current - 1
@@ -7011,6 +7170,8 @@ function stampLogTiming(prevLog, nextLog) {
     }
   };
 
+  logRetryWritesRef.current.set(cacheKey, persistRevision);
+  updateLogSyncState();
   // Text/number entry is intentionally debounced. The optimistic log above is
   // already authoritative in the UI and cache, while persistence waits for a
   // short pause in typing. Buttons/toggles continue to save immediately.
@@ -9133,6 +9294,8 @@ const cardioProgress = useMemo(() => {
       ) : null}
 
 <div className="muted">Loading…</div></div><StyleTag/></div>;
+  if (nativeAuthError) return <div className="page"><div className="wrap"><p role="alert">This sign-in link could not be used. Request a new confirmation or password reset email.</p><button className="btn btn-primary" onClick={() => setNativeAuthError(false)}>Back to account</button></div><StyleTag/></div>;
+  if (passwordRecovery && authed) return <><PasswordRecovery onComplete={() => setPasswordRecovery(false)} onCancel={doSignOut}/><StyleTag/></>;
   if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />;
 
   const accountHydrationPhase = getAccountHydrationPhase({
@@ -9414,10 +9577,13 @@ const cardioProgress = useMemo(() => {
       title={selectedDayTitle}
       style={{ background: selectedDayDotColor }}
     />
-    {isSavingLog && (
-      <div className="syncStatus">
+    {(isSavingLog || logSyncState.pending > 0) && (
+      <div className="syncStatus" role="status" aria-live="polite">
         <span className="syncDot" />
-        <span className="syncText">Saving…</span>
+        <span className="syncText">{logSyncState.volatile
+          ? "Not saved on this device — keep the app open"
+          : isSavingLog ? "Syncing…" : "Saved on this device · waiting to sync"}</span>
+        {!isSavingLog && <button type="button" className="btn btn-secondary btnSmall" onClick={retryPendingLogWrites}>Retry sync</button>}
       </div>
     )}
     <SecondaryButton

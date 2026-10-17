@@ -37,5 +37,10 @@ jobs:
       - name: Build app
         run: npm run build
 
+      - name: Validate native bundle and generated project sync
+        env:
+          NATIVE_SHELL_ONLY: '1'
+        run: npm run native:sync
+
       - name: Security audit
         run: npm audit --audit-level=low

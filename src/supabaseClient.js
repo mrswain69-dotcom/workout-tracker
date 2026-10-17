@@ -14,4 +14,5 @@ supabase?.auth.onAuthStateChange((event, session) => {
   const userId = session?.user?.id || null;
   if (event === 'SIGNED_OUT' || (boardCacheUser !== undefined && userId !== boardCacheUser)) clearGroupBoardCache();
   boardCacheUser = userId;
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('wt-auth-state', { detail: { event, session } }));
 });

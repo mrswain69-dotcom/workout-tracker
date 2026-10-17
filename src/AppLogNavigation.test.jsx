@@ -23,7 +23,7 @@ vi.mock("./db.js", async (importOriginal) => {
   return {
     ...original,
     isSupabaseReady: () => true,
-    getSession: async () => ({ session: { user: { id: "user" } } }),
+    getSession: vi.fn(async () => ({ session: { user: { id: "user" } } })),
     getOrCreateFamily: async () => ({ family: { id: "family", welcome_email_sent_at: "2026-10-01" } }),
     listProfiles: vi.fn(async () => ({ data: [{ id: "paul", name: "Paul", age_group: "adult" }] })),
     listProfileRecoveryPeriods: async () => ({ data: [] }),
@@ -38,6 +38,7 @@ vi.mock("./db.js", async (importOriginal) => {
 const defaultPlanRead = vi.mocked(db.getProfilePlan).getMockImplementation();
 
 beforeEach(() => {
+  vi.mocked(db.getSession).mockReset().mockResolvedValue({session:{user:{id:"user"}}});
   vi.mocked(db.getProfilePlan).mockReset().mockImplementation(defaultPlanRead);
   vi.mocked(db.listProfiles).mockClear();
   vi.mocked(db.listProfiles).mockResolvedValue({ data: [{ id: "paul", name: "Paul", age_group: "adult" }] });
@@ -238,4 +239,59 @@ describe("profile switching", () => {
     expect(screen.getByText("Plan history")).toBeTruthy();
     expect(db.listLogs.mock.calls.length).toBe(readCount);
   });
+});
+
+describe('pending log recovery in the actual app',()=>{
+  it('restores failed edits after remount, retries, and clears only after server confirmation',async()=>{
+    vi.mocked(db.upsertLog).mockResolvedValue({error:new Error('Offline')});
+    const first=await ready();
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'17'}});
+    fireEvent.change(screen.getAllByRole('spinbutton')[1],{target:{value:'24.5'}});
+    await screen.findByText('Saved on this device · waiting to sync',{}, {timeout:2500});
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalled(),{timeout:2500});
+    await waitFor(()=>expect(screen.queryByText('Syncing…')).toBeNull());
+    const pendingKeys=()=>Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'));
+    expect(pendingKeys()).toHaveLength(1);
+    first.unmount();
+    // The server has no row: only the durable local draft can restore these values.
+    await ready();
+    await waitFor(()=>expect(screen.getAllByRole('spinbutton')[0].value).toBe('17'));
+    expect(screen.getAllByRole('spinbutton')[1].value).toBe('24.5');
+    await waitFor(()=>expect(screen.queryByText('Syncing…')).toBeNull());
+    vi.mocked(db.upsertLog).mockImplementation(async(_f,_p,_d,log)=>({data:{id:'saved-row',log_json:log}}));
+    fireEvent.click(screen.getByRole('button',{name:'Retry sync'}));
+    await waitFor(()=>expect(pendingKeys()).toHaveLength(0));
+    expect(screen.getAllByRole('spinbutton')[0].value).toBe('17');
+    // No full history download per save: one initial load per mounted app.
+    expect(db.listLogs).toHaveBeenCalledTimes(2);
+  });
+  it('retains interrupted requests for retry on reconnection',async()=>{
+    vi.mocked(db.upsertLog).mockRejectedValue(new Error('Connection lost'));
+    await ready();
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'19'}});
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalled(),{timeout:2500});
+    await screen.findByText('Saved on this device · waiting to sync');
+    vi.mocked(db.upsertLog).mockImplementation(async(_f,_p,_d,log)=>({data:{log_json:log}}));
+    fireEvent(window,new Event('online'));
+    await waitFor(()=>expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0));
+    expect(screen.getAllByRole('spinbutton')[0].value).toBe('19');
+  });
+});
+
+it('never replays signed-out account drafts into a different signed-in account',async()=>{
+  vi.mocked(db.upsertLog).mockResolvedValue({error:new Error('Offline')});
+  await ready();
+  fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'23'}});
+  await waitFor(()=>expect(db.upsertLog).toHaveBeenCalled(),{timeout:2500});
+  const calls=db.upsertLog.mock.calls.length;
+  await act(async()=>window.dispatchEvent(new CustomEvent('wt-auth-state',{detail:{event:'SIGNED_OUT',session:null}})));
+  expect(screen.queryByText('Shoulder Press')).toBeNull();
+  fireEvent(window,new Event('online'));
+  expect(db.upsertLog).toHaveBeenCalledTimes(calls);
+  vi.mocked(db.getSession).mockResolvedValue({session:{user:{id:'other-user'}}});
+  await act(async()=>window.dispatchEvent(new CustomEvent('wt-native-auth',{detail:{session:{user:{id:'other-user'}}}})));
+  await screen.findByText('Shoulder Press');
+  expect(screen.getAllByRole('spinbutton')[0].value).toBe('');
+  fireEvent(window,new Event('online'));
+  expect(db.upsertLog).toHaveBeenCalledTimes(calls);
 });
