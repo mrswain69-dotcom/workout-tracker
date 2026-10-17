@@ -1,0 +1,9 @@
+{
+  "appId": "io.workouttrackerapp.app",
+  "appName": "Workout Tracker",
+  "webDir": "dist-native",
+  "server": { "androidScheme": "https" },
+  "plugins": {
+    "Keyboard": { "resize": "body", "resizeOnFullScreen": true }
+  }
+}

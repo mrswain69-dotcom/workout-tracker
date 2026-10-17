@@ -122,7 +122,10 @@ export function CookiesNotice() {
         <p>
           Authentication/session storage is used so a signed-in user can stay signed in securely. Local and session storage are
           also used for functional preferences such as the currently selected athlete, temporary Group join state, update
-          handling and other app-only continuity features.
+          handling and other app-only continuity features. Unsynced workout entries are stored on this device so they can be
+          retried after an interruption. Signing out leaves these drafts for the same account to resume. Deleting the account
+          through this device removes its local drafts here; clear app or browser data on other devices to remove their copies.
+          Clearing app or browser data before entries sync can lose those unsynced entries.
         </p>
       </Section>
 

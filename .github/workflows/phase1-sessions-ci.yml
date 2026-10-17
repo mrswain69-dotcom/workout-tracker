@@ -37,5 +37,42 @@ jobs:
       - name: Build app
         run: npm run build
 
+      - name: Validate native bundle and generated project sync
+        env:
+          NATIVE_SHELL_ONLY: '1'
+        run: npm run native:sync
+
       - name: Security audit
         run: npm audit --audit-level=low
+
+  android-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --no-audit --no-fund
+      - name: Sync unconfigured native shell
+        env:
+          NATIVE_SHELL_ONLY: '1'
+        run: npm run native:sync
+      - name: Compile Android debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Upload shell for installation smoke tests
+        uses: actions/upload-artifact@v7
+        with:
+          name: Workout-Tracker-shell-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

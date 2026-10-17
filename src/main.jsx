@@ -1,6 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import { isNativeApp } from './native/platform.js'
+import { startNativeRuntime } from './native/runtime.js'
 import './styles.css'
 import './groups/GroupHub.css'
 import './groups/GroupMobilePolish.css'
@@ -9,7 +11,7 @@ import { registerServiceWorkerUpdates } from './swUpdate.js'
 import { pwaInstall } from './pwaInstall.js'
 
 // Capture install eligibility before React or account loading can miss the event.
-pwaInstall.start()
+if (!isNativeApp()) pwaInstall.start()
 
 const GROUP_JOIN_STORAGE_KEY = 'wt_group_join_code'
 
@@ -48,4 +50,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 )
 
 armGroupJoinDeepLink()
-registerServiceWorkerUpdates()
+if (!isNativeApp()) registerServiceWorkerUpdates()
+startNativeRuntime().catch(() => { /* Web rendering remains available if a native plugin fails. */ })

@@ -25,7 +25,7 @@ describe("Rewards roadmap and log input reliability", () => {
     const saveEnd = app.indexOf("function latestLogForSelectedDay", saveStart);
     const saveBody = app.slice(saveStart, saveEnd);
 
-    expect(saveBody).toContain("const { data: savedRow, error } = await upsertLog");
+    expect(saveBody).toContain("const { data: savedRow, error, conflict } = await upsertLog");
     expect(saveBody).toContain("getLogRowPayload(savedRow) || preparedLog || null");
     expect(saveBody).not.toContain("const { data: dayData, error: dayError } = await getLog");
     expect(saveBody).toContain("The UPSERT already returns the row that was written");
@@ -39,7 +39,7 @@ describe("Rewards roadmap and log input reliability", () => {
     expect(app).toContain("const hasPendingLocalEdit =");
     expect(app).toContain("liveRevision > persistedRevision");
     expect(app).toContain("? (liveCached || fromDb || null)");
-    expect(app).toContain("selectDayLogSnapshot({ cached: liveCached || cachedAtLoadStart, remote: fromDb, localRevision: liveRevision })");
+    expect(app).toContain("selectDayLogSnapshot({ cached: liveCached || cachedAtLoadStart, remote: fromDb, localRevision: liveRevision, persistedRevision, revisionAtLoadStart, persistedRevisionAtLoadStart: persistedAtLoadStart })");
     expect(app).toContain("logPersistedRevisionRef.current.set(cacheKey, revision)");
   });
 
