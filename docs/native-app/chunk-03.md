@@ -46,3 +46,11 @@ Before inviting testers:
 ## Rollback
 
 Revert this chunk on the feature branch to restore the earlier native assets/build commands. Native assets are generated; `public/` originals remain intact. No schema rollback is required. Uninstalling the test app clears its local drafts; sync or review them first. Release signing and production data remain outside this chunk.
+
+## Build evidence
+
+Initial code commit `c6e29286eaf59d5fa126cb387f8e0065e5035227` passed all four jobs in [CI run 39079819691](https://github.com/mrswain69-dotcom/workout-tracker/actions/runs/39079819691): tests/web/native smoke, Android shell, configured Android staging, and unsigned iOS simulator compilation. Artifacts are approximately 306 MB (Android) and 304 MB (simulator ZIP), available for 14 days. They are development artifacts, not store submissions.
+
+Local verification passed 243 test files / 1,495 tests, web build, configured native staging sync and a zero-vulnerability npm audit. The generated staging bundle was checked for the staging API/callback, absence of the production API, its artwork map and absence of the service worker. Xcode project parsing confirmed distinct Debug and Release bundle IDs.
+
+Final rendering review hoisted the native artwork map to one module-level object to avoid allocating a large map per image. The generated mapping is sorted to keep output ordering stable across workers. Native targeted tests passed after that refinement; the PR's latest CI run records its platform checks. Simulator compilation is not proof of a successful launch or physical iPhone test.

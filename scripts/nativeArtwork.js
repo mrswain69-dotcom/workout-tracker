@@ -16,6 +16,7 @@ export async function prepareNativeArtwork(root, output = path.join(root, '.nati
     }
   }
   await walk(source);
+  files.sort();
   const mapping = {};
   let inputBytes = 0, outputBytes = 0;
   // Two workers bound libvips memory use on CI machines.
@@ -56,5 +57,6 @@ export async function prepareNativeArtwork(root, output = path.join(root, '.nati
   }));
   const report = {inputBytes,outputBytes,converted:Object.keys(mapping).length,files:files.length};
   await writeFile(path.join(output, 'native-artwork-report.json'), JSON.stringify(report,null,2));
-  return { publicDir: output, mapping, report };
+  const sortedMapping = Object.fromEntries(Object.entries(mapping).sort(([a],[b]) => a < b ? -1 : a > b ? 1 : 0));
+  return { publicDir: output, mapping: sortedMapping, report };
 }
