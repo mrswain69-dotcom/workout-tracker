@@ -11,8 +11,8 @@ See [chunk-01.md](chunk-01.md) for the audited baseline and [chunk-02.md](chunk-
 Use Node 24 and `npm ci`. The web continues to build with `npm run build` into `dist/`. Native uses `npm run build:native` into `dist-native/` and `npm run native:sync` copies that bundle and plugin configuration into both platform projects.
 
 1. Use the isolated Supabase test backend documented in chunk 02. Do not copy production data.
-2. Copy `.env.native.example` to `.env.native.local`; set the **test** Supabase URL and public/publishable key. Keep files ending in `.local` out of git. Never use service-role or secret keys in VITE variables.
-3. Add `io.workouttrackerapp.app://auth/callback` to the **test** project's auth redirect allowlist. Configure the test site's URL and email configuration separately from production.
+2. The standard staging command uses public configuration pinned to the isolated project. For a custom local test setup, copy `.env.native.example` to `.env.native.local` and set the **test** URL/public key. Keep `.local` files out of git. Never put service-role or secret keys in VITE variables.
+3. Add `io.workouttrackerapp.app.staging://auth/callback` to the **test** project's auth redirect allowlist. Configure the test site URL and email separately from production. The release scheme `io.workouttrackerapp.app://auth/callback` is for a later reviewed release build.
 4. For the isolated debug build run `npm run native:sync:staging`. Its callback is `io.workouttrackerapp.app.staging://auth/callback`; configure the test Auth allowlist first. Use `npm run native:sync` only for a deliberately configured release-ID bundle.
 5. Android debug builds use the separate `.staging` application ID. Open Android Studio using `npm run native:android`, or Xcode on macOS using `npm run native:ios`.
 6. Use test accounts to verify signup, confirmation, password reset, logging, app interruption and reconnection before configuring production.
@@ -25,7 +25,7 @@ For CI/configuration smoke tests only, run `NATIVE_SHELL_ONLY=1 npm run native:s
 
 ## Platform requirements and ownership
 
-The generated Capacitor 8 projects target Android SDK 36 (minimum 24) and iOS 15 or later. Use the current supported Android Studio/Java and Xcode versions from Capacitor documentation; Android debug compilation passed in GitHub CI (see chunk 02); iOS compilation has not been verified. Android development currently requires Java 21, beyond the available Java 17 installation. iOS requires macOS/Xcode. Keep signing keys and certificates in secure storage owned by the publisher. Do not commit signing files.
+The generated Capacitor 8 projects target Android SDK 36 (minimum 24) and iOS 15 or later. Use the current supported Android Studio/Java and Xcode versions from Capacitor documentation; Android debug compilation passed in GitHub CI (see chunk 02); unsigned iOS simulator compilation also passed in chunk 03. Signed physical-device builds and device behavior remain unverified. Android development currently requires Java 21, beyond the available Java 17 installation. iOS requires macOS/Xcode. Keep signing keys and certificates in secure storage owned by the publisher. Do not commit signing files.
 
 The templates still have default Capacitor app icons/splash screens and provisional version identifiers. Replace and review these before beta distribution. Native back navigation handles modal dismissal, Dashboard return and minimising; verify actual platform behaviour on both devices.
 
