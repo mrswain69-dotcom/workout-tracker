@@ -2,6 +2,8 @@
 
 This directory records implementation of the Native App Build Plan v1.0 (17 October 2026). Preserve current web features as free; no billing or paid access is enabled by this change.
 
+See [RELEASE-CANDIDATE.md](RELEASE-CANDIDATE.md) for current build status and the remaining owner/access steps.
+
 ## Build chunks
 
 See [chunk-01.md](chunk-01.md) for the audited baseline and [chunk-02.md](chunk-02.md) for isolated staging and versioned saves. [chunk-03.md](chunk-03.md) records native resume refresh, lossless packaging and configured staging builds. This is a development foundation, not a store-ready release.

@@ -14,7 +14,9 @@
     "native:android": "cap open android",
     "native:ios": "cap open ios",
     "build:native:staging": "node scripts/nativeStagingBuild.js",
-    "native:sync:staging": "npm run build:native:staging && cap sync"
+    "native:sync:staging": "npm run build:native:staging && cap sync",
+    "native:branding": "node scripts/nativeBranding.js",
+    "native:verify": "node scripts/verifyNativeBundle.js"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",

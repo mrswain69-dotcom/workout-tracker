@@ -8,6 +8,13 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: workout-tracker-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
@@ -42,6 +49,8 @@ jobs:
           NATIVE_SHELL_ONLY: '1'
         run: npm run native:sync
 
+      - run: npm run native:verify
+
       - name: Security audit
         run: npm audit --audit-level=low
 
@@ -73,14 +82,26 @@ jobs:
       - name: Sync isolated staging bundle
         if: matrix.bundle == 'staging'
         run: npm run native:sync:staging
+      - run: npm run native:verify
       - name: Compile Android debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug bundleDebug --no-daemon
       - name: Upload Android test build
         uses: actions/upload-artifact@v7
         with:
           name: Workout-Tracker-${{ matrix.bundle }}-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload staging app bundle and build evidence
+        if: matrix.bundle == 'staging'
+        uses: actions/upload-artifact@v7
+        with:
+          name: Workout-Tracker-staging-bundle-evidence
+          path: |
+            android/app/build/outputs/bundle/debug/app-debug.aab
+            dist-native/native-build.json
+            dist-native/native-verification.json
           if-no-files-found: error
           retention-days: 14
 
@@ -98,6 +119,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm run native:sync:staging
+      - run: npm run native:verify
       - name: Record Xcode version
         run: xcodebuild -version
       - name: Compile unsigned iOS simulator build
@@ -107,6 +129,16 @@ jobs:
           -derivedDataPath .native-builds/ios
           PRODUCT_BUNDLE_IDENTIFIER=io.workouttrackerapp.app.staging
           CODE_SIGNING_ALLOWED=NO build
+      - name: Launch staging app on Simulator
+        run: python3 scripts/iosSimulatorSmoke.py
+      - name: Upload launch evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Workout-Tracker-ios-launch-evidence
+          path: .native-builds/evidence/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Archive simulator app with executable permissions
         run: ditto -c -k --keepParent .native-builds/ios/Build/Products/Debug-iphonesimulator/App.app .native-builds/Workout-Tracker-staging-simulator.zip
       - name: Upload simulator app
