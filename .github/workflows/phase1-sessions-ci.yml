@@ -46,6 +46,9 @@ jobs:
         run: npm audit --audit-level=low
 
   android-compile:
+    strategy:
+      matrix:
+        bundle: [shell, staging]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -63,16 +66,53 @@ jobs:
           java-version: '21'
       - run: npm ci --no-audit --no-fund
       - name: Sync unconfigured native shell
+        if: matrix.bundle == 'shell'
         env:
           NATIVE_SHELL_ONLY: '1'
         run: npm run native:sync
+      - name: Sync isolated staging bundle
+        if: matrix.bundle == 'staging'
+        run: npm run native:sync:staging
       - name: Compile Android debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
-      - name: Upload shell for installation smoke tests
+      - name: Upload Android test build
         uses: actions/upload-artifact@v7
         with:
-          name: Workout-Tracker-shell-debug
+          name: Workout-Tracker-${{ matrix.bundle }}-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run native:sync:staging
+      - name: Record Xcode version
+        run: xcodebuild -version
+      - name: Compile unsigned iOS simulator build
+        run: >-
+          xcodebuild -project ios/App/App.xcodeproj -scheme App
+          -configuration Debug -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath .native-builds/ios
+          PRODUCT_BUNDLE_IDENTIFIER=io.workouttrackerapp.app.staging
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Archive simulator app with executable permissions
+        run: ditto -c -k --keepParent .native-builds/ios/Build/Products/Debug-iphonesimulator/App.app .native-builds/Workout-Tracker-staging-simulator.zip
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v7
+        with:
+          name: Workout-Tracker-staging-ios-simulator
+          path: .native-builds/Workout-Tracker-staging-simulator.zip
           if-no-files-found: error
           retention-days: 14

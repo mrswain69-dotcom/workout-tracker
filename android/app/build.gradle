@@ -7,6 +7,7 @@ android {
         applicationId "io.workouttrackerapp.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        manifestPlaceholders = [authScheme: "io.workouttrackerapp.app", appLabel: "Workout Tracker"]
         versionCode 1
         versionName "0.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -17,6 +18,11 @@ android {
         }
     }
     buildTypes {
+        debug {
+            applicationIdSuffix ".staging"
+            versionNameSuffix "-staging"
+            manifestPlaceholders = [authScheme: "io.workouttrackerapp.app.staging", appLabel: "Workout Tracker Test"]
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

@@ -68,7 +68,7 @@ function chooseDate(dateYmd) {
 }
 
 describe("actual Log navigation", () => {
-  it("refreshes multiple visited days from another device without reloading the page", async () => {
+  it.each(["focus", "wt-app-resume"])("refreshes multiple visited days from another device on %s without reloading the page", async (eventName) => {
     const payload = (reps) => ({ blocks: [{ id: "strength", typeId: "strength", sets: { press: [{ reps, weight: "25" }] } }] });
     let remoteReps = "10";
     vi.mocked(db.listLogs).mockImplementation(async () => ({ data: ["2026-10-01", "2026-10-02"].map((date) =>
@@ -81,7 +81,7 @@ describe("actual Log navigation", () => {
     chooseDate("2026-10-01");
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("10"));
     remoteReps = "24";
-    fireEvent(window, new Event("focus"));
+    fireEvent(window, new Event(eventName));
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("24"));
     chooseDate("2026-10-02");
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("24"));
@@ -350,7 +350,7 @@ describe('versioned log conflict review',()=>{
     await waitFor(()=>expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0));
     expect(screen.getAllByRole('spinbutton')[0].value).toBe('15');
   });
-  it('uses the version from a clean cross-device refresh after a local save',async()=>{
+  it.each(['focus','wt-app-resume'])('uses the version from a clean cross-device refresh on %s after a local save',async(eventName)=>{
     await versionedReady();
     let remote={id:'day-row',profile_id:'paul',date_ymd:'2026-10-01',row_version:3,log_json:dayLog(10)};
     vi.mocked(db.listLogs).mockImplementation(async()=>({data:[remote]}));
@@ -361,7 +361,7 @@ describe('versioned log conflict review',()=>{
     fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'15'}});
     await waitFor(()=>expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0),{timeout:2500});
     remote={...remote,row_version:6,log_json:dayLog(24)};
-    fireEvent(window,new Event('focus'));
+    fireEvent(window,new Event(eventName));
     await waitFor(()=>expect(screen.getAllByRole('spinbutton')[0].value).toBe('24'));
     fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'25'}});
     await waitFor(()=>expect(db.upsertLog).toHaveBeenCalledTimes(2),{timeout:2500});

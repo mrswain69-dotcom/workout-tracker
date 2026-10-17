@@ -15,3 +15,10 @@ it('surfaces expired-link errors and rejects incomplete credentials',async()=>{
  await expect(acceptNativeAuthLink('io.workouttrackerapp.app://auth/callback#access_token=a&refresh_token=b',auth)).rejects.toThrow('Expired');
  expect(parseNativeAuthLink('io.workouttrackerapp.app://auth/callback#access_token=a')).toBeNull();
 });
+it('accepts only staging callbacks when the staging build is selected',()=>{
+ vi.stubEnv('VITE_NATIVE_BUILD_TARGET','staging');
+ try {
+  expect(parseNativeAuthLink('io.workouttrackerapp.app.staging://auth/callback?code=x')).toEqual({code:'x',recovery:false});
+  expect(parseNativeAuthLink('io.workouttrackerapp.app://auth/callback?code=x')).toBeNull();
+ } finally { vi.unstubAllEnvs(); }
+});

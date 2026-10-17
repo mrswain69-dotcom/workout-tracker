@@ -70,10 +70,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>io.workouttrackerapp.app</string>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>io.workouttrackerapp.app</string>
+				<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 			</array>
 		</dict>
 	</array>

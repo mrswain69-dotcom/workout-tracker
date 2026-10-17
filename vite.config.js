@@ -1,18 +1,24 @@
+import { prepareNativeArtwork } from './scripts/nativeArtwork.js'
 import { validateNativeEnvironment } from './scripts/nativeBuildConfig.js'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   const native = mode === 'native';
   const env = { ...loadEnv(mode, process.cwd(), ''), ...process.env };
   if (native) validateNativeEnvironment(env);
   const shellOnly = native && env.NATIVE_SHELL_ONLY === '1';
+  const artwork = native ? await prepareNativeArtwork(process.cwd()) : null;
   return {
   // Shell smoke builds must never inherit a production API from .env.local.
-  define: shellOnly ? {
+  publicDir: artwork?.publicDir || 'public',
+  define: {
+    __NATIVE_ARTWORK__: JSON.stringify(artwork?.mapping || {}),
+    ...(shellOnly ? {
     'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(''),
     'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(''),
-  } : {},
+  } : {}),
+  },
   plugins: [react()],
   build: {
     outDir: native ? "dist-native" : "dist",

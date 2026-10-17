@@ -1,3 +1,4 @@
+import { nativeArtworkSrc } from "../native/artwork.js";
 import { invalidateGroupBoards } from './groupBoardCache';
 import "./GroupCompact.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -104,7 +105,7 @@ function MemberIdentity({ member, isSelf = false, onOpen = null }) {
       aria-label={onOpen ? `Open ${member?.nickname || "athlete"} avatar identity` : undefined}
     >
       <span className={`groupMemberAvatar ${frameClass}`} aria-hidden="true">
-        {avatar.imgSrc ? <img src={avatar.imgSrc} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
+        {avatar.imgSrc ? <img src={nativeArtworkSrc(avatar.imgSrc)} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
       </span>
       <span className="groupMemberText">
         <strong>{member?.nickname || "Athlete"}{isSelf ? " · You" : ""}</strong>

@@ -12,7 +12,9 @@
     "build:native": "vite build --mode native",
     "native:sync": "npm run build:native && cap sync",
     "native:android": "cap open android",
-    "native:ios": "cap open ios"
+    "native:ios": "cap open ios",
+    "build:native:staging": "node scripts/nativeStagingBuild.js",
+    "native:sync:staging": "npm run build:native:staging && cap sync"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",
@@ -30,6 +32,7 @@
     "@testing-library/react": "^16.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^26.1.0",
+    "sharp": "0.35.5",
     "vite": "^8.2.2",
     "vitest": "^5.0.0"
   },

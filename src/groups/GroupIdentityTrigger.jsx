@@ -1,3 +1,4 @@
+import { nativeArtworkSrc } from "../native/artwork.js";
 import React from "react";
 import { groupAvatarFrameClass, resolveGroupAvatar } from "./groupIdentity";
 
@@ -10,7 +11,7 @@ export function GroupAvatar({ member, className = "groupXpAvatar" }) {
 
   return (
     <span className={`${className} ${frameClass}`} aria-hidden="true">
-      {avatar.imgSrc ? <img src={avatar.imgSrc} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
+      {avatar.imgSrc ? <img src={nativeArtworkSrc(avatar.imgSrc)} alt="" /> : <span>{avatar.emoji || "🙂"}</span>}
     </span>
   );
 }

@@ -4,7 +4,7 @@ This directory records implementation of the Native App Build Plan v1.0 (17 Octo
 
 ## Build chunks
 
-See [chunk-01.md](chunk-01.md) for the audited baseline and [chunk-02.md](chunk-02.md) for isolated staging, versioned saves and current release gates. This is a development foundation, not a store-ready release.
+See [chunk-01.md](chunk-01.md) for the audited baseline and [chunk-02.md](chunk-02.md) for isolated staging and versioned saves. [chunk-03.md](chunk-03.md) records native resume refresh, lossless packaging and configured staging builds. This is a development foundation, not a store-ready release.
 
 ## Build and sync
 
@@ -13,8 +13,8 @@ Use Node 24 and `npm ci`. The web continues to build with `npm run build` into `
 1. Use the isolated Supabase test backend documented in chunk 02. Do not copy production data.
 2. Copy `.env.native.example` to `.env.native.local`; set the **test** Supabase URL and public/publishable key. Keep files ending in `.local` out of git. Never use service-role or secret keys in VITE variables.
 3. Add `io.workouttrackerapp.app://auth/callback` to the **test** project's auth redirect allowlist. Configure the test site's URL and email configuration separately from production.
-4. Run `npm run native:sync`.
-5. Open Android Studio using `npm run native:android`, or Xcode on macOS using `npm run native:ios`.
+4. For the isolated debug build run `npm run native:sync:staging`. Its callback is `io.workouttrackerapp.app.staging://auth/callback`; configure the test Auth allowlist first. Use `npm run native:sync` only for a deliberately configured release-ID bundle.
+5. Android debug builds use the separate `.staging` application ID. Open Android Studio using `npm run native:android`, or Xcode on macOS using `npm run native:ios`.
 6. Use test accounts to verify signup, confirmation, password reset, logging, app interruption and reconnection before configuring production.
 
 The provisional application ID is `io.workouttrackerapp.app`. Confirm it before registering store records. Both platforms register the custom auth callback. HTTPS universal/app links are not yet configured: they require the verified Apple Team ID and Android signing certificate fingerprint. Group and provider links still require native end-to-end integration work.

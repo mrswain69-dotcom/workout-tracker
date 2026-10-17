@@ -1,3 +1,4 @@
+import { nativeArtworkSrc } from "../native/artwork.js";
 import React, { useState } from "react";
 import { resolveAvatarIdentity } from "../config/avatarIdentity";
 import { PAIRED_SPORT_AVATAR_ARTWORK_READY } from "../config/sportAvatarArtwork";
@@ -20,7 +21,7 @@ export default function GroupAvatarPicker({ membership, avatarIds = [], busy, on
           aria-label={`Use ${avatar.label} in this group`}
           aria-pressed={membership?.group_avatar_override === avatar.id && (!paired || membership?.group_avatar_appearance?.variant === variant)}
           onClick={() => onSelect(avatar.id, paired ? appearance : null)}>
-          {avatar.imgSrc ? <img src={avatar.imgSrc} alt="" loading="lazy" decoding="async" /> : <span>{avatar.emoji || "🙂"}</span>}
+          {avatar.imgSrc ? <img src={nativeArtworkSrc(avatar.imgSrc)} alt="" loading="lazy" decoding="async" /> : <span>{avatar.emoji || "🙂"}</span>}
           <span>{avatar.label}</span>
         </button>;
       })}

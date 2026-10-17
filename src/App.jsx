@@ -1,3 +1,4 @@
+import { nativeArtworkSrc } from "./native/artwork.js";
 import { hasSportAvatarArtwork, sportAvatarArtworkSrc, PAIRED_SPORT_AVATAR_ARTWORK_READY } from "./config/sportAvatarArtwork";
 import { loadVerifiedActivityData } from "./verifiedActivityDb.js";
 import { buildPerformanceEvidence, performanceEvidenceForCard } from "./engine/performanceBadgeEvidence.js";
@@ -3594,16 +3595,18 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   useEffect(() => {
     if (!authed || !family?.id || !activeProfileId) return;
     let lastRefresh = 0;
-    const refresh = () => {
-      if (document.visibilityState === "hidden" || Date.now() - lastRefresh < 1000) return;
+    const refresh = (event) => {
+      if ((document.visibilityState === "hidden" && event?.type !== "wt-app-resume") || Date.now() - lastRefresh < 1000) return;
       lastRefresh = Date.now();
       setRemoteLogRevision((value) => value + 1);
     };
     window.addEventListener("focus", refresh);
+    window.addEventListener("wt-app-resume", refresh);
     window.addEventListener("online", refresh);
     document.addEventListener("visibilitychange", refresh);
     return () => {
       window.removeEventListener("focus", refresh);
+      window.removeEventListener("wt-app-resume", refresh);
       window.removeEventListener("online", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
@@ -9472,7 +9475,7 @@ const cardioProgress = useMemo(() => {
 >
   {headerAvatarImg ? (
     <img
-      src={headerAvatarImg}
+      src={nativeArtworkSrc(headerAvatarImg)}
       alt={headerAvatarEmoji}
       className="headerAvatarImg"
       style={{
@@ -12490,7 +12493,7 @@ const cardioProgress = useMemo(() => {
 >
           {headerAvatarImg ? (
             <img
-  src={headerAvatarImg}
+  src={nativeArtworkSrc(headerAvatarImg)}
   alt={headerAvatarEmoji}
   className={headerAvatarIsPrestige ? "selectedAvatarImg selectedAvatarImgPrestige" : "selectedAvatarImg"}
   style={{
@@ -12867,7 +12870,7 @@ const cardioProgress = useMemo(() => {
                                         <div className="avatarPickArt">
                                           {a.imgSrc ? (
                                             <img
-                                              src={a.imgSrc}
+                                              src={nativeArtworkSrc(a.imgSrc)}
                                               alt={a.label || "Avatar"}
                                               className="avatarPickImg"
                                               loading="lazy"
@@ -12980,7 +12983,7 @@ const cardioProgress = useMemo(() => {
                         >
                           <div className="sportAvatarMiniArt">
                             <img
-                              src={avatar.imgSrc}
+                              src={nativeArtworkSrc(avatar.imgSrc)}
                               alt={`${avatar.sportLabel} ${avatar.prestigeLabel}`}
                               className="sportAvatarMiniImg"
                               loading="lazy"
@@ -13575,7 +13578,7 @@ const cardioProgress = useMemo(() => {
                         >
                           {headerAvatarImg ? (
                             <img
-                              src={headerAvatarImg}
+                              src={nativeArtworkSrc(headerAvatarImg)}
                               alt={headerAvatar?.label || "Current avatar"}
                               className="avatarFrameDemo__avatar selectedAvatarImg selectedAvatarImgPrestige"
                             />

@@ -1,7 +1,8 @@
+import { nativeAuthRedirect } from './platform.js';
 // Accept only our exact auth callback. Never navigate to a URL supplied by a link.
 export function parseNativeAuthLink(raw) {
   let url; try { url = new URL(raw); } catch { return null; }
-  if (url.protocol !== 'io.workouttrackerapp.app:' || url.hostname !== 'auth' || url.pathname !== '/callback') return null;
+  if (url.protocol !== new URL(nativeAuthRedirect()).protocol || url.hostname !== 'auth' || url.pathname !== '/callback') return null;
   const hash = new URLSearchParams(url.hash.slice(1));
   if (url.searchParams.has('error') || hash.has('error')) return { error: 'This sign-in link could not be used. Request a new link.' };
   const code = url.searchParams.get('code');
