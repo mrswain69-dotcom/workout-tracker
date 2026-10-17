@@ -13,6 +13,7 @@ import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./eng
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
 import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
 import MovementCompletion from "./components/log/MovementCompletion.jsx";
+import FocusedLogBlock from "./components/log/FocusedLogBlock.jsx";
 import ActivityCalendar from "./components/log/ActivityCalendar.jsx";
 import { movementEntriesComplete } from "./engine/movementEntryCompletion.js";
 import { mapProfileHistoryRows } from "./engine/profileHistoryRows.js";
@@ -1364,60 +1365,6 @@ function SummaryStat({ label, value }) {
   );
 }
 
-function FocusedLogBlock({
-  label,
-  programSource = null,
-  extraLabel = "",
-  onRemoveExtra,
-  summary = "",
-  open = false,
-  complete = false,
-  cancelled = false,
-  suspended = false,
-  onToggle,
-  children,
-}) {
-  const stateClass = cancelled
-    ? "isCancelled"
-    : complete
-    ? "isComplete"
-    : suspended
-    ? "isSuspended"
-    : "";
-
-  return (
-    <div className={`focusedLogBlock ${open ? "isOpen" : "isCollapsed"} ${stateClass}${programSource ? " isProgramAdded" : ""}`}>
-      <button
-        type="button"
-        className="focusedLogBlockSummary"
-        onClick={onToggle}
-        aria-expanded={open}
-      >
-        <div className="focusedLogBlockSummary__copy">
-          {programSource ? (
-            <div className="focusedLogBlockSource">Group Program · {programSource.title || "Assigned Program"}</div>
-          ) : null}
-          <div className="focusedLogBlockTitle">{label || "Activity"}</div>
-          {summary ? <div className="focusedLogBlockMeta">{summary}</div> : null}
-        </div>
-        <span className="focusedLogBlockState" aria-hidden="true">
-          {cancelled ? "C" : complete ? "✓" : suspended ? "Ⅱ" : open ? "−" : "+"}
-        </span>
-      </button>
-      {open ? (
-        <div className="focusedLogBlockBody">
-          {children}
-          {onRemoveExtra ? (
-            <div className="extraBlockRemove">
-              <SecondaryButton className="btnSmall" onClick={onRemoveExtra}>Remove</SecondaryButton>
-            </div>
-          ) : null}
-          {extraLabel ? <div className="oneDayExtraPill">{extraLabel}</div> : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function BlockCancelControl({ cancelled, onChange, session = false }) {
   return (
@@ -9592,6 +9539,8 @@ const cardioProgress = useMemo(() => {
 
                       return (
   <FocusedLogBlock
+          key={block.id}
+          onInteract={() => setFocusedLogBlockId(block.id)}
     label={blockLabel}
     programSource={block.programSource || blockLog.programSource}
     summary={blockSummary}
@@ -9974,6 +9923,8 @@ const cardioProgress = useMemo(() => {
 
       return (
         <FocusedLogBlock
+          key={block.id}
+          onInteract={() => setFocusedLogBlockId(block.id)}
           label={label}
           programSource={block.programSource || blockLog.programSource}
           summary={blockSummary}
@@ -10103,6 +10054,8 @@ const cardioProgress = useMemo(() => {
 
       return (
         <FocusedLogBlock
+          key={block.id}
+          onInteract={() => setFocusedLogBlockId(block.id)}
           label={label}
           programSource={block.programSource || blockLog.programSource}
           summary={blockSummary}
@@ -10271,6 +10224,8 @@ const cardioProgress = useMemo(() => {
 
       return (
         <FocusedLogBlock
+          key={block.id}
+          onInteract={() => setFocusedLogBlockId(block.id)}
           label={label}
           programSource={block.programSource || blockLog.programSource}
           summary={blockSummary}
@@ -10421,6 +10376,8 @@ const cardioProgress = useMemo(() => {
 
       return (
           <FocusedLogBlock
+          key={block.id}
+          onInteract={() => setFocusedLogBlockId(block.id)}
             label={label}
             programSource={block.programSource || blockLog.programSource}
             summary={blockSummary}
@@ -10507,6 +10464,8 @@ const cardioProgress = useMemo(() => {
 
       return (
         <FocusedLogBlock
+          key={block.id}
+          onInteract={() => setFocusedLogBlockId(block.id)}
           label={label}
           programSource={block.programSource || blockLog.programSource}
           summary={blockSummary}

@@ -70,7 +70,8 @@ describe("focused Log and dashboard readiness integration", () => {
   it("focuses the day on the next incomplete block while keeping every block manually accessible", () => {
     const app = read("../App.jsx");
 
-    expect(app).toContain("function FocusedLogBlock");
+    const focusedBlock = read("../components/log/FocusedLogBlock.jsx");
+    expect(focusedBlock).toContain("function FocusedLogBlock");
     expect(app).toContain("focusedLogBlockId");
     expect(app).toContain("getLogBlockFocusState");
     expect(app).toContain("firstIncompleteFocusBlockId");
