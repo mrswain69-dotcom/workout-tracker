@@ -16,6 +16,21 @@ describe("dated log lifecycle", () => {
     expect(selectDayLogSnapshot({ remote: original })).toBe(original);
   });
 
+  it("accepts newer server data after a local save has already finished", () => {
+    const cached = { blocks: [{ id: "run", cardio: { distanceKm: "2" } }] };
+    const remote = { blocks: [{ id: "run", cardio: { distanceKm: "5" } }] };
+    expect(selectDayLogSnapshot({ cached, remote, localRevision: 2, persistedRevision: 2,
+      revisionAtLoadStart: 2, persistedRevisionAtLoadStart: 2 })).toBe(remote);
+  });
+
+  it("protects edits overlapping a read, even if their save finishes before the read", () => {
+    const cached = { blocks: [{ id: "new-extra" }] }, remote = { blocks: [] };
+    expect(selectDayLogSnapshot({ cached, remote, localRevision: 3, persistedRevision: 3,
+      revisionAtLoadStart: 2, persistedRevisionAtLoadStart: 2 })).toBe(cached);
+    expect(selectDayLogSnapshot({ cached, remote, localRevision: 3, persistedRevision: 3,
+      revisionAtLoadStart: 3, persistedRevisionAtLoadStart: 2 })).toBe(cached);
+  });
+
   it("rejects a save or read for a date/profile that is no longer visible", () => {
     const current = { familyId: "family", profileId: "paul", date: "2026-10-02" };
     expect(sameLogView(current, "family", "paul", "2026-10-01")).toBe(false);
