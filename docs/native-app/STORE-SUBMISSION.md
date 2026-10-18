@@ -41,6 +41,8 @@ These routes are implemented on the native feature branch. **Verify public produ
 
 The external deletion request is an email workflow requiring a monitored support inbox, ownership verification and processing by the operator. It is not an automated web deletion API. In-app deletion remains the server-authorised, password-confirmed flow.
 
+Paul confirmed on 18 October that neither publisher account has been started. Enrolment and organisation verification must precede signed store distribution.
+
 ## Owner information still required
 
 1. Apple Developer / Google Play organisation account readiness, publisher identity and Apple Team ID. Existing legal copy names Swain Digital Ltd; verify it matches store records.
