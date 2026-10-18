@@ -10,7 +10,7 @@ The score is intentionally narrow:
 
 - Eligible planned blocks: strength, HIIT, box, cardio/run/swim/walk/row/cycle/bike, duration, structured Session and recovery.
 - Task-only blocks do not create a Consistency obligation.
-- Cancelled blocks do not create a Consistency obligation.
+- Cancelled blocks do not create a block-completion obligation. Day-log cancellations are honoured against the locked schedule; a day with all blocks cancelled remains a planned, incomplete day, so cancellation alone cannot earn consistency credit.
 - Streak Saver never converts a missed planned day into a completed Consistency day.
 - A planned day is complete only when every eligible planned block for that day has genuine same-day completion evidence.
 - A multi-block day therefore counts as one completed planned day, not several points of volume.
