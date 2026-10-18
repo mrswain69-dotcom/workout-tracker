@@ -161,6 +161,36 @@ describe("consistencyEngine", () => {
     expect(result).toMatchObject({ available: true, reason: "no_planned_days", plannedDays: 0, completedDays: 0, consistencyPct: null });
   });
 
+  it("honours cancelled planned blocks while retaining genuine same-day requirements", () => {
+    const schedule = {
+      Mon: [{ id: "main", typeId: "strength" }, { id: "swap", typeId: "strength" }, { id: "skills", typeId: "session" }],
+      Tue: [{ id: "main", typeId: "strength" }, { id: "skills", typeId: "session" }],
+    };
+    const result = scoreConsistencyWindow({
+      window: week, referenceDate: "2026-09-08",
+      scheduleSnapshots: [snapshot("2026-09-07", schedule)],
+      logs: [
+        { date_ymd: "2026-09-07", log: { blocks: [strength("main", "2026-09-07"), { id: "swap", typeId: "strength", cancelled: true }, { id: "skills", typeId: "session", cancelled: true }] } },
+        { date_ymd: "2026-09-08", log: { blocks: [strength("main", "2026-09-08"), { id: "skills", typeId: "session", session: { completed: false } }] } },
+      ],
+    });
+    expect(result).toMatchObject({ plannedDays: 2, completedDays: 1, consistencyPct: 50 });
+    expect(result.dayResults[0]).toMatchObject({ expectedBlocks: 1, completedBlocks: 1, completed: true });
+    expect(result.dayResults[1]).toMatchObject({ expectedBlocks: 2, completedBlocks: 1, completed: false });
+  });
+
+  it("does not award a completed day for cancelling every block or logging on another day", () => {
+    const result = scoreConsistencyWindow({
+      window: week, referenceDate: "2026-09-08",
+      scheduleSnapshots: [snapshot("2026-09-07", { Mon: [{ id: "main", typeId: "strength" }], Tue: [{ id: "main", typeId: "strength" }, { id: "swap", typeId: "strength" }] })],
+      logs: [
+        { date_ymd: "2026-09-07", log: { blocks: [{ ...strength("main", "2026-09-07"), cancelled: true }] } },
+        { date_ymd: "2026-09-08", log: { blocks: [strength("main", "2026-09-09"), { id: "swap", typeId: "strength", cancelled: true }] } },
+      ],
+    });
+    expect(result).toMatchObject({ plannedDays: 2, completedDays: 0, consistencyPct: 0 });
+  });
+
   it("counts planned recovery and structured Sessions only when completed on their planned date", () => {
     const schedule = {
       Mon: [{ id: "r", typeId: "recovery" }],

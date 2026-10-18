@@ -273,6 +273,12 @@ export function consistencyPlannedDayCompleted({
   }
 
   const logBlocks = Array.isArray(log?.blocks) ? log.blocks : [];
+  // Keep the locked planned-day denominator, but honour cancellations recorded
+  // against its blocks just as the dashboard does. Cancelling everything must
+  // never manufacture a completed day without any real completion evidence.
+  const required = expected.filter((expectedBlock) => !logBlocks.some(
+    (block) => block && cleanText(block.id) === cleanText(expectedBlock?.id) && block.cancelled
+  ));
 
   if (profileRecoveryModeCompletedOnDay(log, dateYmd)) {
     return {
@@ -289,7 +295,7 @@ export function consistencyPlannedDayCompleted({
 
   const manualCompletedBlockIds = [];
 
-  for (const expectedBlock of expected) {
+  for (const expectedBlock of required) {
     const match = logBlocks.find(
       (block) => block && cleanText(block.id) === cleanText(expectedBlock?.id)
     );
@@ -300,7 +306,7 @@ export function consistencyPlannedDayCompleted({
 
   const verified = matchVerifiedPlanCompletionEvidence({
     dateYmd,
-    expectedBlocks: expected,
+    expectedBlocks: required,
     manualCompletedBlockIds,
     verifiedCardioEvidence,
   });
@@ -317,8 +323,8 @@ export function consistencyPlannedDayCompleted({
 
   return {
     planned: true,
-    completed: completedBlocks === expected.length,
-    expectedBlocks: expected.length,
+    completed: required.length > 0 && completedBlocks === required.length,
+    expectedBlocks: required.length,
     completedBlocks,
     manualCompletedBlocks,
     verifiedCompletedBlocks,
