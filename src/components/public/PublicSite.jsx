@@ -277,10 +277,11 @@ export default function PublicSite({ children }) {
           <span><b>Workout Tracker</b><small>Your training. Your way. A product of Swain Digital Ltd.</small></span>
         </div>
         <div className="footerLinks">
-          <button type="button" onClick={() => setLegal("privacy")}>Privacy</button>
-          <button type="button" onClick={() => setLegal("cookies")}>Cookies</button>
-          <button type="button" onClick={() => setLegal("terms")}>Terms</button>
-          <a href="mailto:support@workouttrackerapp.io">Support</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/cookies">Cookies</a>
+          <a href="/terms">Terms</a>
+          <a href="/delete-account">Delete account</a>
+          <a href="/support">Support</a>
         </div>
       </footer>
 

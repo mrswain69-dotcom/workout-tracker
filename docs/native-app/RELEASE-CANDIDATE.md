@@ -2,6 +2,18 @@
 
 18 October 2026. Repository: `mrswain69-dotcom/workout-tracker`, draft PR #144. Public site: https://workouttrackerapp.io. Every existing feature remains free. Current native builds use isolated staging; no production rollout or store submission has been performed.
 
+## Latest integration — 18 October, evening
+
+The live PWA release `5fabd632ece7d1669389073b28991845c40a28d3` is merged into the native candidate. It honours cancelled planned blocks while retaining genuine same-day completion requirements. Cancelling every block cannot manufacture consistency credit. All five matching group Edge Functions were deployed to isolated staging with JWT verification retained: XP v32, consistency v11, improvement v9, seasons/awards v31 and challenges v10. Unauthenticated HTTP requests to all five returned 401.
+
+Confirmed account deletion now clears the local Supabase session before the existing draft purge/UI reset. Rejected or unconfirmed deletion preserves the session. Dedicated public `/privacy`, `/terms`, `/cookies`, `/delete-account` and `/support` pages reuse the existing notices and support address. The deletion page offers the existing in-app process and an external email request; it does not automatically delete an account without ownership checks. Vercel rewrites and public footer links are included. These URLs must be checked on the release deployment before entering them in store metadata.
+
+Current local suite: **246 files / 1,511 tests passed**. Updated native platform checks are recorded in the PR when completed; historical candidate evidence below remains explicitly tied to its original commit.
+
+Staging SQL regression checks passed: versioned saves/idempotency/stale writers/family isolation, undated programme drafts, programme management, community/report privacy and ordinary-user denial of admin usage access. All fixtures were rolled back. The community fixture initially lacked an `auth.users` row required by its reviewer foreign key; adding synthetic users inside the rollback transaction corrected the harness, without an application/schema change.
+
+Security review found **81 public SECURITY DEFINER functions, none executable by anon**. Reviewed ownership/reviewer helpers use server auth identity, and SQL regression checks exercise representative cross-family boundaries. The 81 advisor notices reflect authenticated execution, which many existing APIs require; they were not suppressed or blanket-revoked. This is a scoped review, not a complete independent security audit.
+
 ## Completed build work
 
 - Latest main stale-data fix (PR #145, `54342f4`) is integrated. Native resume refreshes day logs, history and verification while protecting pending edits.
@@ -40,7 +52,9 @@ The branch is ACTIVE_HEALTHY, with zero synthetic users/families at the last met
 
 ### 2. Vercel protected preview access
 
-The connected page-fetch operation returns **403 at read_protection_bypass** for the preview. Check that the connected Vercel account has access to **Workout Tracker**, project `prj_ERaieRlkiiIZzii54lOFkamPF25t`, team `team_WeE4g53wFbgEM34fbDFaAAmY`, and that the connection authorizes this project/team. The response does not establish which account-side permission is missing. Deployment Protection has not been disabled. A later attempt with the known team scope to create temporary preview access was **rejected by automatic approval review before execution**: a shareable access link permits anyone holding it to open the protected preview. No link was created. Explicit user authorization is required for a short-lived (proposed one-hour) access link before protected browser testing can continue. The earlier 403 and this review rejection are separate blockers; neither proves the connected account is misconfigured.
+Paul authorised a one-hour access link on 18 October. The request was sent with `ttl: 3600` for the known preview deployment and team, but **Vercel returned 403: “You don’t have permission to create the shareable link.”** Listing deployments also returned 403. No link was created and Deployment Protection remains enabled. There is no authenticated Vercel CLI fallback in this environment.
+
+This is now a Vercel API/connection access blocker, separate from the earlier automatic review rejection. Check access for project `prj_ERaieRlkiiIZzii54lOFkamPF25t`, team `team_WeE4g53wFbgEM34fbDFaAAmY`. The response does not establish the exact missing account-side permission. A user-created temporary share link or an explicitly authorised browser fallback can provide another test route; do not disable protection. Permission to create the one-hour link is already granted and need not be asked again.
 
 ### 3. Publisher signing
 

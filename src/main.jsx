@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import PublicLegalPage, { publicLegalPage } from './components/legal/PublicLegalPage.jsx'
 import { isNativeApp } from './native/platform.js'
 import { startNativeRuntime } from './native/runtime.js'
 import './styles.css'
@@ -43,12 +44,13 @@ function armGroupJoinDeepLink() {
   window.addEventListener('beforeunload', () => observer.disconnect(), { once: true })
 }
 
+const legalPage = publicLegalPage(window.location.pathname)
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    {legalPage ? <PublicLegalPage page={legalPage} /> : <App />}
   </React.StrictMode>,
 )
 
-armGroupJoinDeepLink()
+if (!legalPage) armGroupJoinDeepLink()
 if (!isNativeApp()) registerServiceWorkerUpdates()
 startNativeRuntime().catch(() => { /* Web rendering remains available if a native plugin fails. */ })
