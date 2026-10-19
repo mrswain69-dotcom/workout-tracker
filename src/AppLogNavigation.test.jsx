@@ -406,3 +406,50 @@ describe("mixed planned block order in the actual Log", () => {
     expect(summary.getAttribute("aria-expanded")).toBe("true");
   });
 });
+
+
+describe('recommended recovery day', () => {
+  it('adds recovery, saves completion and restores it after navigation', async () => {
+    // A dense recent workload triggers the real recommendation engine.
+    const today = new Date();
+    const date = today.toLocaleDateString('en-CA');
+    sessionStorage.setItem('wt_log_navigation_v1', JSON.stringify({ tab: 'log', date }));
+    const history = Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(today); d.setDate(d.getDate() - i - 1);
+      return { profile_id: 'paul', date_ymd: d.toLocaleDateString('en-CA'), log_json: {
+        blocks: [{ id: 'strength', typeId: 'strength', sets: { press: Array.from({ length: 30 }, () => ({ reps: '12', weight: '50' })) }, duration: { minutes: '90' } }, { id: 'run', typeId: 'cardio', cardio: { durationMin: '240', distanceKm: '50' } }],
+      } };
+    });
+    vi.mocked(db.listLogs).mockResolvedValue({ data: history });
+    await ready();
+    fireEvent.click(await screen.findByRole('button', { name: '+ Add Recovery Block' }));
+    const checkbox = await screen.findByRole('checkbox', { name: 'Recovery respected' });
+    await waitFor(() => expect(db.upsertLog).toHaveBeenCalled());
+    let saved = vi.mocked(db.upsertLog).mock.calls.at(-1)[3];
+    expect(saved.blocks.filter(b => b.typeId === 'recovery')).toHaveLength(1);
+    expect(saved.blocks.find(b => b.typeId === 'recovery').recoveryDone).toBe(false);
+    expect(saved.blocks.find(b => b.id === 'strength').suspendedByRecommendedRecovery).toBe(true);
+    fireEvent.click(checkbox);
+    await waitFor(() => {
+      saved = vi.mocked(db.upsertLog).mock.calls.at(-1)[3];
+      expect(saved.blocks.find(b => b.typeId === 'recovery').recoveryDone).toBe(true);
+    });
+    const completeChallenge = screen.getByText('Complete today’s plan').closest('.challenge');
+    expect(completeChallenge.querySelector('.challenge-box').classList.contains('done')).toBe(true);
+    vi.mocked(db.getLog).mockResolvedValue({ data: { log_json: saved } });
+    fireEvent.click(screen.getByRole('button', { name: 'Dashboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Log' }));
+    const recoverySummary = screen.getByRole('button', { name: /Recovery.*Recovery complete/ });
+    if (recoverySummary.getAttribute('aria-expanded') === 'false') fireEvent.click(recoverySummary);
+    expect(screen.getByRole('checkbox', { name: 'Recovery respected' }).checked).toBe(true);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Recovery respected' }));
+    await waitFor(() => expect(screen.getByText('Complete today’s plan').closest('.challenge').querySelector('.challenge-box').classList.contains('done')).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    await waitFor(() => {
+      const latest = vi.mocked(db.upsertLog).mock.calls.at(-1)[3];
+      expect(latest.blocks.some(b => b.typeId === 'recovery')).toBe(false);
+      expect(latest.blocks.find(b => b.id === 'strength').suspendedByRecoveryMode).toBe(false);
+    });
+
+  });
+});

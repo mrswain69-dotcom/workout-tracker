@@ -34,7 +34,7 @@ function positive(value) {
 }
 
 // Classify recorded physical effort, never templates, reward XP or tasks alone.
-function blockHasRecordedActivity(block) {
+export function blockHasRecordedActivity(block) {
   if (block.cancelled) return false;
   const type = text(block.typeId).toLowerCase();
   if (["strength", "hiit", "box"].includes(type)) {
