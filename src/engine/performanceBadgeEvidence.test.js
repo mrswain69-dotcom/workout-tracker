@@ -37,9 +37,12 @@ it("rejects a recording linked to the wrong logged sport or cancelled block",()=
 });
 it("can verify time-of-day from strength source timing without inventing strength metrics",()=>{
   const input=fixture();
-  input.logs[0].log.blocks=[{id:"run-1",typeId:"strength",startedAt:todayYmd+"T06:00:00Z",sets:{squat:[{reps:5,weight:20}]}}];
+  // Behaviour badges use the device's local hour. A fixed 06:00Z fixture is
+  // already 07:00 during British summer time, outside the adult early window.
+  const earlyLocalTime=new Date(todayYmd+"T06:00:00").toISOString();
+  input.logs[0].log.blocks=[{id:"run-1",typeId:"strength",startedAt:earlyLocalTime,sets:{squat:[{reps:5,weight:20}]}}];
   input.data.verifiedActivities[0].activity_type="strength";
-  input.data.observations[0].activity_type="strength";input.data.observations[0].started_at=todayYmd+"T06:00:00Z";
+  input.data.observations[0].activity_type="strength";input.data.observations[0].started_at=earlyLocalTime;
   const evidence=buildPerformanceEvidence({...input,todayYmd,isAdult:true});
   expect(evidence.verifiedStats.behaviour.earlyBirdSessions).toBe(1);
   expect(evidence.verifiedStats.lifts.totalSets).toBe(0);

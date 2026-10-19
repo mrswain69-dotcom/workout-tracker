@@ -2278,3 +2278,27 @@ html.nativeApp input, html.nativeApp select, html.nativeApp textarea { font-size
 .syncStatus { flex-wrap: wrap; max-width: 100%; }
 
 .logConflictVersions{display:grid;grid-template-columns:1fr 1fr;gap:16px}.logConflictVersions li{margin-bottom:12px;overflow-wrap:anywhere}@media(max-width:560px){.logConflictVersions{grid-template-columns:1fr}}
+
+/* Native selects otherwise size themselves to the longest Session name. */
+.session-plan-block-editor,
+.session-plan-block-editor > div,
+.session-plan-block-editor__summary,
+.session-plan-block-editor__summary .row > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.session-plan-block-editor select,
+.session-plan-block-editor input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.session-plan-block-editor select {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.session-plan-block-editor__summary {
+  overflow-wrap: anywhere;
+}

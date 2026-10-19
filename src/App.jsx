@@ -17,6 +17,7 @@ import PasswordRecovery from "./components/auth/PasswordRecovery.jsx";
 import LogConflictDialog from "./components/log/LogConflictDialog.jsx";
 import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
 import MovementCompletion from "./components/log/MovementCompletion.jsx";
+import { orderLogBlocks } from "./engine/logBlockOrder.js";
 import FocusedLogBlock from "./components/log/FocusedLogBlock.jsx";
 import ActivityCalendar from "./components/log/ActivityCalendar.jsx";
 import { movementEntriesComplete } from "./engine/movementEntryCompletion.js";
@@ -3918,7 +3919,7 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
     ...durationExtraBlocks,
   ];
 
-  const hasAnyDurationBlocks = allDurationBlocksForDay.length > 0;
+
 
     // Recovery blocks (planned + extra for this day)
   const recoveryPlannedBlocks = plannedBlocksForSelectedDay.filter(
@@ -3954,7 +3955,7 @@ const allTasksBlocksForDay = [
   ...tasksExtraBlocks,
 ];
 
-const hasAnyTasksBlocks = allTasksBlocksForDay.length > 0;
+
 
 // Structured Session blocks. Once a daily snapshot exists it is authoritative;
 // before the first Start tap we fall back to the lightweight weekly Plan reference.
@@ -3970,7 +3971,7 @@ const allSessionBlocksForDay = sessionBlocksFromLog.length
   ? sessionBlocksFromLog
   : sessionPlannedBlocks;
 
-const hasAnySessionBlocks = allSessionBlocksForDay.length > 0;
+
 
 function getLogBlockFocusState(block) {
   if (!block) return { resolved: true, complete: false, cancelled: false, suspended: false };
@@ -4042,14 +4043,18 @@ function getLogBlockFocusState(block) {
   return { resolved: complete, complete, cancelled: false, suspended: false };
 }
 
-const focusBlockSequence = (() => {
-  const planned = (plannedBlocksForSelectedDay || []).filter(Boolean);
-  const seen = new Set(planned.map((block) => block?.id).filter(Boolean));
-  const extras = (Array.isArray(logForDay?.blocks) ? logForDay.blocks : []).filter(
-    (block) => block?.isExtra && block?.id && !seen.has(block.id)
-  );
-  return [...planned, ...extras];
-})();
+// Resolve each block through its existing logger source, then use the Plan's
+// mixed block order for both DOM rendering and next-incomplete navigation.
+const logBlockGroups = {
+  strength: allStrengthBlocksForDay,
+  session: allSessionBlocksForDay,
+  cardio: allCardioBlocksForDay,
+  recovery: allRecoveryBlocksForDay,
+  duration: allDurationBlocksForDay,
+  tasks: allTasksBlocksForDay,
+};
+const orderedLogBlocks = orderLogBlocks(plannedBlocksForSelectedDay, logBlockGroups);
+const focusBlockSequence = orderedLogBlocks.map(({ block }) => block);
 
 const firstIncompleteFocusBlockId =
   focusBlockSequence.find((block) => !getLogBlockFocusState(block).resolved)?.id || "";
@@ -9763,12 +9768,8 @@ const cardioProgress = useMemo(() => {
 
                                {/* --- V3 block-based logging panels --- */}
 
-                {/* Strength / HIIT / Box blocks log */}
-                {hasAnyStrengthBlocks && (
-                  <div className="panel mt16">
-                    <div className="logBlockTypeTitle">Strength / HIIT</div>
-
-                    {allStrengthBlocksForDay.map((block) => {
+{orderedLogBlocks.map(({ block, kind }) => {
+if (kind === "strength") {
                       const blockLog = getBlockLog(logForDay, block.id) || {};
                       const isCancelled = !!blockLog.cancelled;
                       const isSuspended =
@@ -9823,6 +9824,9 @@ const cardioProgress = useMemo(() => {
                         : `${movements.length} movement${movements.length === 1 ? "" : "s"} · ${totalCompletedSets}/${plannedSetCount} sets logged`;
 
                       return (
+<div key={block.id} className="panel mt16">
+<div className="logBlockTypeTitle">Strength / HIIT</div>
+
   <FocusedLogBlock
           key={block.id}
           onInteract={() => setFocusedLogBlockId(block.id)}
@@ -10157,17 +10161,11 @@ const cardioProgress = useMemo(() => {
                           </div>
     
   </FocusedLogBlock>
+</div>
                       );
-                    })}
-                  </div>
-                )}
-              
-{/* Structured Session blocks log */}
-{hasAnySessionBlocks && (
-  <div className="panel mt16 session-log-panel">
-    <div className="logBlockTypeTitle">Session</div>
 
-    {allSessionBlocksForDay.map((block) => {
+}
+if (kind === "session") {
       const blockLog = getBlockLog(logForDay, block.id) || block || {};
       const isCancelled = !!blockLog.cancelled;
       const isSuspended =
@@ -10207,6 +10205,9 @@ const cardioProgress = useMemo(() => {
         : "Ready to start";
 
       return (
+<div key={block.id} className="panel mt16 session-log-panel">
+<div className="logBlockTypeTitle">Session</div>
+
         <FocusedLogBlock
           key={block.id}
           onInteract={() => setFocusedLogBlockId(block.id)}
@@ -10270,17 +10271,11 @@ const cardioProgress = useMemo(() => {
             />
           </div>
         </FocusedLogBlock>
+</div>
       );
-    })}
-  </div>
-)}
 
-{/* Cardio blocks log */}
-{hasAnyCardioBlocks && (
-  <div className="panel mt16">
-    <div className="logBlockTypeTitle">Cardio</div>
-
-    {allCardioBlocksForDay.map((block) => {
+}
+if (kind === "cardio") {
       const blockLog = getBlockLog(logForDay, block.id) || {};
       const isCancelled = !!blockLog.cancelled;
       const isSuspended =
@@ -10338,6 +10333,9 @@ const cardioProgress = useMemo(() => {
         : block.targetText?.trim() || (distanceHidden ? "Time to log" : "Distance + time to log");
 
       return (
+<div key={block.id} className="panel mt16">
+<div className="logBlockTypeTitle">Cardio</div>
+
         <FocusedLogBlock
           key={block.id}
           onInteract={() => setFocusedLogBlockId(block.id)}
@@ -10460,19 +10458,11 @@ const cardioProgress = useMemo(() => {
             />
           </div>
           </FocusedLogBlock>
+</div>
         );
-      })}
-  </div>
-)}
 
-{/* Recovery blocks log */}
-{hasAnyRecoveryBlocks && (
-  <div className="panel mt16">
-    <div className="logBlockTypeTitle">
-      {profileRecoveryModeActive ? "Recovery mode" : "Recovery"}
-    </div>
-
-    {allRecoveryBlocksForDay.map((block) => {
+}
+if (kind === "recovery") {
       const blockLog = getBlockLog(logForDay, block.id) || block || {};
       const isCancelled = !!blockLog.cancelled;
       const isProfileRecovery = isProfileRecoveryLogBlock(blockLog);
@@ -10508,6 +10498,9 @@ const cardioProgress = useMemo(() => {
         : "Recovery to complete";
 
       return (
+<div key={block.id} className="panel mt16">
+<div className="logBlockTypeTitle">{profileRecoveryModeActive ? "Recovery mode" : "Recovery"}</div>
+
         <FocusedLogBlock
           key={block.id}
           onInteract={() => setFocusedLogBlockId(block.id)}
@@ -10625,17 +10618,11 @@ const cardioProgress = useMemo(() => {
             </>
           )}
         </FocusedLogBlock>
+</div>
       );
-    })}
-  </div>
-)}
-              
-{/* Duration blocks log */}
-{hasAnyDurationBlocks && (
-  <div className="panel mt16">
-    <div className="logBlockTypeTitle">Duration</div>
 
-    {allDurationBlocksForDay.map((block) => {
+}
+if (kind === "duration") {
       const blockLog = getBlockLog(logForDay, block.id) || {};
       const isCancelled = !!blockLog.cancelled;
       const isSuspended =
@@ -10660,6 +10647,9 @@ const cardioProgress = useMemo(() => {
         : "Minutes to log";
 
       return (
+<div key={block.id} className="panel mt16">
+<div className="logBlockTypeTitle">Duration</div>
+
           <FocusedLogBlock
           key={block.id}
           onInteract={() => setFocusedLogBlockId(block.id)}
@@ -10721,21 +10711,11 @@ const cardioProgress = useMemo(() => {
               />
             </div>
           </FocusedLogBlock>
+</div>
         );
-      })}
 
-    <div className="muted mt8">
-      Good for Pilates, yoga, mobility, etc.
-    </div>
-  </div>
-)}
-
-{/* Tasks blocks log */}
-{hasAnyTasksBlocks && (
-  <div className="panel mt16">
-    <div className="logBlockTypeTitle">Tasks</div>
-
-    {allTasksBlocksForDay.map((block) => {
+}
+if (kind === "tasks") {
       const blockLog = getBlockLog(logForDay, block.id) || {};
       const tasksDone = blockLog.tasksDone || {};
       const label = block.label || "Tasks block";
@@ -10748,6 +10728,9 @@ const cardioProgress = useMemo(() => {
         : "No tasks configured";
 
       return (
+<div key={block.id} className="panel mt16">
+<div className="logBlockTypeTitle">Tasks</div>
+
         <FocusedLogBlock
           key={block.id}
           onInteract={() => setFocusedLogBlockId(block.id)}
@@ -10853,11 +10836,13 @@ const cardioProgress = useMemo(() => {
             </div>
           )}
         </FocusedLogBlock>
+</div>
       );
-    })}
-  </div>
-)}
-              
+
+}
+return null;
+})}
+
 {/* Extra movements + One-off activities (legacy, still useful) */}
 <div className="stack mt16">
   {!profileRecoveryModeActive && recoveryRecommendationToday?.recommended && !selectedDayHasRecoveryBlock && (

@@ -382,3 +382,27 @@ describe('versioned log conflict review',()=>{
     expect(db.upsertLog.mock.calls[2][4].expectedVersion).toBe(5);
   });
 });
+
+
+describe("mixed planned block order in the actual Log", () => {
+  it.each(["2026-10-06", "2026-10-07"])("keeps cardio before Sessions on %s", async (date) => {
+    sessionStorage.setItem("wt_log_navigation_v1", JSON.stringify({ tab: "log", date }));
+    const data = await defaultPlanRead("family", "paul");
+    const cardio = { id: "football", typeId: "cardio", label: "Football training" };
+    const session = { id: "skills", typeId: "session", label: "Football skills", sessionTemplateId: "skills-template" };
+    const cooldown = { id: "cooldown", typeId: "cardio", label: "Easy cooldown" };
+    const blocksByWeekday = Object.fromEntries(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => [day, [cardio, session, cooldown]]));
+    const plan = structuredClone(data.data.plan_json);
+    plan.blocksByWeekday = blocksByWeekday;
+    plan.program.phases[0].weeks[0].blocksByWeekday = blocksByWeekday;
+    vi.mocked(db.getProfilePlan).mockResolvedValue({ data: { plan_json: plan } });
+    render(<App />);
+    await screen.findByText("Football training");
+    await waitFor(() => expect(Array.from(document.querySelectorAll(".focusedLogBlockTitle"), el => el.textContent))
+      .toEqual(["Football training", "Football skills", "Easy cooldown"]));
+    const summary = screen.getByRole("button", { name: /Football skills/ });
+    fireEvent.click(summary);
+    expect(await screen.findByRole("button", { name: "Start Session" })).toBeTruthy();
+    expect(summary.getAttribute("aria-expanded")).toBe("true");
+  });
+});
