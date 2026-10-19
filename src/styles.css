@@ -2266,3 +2266,27 @@ button.btn.primary:hover{
 .masteryDisclosureStatus>span{font-size:24px;min-width:20px;text-align:center}
 .masteryDisclosureToggle:focus-visible{outline:2px solid #f59e0b;outline-offset:5px;border-radius:4px}
 @media(max-width:480px){.masteryDisclosureStatus{max-width:110px;white-space:normal;gap:8px}}
+
+/* Native selects otherwise size themselves to the longest Session name. */
+.session-plan-block-editor,
+.session-plan-block-editor > div,
+.session-plan-block-editor__summary,
+.session-plan-block-editor__summary .row > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.session-plan-block-editor select,
+.session-plan-block-editor input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.session-plan-block-editor select {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.session-plan-block-editor__summary {
+  overflow-wrap: anywhere;
+}
