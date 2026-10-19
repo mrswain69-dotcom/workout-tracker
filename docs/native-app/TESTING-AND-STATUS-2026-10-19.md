@@ -4,6 +4,12 @@
 
 ## Today's changes
 
+Latest recovery integration: live main `601ab1a6e069e3d5904af3861050a49ecbb0ae28` (PRs #147 and #148) is included in native runtime `2cad51432d461a1d9388cd5bbbc380bf0a5304a1`. The recommended recovery button now creates and focuses its block, completion persists after navigation, and removing/cancelling recommended recovery restores unstarted planned training. Recorded work and one-day extras are retained. Sessions remain available, including Sessions previously paused by recommended recovery; injury/illness pauses remain in place. Existing native saving/conflict protections are retained. No database or Edge Function changes were required.
+
+Recovery update validation: **248 files / 1,525 tests passed**, plus the web build. Fresh native build results: https://github.com/mrswain69-dotcom/workout-tracker/pull/144/checks (select the latest run for this branch). Build jobs are queued and updated installers are pending; the artifact IDs and launch evidence below describe the preceding candidate, not this recovery update.
+
+### Earlier candidate evidence
+
 Integrated live main `cb12d98e14516ece42ae675fd2d50e42b68e4a88` (PR #146): long Session names stay within the mobile Plan editor, and mixed Log blocks follow Plan order, including cardio before Sessions and repeated block types. The ordering helper retains existing frozen Session data and one-day extras.
 
 Resolved append conflicts by keeping both the native safe-area/conflict styles and the new Session sizing styles, plus both the pending-draft/conflict tests and mixed-order tests. Existing native saving and cross-device refresh protections are retained. A pre-existing local-hour badge fixture was corrected to create 06:00 in the runner's local timezone; its UTC timestamp was 07:00 in British summer time. Badge rules were not changed.
@@ -79,6 +85,7 @@ Use disposable synthetic accounts on the isolated backend. Record device, OS, bu
 5. Edit the same day on two devices. Check conflict review, both user choices, subsequent edits and no duplicate rewards.
 6. Switch athlete/account, sign out and sign back in. Other accounts must not receive pending drafts or private records.
 7. Exercise plans/programmes, recovery, assessments, history/PBs, rewards/avatars, learning, groups, sharing and optional integrations against the current feature inventory.
+   For recommended recovery, add the suggested block, mark it complete, navigate away/back, undo completion, and remove it. Confirm unstarted planned training pauses/restores, recorded work remains, and Sessions stay available. Injury/illness pauses should remain unchanged.
 8. Verify deletion with a disposable account, including local drafts and an already-open second session. Do not delete a real account for testing.
 
 Plans, programmes, groups, assessments and integrations are not promised to work fully offline. Durable offline retry in this build covers supported day workout logs.

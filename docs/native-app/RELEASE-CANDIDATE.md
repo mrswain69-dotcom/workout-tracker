@@ -4,6 +4,10 @@ Updated 19 October 2026. Repository: `mrswain69-dotcom/workout-tracker`, draft P
 
 ## Latest integration — 19 October
 
+Recovery update: runtime `2cad51432d461a1d9388cd5bbbc380bf0a5304a1` integrates main `601ab1a6` (PRs #147/#148). Recommended recovery can be added, focused and completed with persistence after navigation; Sessions remain available. Unstarted planned training pauses only for that date, while recorded work/extras and injury/illness rules are preserved. Native saving/conflict protections remain in place. **248 files / 1,525 tests and the web build passed locally.** No database/Edge Function changes were needed. [Fresh CI checks](https://github.com/mrswain69-dotcom/workout-tracker/pull/144/checks) are queued (use the latest branch run); updated installers remain pending; earlier build evidence below is not evidence for this recovery runtime.
+
+### Earlier candidate evidence
+
 See [today's access and testing guide](TESTING-AND-STATUS-2026-10-19.md). Native runtime `a9baa0b578c1cbb9dd70a5d43548d55677970b08` includes live main `cb12d98` (PR #146): mobile Session sizing and mixed Plan/Log block ordering. Native safe-area, pending-draft and conflict protections are retained. Local validation passed **247 files / 1,517 tests** and the web build. The existing local-hour badge fixture also passed under UTC and Europe/London after making its test timestamp local; product reward rules were unchanged.
 
 [CI run 39271828352](https://github.com/mrswain69-dotcom/workout-tracker/actions/runs/39271828352) passed all four jobs, including Android APK/AAB builds, native-bundle checks, zero-vulnerability audit, and iOS Simulator compile/install/launch. The current [launch screenshot](evidence/ios-launch-20261019.png) was visually inspected; its [metadata](evidence/ios-launch-20261019.json) records the fresh signed-out scope. The detailed prior evidence below remains tied to older commits; use today's guide for current artifacts. Vercel still redirected the controlled browser to login on 19 October, so staging browser/Auth acceptance remains open and no settings were changed in that attempt.
