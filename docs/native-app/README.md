@@ -2,7 +2,7 @@
 
 This directory records implementation of the Native App Build Plan v1.0 (17 October 2026). Preserve current web features as free; no billing or paid access is enabled by this change.
 
-See [RELEASE-CANDIDATE.md](RELEASE-CANDIDATE.md) for current build status and the remaining owner/access steps.
+Start with [TESTING-AND-STATUS-2026-10-19.md](TESTING-AND-STATUS-2026-10-19.md) for current device access, installation steps and remaining owner actions. [RELEASE-CANDIDATE.md](RELEASE-CANDIDATE.md) retains detailed build evidence and release gates.
 
 ## Build chunks
 
@@ -27,9 +27,9 @@ For CI/configuration smoke tests only, run `NATIVE_SHELL_ONLY=1 npm run native:s
 
 ## Platform requirements and ownership
 
-The generated Capacitor 8 projects target Android SDK 36 (minimum 24) and iOS 15 or later. Use the current supported Android Studio/Java and Xcode versions from Capacitor documentation; Android debug compilation passed in GitHub CI (see chunk 02); unsigned iOS simulator compilation also passed in chunk 03. Signed physical-device builds and device behavior remain unverified. Android development currently requires Java 21, beyond the available Java 17 installation. iOS requires macOS/Xcode. Keep signing keys and certificates in secure storage owned by the publisher. Do not commit signing files.
+The generated Capacitor 8 projects target Android SDK 36 (minimum 24) and iOS 15 or later. Use the current supported Android Studio/Java and Xcode versions from Capacitor documentation; Android debug compilation passed in GitHub CI (see chunk 02); unsigned iOS simulator compilation also passed in chunk 03. Signed physical-device builds and device behavior remain unverified. Android development requires Java 21, as used by the hosted CI builds. iOS requires macOS/Xcode. Keep signing keys and certificates in secure storage owned by the publisher. Do not commit signing files.
 
-The templates still have default Capacitor app icons/splash screens and provisional version identifiers. Replace and review these before beta distribution. Native back navigation handles modal dismissal, Dashboard return and minimising; verify actual platform behaviour on both devices.
+Platform icons and splash screens now use the existing orange Workout Tracker mark. Version 0.1.0 and final publisher identifiers still require review before store registration. Native back navigation handles modal dismissal, Dashboard return and minimising; verify actual platform behaviour on both devices.
 
 ## Saving scope
 

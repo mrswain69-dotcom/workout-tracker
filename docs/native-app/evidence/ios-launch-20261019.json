@@ -1,0 +1,7 @@
+{
+  "device": "iPhone 17 Pro",
+  "runtime": "26.2",
+  "appId": "io.workouttrackerapp.app.staging",
+  "launch": "io.workouttrackerapp.app.staging: 9145",
+  "scope": "Fresh signed-out launch only; no account journey verified"
+}
