@@ -13,6 +13,7 @@ import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./eng
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
 import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
 import MovementCompletion from "./components/log/MovementCompletion.jsx";
+import { applyRecommendedRecoveryDay } from "./engine/recommendedRecoveryDay.js";
 import { orderLogBlocks } from "./engine/logBlockOrder.js";
 import FocusedLogBlock from "./components/log/FocusedLogBlock.jsx";
 import ActivityCalendar from "./components/log/ActivityCalendar.jsx";
@@ -6849,7 +6850,7 @@ function stampLogTiming(prevLog, nextLog) {
   // Resolve newly planned Session blocks into immutable definition snapshots.
   // Normal keystroke edits already have their snapshot and therefore stay fully
   // optimistic; this async hydration path is only needed on first Session use.
-  let preparedLog = nextLog ? { ...nextLog } : null;
+  let preparedLog = nextLog ? applyRecommendedRecoveryDay(nextLog) : null;
 
 
   const previousLatest =
@@ -7396,7 +7397,7 @@ targetText:
       : "",
   };
 
-  return { ...baseLog, meta: nextMeta, blocks: mergedBlocks };
+  return applyRecommendedRecoveryDay({ ...baseLog, meta: nextMeta, blocks: mergedBlocks });
 }
 
 // --- Per-block log helpers (Plan V2, Stage 2) ---
@@ -7817,7 +7818,6 @@ async function updateCardioForBlock(blockId, cardioPatch) {
     });
 
     await saveLog(next);
-    setLogForDay(next);
 
     if (ctx && recoveryDone) playBling(ctx, 1, victoryTheme);
   }
@@ -7862,7 +7862,6 @@ async function toggleBlockCancelled(blockId, cancelled) {
 
   const next = updateBlockLog(base, blockId, { cancelled });
   await saveLog(next);
-  setLogForDay(next);
 }
 
   async function updateStrengthSetsForMovement(
@@ -8384,8 +8383,13 @@ async function addExtraRecoveryBlockForToday(draft) {
     ? baseLog.blocks.slice()
     : [];
 
+  if (draft?.systemRecommended && existingBlocks.some(block =>
+    block?.typeId === "recovery" && block.systemRecommended && !block.cancelled
+  )) return;
+
   const newBlock = {
     id: uid(),
+    systemRecommended: !!draft?.systemRecommended,
     typeId: "recovery",
     isExtra: true,
     label: name,
@@ -8408,7 +8412,7 @@ async function addExtraRecoveryBlockForToday(draft) {
     blocks: [...existingBlocks, newBlock],
   };
 
-  setFocusedLogBlockId(blockId);
+  setFocusedLogBlockId(newBlock.id);
   await saveLog(nextLog);
 }
 
@@ -10604,10 +10608,14 @@ return null;
       {recoveryRecommendationToday.consecutiveTrainingBefore === 1 ? "" : "s"}
       {" "}• recent load {recoveryRecommendationToday.weightedLoad.totalLoad}
     </div>
+    <div className="muted mt8">
+      This replaces unstarted planned training for today.
+    </div>
     <div className="mt8">
       <PrimaryButton
         onClick={async () => {
           await addExtraRecoveryBlockForToday({
+            systemRecommended: true,
             name: "Recovery",
             recoveryMode: "full",
             plannedMinutes: "",
