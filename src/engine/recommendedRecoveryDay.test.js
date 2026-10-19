@@ -35,3 +35,31 @@ describe('recommended recovery replaces only unstarted planned training', () => 
     expect(applyRecommendedRecoveryDay({ blocks: [paused, recovery] }).blocks[0]).toBe(paused);
   });
 });
+
+
+describe('Sessions on recommended recovery days', () => {
+  it('keeps planned Sessions active while strength and cardio stay paused', () => {
+    const session = { id: 'skills', typeId: 'session', sessionTemplateId: 'skills' };
+    const cardio = { id: 'run', typeId: 'cardio' };
+    const next = applyRecommendedRecoveryDay({ blocks: [strength, cardio, session, recovery] });
+    expect(next.blocks[0].suspendedByRecoveryMode).toBe(true);
+    expect(next.blocks[1].suspendedByRecoveryMode).toBe(true);
+    expect(next.blocks[2]).toBe(session);
+  });
+  it('unpauses Sessions saved before the exemption without losing results', () => {
+    const session = { id: 'skills', typeId: 'session', suspendedByRecommendedRecovery: true,
+      suspendedByRecoveryMode: true, suspendedByRecoveryReason: 'recommended-recovery',
+      session: { movements: [{ id: 'touch', result: 12 }] } };
+    const next = applyRecommendedRecoveryDay({ blocks: [session, recovery] });
+    expect(next.blocks[0].suspendedByRecoveryMode).toBe(false);
+    expect(next.blocks[0].suspendedByRecommendedRecovery).toBe(false);
+    expect(next.blocks[0].session).toBe(session.session);
+  });
+  it('keeps injury and illness Session pauses in place', () => {
+    for (const mode of ['injury', 'illness']) {
+      const session = { id: 'skills', typeId: 'session', suspendedByRecoveryMode: true,
+        suspendedByRecoveryReason: mode };
+      expect(applyRecommendedRecoveryDay({ meta: { profileRecoveryMode: mode }, blocks: [session, recovery] }).blocks[0]).toBe(session);
+    }
+  });
+});

@@ -1,9 +1,10 @@
 import { blockHasRecordedActivity } from './activityCalendarEngine.js';
 
-const TRAINING_TYPES = new Set(['strength', 'hiit', 'box', 'cardio', 'run', 'swim', 'walk', 'row', 'cycle', 'bike', 'duration', 'session']);
+const TRAINING_TYPES = new Set(['strength', 'hiit', 'box', 'cardio', 'run', 'swim', 'walk', 'row', 'cycle', 'bike', 'duration']);
 
 // A system-recommended recovery replaces unstarted planned training for this
-// date only. Keep recorded work and user-added extras; never edit the Plan.
+// date only. Sessions stay available. Keep recorded work and user-added extras;
+// never edit the Plan.
 export function applyRecommendedRecoveryDay(log) {
   if (!log || !Array.isArray(log.blocks)) return log;
   const active = log.blocks.some(block => block?.typeId === 'recovery' && block.systemRecommended && !block.cancelled);

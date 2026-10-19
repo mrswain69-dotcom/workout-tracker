@@ -10609,7 +10609,7 @@ return null;
       {" "}• recent load {recoveryRecommendationToday.weightedLoad.totalLoad}
     </div>
     <div className="muted mt8">
-      This replaces unstarted planned training for today.
+      This replaces unstarted planned training for today. Sessions stay available.
     </div>
     <div className="mt8">
       <PrimaryButton
