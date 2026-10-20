@@ -96,7 +96,14 @@
   background:#fff;
   box-shadow:0 8px 22px rgba(15,23,42,.04);
 }
-.dashboardCard--today{grid-column:1/-1}
+.dashboardCard--today{
+  grid-column:1/-1;
+  border-color:#f3d5bc;
+  background:linear-gradient(135deg,#fff1e5,#fffaf5);
+}
+.dashboardCard--today .dashboardCard__kicker{color:#9a4b1b}
+.dashboardCard--today .dashboardPlanItem,
+.dashboardCard--today .dashboardEmpty{background:rgba(255,255,255,.78)}
 .dashboardCard--reward{border-color:rgba(255,122,24,.20);background:rgba(255,122,24,.035)}
 .dashboardCard__head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .dashboardStatus{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:900}
