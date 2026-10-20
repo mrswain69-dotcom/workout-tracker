@@ -5,6 +5,15 @@ const changeDate = new Date(`${XP_RULES_ACTIVATION_DATE}T00:00:00Z`).toLocaleDat
 
 export default function XpRulesInfo() {
   return <div className="stack mt8 mini xpRulesInfo">
+    <div><b>What is XP?</b> XP means experience points. Recorded activity, plan completion and personal progress earn points that unlock levels, avatars and other rewards. XP is a motivation tool, not a direct measure of fitness.</div>
+    <div><b>Earned, Bonus and Total XP:</b> Earned XP comes from activity and progress. Bonus XP comes from claimed rewards and awards. Total XP combines both. You can track personal progress without joining a group or competing.</div>
+    <details>
+      <summary>How plan streaks work</summary>
+      <p>A streak is a run of completed days. With your dated plan schedule, genuinely unplanned rest days pause the count without increasing or breaking it. A missed planned day resets it; today does not reset early while there is still time to finish.</p>
+      <p>Completed eligible recovery, illness or injury days and a valid streak saver can count. You do not need hard exercise every day. An unfinished planned recovery day does not automatically count.</p>
+      <p>For example: complete Monday’s plan, leave Tuesday as an unplanned rest day, and complete Wednesday’s plan. That is a two-day streak across those three calendar days.</p>
+      <p>Older history without dated plan schedules keeps its original consecutive-calendar-day calculation. Streak milestone points are listed below.</p>
+    </details>
     <p className="xpRulesChange"><b>Revised rules from {changeDate}</b><br/>Earlier activity dates keep their previous XP rules, including when you edit an older log. Your existing XP and reward unlocks carry forward.</p>
     <div><b>Strength / HIIT / Box:</b> +2 XP per recorded set, plus +5 XP for the first logged Strength category that day. More Strength blocks add set XP without repeating the +5.</div>
     <div><b>Cardio:</b> +1 XP per 2 minutes and +1 XP per 0.5 km, plus one +5 category award per day. Minutes and distance are added across blocks before rounding up. Walking earns 60% of the cardio rate; in mixed days only the walking work is discounted. A walking-only category award is +3 XP.</div>

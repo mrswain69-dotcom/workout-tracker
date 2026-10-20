@@ -8,6 +8,7 @@ import MasteryDisclosure from "./components/rewards/MasteryDisclosure.jsx";
 import SportMasteryCollections from "./components/rewards/SportMasteryCollections.jsx";
 import { claimMasterySequence } from "./engine/masteryClaimSequence.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import InfoHint from "./components/InfoHint.jsx";
 import { PwaInstallSettings, PwaInstallReminder } from './components/settings/PwaInstall.jsx';
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
 import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
@@ -12265,7 +12266,7 @@ return null;
 
           <div className="rewardsXpBreakdown" aria-label="XP breakdown">
             <div className="rewardsXpTotal">
-              <span>Total XP</span>
+              <span>Total XP<InfoHint label="XP">XP means experience points. Total XP combines points earned from activity with bonus points from claimed rewards. Expand “How you earn XP” below for details.</InfoHint></span>
               <strong>{lifetimeXpBreakdown.total.toLocaleString("en-GB")}</strong>
             </div>
             <div className="rewardsXpSplit">
@@ -12287,7 +12288,7 @@ return null;
 
       <div className="panel mt12">
         <div className="rowBetween">
-          <div className="h3">Current Plan Streak</div>
+          <div className="h3">Current Plan Streak<InfoHint label="Plan streak">Your run of completed plan days. Eligible recovery and streak savers can count. Unplanned rest days pause the count; a missed planned day resets it.</InfoHint></div>
           <div
             style={{
               width: 12,
@@ -12915,7 +12916,7 @@ return null;
             {tab === "settings" && (
             <Card className="pad" style={{ gridColumn: "1 / -1" }}>
               <div ref={peopleRef} />
-              <div className="h2">People on this account</div>
+              <div className="h2">People on this account<InfoHint label="profiles">A profile is the person whose plan, logs and progress you track. Its name can be a first name or nickname. “Athlete” is only the default name, not a separate account type. Rename it below.</InfoHint></div>
               <div className="stack mt12">
                 {profiles.map((p) => (
                   <div key={p.id} className="panel">
@@ -12924,7 +12925,7 @@ return null;
                       <div className="tabs">
                         <SecondaryButton
                           onClick={async () => {
-                            const name = prompt("Rename profile:", p.name);
+                            const name = prompt("Person’s name or nickname:", p.name);
                             if (!name) return;
                             if (!(await ensureUnlocked("rename a profile"))) return;
                             await renameProfile(p.id, name.trim());
@@ -13109,7 +13110,7 @@ return null;
                 <div className="h3">Add profile</div>
                 <SecondaryButton
                   onClick={async () => {
-                    const name = prompt("Profile name?");
+                    const name = prompt("Person’s name or nickname?");
                     if (!name) return;
                     if (!(await ensureUnlocked("add a profile"))) return;
                     await addProfile(family.id, name.trim(), blankPlanForNewProfile());
