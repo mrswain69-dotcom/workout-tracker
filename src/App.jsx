@@ -12301,8 +12301,9 @@ return null;
             }}
           />
         </div>
-        <div className="bigNumber mt8">
-          {currentPlanStreak} day{currentPlanStreak === 1 ? "" : "s"}
+        <div className="rewardsPlanStreakValue mt8" aria-label={`${currentPlanStreak} day${currentPlanStreak === 1 ? "" : "s"}`}>
+          <strong>{currentPlanStreak}</strong>
+          <span>day{currentPlanStreak === 1 ? "" : "s"}</span>
         </div>
       </div>
 
