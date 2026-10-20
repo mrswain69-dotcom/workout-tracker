@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import PublicLegalPage, { publicLegalPage } from './components/legal/PublicLegalPage.jsx'
 import './styles.css'
 import './groups/GroupHub.css'
 import './groups/GroupMobilePolish.css'
@@ -41,11 +42,12 @@ function armGroupJoinDeepLink() {
   window.addEventListener('beforeunload', () => observer.disconnect(), { once: true })
 }
 
+const legalPage = publicLegalPage(window.location.pathname)
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    {legalPage ? <PublicLegalPage page={legalPage} /> : <App />}
   </React.StrictMode>,
 )
 
-armGroupJoinDeepLink()
+if (!legalPage) armGroupJoinDeepLink()
 registerServiceWorkerUpdates()
