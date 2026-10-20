@@ -2,7 +2,7 @@
 
 This directory records implementation of the Native App Build Plan v1.0 (17 October 2026). Preserve current web features as free; no billing or paid access is enabled by this change.
 
-Start with [TESTING-AND-STATUS-2026-10-19.md](TESTING-AND-STATUS-2026-10-19.md) for current device access, installation steps and remaining owner actions. [RELEASE-CANDIDATE.md](RELEASE-CANDIDATE.md) retains detailed build evidence and release gates.
+Start with [TESTING-AND-STATUS-2026-10-20.md](TESTING-AND-STATUS-2026-10-20.md) for current device access, installation steps and remaining owner actions. [RELEASE-CANDIDATE.md](RELEASE-CANDIDATE.md) retains detailed build evidence and release gates.
 
 ## Build chunks
 

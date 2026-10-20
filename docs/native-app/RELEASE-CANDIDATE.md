@@ -1,6 +1,10 @@
 # Workout Tracker release candidate
 
-Updated 19 October 2026. Repository: `mrswain69-dotcom/workout-tracker`, draft PR #144. Public site: https://workouttrackerapp.io. Every existing feature remains free. Current native builds use isolated staging; no production rollout or store submission has been performed.
+Updated 20 October 2026. Repository: `mrswain69-dotcom/workout-tracker`, draft PR #144. Public site: https://workouttrackerapp.io. Every existing feature remains free. Current native builds use isolated staging; no production rollout or store submission has been performed.
+
+## Latest integration — 20 October
+
+See [the current handover](TESTING-AND-STATUS-2026-10-20.md) for today's complete PWA integration, build 2, Vite security patch, passing 1,561-test suite, corrected isolated Auth redirects and updated publisher-account progress. Runtime `96c6e8f4ab0da3b4a58876fab048b3fb56ecf92d` passed all four jobs in [CI run 39507362780](https://github.com/mrswain69-dotcom/workout-tracker/actions/runs/39507362780). Prior installers and Simulator evidence below remain historical and do not verify this runtime.
 
 ## Latest integration — 19 October
 
@@ -70,7 +74,7 @@ This is now a Vercel API/connection access blocker, separate from the earlier au
 
 ### 3. Publisher signing
 
-Paul confirmed on 18 October that Apple Developer and Google Play publisher account setup has **not started yet**. Enrolment/verification is therefore an open owner gate, not merely missing signing credentials. Start at https://developer.apple.com/programs/enroll/ and https://play.google.com/console/signup.
+Update 20 October: Paul has progressed both publisher accounts as far as verification permits. Apple enrolment is pending; Google organisation identity documents are under review, its website is verified and phone verification remains pending. Signing and store access remain open gates. Earlier notes stating enrolment was not started are historical.
 
 Confirm Apple Developer/Google Play account readiness and the publisher team/organization. Signing material stays in secure publisher-controlled storage. Apple Team ID, certificate/profile or approved App Store Connect signing integration is needed for a physical iPhone/TestFlight build. Android needs its publisher-owned upload key for store release. Do not paste private keys into chat.
 

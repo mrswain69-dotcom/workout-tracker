@@ -28,7 +28,7 @@ Workout Tracker is a training and progress tool. Readiness and performance infor
 
 ## URLs and contact
 
-These routes are implemented on the native feature branch. **Verify public production availability before submission**; do not mark them live based on source code or a local test alone.
+Update 20 October: PR #156 publishes these routes separately on production. All five return HTTP 200; Privacy and the external deletion request page were also checked in the browser without signing in. The support inbox and actual deletion request handling still need operator acceptance.
 
 | Field | Intended value |
 | --- | --- |
@@ -41,7 +41,7 @@ These routes are implemented on the native feature branch. **Verify public produ
 
 The external deletion request is an email workflow requiring a monitored support inbox, ownership verification and processing by the operator. It is not an automated web deletion API. In-app deletion remains the server-authorised, password-confirmed flow.
 
-Paul confirmed on 18 October that neither publisher account has been started. Enrolment and organisation verification must precede signed store distribution.
+Update 20 October: Paul has progressed both organisation accounts. Apple enrolment is pending; Google identity documents are under review, website verification is complete and phone verification remains pending. Signing, identifiers and access still require verification before store distribution.
 
 ## Owner information still required
 
