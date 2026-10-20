@@ -96,14 +96,21 @@
   background:#fff;
   box-shadow:0 8px 22px rgba(15,23,42,.04);
 }
-.dashboardCard--today{
-  grid-column:1/-1;
-  border-color:#f3d5bc;
-  background:linear-gradient(135deg,#fff1e5,#fffaf5);
-}
-.dashboardCard--today .dashboardCard__kicker{color:#9a4b1b}
-.dashboardCard--today .dashboardPlanItem,
-.dashboardCard--today .dashboardEmpty{background:rgba(255,255,255,.78)}
+.dashboardCard--today{grid-column:1/-1;padding:0;overflow:hidden;background:#f1f5f9;border-color:#cbd5e1}
+.dashboardCard--today.is-complete{background:#dcfce7;border-color:#86efac}
+.dashboardCard--today.is-partial{background:linear-gradient(135deg,#dcfce7 0%,#dcfce7 50%,#f1f5f9 50%,#f1f5f9 100%);border-color:#86efac}
+.dashboardCard--today.is-rest{background:#dbeafe;border-color:#93c5fd}
+.dashboardCard--today.is-illness{background:#ffedd5;border-color:#fdba74}
+.dashboardCard--today.is-cancelled{background:#fee2e2;border-color:#fca5a5}
+.dashboardCard--today.is-streak-saver{background:#fef3c7;border-color:#fde047}
+.dashboardToday__bar{display:flex;align-items:center;gap:8px;padding:6px 12px}
+.dashboardToday__toggle{display:flex;align-items:center;gap:9px;flex:1;min-width:0;min-height:44px;padding:5px 0;border:0;background:transparent;color:#334155;text-align:left;font:inherit;cursor:pointer}
+.dashboardToday__toggle:focus-visible{outline:2px solid #0f766e;outline-offset:3px;border-radius:4px}
+.dashboardToday__prompt{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 12px;font-size:12px}
+.dashboardToday__prompt strong{color:#0f172a;font-size:14px}
+.dashboardToday__bar>.btn{flex:0 0 auto;min-height:44px}
+.dashboardToday__details{padding:0 18px 18px}
+.dashboardCard--today .dashboardPlanItem,.dashboardCard--today .dashboardEmpty{background:rgba(255,255,255,.78)}
 .dashboardCard--reward{border-color:rgba(255,122,24,.20);background:rgba(255,122,24,.035)}
 .dashboardCard__head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .dashboardStatus{display:inline-flex;padding:5px 9px;border-radius:999px;font-size:11px;font-weight:900}
@@ -267,3 +274,5 @@
 .dashboardReadiness__details dl > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .dashboardReadiness__details dd { margin: 0; font-weight: 700; }
 .dashboardPlanItem__copy{min-width:0;display:grid;gap:4px;overflow-wrap:anywhere}.dashboardPlanItem__copy small{font-size:12px;line-height:1.45;color:#526477}.dashboardCard--today .dashboardCard__actions{margin-top:20px}.dashboardCard--today .btn-primary{min-height:46px}
+
+@media(max-width:520px){.dashboardCard--today{padding:0}.dashboardToday__bar{padding:5px 10px}.dashboardToday__prompt{display:grid;gap:2px}.dashboardToday__details{padding:0 15px 15px}}

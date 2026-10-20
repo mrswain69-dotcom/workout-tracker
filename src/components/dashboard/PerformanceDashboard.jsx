@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { loadVerifiedActivityData } from "../../verifiedActivityDb.js";
 import { listProfileGroups } from "../../groups/groupDb.js";
 import { listAssessmentSchedules } from "../../assessmentScheduleDb.js";
@@ -294,7 +294,15 @@ export default function PerformanceDashboard({
     return { count: statuses.length, actionCount, first };
   }, [remote.assessmentStatuses]);
 
-  const todayComplete = todayStatus === "green";
+  const [expandedWorkoutKey, setExpandedWorkoutKey] = useState("");
+  const workoutDetailsId = useId();
+  const workoutKey = `${profileId}:${todayYmd}`;
+  const workoutExpanded = expandedWorkoutKey === workoutKey;
+  const todayHistory = historyDays.find(day => day.dateYmd === todayYmd);
+  const statusLabels = { complete: "Complete", partial: "Partially complete", rest: "Rest day", illness: "Illness", cancelled: "Cancelled", "streak-saver": "Streak saved", none: "Not started" };
+  const fallbackKind = todayStatus === "green" ? "complete" : todayStatus === "blue" ? "rest" : "none";
+  const todayKind = Object.hasOwn(statusLabels, todayHistory?.kind) ? todayHistory.kind : fallbackKind;
+  const todayComplete = todayKind === "complete";
   const nextRewardValue = nextAvatarReward
     ? `${nextAvatarReward.unlockAtXp.toLocaleString("en-GB")} XP`
     : "Prestige reached";
@@ -304,17 +312,34 @@ export default function PerformanceDashboard({
 
   return (
     <main className="performanceDashboard" aria-label="Performance dashboard">
-      <section aria-label="Today’s workout">
-        <article className="dashboardCard dashboardCard--today">
-          <div className="dashboardCard__head">
-            <div>
-              <div className="dashboardCard__kicker">TODAY</div>
-              <h3>{profileName}’s plan</h3>
-            </div>
-            <span className={`dashboardStatus dashboardStatus--${todayComplete ? "complete" : "active"}`}>
-              {todayComplete ? "Complete" : "Active"}
-            </span>
+      <section className={`dashboardCoach dashboardCoach--${coach.tone}`}>
+        <div className="dashboardCoach__kicker">{coach.kicker}</div>
+        <h2>{coach.title}</h2>
+        <p>{coach.body}</p>
+        {(motivationLine || healthTip) && (
+          <div className="dashboardCoach__secondary">
+            {motivationLine ? <span>{motivationLine}</span> : null}
+            {healthTip ? <span>{healthTip}</span> : null}
           </div>
+        )}
+      </section>
+
+
+
+      <section aria-label="Today’s workout">
+        <article className={`dashboardCard dashboardCard--today is-${todayKind}`}>
+          <div className="dashboardToday__bar">
+            <button type="button" className="dashboardToday__toggle" aria-expanded={workoutExpanded}
+              aria-controls={workoutDetailsId} onClick={() => setExpandedWorkoutKey(workoutExpanded ? "" : workoutKey)}>
+              <span className="dashboardToday__chevron" aria-hidden="true">{workoutExpanded ? "▾" : "▸"}</span>
+              <span className="dashboardToday__prompt"><strong>Today’s workout</strong><span>{statusLabels[todayKind]} · {activeTodayBlocks.length ? "Follow your plan" : planIsBlank ? "Set up your plan" : "View your day"}</span></span>
+            </button>
+            <ActionButton onClick={activeTodayBlocks.length || !planIsBlank ? onOpenLog : onOpenPlan}>
+              {activeTodayBlocks.length || !planIsBlank ? todayComplete ? "Review log" : "Open log" : "Build plan"}
+            </ActionButton>
+          </div>
+          <div id={workoutDetailsId} hidden={!workoutExpanded} className="dashboardToday__details">
+            <h3>{profileName}’s plan</h3>
 
           {activeTodayBlocks.length ? (
             <div className="dashboardPlanList">
@@ -351,22 +376,9 @@ export default function PerformanceDashboard({
               </>
             )}
           </div>
+          </div>
         </article>
       </section>
-      <section className={`dashboardCoach dashboardCoach--${coach.tone}`}>
-        <div className="dashboardCoach__kicker">{coach.kicker}</div>
-        <h2>{coach.title}</h2>
-        <p>{coach.body}</p>
-        {(motivationLine || healthTip) && (
-          <div className="dashboardCoach__secondary">
-            {motivationLine ? <span>{motivationLine}</span> : null}
-            {healthTip ? <span>{healthTip}</span> : null}
-          </div>
-        )}
-      </section>
-
-
-
       <section className="dashboardMetricGrid" aria-label="Current performance summary">
         <Metric
           label="Today"
