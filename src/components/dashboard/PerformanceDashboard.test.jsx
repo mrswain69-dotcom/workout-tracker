@@ -21,7 +21,12 @@ import PerformanceDashboard from "./PerformanceDashboard.jsx";
 afterEach(() => cleanup());
 
 describe("PerformanceDashboard recent activity calendar", () => {
-  it("renders the history directly after the coach and opens the selected date", () => {
+  it("keeps a one-day extra activity in today's primary workout", () => {
+    render(<PerformanceDashboard todayYmd="2026-10-20" logs={[{date_ymd:"2026-10-20",log:{blocks:[{id:"extra",typeId:"duration",label:"Yoga",isExtra:true,duration:{minutes:20}}]}}]} />);
+    expect(screen.getByRole("region",{name:"Today’s workout"}).textContent).toContain("Yoga");
+    expect(screen.getByRole("button",{name:"Start / continue today’s workout"})).toBeTruthy();
+  });
+  it("puts today's workout first and keeps history available below the summary", () => {
     const onOpenHistoryDate = vi.fn();
     const days = Array.from({ length: 14 }, (_, index) => ({
       dateYmd: `2026-10-${String(index + 1).padStart(2, "0")}`,
@@ -45,7 +50,9 @@ describe("PerformanceDashboard recent activity calendar", () => {
 
     const coach = screen.getByText("Today’s opportunity is clear.").closest("section");
     const history = screen.getByRole("region", { name: "Recent plan history" });
-    expect(coach?.nextElementSibling).toBe(history);
+    const dashboard = screen.getByRole("main", {name:"Performance dashboard"});
+    expect(dashboard.firstElementChild.getAttribute("aria-label")).toBe("Today’s workout");
+    expect(coach.compareDocumentPosition(history) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const xpCard = screen.getByText("Last week").closest(".dashboardMetric");
     expect(xpCard.textContent).toContain("This week0 XP");
     expect(xpCard.textContent).toContain("Last week1,250 XP");

@@ -7,6 +7,7 @@ import { buildAssessmentScheduleStatuses } from "../../engine/assessmentSchedule
 import { buildDashboardCoachInsight } from "../../engine/dashboardEngine.js";
 import BodyReadinessSummary from "./BodyReadinessSummary.jsx";
 import InfoHint from "../InfoHint.jsx";
+import { lastWorkoutComparison, lastRepeatableWorkout, workoutTargetText } from "../../engine/workoutComparisonEngine.js";
 import "./PerformanceDashboard.css";
 
 function formatDateTime(value) {
@@ -135,6 +136,7 @@ export default function PerformanceDashboard({
   totalXp = 0,
   nextAvatarReward = null,
   todayBlocks = [],
+  logs = [],
   planIsBlank = false,
   recoveryMode = "normal",
   motivationLine = "",
@@ -208,11 +210,15 @@ export default function PerformanceDashboard({
   }, [familyId, profileId, todayYmd]);
 
   const activeTodayBlocks = useMemo(
-    () =>
-      (Array.isArray(todayBlocks) ? todayBlocks : []).filter(
+    () => {
+      const planned = Array.isArray(todayBlocks) ? todayBlocks : [];
+      const row = logs.find(item => (item?.date_ymd || item?.date) === todayYmd);
+      const extras = (row?.log?.blocks || row?.log_json?.blocks || []).filter(block => block?.isExtra && !planned.some(item => item.id === block.id));
+      return [...planned,...extras].filter(
         (block) => block && !block.cancelled && !block.suspendedByRecoveryMode
-      ),
-    [todayBlocks]
+      );
+    },
+    [todayBlocks,logs,todayYmd]
   );
 
   const coach = buildDashboardCoachInsight({
@@ -298,6 +304,55 @@ export default function PerformanceDashboard({
 
   return (
     <main className="performanceDashboard" aria-label="Performance dashboard">
+      <section aria-label="Today’s workout">
+        <article className="dashboardCard dashboardCard--today">
+          <div className="dashboardCard__head">
+            <div>
+              <div className="dashboardCard__kicker">TODAY</div>
+              <h3>{profileName}’s plan</h3>
+            </div>
+            <span className={`dashboardStatus dashboardStatus--${todayComplete ? "complete" : "active"}`}>
+              {todayComplete ? "Complete" : "Active"}
+            </span>
+          </div>
+
+          {activeTodayBlocks.length ? (
+            <div className="dashboardPlanList">
+              {activeTodayBlocks.slice(0, 6).map((block, index) => {
+                const previous = lastWorkoutComparison({logs,before:todayYmd,block,movement:block.movements?.[0]});
+                const target = workoutTargetText(block);
+                return (
+                <div className="dashboardPlanItem" key={block.id || `${block.typeId}-${index}`}>
+                  <span className="dashboardPlanItem__dot" />
+                  <span className="dashboardPlanItem__copy"><strong>{blockLabel(block)}</strong>{target ? <small>Today: {target}</small> : null}{["strength","hiit","box","cardio","duration"].includes(block.typeId) ? <small>Last time{block.movements?.[0]?.name ? ` (${block.movements[0].name})` : ""}: {previous?.text || "Your first recorded session"}</small> : null}</span>
+                </div>
+              );})}
+              {activeTodayBlocks.length > 6 ? (
+                <div className="dashboardPlanMore">
+                  +{activeTodayBlocks.length - 6} more
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="dashboardEmpty">
+              <strong>Nothing planned today.</strong>
+              <span>{planIsBlank ? "Build your weekly schedule when you are ready." : "This is a rest day. It will not increase or break your streak."}</span>
+            </div>
+          )}
+
+          <div className="dashboardCard__actions">
+            {activeTodayBlocks.length ? (
+              <ActionButton onClick={onOpenLog} primary>{todayComplete ? "Review today’s workout" : "Start / continue today’s workout"}</ActionButton>
+            ) : (
+              <>
+                <ActionButton onClick={onOpenPlan} primary>Build my weekly plan</ActionButton>
+                <ActionButton onClick={onLogExtra}>Log an extra activity</ActionButton>
+                {lastRepeatableWorkout(logs,todayYmd) ? <ActionButton onClick={onOpenLog}>Repeat a previous workout</ActionButton> : null}
+              </>
+            )}
+          </div>
+        </article>
+      </section>
       <section className={`dashboardCoach dashboardCoach--${coach.tone}`}>
         <div className="dashboardCoach__kicker">{coach.kicker}</div>
         <h2>{coach.title}</h2>
@@ -310,7 +365,7 @@ export default function PerformanceDashboard({
         )}
       </section>
 
-      <RecentActivityCalendar key={profileId} days={historyDays} onOpenDate={onOpenHistoryDate} />
+
 
       <section className="dashboardMetricGrid" aria-label="Current performance summary">
         <Metric
@@ -342,52 +397,12 @@ export default function PerformanceDashboard({
         />
       </section>
 
+      <RecentActivityCalendar key={profileId} days={historyDays} onOpenDate={onOpenHistoryDate} />
+
       <BodyReadinessSummary readiness={bodyReadiness} onOpenLog={onOpenLog} />
 
       <section className="dashboardGrid">
-        <article className="dashboardCard dashboardCard--today">
-          <div className="dashboardCard__head">
-            <div>
-              <div className="dashboardCard__kicker">TODAY</div>
-              <h3>{profileName}’s plan</h3>
-            </div>
-            <span className={`dashboardStatus dashboardStatus--${todayComplete ? "complete" : "active"}`}>
-              {todayComplete ? "Complete" : "Active"}
-            </span>
-          </div>
 
-          {activeTodayBlocks.length ? (
-            <div className="dashboardPlanList">
-              {activeTodayBlocks.slice(0, 6).map((block, index) => (
-                <div className="dashboardPlanItem" key={block.id || `${block.typeId}-${index}`}>
-                  <span className="dashboardPlanItem__dot" />
-                  <span>{blockLabel(block)}</span>
-                </div>
-              ))}
-              {activeTodayBlocks.length > 6 ? (
-                <div className="dashboardPlanMore">
-                  +{activeTodayBlocks.length - 6} more
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="dashboardEmpty">
-              <strong>Nothing planned today.</strong>
-              <span>{planIsBlank ? "Build your weekly schedule when you are ready." : "This is a rest day. It will not increase or break your streak."}</span>
-            </div>
-          )}
-
-          <div className="dashboardCard__actions">
-            {activeTodayBlocks.length ? (
-              <ActionButton onClick={onOpenLog} primary>Open Today’s Log</ActionButton>
-            ) : (
-              <>
-                <ActionButton onClick={onOpenPlan} primary>Build my weekly plan</ActionButton>
-                <ActionButton onClick={onLogExtra}>Log an extra activity</ActionButton>
-              </>
-            )}
-          </div>
-        </article>
 
         <article className="dashboardCard">
           <div className="dashboardCard__kicker">THIS WEEK</div>
