@@ -339,7 +339,7 @@ export default function PerformanceDashboard({
         />
       </section>
 
-      <BodyReadinessSummary readiness={bodyReadiness} />
+      <BodyReadinessSummary readiness={bodyReadiness} onOpenLog={onOpenLog} />
 
       <section className="dashboardGrid">
         <article className="dashboardCard dashboardCard--today">
