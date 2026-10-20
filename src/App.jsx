@@ -1565,7 +1565,7 @@ function AuthScreen({ onAuthed }) {
         setMode("signin");
         setPw("");
         setMsg(
-          "Account created. Check your email and confirm your address, then come back here and sign in."
+          "Account created. Check your email and confirm your address, then come back here and sign in. You can confirm on another device; return to this phone or browser and enter your password to continue here."
         );
         return;
       }
@@ -1694,7 +1694,7 @@ function AuthScreen({ onAuthed }) {
                   </label>
                 ) : null}
                 <PrimaryButton disabled={busy} onClick={handleAuth}>
-                  {mode === "signup" ? "Create account" : "Sign in"}
+                  {mode === "signup" ? "Create account" : pendingConfirmationEmail ? "I’ve confirmed my email — sign in" : "Sign in"}
                 </PrimaryButton>
 
                 {pendingConfirmationEmail ? (
@@ -5704,6 +5704,12 @@ const recoveryRecommendationToday = useMemo(() => {
 }, [allLogs, todayYmd, todayLog, readinessNowTick]);
 
 const bodyReadiness = useMemo(() => {
+  const hasRecentActivity = (Array.isArray(allLogs) ? allLogs : []).some((row) => {
+    const date = row?.date_ymd || row?.date;
+    if (!date || date < ymdAddDays(todayYmd, -7) || date > todayYmd) return false;
+    const summary = getDayLoadSummaryForApp(row.log);
+    return summary.hadTraining || summary.hadRecovery;
+  });
   const score = recoveryRecommendationToday?.trainingReadinessScore || 0;
   const band = recoveryRecommendationToday?.band || getReadinessBand(score);
 
@@ -5711,6 +5717,7 @@ const bodyReadiness = useMemo(() => {
     recoveryRecommendationToday?.projectedTrainingReadinessScore || 0;
 
   return {
+    hasRecentActivity,
     trainingReadinessScore: score,
     trainingReadinessScalePercent: getReadinessScalePercent(score),
     band,
@@ -5742,7 +5749,7 @@ const bodyReadiness = useMemo(() => {
       recoveryRecommendationToday?.recommendationText ||
       "Ready to train if energy feels good.",
   };
-}, [recoveryRecommendationToday, readinessNowTick]);
+}, [recoveryRecommendationToday, readinessNowTick, allLogs, todayYmd]);
 
 // ---- Avatar behaviour state (header only for now) ----
 // Priority:
@@ -9213,7 +9220,7 @@ const cardioProgress = useMemo(() => {
         <span className="iconEmoji">⚙️</span>
       </button>
 
-      <button type="button" className="iconBtn" onClick={doSignOut} aria-label="Sign out">
+      <button type="button" className="iconBtn" onClick={doSignOut} aria-label="Sign out" title="Sign out">
         <svg className="iconSvg" viewBox="0 0 24 24" fill="none">
           <path d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           <path d="M3 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />

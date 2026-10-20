@@ -33,6 +33,18 @@ Use custom SMTP rather than Supabase's built-in development SMTP for production.
 
 Template files in this folder are the source-controlled production copies. Hosted Supabase templates must be pasted into Authentication → Email Templates.
 
+### Readability update October 2026
+Confirmation, recovery, invitation and email-change templates now inline their
+text/background styles, provide a table-backed cyan action with dark text, and
+include a copyable fallback confirmation URL. Confirmation also explains returning
+to the original phone after confirming on another device.
+
+Publishing the web app does not publish these hosted Auth templates. Apply the four
+HTML files through the Supabase Email Templates dashboard or Management API, then
+test actual delivery in light and dark email clients. Local checks confirm the
+action colours survive removal of the stylesheet block; they do not simulate every
+email client's forced dark mode.
+
 ## Content policy
 Auth mail should remain transactional:
 - one primary action
