@@ -21,7 +21,7 @@ describe("Phase 5 dashboard contract", () => {
     expect(source).toContain("Progress highlights");
     expect(source).toContain("Group activity");
     expect(source).toContain("CONNECTED ACTIVITY");
-    expect(source).toContain("Open Today’s Log");
+    expect(source).toContain("Start / continue today’s workout");
   });
 
   it("loads connected, group and assessment context without making those primary navigation tabs", () => {

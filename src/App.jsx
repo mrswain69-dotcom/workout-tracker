@@ -9,6 +9,11 @@ import MasteryDisclosure from "./components/rewards/MasteryDisclosure.jsx";
 import SportMasteryCollections from "./components/rewards/SportMasteryCollections.jsx";
 import { claimMasterySequence } from "./engine/masteryClaimSequence.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import InfoHint from "./components/InfoHint.jsx";
+import FirstWorkoutSetup from "./components/onboarding/FirstWorkoutSetup.jsx";
+import { cleanProfileName, createFirstActivity, needsFirstWorkoutSetup } from "./engine/firstWorkoutEngine.js";
+import WorkoutComparison from "./components/log/WorkoutComparison.jsx";
+import { lastWorkoutComparison, lastRepeatableWorkout, workoutTargetText } from "./engine/workoutComparisonEngine.js";
 import { PwaInstallSettings, PwaInstallReminder } from './components/settings/PwaInstall.jsx';
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
 import { hasProtectedLogEdit, selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
@@ -1515,6 +1520,7 @@ function RewardItem({ title, desc, active, locked, onPick }) {
 
 // -------- Auth screen ----------
 function AuthScreen({ onAuthed }) {
+  const [profileName, setProfileName] = useState("");
   const [mode, setMode] = useState("signin"); // signin | signup
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -1548,11 +1554,12 @@ function AuthScreen({ onAuthed }) {
 
     try {
       if (mode === "signup") {
+        if (!cleanProfileName(profileName)) { setMsg("Enter your name or nickname."); return; }
         if (!termsAccepted) {
           setMsg("Please agree to the Terms of Use and acknowledge the Privacy Notice before creating an account.");
           return;
         }
-        const { data, error } = await signUp(cleanEmail, pw);
+        const { data, error } = await signUp(cleanEmail, pw, profileName);
         if (error) {
           setMsg(error.message);
           return;
@@ -1570,7 +1577,7 @@ function AuthScreen({ onAuthed }) {
         setMode("signin");
         setPw("");
         setMsg(
-          "Account created. Check your email and confirm your address, then come back here and sign in."
+          "Account created. Check your email and confirm your address, then come back here and sign in. You can confirm on another device; return to this phone or browser and enter your password to continue here."
         );
         return;
       }
@@ -1663,6 +1670,7 @@ function AuthScreen({ onAuthed }) {
               </div>
 
               <div className="stack mt16">
+                {mode === "signup" ? <label className="label">Your name or nickname<input className="input mt8" type="text" autoComplete="given-name" maxLength={80} value={profileName} onChange={event => setProfileName(event.target.value)} placeholder="e.g. Mike" /></label> : null}
                 <div>
                   <div className="label">Email</div>
                   <Input
@@ -1710,7 +1718,7 @@ function AuthScreen({ onAuthed }) {
                   </label>
                 ) : null}
                 <PrimaryButton disabled={busy} onClick={handleAuth}>
-                  {mode === "signup" ? "Create account" : "Sign in"}
+                  {mode === "signup" ? "Create account" : pendingConfirmationEmail ? "I’ve confirmed my email — sign in" : "Sign in"}
                 </PrimaryButton>
 
                 {mode === "signin" && <SecondaryButton disabled={busy} onClick={sendResetLink}>Forgot password</SecondaryButton>}
@@ -3349,6 +3357,10 @@ useEffect(() => {
   const [family, setFamily] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [tutorialStep, setTutorialStep] = useState(null);
+  const [firstWorkoutSetupOpen, setFirstWorkoutSetupOpen] = useState(false);
+  const firstWorkoutHydratedRef = useRef("");
+  const [repeatingWorkout, setRepeatingWorkout] = useState(false);
+  const [repeatWorkoutError, setRepeatWorkoutError] = useState("");
   const [profileRecoveryPeriods, setProfileRecoveryPeriods] = useState([]);
   const [activeProfileId, setActiveProfileId] = useState(() => {
   try {
@@ -3578,6 +3590,7 @@ useEffect(() => { planRef.current = plan; }, [plan]);
     }
   }
   const [allLogs, setAllLogs] = useState([]); // for stats
+  const previousWorkoutForSelectedDate = useMemo(() => lastRepeatableWorkout(allLogs, selectedDate), [allLogs,selectedDate]);
   const logForDay = dayLogState?.key === dayLogKey && dayLogState.log
     ? dayLogState.log
     // A pending/failed single-date read must not mask history already loaded
@@ -3752,6 +3765,10 @@ useEffect(() => {
   const [extraMovCoachNoteDraft, setExtraMovCoachNoteDraft] = useState("");
   // Extra block type selection for today-only blocks
   const [showExtraBlockForm, setShowExtraBlockForm] = useState(false);
+  const extraActivityFormRef = useRef(null);
+  useEffect(() => {
+    if (tab === "log" && showExtraBlockForm) extraActivityFormRef.current?.scrollIntoView?.({block:"start",behavior:"smooth"});
+  }, [tab,showExtraBlockForm]);
   const [extraBlockNotice, setExtraBlockNotice] = useState(null);
   function announceExtraBlockAdded() {
     setShowExtraBlockForm(false);
@@ -4000,7 +4017,7 @@ function getLogBlockFocusState(block) {
       logged.sets && typeof logged.sets === "object" ? logged.sets : {};
     complete =
       movements.every((movement) => {
-        const plannedSets = block.isExtra ? 1 : Math.max(1, Number(movement?.sets) || 3);
+        const plannedSets = block.isExtra && !block.repeatedWorkout ? 1 : Math.max(1, Number(movement?.sets) || 3);
         const sets = Array.isArray(setsByMovement[movement?.id])
           ? setsByMovement[movement.id]
           : [];
@@ -4198,6 +4215,8 @@ function toggleLogBlockFocus(blockId) {
     setLogForDay(null);
     setActiveProfileId("");
     setAccountLoadState("idle");
+    firstWorkoutHydratedRef.current = "";
+    setFirstWorkoutSetupOpen(false);
     setAccountLoadError("");
     try { localStorage.removeItem("wt_activeProfileId"); clearLogNavigation(window.sessionStorage); } catch {}
   };
@@ -4233,6 +4252,19 @@ function toggleLogBlockFocus(blockId) {
     }
 
     if (!profList.length) throw new Error("No training profile could be loaded.");
+
+    // This only names the single untouched profile of a newly registered account.
+    // Metadata supplies display text, never permissions or account ownership.
+    if (fam.onboarding_state?.status === "not_started" && profList.length === 1 && profList[0].name === "Athlete") {
+      const { session } = await getSession();
+      const metadata = session?.user?.user_metadata;
+      const firstName = metadata?.first_workout_setup === 2 ? cleanProfileName(metadata.first_profile_name) : "";
+      if (firstName && isCurrent()) {
+        const result = await renameProfile(profList[0].id, firstName);
+        if (result.error) throw result.error;
+        profList = [{ ...profList[0], name: firstName }];
+      }
+    }
 
     const {
       data: recoveryPeriods,
@@ -4307,7 +4339,7 @@ function toggleLogBlockFocus(blockId) {
     setAccountLoadRevision((revision) => revision + 1);
   }
 
-  async function persistTutorialState(status, step = 0) {
+  async function persistTutorialState(status, step = 0, extra = {}) {
     if (!family?.id) return;
     const nextState = {
       version: FIRST_RUN_TUTORIAL_VERSION,
@@ -4316,6 +4348,7 @@ function toggleLogBlockFocus(blockId) {
       updatedAt: new Date().toISOString(),
       ...(status === "complete" ? { completedAt: new Date().toISOString() } : {}),
       ...(status === "dismissed" ? { dismissedAt: new Date().toISOString() } : {}),
+      ...extra,
     };
 
     setFamily((current) => current ? { ...current, onboarding_state: nextState } : current);
@@ -4328,19 +4361,98 @@ function toggleLogBlockFocus(blockId) {
   }
 
   useEffect(() => {
-    if (!activeProfileId || !family?.onboarding_state) return;
+    if (!activeProfileId || !family?.onboarding_state || !planReady || !logsReady) return;
+    if (firstWorkoutHydratedRef.current === profileLoadKey) return;
+    firstWorkoutHydratedRef.current = profileLoadKey;
     const state = family.onboarding_state;
-    if (state.version !== FIRST_RUN_TUTORIAL_VERSION) return;
-    if (state.status !== "not_started" && state.status !== "in_progress") return;
-
-    const nextStep = Math.max(0, Number(state.step) || 0);
-    setTutorialStep(nextStep);
-    if (state.status === "not_started") {
-      persistTutorialState("in_progress", nextStep);
-    }
-    // The state update above changes family, so status intentionally gates reruns.
+    if (state.setupProfileId && state.setupProfileId !== activeProfileId) { setFirstWorkoutSetupOpen(false); return; }
+    const eligible = needsFirstWorkoutSetup({ onboarding: state, ready: true,
+      hasPlan: planHasBlocks(plan), hasActivity: allLogs.some(row => getDayLoadSummaryForApp(row.log).hadTraining) });
+    if (!eligible) { setFirstWorkoutSetupOpen(false); return; }
+    setTutorialStep(null);
+    const route = state.guidedRoute || "choice";
+    setTab(route === "log" ? "log" : "plan");
+    setPlanWorkspaceView(route === "library" ? "library" : "build");
+    setFirstWorkoutSetupOpen(!["log", "library", "editor"].includes(route));
+    if (state.status === "not_started") persistTutorialState("in_progress", 0, {guidedVersion:2,guidedRoute:"choice",setupProfileId:activeProfileId});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProfileId, family?.id, family?.onboarding_state?.status]);
+  }, [profileLoadKey, planReady, logsReady, family?.onboarding_state?.status]);
+
+  useEffect(() => {
+    if (family?.onboarding_state?.guidedRoute === "library" && family.onboarding_state.status === "in_progress" && planReady && planHasBlocks(plan)) {
+      persistTutorialState("complete", 0, {guidedVersion:2,setupProfileId:activeProfileId});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan, planReady, family?.onboarding_state?.guidedRoute]);
+
+  function leaveFirstWorkoutSetup(route, date) {
+    setFirstWorkoutSetupOpen(false);
+    setTutorialStep(null);
+    if (route === "log") { setSelectedDate(date || getTodayYMD()); setTab("log"); if (!date && !planHasBlocks(plan)) {setExtraBlockKind("duration");setShowExtraBlockForm(true);} }
+    else { setTab("plan"); setPlanWorkspaceView(route === "library" ? "library" : "build"); }
+    if (route === "library") {
+      setProgramLibrarySection("starters");
+      if (family?.onboarding_state?.status === "complete") return;
+      persistTutorialState("in_progress", 0, {guidedVersion:2,guidedRoute:"library",setupProfileId:activeProfileId});
+    } else if (family?.onboarding_state?.status !== "complete") persistTutorialState(route === "later" ? "dismissed" : "complete", 0, {guidedVersion:2,guidedRoute:route,setupProfileId:activeProfileId});
+  }
+
+  async function saveFirstWorkoutActivity(draft) {
+    if (!family?.id || !activeProfileId || !planReady) return false;
+    const savingIdentity = profileLoadKey;
+    const savingProfileId = activeProfileId;
+    if (!(await ensureUnlocked("save your activity"))) return false;
+    if (draftIdentity.current !== savingIdentity) return false;
+    if (baseProgramLocked) throw new Error("This programme is locked. Open your full plan to choose a personal programme.");
+    const {block,days} = createFirstActivity(draft, uid);
+    const base = ensurePlanProgram(planRef.current || plan || blankPlanForNewProfile(), {todayYmd:getTodayYMD()});
+    const targetWeek = Math.min(planCycleWeekIndex, flattenProgramWeeks(base).length - 1);
+    const week = getPlanEditorWeek(base, targetWeek);
+    const blocksByWeekday = { ...week.blocksByWeekday };
+    for (const day of days) blocksByWeekday[day] = [...(blocksByWeekday[day] || []), JSON.parse(JSON.stringify(block))];
+    const next = normalisePlanForRuntime(setPlanProgramWeek(base, targetWeek, {blocksByWeekday}));
+    let date = "";
+    for (let offset=0;offset<366;offset++) {
+      const candidate = ymdAddDays(getTodayYMD(),offset);
+      const resolved = resolvePlanForDate(next,candidate);
+      if ((resolved?.blocksByWeekday?.[weekdayFromYMD(candidate)] || []).some(item => item.id === block.id)) {date=candidate;break;}
+    }
+    if (!date) throw new Error("This programme has no upcoming date for that week. Open the full editor to check its start date and schedule.");
+    const {error} = await upsertProfilePlan(family.id,savingProfileId,next);
+    if (error) throw error;
+    if (draftIdentity.current !== savingIdentity) return false;
+    setAndCachePlan(savingProfileId,next);
+    setPlanCycleWeekIndex(targetWeek);
+    setPlanWeekday(days[0]);
+    if (family?.onboarding_state?.status !== "complete") await persistTutorialState("in_progress", 0, {guidedVersion:2,guidedRoute:"saved",firstActivityDate:date,setupProfileId:activeProfileId});
+    return {date};
+  }
+
+  async function renameFirstWorkoutProfile(name) {
+    if (!(await ensureUnlocked("name your profile"))) throw new Error("Profile naming was cancelled.");
+    const nextName = cleanProfileName(name);
+    if (!nextName) throw new Error("Enter a name or nickname.");
+    const {error} = await renameProfile(activeProfileId,nextName);
+    if (error) throw error;
+    setProfiles(current => current.map(profile => profile.id === activeProfileId ? {...profile,name:nextName} : profile));
+  }
+
+  async function repeatPreviousWorkout() {
+    if (repeatingWorkout || !previousWorkoutForSelectedDate) return;
+    setRepeatingWorkout(true); setRepeatWorkoutError("");
+    try {
+      const base = ensureBlocksSnapshot(latestLogForSelectedDay());
+      if (base.blocks?.length) throw new Error("This day already has activities. Use your plan or add an extra activity instead.");
+      const blocks = previousWorkoutForSelectedDate.blocks.map(block => ({
+        ...(block.typeId === "session" ? buildSessionLogBlockSnapshot(block) : block),
+        id: uid(), isExtra:true, repeatedWorkout:true, cancelled:false,
+        sets:{}, cardio:{distanceKm:"",durationMin:"",avgSpeedKmh:""}, duration:{minutes:""},
+      }));
+      await saveLog({...base,blocks,meta:{...(base.meta || {}),repeatedWorkoutSource:previousWorkoutForSelectedDate.date}});
+      setFocusedLogBlockId(blocks[0]?.id || "");
+    } catch (error) { setRepeatWorkoutError(error.message || "The workout could not be repeated."); }
+    finally { setRepeatingWorkout(false); }
+  }
 
   // When entering the Plan tab, default the plan editor to the same weekday
   // as the currently selected log date (nice UX, but then independent).
@@ -5878,6 +5990,12 @@ const recoveryRecommendationToday = useMemo(() => {
 }, [allLogs, todayYmd, todayLog, readinessNowTick]);
 
 const bodyReadiness = useMemo(() => {
+  const hasRecentActivity = (Array.isArray(allLogs) ? allLogs : []).some((row) => {
+    const date = row?.date_ymd || row?.date;
+    if (!date || date < ymdAddDays(todayYmd, -7) || date > todayYmd) return false;
+    const summary = getDayLoadSummaryForApp(row.log);
+    return summary.hadTraining || summary.hadRecovery;
+  });
   const score = recoveryRecommendationToday?.trainingReadinessScore || 0;
   const band = recoveryRecommendationToday?.band || getReadinessBand(score);
 
@@ -5885,6 +6003,7 @@ const bodyReadiness = useMemo(() => {
     recoveryRecommendationToday?.projectedTrainingReadinessScore || 0;
 
   return {
+    hasRecentActivity,
     trainingReadinessScore: score,
     trainingReadinessScalePercent: getReadinessScalePercent(score),
     band,
@@ -5916,7 +6035,7 @@ const bodyReadiness = useMemo(() => {
       recoveryRecommendationToday?.recommendationText ||
       "Ready to train if energy feels good.",
   };
-}, [recoveryRecommendationToday, readinessNowTick]);
+}, [recoveryRecommendationToday, readinessNowTick, allLogs, todayYmd]);
 
 // ---- Avatar behaviour state (header only for now) ----
 // Priority:
@@ -9458,7 +9577,7 @@ const cardioProgress = useMemo(() => {
         <span className="iconEmoji">⚙️</span>
       </button>
 
-      <button type="button" className="iconBtn" onClick={doSignOut} aria-label="Sign out">
+      <button type="button" className="iconBtn" onClick={doSignOut} aria-label="Sign out" title="Sign out">
         <svg className="iconSvg" viewBox="0 0 24 24" fill="none">
           <path d="M10 7V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           <path d="M3 12h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -9638,6 +9757,7 @@ const cardioProgress = useMemo(() => {
             totalXp={xp}
             nextAvatarReward={nextAvatarReward}
             todayBlocks={dashboardTodayBlocks}
+            logs={allLogs}
             planIsBlank={activePlanIsBlank}
             recoveryMode={dashboardRecoveryMode}
             motivationLine={motivationLine}
@@ -9648,10 +9768,11 @@ const cardioProgress = useMemo(() => {
               setSelectedDate(todayYmd);
               setTab("log");
             }}
-            onOpenPlan={() => setTab("plan")}
+            onOpenPlan={() => { setTab("plan"); if (activePlanIsBlank) setFirstWorkoutSetupOpen(true); }}
             onLogExtra={() => {
               setSelectedDate(todayYmd);
               setTab("log");
+              setShowExtraBlockForm(true);
             }}
             onOpenProgress={() => {
               setProgressInitialView("dashboard");
@@ -9675,6 +9796,12 @@ const cardioProgress = useMemo(() => {
         {tab === "log" && (
           <div className="gridLog" key={`${activeProfileId}_${selectedDate}`}>
             <Card className="pad logWorkspaceCard">
+              {previousWorkoutForSelectedDate && focusBlockSequence.length === 0 ? <section className="panel mt8" aria-label="Repeat previous workout">
+                <div className="h3">Repeat a previous workout</div>
+                <p className="muted">{previousWorkoutForSelectedDate.blocks.length} activities from {previousWorkoutForSelectedDate.date}. Only the structure and planned targets are copied; today’s results start blank.</p>
+                <PrimaryButton disabled={repeatingWorkout || isSavingLog} onClick={repeatPreviousWorkout}>{repeatingWorkout ? "Adding…" : "Repeat this workout"}</PrimaryButton>
+                {repeatWorkoutError ? <p role="alert">{repeatWorkoutError}</p> : null}
+              </section> : null}
               <div className="row logTopRow">
                 <div className="rowLeft">
                   <div className="field">
@@ -9813,7 +9940,7 @@ if (kind === "strength") {
 
                       const plannedSetCount = movements.reduce(
                         (sum, movement) =>
-                          sum + (block.isExtra ? 1 : Math.max(1, Number(movement?.sets) || 3)),
+                          sum + (block.isExtra && !block.repeatedWorkout ? 1 : Math.max(1, Number(movement?.sets) || 3)),
                         0
                       );
                       const focusState = getLogBlockFocusState(block);
@@ -9863,7 +9990,7 @@ if (kind === "strength") {
                               ? setsByMovement[mov.id]
                               : [];
 
-                            const basePlannedSets = block.isExtra ? 1 : (mov.sets || 3);
+                            const basePlannedSets = block.isExtra && !block.repeatedWorkout ? 1 : (mov.sets || 3);
                             const rowCount = Math.max(
                               basePlannedSets,
                               movementSets.length || 0
@@ -9887,7 +10014,7 @@ if (kind === "strength") {
                               movements.find((candidate) => !movementEntriesComplete(
                                 candidate,
                                 setsByMovement[candidate.id] || [],
-                                block.isExtra ? 1 : (candidate.sets || 3)
+                                block.isExtra && !block.repeatedWorkout ? 1 : (candidate.sets || 3)
                               ))?.id || "";
 
                             const hasExplicitMovementFocus =
@@ -10028,13 +10155,15 @@ if (kind === "strength") {
                                     {mov.coachNote ? (
                                       <div className="movementCoachNote">{mov.coachNote}</div>
                                     ) : null}
+                                    <WorkoutComparison previous={lastWorkoutComparison({logs:allLogs,before:ymd(selectedDate),block,movement:mov})} target={workoutTargetText(block,mov)} />
+                                    {targetInfo?.progressionText ? <details className="mini mt8"><summary>Optional progression idea</summary><p>{targetInfo.progressionText}. This does not change today’s planned target.</p></details> : null}
 
                                     {(targetInfo?.progressionText || movementHasHistory) && (
                                       <div className="movementProgressionBand">
                                         <div className="movementProgressionBand__copy">
                                           <span className="movementProgressionBand__label">Progression</span>
                                           <span>
-                                            {targetInfo?.progressionText || "Compare with your previous result before choosing today’s progression."}
+                                            {"Use your plan and how you feel today. History shows personal bests and trends."}
                                           </span>
                                         </div>
                                         {movementHasHistory && (
@@ -10067,7 +10196,7 @@ if (kind === "strength") {
                                       onDisableAuto={() => setMovementAutoDisabled((current) => ({ ...current, [`${block.id}:${mov.id}`]: true }))}
                                       onDone={() => {
                                         const nextMovement = movements.slice(movementIndex + 1).find((candidate) => !movementEntriesComplete(
-                                          candidate, setsByMovement[candidate.id] || [], block.isExtra ? 1 : (candidate.sets || 3)
+                                          candidate, setsByMovement[candidate.id] || [], block.isExtra && !block.repeatedWorkout ? 1 : (candidate.sets || 3)
                                         ));
                                         setFocusedMovementByBlock((current) => ({ ...current, [block.id]: nextMovement?.id || null }));
                                         if (!nextMovement && getLogBlockFocusState(block).complete) {
@@ -10361,18 +10490,8 @@ if (kind === "cardio") {
             <div className="muted mt4">{block.note}</div>
           ) : null}
 
-          {(cardioTarget?.text || block.targetText?.trim()) ? (
-            <div className="inMomentTarget mt8">
-              <b>Today’s target</b>
-              <span>{cardioTarget?.text || block.targetText.trim()}</span>
-              {cardioTargetPace ? (
-                <small>Smartwatch: ~{cardioTargetPace.perKm} /km · {cardioTargetPace.perMile} /mile</small>
-              ) : null}
-              {block.targetText?.trim() && cardioTarget?.text && cardioTarget.text !== block.targetText.trim() ? (
-                <small>{block.targetText}</small>
-              ) : null}
-            </div>
-          ) : null}
+          <WorkoutComparison previous={lastWorkoutComparison({logs:allLogs,before:ymd(selectedDate),block})} target={workoutTargetText(block)} />
+          {cardioTarget?.text ? <details className="inMomentTarget mt8"><summary>Optional progression idea</summary><span>{cardioTarget.text}</span>{cardioTargetPace ? <small>Smartwatch: ~{cardioTargetPace.perKm} /km · {cardioTargetPace.perMile} /mile</small> : null}<small>This does not change today’s planned target.</small></details> : null}
 
           {historyIndex?.cardioHas?.[block.id] && (
             <div className="blockHistoryRow mt8">
@@ -10676,6 +10795,7 @@ if (kind === "duration") {
             ) : null}
 
 
+<WorkoutComparison previous={lastWorkoutComparison({logs:allLogs,before:ymd(selectedDate),block})} target={workoutTargetText(block)} />
 <div className="grid3 mt8">
   <div>
     <div className="label">Minutes</div>
@@ -10889,7 +11009,7 @@ return null;
 )}
 
 {/* Extra blocks for this specific date */}
-<div className="panel">
+<div className="panel" ref={extraActivityFormRef}>
   <div className="h2">Extra block for today</div>
     <div className="muted mt4">
     {profileRecoveryModeActive
@@ -11404,6 +11524,22 @@ return null;
 
 {tab === "plan" && (
   <>
+  {firstWorkoutSetupOpen ? <FirstWorkoutSetup
+    key={activeProfileId}
+    draftStorageKey={`wt_first_activity_draft_v1:${activeProfileId}`}
+    profileName={activeProfile?.name || ""}
+    todayWeekday={weekdayFromYMD(getTodayYMD())}
+    hasPlan={!!plan && planHasBlocks(plan)}
+    initialDate={family?.onboarding_state?.status === "in_progress" ? family?.onboarding_state?.firstActivityDate || "" : ""}
+    onSave={saveFirstWorkoutActivity}
+    onRename={renameFirstWorkoutProfile}
+    onLog={(date) => leaveFirstWorkoutSetup("log",date)}
+    onPrograms={() => leaveFirstWorkoutSetup("library")}
+    onFullEditor={() => leaveFirstWorkoutSetup("editor")}
+    onDismiss={() => { setFirstWorkoutSetupOpen(false); setTab("dashboard"); if (family?.onboarding_state?.status !== "complete") persistTutorialState("dismissed",0,{guidedVersion:2,setupProfileId:activeProfileId}); }}
+  /> : null}
+  <div hidden={firstWorkoutSetupOpen}>
+  {!firstWorkoutSetupOpen && !editingDraft && !editingAddOn && activePlanIsBlank ? <div className="panel mt12"><PrimaryButton onClick={() => setFirstWorkoutSetupOpen(true)}>Set up my first activity</PrimaryButton><span className="muted"> Start with one activity, or use the full editor below.</span></div> : null}
   <Card className="pad planWorkspaceNav">
     <div className="rowBetween" style={{ gap: 12, flexWrap: "wrap" }}>
       <div>
@@ -11432,6 +11568,7 @@ return null;
           Program Library
         </button>
       </div>
+      {!editingDraft && !editingAddOn && !mainProgramLocked ? <SecondaryButton onClick={() => setFirstWorkoutSetupOpen(true)}>Guided activity builder</SecondaryButton> : null}
     </div>
   </Card>
   {planWorkspaceView === "build" ? (
@@ -12443,6 +12580,7 @@ return null;
     />
   </React.Suspense>
   )}
+  </div>
   </>
 )}
 
@@ -12516,7 +12654,7 @@ return null;
 
           <div className="rewardsXpBreakdown" aria-label="XP breakdown">
             <div className="rewardsXpTotal">
-              <span>Total XP</span>
+              <span>Total XP<InfoHint label="XP">XP means experience points. Total XP combines points earned from activity with bonus points from claimed rewards. Expand “How you earn XP” below for details.</InfoHint></span>
               <strong>{lifetimeXpBreakdown.total.toLocaleString("en-GB")}</strong>
             </div>
             <div className="rewardsXpSplit">
@@ -12538,7 +12676,7 @@ return null;
 
       <div className="panel mt12">
         <div className="rowBetween">
-          <div className="h3">Current Plan Streak</div>
+          <div className="h3">Current Plan Streak<InfoHint label="Plan streak">Your run of completed plan days. Eligible recovery and streak savers can count. Unplanned rest days pause the count; a missed planned day resets it.</InfoHint></div>
           <div
             style={{
               width: 12,
@@ -12551,8 +12689,9 @@ return null;
             }}
           />
         </div>
-        <div className="bigNumber mt8">
-          {currentPlanStreak} day{currentPlanStreak === 1 ? "" : "s"}
+        <div className="rewardsPlanStreakValue mt8" aria-label={`${currentPlanStreak} day${currentPlanStreak === 1 ? "" : "s"}`}>
+          <strong>{currentPlanStreak}</strong>
+          <span>day{currentPlanStreak === 1 ? "" : "s"}</span>
         </div>
       </div>
 
@@ -13166,7 +13305,7 @@ return null;
             {tab === "settings" && (
             <Card className="pad" style={{ gridColumn: "1 / -1" }}>
               <div ref={peopleRef} />
-              <div className="h2">People on this account</div>
+              <div className="h2">People on this account<InfoHint label="profiles">A profile is the person whose plan, logs and progress you track. Its name can be a first name or nickname. “Athlete” is only the default name, not a separate account type. Rename it below.</InfoHint></div>
               <div className="stack mt12">
                 {profiles.map((p) => (
                   <div key={p.id} className="panel">
@@ -13175,7 +13314,7 @@ return null;
                       <div className="tabs">
                         <SecondaryButton
                           onClick={async () => {
-                            const name = prompt("Rename profile:", p.name);
+                            const name = prompt("Person’s name or nickname:", p.name);
                             if (!name) return;
                             if (!(await ensureUnlocked("rename a profile"))) return;
                             await renameProfile(p.id, name.trim());
@@ -13360,7 +13499,7 @@ return null;
                 <div className="h3">Add profile</div>
                 <SecondaryButton
                   onClick={async () => {
-                    const name = prompt("Profile name?");
+                    const name = prompt("Person’s name or nickname?");
                     if (!name) return;
                     if (!(await ensureUnlocked("add a profile"))) return;
                     await addProfile(family.id, name.trim(), blankPlanForNewProfile());

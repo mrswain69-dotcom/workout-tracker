@@ -217,6 +217,7 @@ describe("profile switching", () => {
     vi.mocked(db.listLogs).mockResolvedValue({ data: [] });
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     await screen.findByText("Plan history");
+    fireEvent.click(screen.getByRole("button", {name:/Today’s workout/}));
     expect(screen.getByRole("heading", { name: /^Xander/ })).toBeTruthy();
   });
 
@@ -241,6 +242,8 @@ describe("profile switching", () => {
     ] }));
     await twoProfiles();
     switchProfile("xander");
+    await screen.findByText("Plan history");
+    fireEvent.click(screen.getByRole("button", {name:/Today’s workout/}));
     await screen.findByRole("heading", { name: /^Xander/ });
     fireEvent.click(screen.getByRole("button", { name: "Log" }));
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("21"));

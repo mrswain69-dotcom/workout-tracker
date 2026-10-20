@@ -12,7 +12,7 @@ describe("focused Log and dashboard readiness integration", () => {
     const readiness = read("../components/dashboard/BodyReadinessSummary.jsx");
 
     expect(app).toContain("bodyReadiness={bodyReadiness}");
-    expect(dashboard).toContain("<BodyReadinessSummary readiness={bodyReadiness} />");
+    expect(dashboard).toContain("<BodyReadinessSummary readiness={bodyReadiness} onOpenLog={onOpenLog} />");
     expect(readiness).toContain("Body Readiness Status");
     expect(readiness).toContain("recommendationText");
     expect(app).not.toContain('className="pad bodyReadinessCard"');
@@ -21,7 +21,7 @@ describe("focused Log and dashboard readiness integration", () => {
   it("keeps targets beside the action and removes the duplicated Today's mission card", () => {
     const app = read("../App.jsx");
 
-    expect(app).toContain('className="inMomentTarget mt8"');
+    expect(app).toContain("<WorkoutComparison");
     expect(app).toContain("cardioTarget");
     expect(app).toContain("block.plannedMinutes");
     expect(app).toContain("targetInfo?.progressionText");

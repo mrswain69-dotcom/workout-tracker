@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { loadVerifiedActivityData } from "../../verifiedActivityDb.js";
 import { listProfileGroups } from "../../groups/groupDb.js";
 import { listAssessmentSchedules } from "../../assessmentScheduleDb.js";
@@ -6,6 +6,8 @@ import { listAssessmentRuns } from "../../assessmentRunDb.js";
 import { buildAssessmentScheduleStatuses } from "../../engine/assessmentScheduleEngine.js";
 import { buildDashboardCoachInsight } from "../../engine/dashboardEngine.js";
 import BodyReadinessSummary from "./BodyReadinessSummary.jsx";
+import InfoHint from "../InfoHint.jsx";
+import { lastWorkoutComparison, lastRepeatableWorkout, workoutTargetText } from "../../engine/workoutComparisonEngine.js";
 import "./PerformanceDashboard.css";
 
 function formatDateTime(value) {
@@ -101,10 +103,10 @@ function RecentActivityCalendar({ days = [], onOpenDate = null }) {
   );
 }
 
-function Metric({ label, value, note = "" }) {
+function Metric({ label, value, note = "", help = "" }) {
   return (
     <div className="dashboardMetric">
-      <div className="dashboardMetric__label">{label}</div>
+      <div className="dashboardMetric__label">{label}{help ? <InfoHint label={label}>{help}</InfoHint> : null}</div>
       <div className="dashboardMetric__value">{value}</div>
       {note ? <div className="dashboardMetric__note">{note}</div> : null}
     </div>
@@ -134,6 +136,7 @@ export default function PerformanceDashboard({
   totalXp = 0,
   nextAvatarReward = null,
   todayBlocks = [],
+  logs = [],
   planIsBlank = false,
   recoveryMode = "normal",
   motivationLine = "",
@@ -207,11 +210,15 @@ export default function PerformanceDashboard({
   }, [familyId, profileId, todayYmd]);
 
   const activeTodayBlocks = useMemo(
-    () =>
-      (Array.isArray(todayBlocks) ? todayBlocks : []).filter(
+    () => {
+      const planned = Array.isArray(todayBlocks) ? todayBlocks : [];
+      const row = logs.find(item => (item?.date_ymd || item?.date) === todayYmd);
+      const extras = (row?.log?.blocks || row?.log_json?.blocks || []).filter(block => block?.isExtra && !planned.some(item => item.id === block.id));
+      return [...planned,...extras].filter(
         (block) => block && !block.cancelled && !block.suspendedByRecoveryMode
-      ),
-    [todayBlocks]
+      );
+    },
+    [todayBlocks,logs,todayYmd]
   );
 
   const coach = buildDashboardCoachInsight({
@@ -287,7 +294,15 @@ export default function PerformanceDashboard({
     return { count: statuses.length, actionCount, first };
   }, [remote.assessmentStatuses]);
 
-  const todayComplete = todayStatus === "green";
+  const [expandedWorkoutKey, setExpandedWorkoutKey] = useState("");
+  const workoutDetailsId = useId();
+  const workoutKey = `${profileId}:${todayYmd}`;
+  const workoutExpanded = expandedWorkoutKey === workoutKey;
+  const todayHistory = historyDays.find(day => day.dateYmd === todayYmd);
+  const statusLabels = { complete: "Complete", partial: "Partially complete", rest: "Rest day", illness: "Illness", cancelled: "Cancelled", "streak-saver": "Streak saved", none: "Not started" };
+  const fallbackKind = todayStatus === "green" ? "complete" : todayStatus === "blue" ? "rest" : "none";
+  const todayKind = Object.hasOwn(statusLabels, todayHistory?.kind) ? todayHistory.kind : fallbackKind;
+  const todayComplete = todayKind === "complete";
   const nextRewardValue = nextAvatarReward
     ? `${nextAvatarReward.unlockAtXp.toLocaleString("en-GB")} XP`
     : "Prestige reached";
@@ -309,58 +324,34 @@ export default function PerformanceDashboard({
         )}
       </section>
 
-      <RecentActivityCalendar key={profileId} days={historyDays} onOpenDate={onOpenHistoryDate} />
 
-      <section className="dashboardMetricGrid" aria-label="Current performance summary">
-        <Metric
-          label="Today"
-          value={todayComplete ? "Complete" : activeTodayBlocks.length ? "In progress" : "Rest day"}
-          note={todayComplete ? "Plan completed" : activeTodayBlocks.length ? `${activeTodayBlocks.length} active block${activeTodayBlocks.length === 1 ? "" : "s"}` : "Nothing planned"}
-        />
-        <Metric
-          label="Plan streak"
-          value={`${currentStreak} day${currentStreak === 1 ? "" : "s"}`}
-          note="Following the plan"
-        />
-        <Metric
-          label="Earned XP"
-          value={(
-            <div className="dashboardMetric__weekXp">
-              <div><span>This week</span><strong>{(weekSummary?.xp || 0).toLocaleString("en-GB")} <small>XP</small></strong></div>
-              <div><span>Last week</span><strong>{(weekSummary?.lastWeekXp || 0).toLocaleString("en-GB")} <small>XP</small></strong></div>
-            </div>
-          )}
-          note={`${Math.max(0, Number(totalXp) || 0).toLocaleString("en-GB")} XP total`}
-        />
-        <Metric
-          label="Next reward"
-          value={nextRewardValue}
-          note={nextRewardNote}
-        />
-      </section>
 
-      <BodyReadinessSummary readiness={bodyReadiness} />
-
-      <section className="dashboardGrid">
-        <article className="dashboardCard dashboardCard--today">
-          <div className="dashboardCard__head">
-            <div>
-              <div className="dashboardCard__kicker">TODAY</div>
-              <h3>{profileName}’s plan</h3>
-            </div>
-            <span className={`dashboardStatus dashboardStatus--${todayComplete ? "complete" : "active"}`}>
-              {todayComplete ? "Complete" : "Active"}
-            </span>
+      <section aria-label="Today’s workout">
+        <article className={`dashboardCard dashboardCard--today is-${todayKind}${todayKind === "none" && activeTodayBlocks.length ? " is-pending" : ""}`}>
+          <div className="dashboardToday__bar">
+            <button type="button" className="dashboardToday__toggle" aria-expanded={workoutExpanded}
+              aria-controls={workoutDetailsId} onClick={() => setExpandedWorkoutKey(workoutExpanded ? "" : workoutKey)}>
+              <span className="dashboardToday__chevron" aria-hidden="true">{workoutExpanded ? "▾" : "▸"}</span>
+              <span className="dashboardToday__prompt"><strong>Today’s workout</strong><span>{statusLabels[todayKind]} · {activeTodayBlocks.length ? "Follow your plan" : planIsBlank ? "Set up your plan" : "View your day"}</span></span>
+            </button>
+            <ActionButton onClick={activeTodayBlocks.length || !planIsBlank ? onOpenLog : onOpenPlan}>
+              {activeTodayBlocks.length || !planIsBlank ? todayComplete ? "Review log" : "Open log" : "Build plan"}
+            </ActionButton>
           </div>
+          <div id={workoutDetailsId} hidden={!workoutExpanded} className="dashboardToday__details">
+            <h3>{profileName}’s plan</h3>
 
           {activeTodayBlocks.length ? (
             <div className="dashboardPlanList">
-              {activeTodayBlocks.slice(0, 6).map((block, index) => (
+              {activeTodayBlocks.slice(0, 6).map((block, index) => {
+                const previous = lastWorkoutComparison({logs,before:todayYmd,block,movement:block.movements?.[0]});
+                const target = workoutTargetText(block);
+                return (
                 <div className="dashboardPlanItem" key={block.id || `${block.typeId}-${index}`}>
                   <span className="dashboardPlanItem__dot" />
-                  <span>{blockLabel(block)}</span>
+                  <span className="dashboardPlanItem__copy"><strong>{blockLabel(block)}</strong>{target ? <small>Today: {target}</small> : null}{["strength","hiit","box","cardio","duration"].includes(block.typeId) ? <small>Last time{block.movements?.[0]?.name ? ` (${block.movements[0].name})` : ""}: {previous?.text || "Your first recorded session"}</small> : null}</span>
                 </div>
-              ))}
+              );})}
               {activeTodayBlocks.length > 6 ? (
                 <div className="dashboardPlanMore">
                   +{activeTodayBlocks.length - 6} more
@@ -376,15 +367,54 @@ export default function PerformanceDashboard({
 
           <div className="dashboardCard__actions">
             {activeTodayBlocks.length ? (
-              <ActionButton onClick={onOpenLog} primary>Open Today’s Log</ActionButton>
+              <ActionButton onClick={onOpenLog} primary>{todayComplete ? "Review today’s workout" : "Start / continue today’s workout"}</ActionButton>
             ) : (
               <>
                 <ActionButton onClick={onOpenPlan} primary>Build my weekly plan</ActionButton>
                 <ActionButton onClick={onLogExtra}>Log an extra activity</ActionButton>
+                {lastRepeatableWorkout(logs,todayYmd) ? <ActionButton onClick={onOpenLog}>Repeat a previous workout</ActionButton> : null}
               </>
             )}
           </div>
+          </div>
         </article>
+      </section>
+      <section className="dashboardMetricGrid" aria-label="Current performance summary">
+        <Metric
+          label="Today"
+          value={todayComplete ? "Complete" : activeTodayBlocks.length ? "In progress" : "Rest day"}
+          note={todayComplete ? "Plan completed" : activeTodayBlocks.length ? `${activeTodayBlocks.length} active block${activeTodayBlocks.length === 1 ? "" : "s"}` : "Nothing planned"}
+        />
+        <Metric
+          label="Plan streak"
+          help="Your run of completed plan days. Eligible recovery and streak savers can count; unplanned rest days pause the count. See Rewards for details."
+          value={`${currentStreak} day${currentStreak === 1 ? "" : "s"}`}
+          note="Following the plan"
+        />
+        <Metric
+          label="Earned XP"
+          help="XP means experience points, earned by recording activity, completing your plan and making progress. Points unlock rewards. See Rewards for the rules."
+          value={(
+            <div className="dashboardMetric__weekXp">
+              <div><span>This week</span><strong>{(weekSummary?.xp || 0).toLocaleString("en-GB")} <small>XP</small></strong></div>
+              <div><span>Last week</span><strong>{(weekSummary?.lastWeekXp || 0).toLocaleString("en-GB")} <small>XP</small></strong></div>
+            </div>
+          )}
+          note={`${Math.max(0, Number(totalXp) || 0).toLocaleString("en-GB")} XP total`}
+        />
+        <Metric
+          label="Next reward"
+          value={nextRewardValue}
+          note={nextRewardNote}
+        />
+      </section>
+
+      <RecentActivityCalendar key={profileId} days={historyDays} onOpenDate={onOpenHistoryDate} />
+
+      <BodyReadinessSummary readiness={bodyReadiness} onOpenLog={onOpenLog} />
+
+      <section className="dashboardGrid">
+
 
         <article className="dashboardCard">
           <div className="dashboardCard__kicker">THIS WEEK</div>
