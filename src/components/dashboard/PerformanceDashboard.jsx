@@ -6,6 +6,7 @@ import { listAssessmentRuns } from "../../assessmentRunDb.js";
 import { buildAssessmentScheduleStatuses } from "../../engine/assessmentScheduleEngine.js";
 import { buildDashboardCoachInsight } from "../../engine/dashboardEngine.js";
 import BodyReadinessSummary from "./BodyReadinessSummary.jsx";
+import InfoHint from "../InfoHint.jsx";
 import "./PerformanceDashboard.css";
 
 function formatDateTime(value) {
@@ -101,10 +102,10 @@ function RecentActivityCalendar({ days = [], onOpenDate = null }) {
   );
 }
 
-function Metric({ label, value, note = "" }) {
+function Metric({ label, value, note = "", help = "" }) {
   return (
     <div className="dashboardMetric">
-      <div className="dashboardMetric__label">{label}</div>
+      <div className="dashboardMetric__label">{label}{help ? <InfoHint label={label}>{help}</InfoHint> : null}</div>
       <div className="dashboardMetric__value">{value}</div>
       {note ? <div className="dashboardMetric__note">{note}</div> : null}
     </div>
@@ -319,11 +320,13 @@ export default function PerformanceDashboard({
         />
         <Metric
           label="Plan streak"
+          help="Your run of completed plan days. Eligible recovery and streak savers can count; unplanned rest days pause the count. See Rewards for details."
           value={`${currentStreak} day${currentStreak === 1 ? "" : "s"}`}
           note="Following the plan"
         />
         <Metric
           label="Earned XP"
+          help="XP means experience points, earned by recording activity, completing your plan and making progress. Points unlock rewards. See Rewards for the rules."
           value={(
             <div className="dashboardMetric__weekXp">
               <div><span>This week</span><strong>{(weekSummary?.xp || 0).toLocaleString("en-GB")} <small>XP</small></strong></div>
