@@ -1,0 +1,3 @@
+.workoutComparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;margin:8px 0 12px;border:1px solid #cbdce6;border-radius:12px;background:#f6fafc;color:#172033}
+.workoutComparison>div{min-width:0;display:grid;align-content:start;gap:5px}.workoutComparison span{font-size:10px;font-weight:800;color:#526477}.workoutComparison strong{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:360px){.workoutComparison{grid-template-columns:1fr}}

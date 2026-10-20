@@ -259,3 +259,4 @@
 .dashboardReadiness__details dl { display: grid; gap: 8px; }
 .dashboardReadiness__details dl > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .dashboardReadiness__details dd { margin: 0; font-weight: 700; }
+.dashboardPlanItem__copy{min-width:0;display:grid;gap:4px;overflow-wrap:anywhere}.dashboardPlanItem__copy small{font-size:12px;line-height:1.45;color:#526477}.dashboardCard--today .dashboardCard__actions{margin-top:20px}.dashboardCard--today .btn-primary{min-height:46px}

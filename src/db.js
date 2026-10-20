@@ -1,6 +1,7 @@
 // Minimal DB layer for Supabase (family account with profiles)
 
 import { supabase } from "./supabaseClient";
+import { cleanProfileName } from "./engine/firstWorkoutEngine.js";
 
 export function isSupabaseReady() {
   return !!supabase;
@@ -36,7 +37,7 @@ function getBrowserAuthRedirectUrl() {
   return origin.endsWith("/") ? origin : `${origin}/`;
 }
 
-export async function signUp(email, password) {
+export async function signUp(email, password, profileName = "") {
   // A signup with email confirmation enabled returns a user but no new session.
   // Clear any session left in this browser first so the app can never fall
   // through into a previously signed-in family's data after signup.
@@ -47,7 +48,7 @@ export async function signUp(email, password) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    ...(emailRedirectTo ? { options: { emailRedirectTo } } : {}),
+    options: { ...(emailRedirectTo ? { emailRedirectTo } : {}), data: { first_profile_name: cleanProfileName(profileName), first_workout_setup: 2 } },
   });
   return { data, error };
 }

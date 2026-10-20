@@ -318,6 +318,10 @@ export default function TrainingProgramLibrary({
   const [creatorId, setCreatorId] = useState(() => { const id = new URLSearchParams(window.location.search).get("creator"); return /^[0-9a-f-]{36}$/i.test(id || "") ? id : ""; });
   const [shareToken] = useState(readTrainingProgramShareToken);
   const starterPrograms = useMemo(() => buildStarterPrograms(startDate), [startDate]);
+  const [starterSearch, setStarterSearch] = useState("");
+  const filteredStarters = useMemo(() => starterPrograms.filter(program =>
+    JSON.stringify([program.title,program.description,program.purpose,program.sport,program.content]).toLowerCase().includes(starterSearch.trim().toLowerCase())
+  ), [starterPrograms,starterSearch]);
   const targetGroup = useMemo(
     () => groups.find((group) => group.id === targetGroupId) || null,
     [groups, targetGroupId]
@@ -998,8 +1002,10 @@ export default function TrainingProgramLibrary({
         <div className="trainingProgramSection">
           <h3>Starter Programs</h3>
           <p className="muted">Curated foundations you can use immediately, adapt in Build and save as your own version.</p>
+          <label className="starterProgramSearch">Find a starter by activity or focus<input type="search" value={starterSearch} onChange={event => setStarterSearch(event.target.value)} placeholder="e.g. football, strength, mobility" /></label>
+          {!filteredStarters.length ? <p>No matching starter. Try another activity, build your own, or browse Community for more programmes.</p> : null}
           <div className="trainingProgramGrid">
-            {starterPrograms.map((program) => (
+            {filteredStarters.map((program) => (
               <ProgramCard key={program.id} badge="Included" program={{ ...program, phase_count: 1, week_count: 1 }}>
                 <button type="button" className="primary" disabled={busy === program.id} onClick={() => useStarterProgram(program)}>Use starter</button>
               </ProgramCard>
