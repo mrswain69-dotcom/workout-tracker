@@ -106,8 +106,8 @@
 .dashboardToday__bar{display:flex;align-items:center;gap:8px;padding:6px 12px}
 .dashboardToday__toggle{display:flex;align-items:center;gap:9px;flex:1;min-width:0;min-height:44px;padding:5px 0;border:0;background:transparent;color:#334155;text-align:left;font:inherit;cursor:pointer}
 .dashboardToday__toggle:focus-visible{outline:2px solid #0f766e;outline-offset:3px;border-radius:4px}
-.dashboardToday__prompt{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 12px;font-size:12px}
-.dashboardToday__prompt strong{color:#0f172a;font-size:14px}
+.dashboardToday__prompt{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px 12px;font-size:13px}
+.dashboardToday__prompt strong{color:#0f172a;font-size:18px;font-weight:900;line-height:1.3}
 .dashboardToday__bar>.btn{flex:0 0 auto;min-height:44px}
 .dashboardToday__details{padding:0 18px 18px}
 .dashboardCard--today .dashboardPlanItem,.dashboardCard--today .dashboardEmpty{background:rgba(255,255,255,.78)}
@@ -276,3 +276,11 @@
 .dashboardPlanItem__copy{min-width:0;display:grid;gap:4px;overflow-wrap:anywhere}.dashboardPlanItem__copy small{font-size:12px;line-height:1.45;color:#526477}.dashboardCard--today .dashboardCard__actions{margin-top:20px}.dashboardCard--today .btn-primary{min-height:46px}
 
 @media(max-width:520px){.dashboardCard--today{padding:0}.dashboardToday__bar{padding:5px 10px}.dashboardToday__prompt{display:grid;gap:2px}.dashboardToday__details{padding:0 15px 15px}}
+
+/* An unstarted workout needs an inviting action, rather than an inactive grey row. */
+.dashboardCard--today.is-pending{border-color:#334155}
+.dashboardCard--today.is-pending .dashboardToday__bar{background:#334155}
+.dashboardCard--today.is-pending .dashboardToday__toggle,
+.dashboardCard--today.is-pending .dashboardToday__prompt strong{color:#fff}
+.dashboardCard--today.is-pending .dashboardToday__prompt>span{color:#e2e8f0;font-weight:600}
+.dashboardCard--today.is-pending .dashboardToday__toggle:focus-visible{outline-color:#fff}

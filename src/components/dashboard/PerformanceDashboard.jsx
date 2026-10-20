@@ -327,7 +327,7 @@ export default function PerformanceDashboard({
 
 
       <section aria-label="Today’s workout">
-        <article className={`dashboardCard dashboardCard--today is-${todayKind}`}>
+        <article className={`dashboardCard dashboardCard--today is-${todayKind}${todayKind === "none" && activeTodayBlocks.length ? " is-pending" : ""}`}>
           <div className="dashboardToday__bar">
             <button type="button" className="dashboardToday__toggle" aria-expanded={workoutExpanded}
               aria-controls={workoutDetailsId} onClick={() => setExpandedWorkoutKey(workoutExpanded ? "" : workoutKey)}>

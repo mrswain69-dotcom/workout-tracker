@@ -95,6 +95,7 @@ describe("PerformanceDashboard recent activity calendar", () => {
       historyDays={[{dateYmd:"2026-10-20",kind}]} onOpenLog={onOpenLog} />);
     const today = screen.getByRole("region", {name:"Today’s workout"});
     expect(today.querySelector("article").classList.contains(`is-${kind}`)).toBe(true);
+    expect(today.querySelector("article").classList.contains("is-pending")).toBe(kind === "none");
     fireEvent.click(screen.getByRole("button", {name:kind === "complete" ? "Review log" : "Open log"}));
     expect(onOpenLog).toHaveBeenCalledOnce();
     expect(screen.getByRole("button", {name:/Today’s workout/}).getAttribute("aria-expanded")).toBe("false");
