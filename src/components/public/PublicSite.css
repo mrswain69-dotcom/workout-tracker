@@ -359,6 +359,15 @@
 .accountPanel .page,
 .accountPanel .wrap { min-height:0; padding:0; background:transparent; }
 
+.nativeAccountFooter .btn {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:44px;
+  text-align:center;
+  text-decoration:none;
+}
+
 .publicFooter {
   width:min(1180px,calc(100% - 32px));
   margin:0 auto;

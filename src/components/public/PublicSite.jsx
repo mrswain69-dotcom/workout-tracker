@@ -119,7 +119,7 @@ export default function PublicSite({ children }) {
   if (isNativeApp()) return (
     <div className="page">
       <main className="wrap"><div style={{ maxWidth: 520, margin: "24px auto" }}>{children}</div></main>
-      <footer className="wrap row" aria-label="Account information">
+      <footer className="wrap row nativeAccountFooter" aria-label="Account information">
         <button className="btn btn-secondary" type="button" onClick={() => setLegal("privacy")}>Privacy</button>
         <button className="btn btn-secondary" type="button" onClick={() => setLegal("terms")}>Terms</button>
         <a className="btn btn-secondary" href="mailto:support@workouttrackerapp.io">Support</a>

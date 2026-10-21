@@ -1,5 +1,11 @@
 # Workout Tracker native candidate — 20 October 2026
 
+## 21 October device feedback — build 3 follow-up
+
+Android build 2 was installed on a physical Samsung device and its signed-out/signup screens were reviewed by Paul. The staging Auth log at 2026-10-21 08:32:43 UTC confirms that signup failed because SMTP returned `535 Authentication credentials invalid`, not because staging blocks email or because the native callback is invalid. Replace the staging Resend SMTP credential through secure settings entry, then repeat signup and confirmation on the device. No credential was inspected or changed, no email confirmation requirement was disabled, and delivery is not yet accepted.
+
+Build 3 centres all native account-footer controls with shared flex alignment and removes the Support link's default underline, so it matches Privacy and Terms. The mailto destination is unchanged. Build 2 remains the previously tested artifact below; build 3 requires fresh CI and device verification.
+
 Current runtime: `96c6e8f4ab0da3b4a58876fab048b3fb56ecf92d`, draft PR #144. Version 0.1.0, platform build 2. Native remains separate from production; all current features remain free.
 
 ## Integrated today
