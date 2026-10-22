@@ -8,19 +8,39 @@
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "build:native": "vite build --mode native",
+    "native:sync": "npm run build:native && cap sync",
+    "native:android": "cap open android",
+    "native:ios": "cap open ios",
+    "build:native:staging": "node scripts/nativeStagingBuild.js",
+    "native:sync:staging": "npm run build:native:staging && cap sync",
+    "native:branding": "node scripts/nativeBranding.js",
+    "native:verify": "node scripts/verifyNativeBundle.js"
   },
   "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/keyboard": "8.0.6",
     "@supabase/supabase-js": "^2.116.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.3",
     "@testing-library/react": "^16.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^26.1.0",
+    "sharp": "0.35.5",
     "vite": "8.2.4",
     "vitest": "^5.0.0"
+  },
+  "overrides": {
+    "xcode": {
+      "uuid": "11.1.1"
+    }
   }
 }

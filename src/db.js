@@ -1,5 +1,6 @@
 // Minimal DB layer for Supabase (family account with profiles)
 
+import { authRedirectUrl } from "./native/platform.js";
 import { supabase } from "./supabaseClient";
 import { cleanProfileName } from "./engine/firstWorkoutEngine.js";
 
@@ -30,11 +31,19 @@ export async function clearLocalAuthSession() {
 }
 
 function getBrowserAuthRedirectUrl() {
-  if (typeof window === "undefined") return undefined;
-  const origin = String(window.location?.origin || "").trim();
-  if (!origin || origin === "null") return undefined;
-  if (!/^https?:\/\//i.test(origin)) return undefined;
-  return origin.endsWith("/") ? origin : `${origin}/`;
+  return authRedirectUrl();
+}
+
+export async function requestPasswordReset(email) {
+  if (!supabase) return { error: new Error("Account service unavailable") };
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
+  return { error };
+}
+
+export async function updatePassword(password) {
+  if (!supabase) return { error: new Error("Account service unavailable") };
+  const { error } = await supabase.auth.updateUser({ password });
+  return { error };
 }
 
 export async function signUp(email, password, profileName = "") {
@@ -255,17 +264,33 @@ export async function getLog(familyId, profileId, date_ymd) {
   return { data, error };
 }
 
-export async function upsertLog(familyId, profileId, date_ymd, log) {
-  const { data, error } = await supabase
-    .from("logs")
-    .upsert(
-      { family_id: familyId, profile_id: profileId, date_ymd, log_json: log },
-      { onConflict: "family_id,profile_id,date_ymd" }
-    )
-    .select("*")
-    .single();
-
-  return { data, error };
+export async function upsertLog(familyId, profileId, date_ymd, log, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    if (options.versioned) {
+      const { data, error } = await supabase.rpc("save_workout_log_versioned", {
+        p_family_id: familyId, p_profile_id: profileId, p_date_ymd: date_ymd, p_log: log,
+        p_expected_version: options.expectedVersion ?? null, p_write_id: options.writeId,
+      }).abortSignal(controller.signal);
+      if (error) return { data: null, error };
+      if (data?.status === "conflict") return { data: null, error: null, conflict: { row: data.row || null } };
+      if (data?.status !== "saved" || !data.row) return { data: null, error: new Error("Save response could not be confirmed") };
+      return { data: data.row, error: null };
+    }
+    const { data, error } = await supabase
+      .from("logs")
+      .upsert(
+        { family_id: familyId, profile_id: profileId, date_ymd, log_json: log },
+        { onConflict: "family_id,profile_id,date_ymd" }
+      )
+      .select("*")
+      .single()
+      .abortSignal(controller.signal);
+    return { data, error };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function listLogs(familyId, profileId, limit = 500) {

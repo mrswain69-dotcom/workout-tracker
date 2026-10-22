@@ -1,0 +1,24 @@
+import { afterEach, expect, it } from 'vitest';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import sharp from 'sharp';
+import {prepareNativeArtwork} from '../../scripts/nativeArtwork.js';
+let root;
+afterEach(async()=>{if(root)await rm(root,{recursive:true,force:true});});
+it('keeps transparent pixels and every fallback while generating native-only artwork',async()=>{
+ root=await mkdtemp(path.join(tmpdir(),'wt-art-'));
+ await mkdir(path.join(root,'public/avatars'),{recursive:true});
+ const input=await sharp({create:{width:64,height:64,channels:4,background:{r:100,g:50,b:25,alpha:0.2}}}).png({compressionLevel:0}).toBuffer();
+ await writeFile(path.join(root,'public/avatars/test.png'),input);
+ await writeFile(path.join(root,'public/readme.txt'),'preserved');
+ await writeFile(path.join(root,'public/sw.js'),'not for native');
+ const result=await prepareNativeArtwork(root);
+ expect(result.mapping).toEqual({'/avatars/test.png':'/avatars/test.webp'});
+ const out=await readFile(path.join(result.publicDir,'avatars/test.webp'));
+ expect(await sharp(out).raw().toBuffer()).toEqual(await sharp(input).raw().toBuffer());
+ expect(await readFile(path.join(root,'public/avatars/test.png'))).toEqual(input);
+ expect(await readFile(path.join(result.publicDir,'readme.txt'),'utf8')).toBe('preserved');
+ await expect(readFile(path.join(result.publicDir,'sw.js'))).rejects.toThrow();
+ await expect(prepareNativeArtwork(root,path.join(root,'public'))).rejects.toThrow('Unexpected');
+});

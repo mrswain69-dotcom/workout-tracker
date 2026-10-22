@@ -1,3 +1,4 @@
+import { isNativeApp } from "../../native/platform.js";
 import React, { useState } from "react";
 import "./PublicSite.css";
 import { CookiesNotice, PrivacyNotice, TermsOfUse } from "../legal/LegalContent.jsx";
@@ -114,6 +115,18 @@ export default function PublicSite({ children }) {
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
     window.dispatchEvent(new CustomEvent("wt-public-auth-mode", { detail: mode }));
   };
+
+  if (isNativeApp()) return (
+    <div className="page">
+      <main className="wrap"><div style={{ maxWidth: 520, margin: "24px auto" }}>{children}</div></main>
+      <footer className="wrap row nativeAccountFooter" aria-label="Account information">
+        <button className="btn btn-secondary" type="button" onClick={() => setLegal("privacy")}>Privacy</button>
+        <button className="btn btn-secondary" type="button" onClick={() => setLegal("terms")}>Terms</button>
+        <a className="btn btn-secondary" href="mailto:support@workouttrackerapp.io">Support</a>
+      </footer>
+      <LegalDialog type={legal} onClose={() => setLegal("")} />
+    </div>
+  );
 
   return (
     <div className="publicSite">
@@ -264,10 +277,11 @@ export default function PublicSite({ children }) {
           <span><b>Workout Tracker</b><small>Your training. Your way. A product of Swain Digital Ltd.</small></span>
         </div>
         <div className="footerLinks">
-          <button type="button" onClick={() => setLegal("privacy")}>Privacy</button>
-          <button type="button" onClick={() => setLegal("cookies")}>Cookies</button>
-          <button type="button" onClick={() => setLegal("terms")}>Terms</button>
-          <a href="mailto:support@workouttrackerapp.io">Support</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/cookies">Cookies</a>
+          <a href="/terms">Terms</a>
+          <a href="/delete-account">Delete account</a>
+          <a href="/support">Support</a>
         </div>
       </footer>
 

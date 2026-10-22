@@ -23,7 +23,7 @@ vi.mock("./db.js", async (importOriginal) => {
   return {
     ...original,
     isSupabaseReady: () => true,
-    getSession: async () => ({ session: { user: { id: "user" } } }),
+    getSession: vi.fn(async () => ({ session: { user: { id: "user" } } })),
     getOrCreateFamily: async () => ({ family: { id: "family", welcome_email_sent_at: "2026-10-01" } }),
     listProfiles: vi.fn(async () => ({ data: [{ id: "paul", name: "Paul", age_group: "adult" }] })),
     listProfileRecoveryPeriods: async () => ({ data: [] }),
@@ -38,6 +38,7 @@ vi.mock("./db.js", async (importOriginal) => {
 const defaultPlanRead = vi.mocked(db.getProfilePlan).getMockImplementation();
 
 beforeEach(() => {
+  vi.mocked(db.getSession).mockReset().mockResolvedValue({session:{user:{id:"user"}}});
   vi.mocked(db.getProfilePlan).mockReset().mockImplementation(defaultPlanRead);
   vi.mocked(db.listProfiles).mockClear();
   vi.mocked(db.listProfiles).mockResolvedValue({ data: [{ id: "paul", name: "Paul", age_group: "adult" }] });
@@ -67,7 +68,7 @@ function chooseDate(dateYmd) {
 }
 
 describe("actual Log navigation", () => {
-  it("refreshes multiple visited days from another device without reloading the page", async () => {
+  it.each(["focus", "wt-app-resume"])("refreshes multiple visited days from another device on %s without reloading the page", async (eventName) => {
     const payload = (reps) => ({ blocks: [{ id: "strength", typeId: "strength", sets: { press: [{ reps, weight: "25" }] } }] });
     let remoteReps = "10";
     vi.mocked(db.listLogs).mockImplementation(async () => ({ data: ["2026-10-01", "2026-10-02"].map((date) =>
@@ -80,7 +81,7 @@ describe("actual Log navigation", () => {
     chooseDate("2026-10-01");
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("10"));
     remoteReps = "24";
-    fireEvent(window, new Event("focus"));
+    fireEvent(window, new Event(eventName));
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("24"));
     chooseDate("2026-10-02");
     await waitFor(() => expect(screen.getAllByRole("spinbutton")[0].value).toBe("24"));
@@ -259,6 +260,129 @@ describe("profile switching", () => {
     await act(async () => {});
     expect(screen.getByText("Plan history")).toBeTruthy();
     expect(db.listLogs.mock.calls.length).toBe(readCount);
+  });
+});
+
+describe('pending log recovery in the actual app',()=>{
+  it('restores failed edits after remount, retries, and clears only after server confirmation',async()=>{
+    vi.mocked(db.upsertLog).mockResolvedValue({error:new Error('Offline')});
+    const first=await ready();
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'17'}});
+    fireEvent.change(screen.getAllByRole('spinbutton')[1],{target:{value:'24.5'}});
+    await screen.findByText('Saved on this device · waiting to sync',{}, {timeout:2500});
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalled(),{timeout:2500});
+    await waitFor(()=>expect(screen.queryByText('Syncing…')).toBeNull());
+    const pendingKeys=()=>Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'));
+    expect(pendingKeys()).toHaveLength(1);
+    first.unmount();
+    // The server has no row: only the durable local draft can restore these values.
+    await ready();
+    await waitFor(()=>expect(screen.getAllByRole('spinbutton')[0].value).toBe('17'));
+    expect(screen.getAllByRole('spinbutton')[1].value).toBe('24.5');
+    await waitFor(()=>expect(screen.queryByText('Syncing…')).toBeNull());
+    vi.mocked(db.upsertLog).mockImplementation(async(_f,_p,_d,log)=>({data:{id:'saved-row',log_json:log}}));
+    fireEvent.click(screen.getByRole('button',{name:'Retry sync'}));
+    await waitFor(()=>expect(pendingKeys()).toHaveLength(0));
+    expect(screen.getAllByRole('spinbutton')[0].value).toBe('17');
+    // No full history download per save: one initial load per mounted app.
+    expect(db.listLogs).toHaveBeenCalledTimes(2);
+  });
+  it('retains interrupted requests for retry on reconnection',async()=>{
+    vi.mocked(db.upsertLog).mockRejectedValue(new Error('Connection lost'));
+    await ready();
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'19'}});
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalled(),{timeout:2500});
+    await screen.findByText('Saved on this device · waiting to sync');
+    vi.mocked(db.upsertLog).mockImplementation(async(_f,_p,_d,log)=>({data:{log_json:log}}));
+    fireEvent(window,new Event('online'));
+    await waitFor(()=>expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0));
+    expect(screen.getAllByRole('spinbutton')[0].value).toBe('19');
+  });
+});
+
+it('never replays signed-out account drafts into a different signed-in account',async()=>{
+  vi.mocked(db.upsertLog).mockResolvedValue({error:new Error('Offline')});
+  await ready();
+  fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'23'}});
+  await waitFor(()=>expect(db.upsertLog).toHaveBeenCalled(),{timeout:2500});
+  const calls=db.upsertLog.mock.calls.length;
+  await act(async()=>window.dispatchEvent(new CustomEvent('wt-auth-state',{detail:{event:'SIGNED_OUT',session:null}})));
+  expect(screen.queryByText('Shoulder Press')).toBeNull();
+  fireEvent(window,new Event('online'));
+  expect(db.upsertLog).toHaveBeenCalledTimes(calls);
+  vi.mocked(db.getSession).mockResolvedValue({session:{user:{id:'other-user'}}});
+  await act(async()=>window.dispatchEvent(new CustomEvent('wt-native-auth',{detail:{session:{user:{id:'other-user'}}}})));
+  await screen.findByText('Shoulder Press');
+  expect(screen.getAllByRole('spinbutton')[0].value).toBe('');
+  fireEvent(window,new Event('online'));
+  expect(db.upsertLog).toHaveBeenCalledTimes(calls);
+});
+
+describe('versioned log conflict review',()=>{
+  afterEach(()=>vi.unstubAllEnvs());
+  const dayLog=reps=>({blocks:[{id:'strength',typeId:'strength',label:'Shoulders and Triceps',movements:[{id:'press',name:'Shoulder Press',sets:3,trackWeight:true}],sets:{press:[{reps:String(reps),weight:'25'}]}}]});
+  async function versionedReady() {
+    vi.stubEnv('VITE_LOG_SYNC_MODE','versioned');
+    const row={id:'day-row',profile_id:'paul',date_ymd:'2026-10-01',row_version:3,log_json:dayLog(10)};
+    vi.mocked(db.listLogs).mockResolvedValue({data:[row]});vi.mocked(db.getLog).mockResolvedValue({data:row});
+    await ready();await waitFor(()=>expect(screen.getAllByRole('spinbutton')[0].value).toBe('10'));
+  }
+  it('retains local entries on conflict and lets the user choose the account version',async()=>{
+    await versionedReady();
+    const remote={id:'day-row',profile_id:'paul',date_ymd:'2026-10-01',row_version:4,log_json:dayLog(12)};
+    vi.mocked(db.upsertLog).mockResolvedValue({conflict:{row:remote}});
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'15'}});
+    fireEvent.click(await screen.findByRole('button',{name:'Review saved changes'},{timeout:2500}));
+    expect(screen.getByRole('dialog',{name:'Review workout changes'})).toBeTruthy();
+    expect(screen.getByText('15 reps · 25 kg')).toBeTruthy();expect(screen.getByText('12 reps · 25 kg')).toBeTruthy();
+    expect(db.upsertLog.mock.calls.at(-1)[4].expectedVersion).toBe(3);
+    fireEvent.click(screen.getByRole('button',{name:'Use account version'}));
+    await waitFor(()=>expect(screen.getAllByRole('spinbutton')[0].value).toBe('12'));
+    expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0);
+    fireEvent(window,new Event('online'));expect(db.upsertLog).toHaveBeenCalledTimes(1);
+  });
+  it('uses the reviewed server version when the user explicitly keeps their entries',async()=>{
+    await versionedReady();
+    const remote={id:'day-row',row_version:4,log_json:dayLog(12)};
+    vi.mocked(db.upsertLog).mockResolvedValueOnce({conflict:{row:remote}}).mockImplementation(async(_f,_p,_d,log)=>({data:{id:'day-row',row_version:5,log_json:log}}));
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'15'}});
+    fireEvent.click(await screen.findByRole('button',{name:'Review saved changes'},{timeout:2500}));
+    fireEvent.click(screen.getByRole('button',{name:'Keep my entries'}));
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalledTimes(2));
+    expect(db.upsertLog.mock.calls[1][4].expectedVersion).toBe(4);
+    await waitFor(()=>expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0));
+    expect(screen.getAllByRole('spinbutton')[0].value).toBe('15');
+  });
+  it.each(['focus','wt-app-resume'])('uses the version from a clean cross-device refresh on %s after a local save',async(eventName)=>{
+    await versionedReady();
+    let remote={id:'day-row',profile_id:'paul',date_ymd:'2026-10-01',row_version:3,log_json:dayLog(10)};
+    vi.mocked(db.listLogs).mockImplementation(async()=>({data:[remote]}));
+    vi.mocked(db.getLog).mockImplementation(async()=>({data:remote}));
+    vi.mocked(db.upsertLog).mockImplementation(async(_f,_p,_d,log)=>{
+      remote={...remote,row_version:remote.row_version+1,log_json:log};return {data:remote};
+    });
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'15'}});
+    await waitFor(()=>expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0),{timeout:2500});
+    remote={...remote,row_version:6,log_json:dayLog(24)};
+    fireEvent(window,new Event(eventName));
+    await waitFor(()=>expect(screen.getAllByRole('spinbutton')[0].value).toBe('24'));
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'25'}});
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalledTimes(2),{timeout:2500});
+    expect(db.upsertLog.mock.calls[1][4].expectedVersion).toBe(6);
+  });
+  it('advances the next local write after an earlier in-flight save succeeds',async()=>{
+    await versionedReady();let finish;let version=3;
+    vi.mocked(db.upsertLog).mockImplementationOnce((_f,_p,_d,log)=>new Promise(resolve=>{finish=()=>resolve({data:{row_version:++version,log_json:log}});})).mockImplementation(async(_f,_p,_d,log)=>({data:{row_version:++version,log_json:log}}));
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'15'}});
+    await waitFor(()=>expect(finish).toBeTypeOf('function'),{timeout:2500});
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'16'}});
+    await act(async()=>finish());
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalledTimes(2),{timeout:2500});
+    expect(db.upsertLog.mock.calls[1][4].expectedVersion).toBe(4);
+    await waitFor(()=>expect(Object.keys(localStorage).filter(k=>k.startsWith('wt_log_outbox_v1:'))).toHaveLength(0));
+    fireEvent.change(screen.getAllByRole('spinbutton')[0],{target:{value:'17'}});
+    await waitFor(()=>expect(db.upsertLog).toHaveBeenCalledTimes(3),{timeout:2500});
+    expect(db.upsertLog.mock.calls[2][4].expectedVersion).toBe(5);
   });
 });
 

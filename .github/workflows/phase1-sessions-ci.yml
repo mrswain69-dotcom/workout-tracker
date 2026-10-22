@@ -8,6 +8,13 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: workout-tracker-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
@@ -37,5 +44,107 @@ jobs:
       - name: Build app
         run: npm run build
 
+      - name: Validate native bundle and generated project sync
+        env:
+          NATIVE_SHELL_ONLY: '1'
+        run: npm run native:sync
+
+      - run: npm run native:verify
+
       - name: Security audit
         run: npm audit --audit-level=low
+
+  android-compile:
+    strategy:
+      matrix:
+        bundle: [shell, staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --no-audit --no-fund
+      - name: Sync unconfigured native shell
+        if: matrix.bundle == 'shell'
+        env:
+          NATIVE_SHELL_ONLY: '1'
+        run: npm run native:sync
+      - name: Sync isolated staging bundle
+        if: matrix.bundle == 'staging'
+        run: npm run native:sync:staging
+      - run: npm run native:verify
+      - name: Compile Android debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug bundleDebug --no-daemon
+      - name: Upload Android test build
+        uses: actions/upload-artifact@v7
+        with:
+          name: Workout-Tracker-${{ matrix.bundle }}-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload staging app bundle and build evidence
+        if: matrix.bundle == 'staging'
+        uses: actions/upload-artifact@v7
+        with:
+          name: Workout-Tracker-staging-bundle-evidence
+          path: |
+            android/app/build/outputs/bundle/debug/app-debug.aab
+            dist-native/native-build.json
+            dist-native/native-verification.json
+          if-no-files-found: error
+          retention-days: 14
+
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run native:sync:staging
+      - run: npm run native:verify
+      - name: Record Xcode version
+        run: xcodebuild -version
+      - name: Compile unsigned iOS simulator build
+        run: >-
+          xcodebuild -project ios/App/App.xcodeproj -scheme App
+          -configuration Debug -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath .native-builds/ios
+          PRODUCT_BUNDLE_IDENTIFIER=io.workouttrackerapp.app.staging
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Launch staging app on Simulator
+        run: python3 scripts/iosSimulatorSmoke.py
+      - name: Upload launch evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: Workout-Tracker-ios-launch-evidence
+          path: .native-builds/evidence/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Archive simulator app with executable permissions
+        run: ditto -c -k --keepParent .native-builds/ios/Build/Products/Debug-iphonesimulator/App.app .native-builds/Workout-Tracker-staging-simulator.zip
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v7
+        with:
+          name: Workout-Tracker-staging-ios-simulator
+          path: .native-builds/Workout-Tracker-staging-simulator.zip
+          if-no-files-found: error
+          retention-days: 14

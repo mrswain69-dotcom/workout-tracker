@@ -1,3 +1,4 @@
+import { nativeArtworkSrc } from "../native/artwork.js";
 import { extendPerformanceTiers } from "./performancePrestige.js";
 import { SPORT_MASTERY_TIERS } from "../engine/sportsMasteryProgression.js";
 
@@ -24,7 +25,7 @@ export function bgPath(family, tier) {
 }
 
 export function iconPath(iconFilePng) {
-  return `/badges/icons/${iconFilePng}`;
+  return nativeArtworkSrc(`/badges/icons/${iconFilePng}`);
 }
 
 export function formatTimeMMSS(totalSec) {

@@ -1,3 +1,4 @@
+import { isNativeApp } from '../../native/platform.js';
 import React, { useEffect, useSyncExternalStore } from 'react';
 import { pwaInstall } from '../../pwaInstall';
 import IosInstallGuide from './IosInstallGuide';
@@ -5,7 +6,7 @@ import './PwaInstall.css';
 
 function useInstall(controller) {
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getServerSnapshot);
-  useEffect(() => { controller.start(); }, [controller]);
+  useEffect(() => { if (!isNativeApp()) controller.start(); }, [controller]);
   return state;
 }
 
@@ -27,6 +28,7 @@ function PhoneInstructions({ platform }) {
 
 export function PwaInstallSettings({ controller = pwaInstall }) {
   const state = useInstall(controller);
+  if (isNativeApp()) return <section className="pwaInstall panel"><h3>Workout Tracker app</h3><p>You’re using the installed app on this device.</p></section>;
   const phone = state.isPhone || state.platform === 'ios' || state.platform === 'android';
   return <section className="pwaInstall panel" aria-labelledby="pwa-install-title">
     <div className="pwaInstall__heading">
@@ -58,7 +60,7 @@ export function PwaInstallSettings({ controller = pwaInstall }) {
 
 export function PwaInstallReminder({ visible = true, controller = pwaInstall }) {
   const state = useInstall(controller);
-  if (!visible || !state.showReminder) return null;
+  if (isNativeApp() || !visible || !state.showReminder) return null;
   return <aside className="pwaInstallReminder" aria-label="Install Workout Tracker on your phone">
     <div><strong>Keep Workout Tracker on your home screen</strong>
       <p>Open it like an app, ready for your next session.</p>

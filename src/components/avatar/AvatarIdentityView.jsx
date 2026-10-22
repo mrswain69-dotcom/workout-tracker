@@ -1,3 +1,4 @@
+import { nativeArtworkSrc } from "../../native/artwork.js";
 import React, { useEffect, useRef } from "react";
 import "./AvatarIdentityView.css";
 
@@ -88,7 +89,7 @@ export default function AvatarIdentityView({
 
         <header className="avatarIdentityHero">
           <div className="avatarIdentityArtwork" aria-hidden="true">
-            {identity.imgSrc ? <img src={identity.imgSrc} alt="" /> : <span>{identity.emoji || "🙂"}</span>}
+            {identity.imgSrc ? <img src={nativeArtworkSrc(identity.imgSrc)} alt="" /> : <span>{identity.emoji || "🙂"}</span>}
           </div>
           <div>
             <span className="avatarIdentityEyebrow">{isGroup ? `${athleteName} · Shared Group view` : `${athleteName} · Avatar identity`}</span>

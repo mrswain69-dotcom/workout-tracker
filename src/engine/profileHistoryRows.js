@@ -11,6 +11,7 @@ export function mapProfileHistoryRows(rows, profileId) {
       log: row.log_json || row.log || null,
       created_at: row.created_at || null,
       updated_at: row.updated_at || null,
+      row_version: Number.isSafeInteger(row.row_version) ? row.row_version : null,
     }))
     .filter((row) => row.log);
 }

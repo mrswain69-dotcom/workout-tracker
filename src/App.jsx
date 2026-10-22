@@ -1,3 +1,4 @@
+import { nativeArtworkSrc } from "./native/artwork.js";
 import { hasSportAvatarArtwork, sportAvatarArtworkSrc, PAIRED_SPORT_AVATAR_ARTWORK_READY } from "./config/sportAvatarArtwork";
 import { loadVerifiedActivityData } from "./verifiedActivityDb.js";
 import { buildPerformanceEvidence, performanceEvidenceForCard } from "./engine/performanceBadgeEvidence.js";
@@ -15,7 +16,10 @@ import WorkoutComparison from "./components/log/WorkoutComparison.jsx";
 import { lastWorkoutComparison, lastRepeatableWorkout, workoutTargetText } from "./engine/workoutComparisonEngine.js";
 import { PwaInstallSettings, PwaInstallReminder } from './components/settings/PwaInstall.jsx';
 import { readLogNavigation, writeLogNavigation, clearLogNavigation } from "./engine/logNavigationState.js";
-import { selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
+import { hasProtectedLogEdit, selectDayLogSnapshot, sameLogView, createKeyedLogWriteQueue } from "./engine/dayLogLifecycle.js";
+import { createLogOutbox } from "./engine/logOutbox.js";
+import PasswordRecovery from "./components/auth/PasswordRecovery.jsx";
+import LogConflictDialog from "./components/log/LogConflictDialog.jsx";
 import ExtraBlockNotice from "./components/log/ExtraBlockNotice.jsx";
 import MovementCompletion from "./components/log/MovementCompletion.jsx";
 import { applyRecommendedRecoveryDay } from "./engine/recommendedRecoveryDay.js";
@@ -41,6 +45,7 @@ import {
   signUp,
   signOut,
   resendSignUpConfirmation,
+  requestPasswordReset,
   getOrCreateFamily,
   listProfiles,
   addProfile,
@@ -1621,6 +1626,17 @@ function AuthScreen({ onAuthed }) {
     }
   }
 
+  async function sendResetLink() {
+    if (busy) return;
+    if (!email.trim()) { setMsg("Enter your email address first, then tap Forgot password."); return; }
+    setBusy(true); setMsg("");
+    try {
+      const { error } = await requestPasswordReset(email.trim());
+      setMsg(error ? error.message : "If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.");
+    } catch { setMsg("The reset email could not be requested. Check your connection and try again."); }
+    finally { setBusy(false); }
+  }
+
   function switchMode(nextMode) {
     setMode(nextMode);
     setMsg("");
@@ -1705,6 +1721,7 @@ function AuthScreen({ onAuthed }) {
                   {mode === "signup" ? "Create account" : pendingConfirmationEmail ? "I’ve confirmed my email — sign in" : "Sign in"}
                 </PrimaryButton>
 
+                {mode === "signin" && <SecondaryButton disabled={busy} onClick={sendResetLink}>Forgot password</SecondaryButton>}
                 {pendingConfirmationEmail ? (
                   <SecondaryButton disabled={busy} onClick={resendConfirmation}>
                     Resend confirmation email
@@ -3322,6 +3339,11 @@ useEffect(() => {
   }; // log | stats | plan | rewards | settings
   const [sessionReady, setSessionReady] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [passwordRecovery, setPasswordRecovery] = useState(() => {
+    try { return new URLSearchParams(window.location.hash.slice(1)).get("type") === "recovery"; } catch { return false; }
+  });
+  const [nativeAuthError, setNativeAuthError] = useState(false);
+  const authEventRevisionRef = useRef(0);
   useAppUsage(authed);
   const [accountLoadState, setAccountLoadState] = useState("idle");
   const [accountLoadError, setAccountLoadError] = useState("");
@@ -3536,6 +3558,38 @@ useEffect(() => { planRef.current = plan; }, [plan]);
     setDayLogState({ key: dayLogKey, log });
   }
   const [isSavingLog, setIsSavingLog] = useState(false);
+  const [logSyncState, setLogSyncState] = useState({ pending: 0, failed: false, volatile: false });
+  const logOwnerRef = useRef(null);
+  const logOutboxRef = useRef(null);
+  if (!logOutboxRef.current) {
+    let storage; try { storage = window.localStorage; } catch {}
+    logOutboxRef.current = createLogOutbox(storage);
+  }
+  const logRetryWritesRef = useRef(new Map());
+  const logWritingKeysRef = useRef(new Set());
+  const restoredLogOwnerRef = useRef("");
+  const logRowVersionsRef = useRef(new Map());
+  const logClientIdRef = useRef(globalThis.crypto?.randomUUID?.() || String(Math.random()));
+  const logConflictsRef = useRef({});
+  const [logConflicts, setLogConflicts] = useState({});
+  const [reviewLogConflictKey, setReviewLogConflictKey] = useState("");
+  function setLogConflict(key, conflict) {
+    const next = { ...logConflictsRef.current };
+    if (conflict) next[key] = conflict; else delete next[key];
+    logConflictsRef.current = next; setLogConflicts(next);
+  }
+  const versionedLogSync = import.meta.env.VITE_LOG_SYNC_MODE === "versioned";
+  function updateLogSyncState() {
+    const pending = logOutboxRef.current.list(logOwnerRef.current, family?.id);
+    setLogSyncState({ pending: pending.length, failed: logRetryWritesRef.current.size > 0,
+      volatile: pending.some(entry => !logOutboxRef.current.isDurable(entry)) });
+  }
+  function retryPendingLogWrites() {
+    if (!logOwnerRef.current || navigator.onLine === false) return;
+    for (const [key, write] of logRetryWritesRef.current) {
+      if (!logWritingKeysRef.current.has(key)) logWriteQueueRef.current(key, write).catch(() => {});
+    }
+  }
   const [allLogs, setAllLogs] = useState([]); // for stats
   const previousWorkoutForSelectedDate = useMemo(() => lastRepeatableWorkout(allLogs, selectedDate), [allLogs,selectedDate]);
   const logForDay = dayLogState?.key === dayLogKey && dayLogState.log
@@ -3557,16 +3611,18 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   useEffect(() => {
     if (!authed || !family?.id || !activeProfileId) return;
     let lastRefresh = 0;
-    const refresh = () => {
-      if (document.visibilityState === "hidden" || Date.now() - lastRefresh < 1000) return;
+    const refresh = (event) => {
+      if ((document.visibilityState === "hidden" && event?.type !== "wt-app-resume") || Date.now() - lastRefresh < 1000) return;
       lastRefresh = Date.now();
       setRemoteLogRevision((value) => value + 1);
     };
     window.addEventListener("focus", refresh);
+    window.addEventListener("wt-app-resume", refresh);
     window.addEventListener("online", refresh);
     document.addEventListener("visibilitychange", refresh);
     return () => {
       window.removeEventListener("focus", refresh);
+      window.removeEventListener("wt-app-resume", refresh);
       window.removeEventListener("online", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
@@ -3777,6 +3833,38 @@ const [extraActivityCoachNoteDraft, setExtraActivityCoachNoteDraft] =
       logPersistTimersRef.current.clear();
     };
   }, []);
+
+  // Restore only records belonging to this signed-in account and its profiles.
+  useEffect(() => {
+    if (!authed || !family?.id || !profiles.length || !logOwnerRef.current) return;
+    const scope = `${logOwnerRef.current}:${family.id}`;
+    if (restoredLogOwnerRef.current === scope) return;
+    restoredLogOwnerRef.current = scope;
+    for (const entry of logOutboxRef.current.list(logOwnerRef.current, family.id, profiles.map(p => p.id))) {
+      saveLog(entry.log, { identity: entry, replay: true });
+    }
+    updateLogSyncState();
+  }, [authed, family?.id, profiles]);
+
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === "visible") retryPendingLogWrites(); };
+    const onUnload = (event) => {
+      if (!logRetryWritesRef.current.size && !logPersistTimersRef.current.size && !logSaveInFlightRef.current) return;
+      event.preventDefault(); event.returnValue = "";
+    };
+    const timer = setInterval(retryPendingLogWrites, 15000);
+    window.addEventListener("online", retryPendingLogWrites);
+    window.addEventListener("wt-app-resume", retryPendingLogWrites);
+    window.addEventListener("beforeunload", onUnload);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("online", retryPendingLogWrites);
+      window.removeEventListener("wt-app-resume", retryPendingLogWrites);
+      window.removeEventListener("beforeunload", onUnload);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [family?.id]);
 
   // Strength-like blocks for the selected day (planned + extra one-day)
   let allStrengthBlocksForDay = [];
@@ -4020,10 +4108,68 @@ function toggleLogBlockFocus(blockId) {
         setAuthed(false);
         return;
       }
+      const bootRevision = authEventRevisionRef.current;
       const { session } = await getSession();
+      if (bootRevision !== authEventRevisionRef.current) return;
+      logOwnerRef.current = session?.user?.id || null;
       setAuthed(!!session);
       setSessionReady(true);
     })();
+  }, []);
+
+  useEffect(() => {
+    const onAuth = (event) => {
+      authEventRevisionRef.current += 1;
+      const detail = event.detail || {};
+      if (detail.event === "TOKEN_REFRESHED") return;
+      if (detail.event === "SIGNED_OUT") {
+        accountLoadRequestRef.current += 1;
+        allLogsLoadRequestRef.current += 1;
+        loadDayLogReqRef.current += 1;
+        currentLogViewRef.current = null;
+        logOwnerRef.current = null;
+        setAuthed(false); setFamily(null); setProfiles([]); setPlan(null); setAllLogs([]); setDayLogState(null);
+        lastLogByDateRef.current = {};
+        logRetryWritesRef.current.clear();
+        for (const timer of logPersistTimersRef.current.values()) clearTimeout(timer);
+        logPersistTimersRef.current.clear();
+        logSaveRevisionRef.current.clear(); logPersistedRevisionRef.current.clear();
+        logRowVersionsRef.current.clear(); logConflictsRef.current = {}; setLogConflicts({}); setReviewLogConflictKey("");
+        logOutboxRef.current.clearMemory(); restoredLogOwnerRef.current = "";
+        setPasswordRecovery(false); setSessionReady(true);
+        return;
+      }
+      if (!detail.session?.user?.id) return;
+      if (logOwnerRef.current && logOwnerRef.current !== detail.session.user.id) {
+        // An account changed in another tab. Invalidate every older request
+        // before rendering or replaying anything for the newly signed-in user.
+        accountLoadRequestRef.current += 1;
+        allLogsLoadRequestRef.current += 1;
+        loadDayLogReqRef.current += 1;
+        currentLogViewRef.current = null;
+        setFamily(null); setProfiles([]); setPlan(null); setAllLogs([]); setDayLogState(null);
+        lastLogByDateRef.current = {};
+        logRetryWritesRef.current.clear();
+        for (const timer of logPersistTimersRef.current.values()) clearTimeout(timer);
+        logPersistTimersRef.current.clear();
+        logSaveRevisionRef.current.clear(); logPersistedRevisionRef.current.clear();
+        logRowVersionsRef.current.clear(); logConflictsRef.current = {}; setLogConflicts({}); setReviewLogConflictKey("");
+        logOutboxRef.current.clearMemory(); restoredLogOwnerRef.current = "";
+        setAccountLoadRevision(value => value + 1);
+      }
+      logOwnerRef.current = detail.session.user.id;
+      if (detail.recovery || detail.event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+      setNativeAuthError(false); setAuthed(true); setSessionReady(true);
+    };
+    const onError = () => setNativeAuthError(true);
+    window.addEventListener("wt-native-auth", onAuth);
+    window.addEventListener("wt-auth-state", onAuth);
+    window.addEventListener("wt-native-auth-error", onError);
+    return () => {
+      window.removeEventListener("wt-native-auth", onAuth);
+      window.removeEventListener("wt-auth-state", onAuth);
+      window.removeEventListener("wt-native-auth-error", onError);
+    };
   }, []);
 
   const ensureAudio = async () => {
@@ -4044,6 +4190,18 @@ function toggleLogBlockFocus(blockId) {
       return;
     }
 
+    logOwnerRef.current = null;
+    restoredLogOwnerRef.current = "";
+    logRetryWritesRef.current.clear();
+    for (const timer of logPersistTimersRef.current.values()) clearTimeout(timer);
+    logPersistTimersRef.current.clear();
+    lastLogByDateRef.current = {};
+    logSaveRevisionRef.current.clear();
+    logPersistedRevisionRef.current.clear();
+    logRowVersionsRef.current.clear(); logConflictsRef.current = {}; setLogConflicts({}); setReviewLogConflictKey("");
+    logOutboxRef.current.clearMemory();
+    setLogSyncState({ pending: 0, failed: false, volatile: false });
+    setPasswordRecovery(false);
     setAuthed(false);
     setFamily(null);
     setProfiles([]);
@@ -4066,6 +4224,9 @@ function toggleLogBlockFocus(blockId) {
 
   // --- After auth: family + profiles + plan ---
   async function refreshAll({ isCurrent = () => true } = {}) {
+    const { session } = await getSession();
+    if (!isCurrent()) return null;
+    logOwnerRef.current = session?.user?.id || null;
     const { family: fam, error } = await getOrCreateFamily("My Family", blankPlanForNewProfile());
     if (error) throw error;
     if (!fam?.id) throw new Error("Your family account could not be loaded.");
@@ -4346,6 +4507,15 @@ function toggleLogBlockFocus(blockId) {
     if (!isCurrent()) return;
 
     const mapped = mapProfileHistoryRows(data, activeProfileId);
+    for (const row of mapped) {
+      const key = makeLogCacheKey(family.id, activeProfileId, row.date_ymd);
+      if (!hasProtectedLogEdit({ localRevision: logSaveRevisionRef.current.get(key) || 0,
+        persistedRevision: logPersistedRevisionRef.current.get(key) || 0,
+        revisionAtLoadStart: readRevisions.revisionsAtStart.get(key) || 0,
+        persistedRevisionAtLoadStart: readRevisions.persistedAtStart.get(key) || 0 })) {
+        logRowVersionsRef.current.set(key, row.row_version);
+      }
+    }
 
     setAllLogs(mergeMappedLogsWithLocalCache(mapped, family.id, activeProfileId, readRevisions));
     setLogsReadyKey(profileLoadKey);
@@ -4449,6 +4619,10 @@ useEffect(() => {
     const row = Array.isArray(data) ? data[0] : data;
     // Prefer the new log_json column, but fall back to legacy log if needed
     const fromDb = row?.log_json || row?.log || null;
+    if (!hasPendingLocalEdit && !hasProtectedLogEdit({ localRevision: liveRevision, persistedRevision,
+      revisionAtLoadStart, persistedRevisionAtLoadStart: persistedAtLoadStart })) {
+      logRowVersionsRef.current.set(cacheKey, row?.row_version ?? null);
+    }
 
     // Never let the result of an older load overwrite an edit made while that
     // request was in flight.
@@ -6973,11 +7147,13 @@ function stampLogTiming(prevLog, nextLog) {
   };
 }
   
-  async function saveLog(nextLog, { debounceMs = 0 } = {}) {
+  async function saveLog(nextLog, { debounceMs = 0, identity = null, replay = false } = {}) {
   // Capture identity at the moment the edit is made.
-  const familyId = family?.id;
-  const profileId = activeProfileId;
-  const dateKey = selectedDate;
+  const familyId = identity?.familyId || family?.id;
+  const profileId = identity?.profileId || activeProfileId;
+  const dateKey = identity?.dateKey || selectedDate;
+  const ownerId = logOwnerRef.current;
+  if (!ownerId || (identity && identity.ownerId !== ownerId)) return [];
   const cacheKey = makeLogCacheKey(familyId, profileId, dateKey);
 
   // Resolve newly planned Session blocks into immutable definition snapshots.
@@ -6988,11 +7164,11 @@ function stampLogTiming(prevLog, nextLog) {
 
   const previousLatest =
     (cacheKey && lastLogByDateRef.current?.[cacheKey]) ||
-    logForDay ||
+    (identity ? nextLog : logForDay) ||
     null;
 
   const logToStore = preparedLog
-    ? stampLogTiming(previousLatest, preparedLog)
+    ? (replay ? preparedLog : stampLogTiming(previousLatest, preparedLog))
     : null;
 
   // Every edit gets a monotonically increasing revision. Older DB responses
@@ -7002,8 +7178,19 @@ function stampLogTiming(prevLog, nextLog) {
     : 1;
   if (cacheKey) logSaveRevisionRef.current.set(cacheKey, revision);
 
+  // Journal synchronously before debounce so an interrupted app can restore edits.
+  const journalEntry = ownerId && familyId && profileId && dateKey && logToStore
+    ? logOutboxRef.current.put({ ownerId, familyId, profileId, dateKey, log: logToStore,
+        clientId: logClientIdRef.current,
+        replayToken: replay ? identity?.token : null,
+        expectedVersion: identity ? identity.expectedVersion ?? null : logRowVersionsRef.current.get(cacheKey) ?? null,
+      }) : null;
+  if (logConflictsRef.current[cacheKey] && journalEntry) {
+    setLogConflict(cacheKey, { ...logConflictsRef.current[cacheKey], entry: journalEntry });
+  }
+  updateLogSyncState();
   // Optimistic UI first: typing must never wait for the network.
-  setLogForDay(logToStore);
+  if (sameLogView(currentLogViewRef.current, familyId, profileId, dateKey)) setLogForDay(logToStore);
 
   if (cacheKey) {
     const prev = lastLogByDateRef.current || {};
@@ -7051,6 +7238,10 @@ function stampLogTiming(prevLog, nextLog) {
   if (!familyId || !profileId || !dateKey) return [];
 
   const persistRevision = async () => {
+    if (ownerId !== logOwnerRef.current) return [];
+    if (logConflictsRef.current[cacheKey]) return [];
+    if (journalEntry && !logOutboxRef.current.isCurrent(journalEntry)) return [];
+    if (logWritingKeysRef.current.has(cacheKey)) return [];
     // A superseded debounced edit has nothing left to write.
     if (
       cacheKey &&
@@ -7059,6 +7250,7 @@ function stampLogTiming(prevLog, nextLog) {
       return [];
     }
 
+    logWritingKeysRef.current.add(cacheKey);
     logSaveInFlightRef.current += 1;
     setIsSavingLog(true);
 
@@ -7097,18 +7289,35 @@ function stampLogTiming(prevLog, nextLog) {
 
       // A newer edit may have arrived while the template library was loading.
       if (cacheKey && logSaveRevisionRef.current.get(cacheKey) !== revision) return [];
-      const { data: savedRow, error } = await upsertLog(
+      const writeEntry = journalEntry ? logOutboxRef.current.current(journalEntry) : null;
+      const { data: savedRow, error, conflict } = await upsertLog(
         familyId,
         profileId,
         dateKey,
-        preparedLog
+        preparedLog,
+        versionedLogSync ? { versioned: true, writeId: journalEntry.token,
+          expectedVersion: writeEntry?.expectedVersion ?? null } : {}
       );
 
+      if (ownerId !== logOwnerRef.current) return [];
+      if (conflict) {
+        const latestEntry = logOutboxRef.current.current(journalEntry);
+        setLogConflict(cacheKey, { entry: latestEntry || journalEntry, row: conflict.row });
+        logRetryWritesRef.current.delete(cacheKey);
+        return [];
+      }
+      if (versionedLogSync && Number.isSafeInteger(savedRow?.row_version)) {
+        logRowVersionsRef.current.set(cacheKey, savedRow.row_version);
+        // Advance only this tab's causally newer edits after its own write succeeds.
+        logOutboxRef.current.advanceBase(writeEntry, savedRow.row_version);
+      }
       if (error) {
         console.error("upsertLog failed", error);
+        updateLogSyncState();
         return [];
       }
 
+      if (ownerId !== logOwnerRef.current) return [];
       // The UPSERT already returns the row that was written. Do not perform an
       // immediate GET and reconcile that response back into the controlled
       // inputs: a read that is even one request behind makes the first typed
@@ -7124,6 +7333,9 @@ function stampLogTiming(prevLog, nextLog) {
 
       const canonicalLog =
         getLogRowPayload(savedRow) || preparedLog || null;
+      const acknowledged = !journalEntry || logOutboxRef.current.acknowledge(journalEntry);
+      if (acknowledged && logRetryWritesRef.current.get(cacheKey) === persistRevision) logRetryWritesRef.current.delete(cacheKey);
+      updateLogSyncState();
 
       if (cacheKey) {
         logPersistedRevisionRef.current.set(cacheKey, revision);
@@ -7138,7 +7350,7 @@ function stampLogTiming(prevLog, nextLog) {
       }
 
       if (sameLogView(currentLogViewRef.current, familyId, profileId, dateKey)) {
-        setLogForDay(canonicalLog);
+        setDayLogState({ key: cacheKey, log: canonicalLog });
       }
 
       // A final revision check protects allLogs/XP from stale reconciliation.
@@ -7149,25 +7361,25 @@ function stampLogTiming(prevLog, nextLog) {
         return [];
       }
 
-      const readRevisions = captureLogReadRevisions();
-      const { data, error: historyError } = await listLogs(familyId, profileId, 2000);
-      // A late save for another athlete must never replace the selected history.
-      // Keep the optimistic history on read failure rather than showing an empty page.
-      if (historyError || !historyIdentityIsCurrent(familyId, profileId)) return [];
-      if (cacheKey && logSaveRevisionRef.current.get(cacheKey) !== revision) return [];
-      const mapped = mapProfileHistoryRows(data, profileId);
+      if (!historyIdentityIsCurrent(familyId, profileId)) return [];
+      setAllLogs((rows) => {
+        if (!historyIdentityIsCurrent(familyId, profileId)) return rows;
+        const next = mapProfileHistoryRows(rows, profileId);
+        const index = next.findIndex(row => row.date_ymd === dateKey);
+        const confirmed = { ...(index >= 0 ? next[index] : {}), ...savedRow,
+          profile_id: profileId, date_ymd: dateKey, log: canonicalLog };
+        if (index >= 0) next[index] = confirmed; else next.push(confirmed);
+        return mergeMappedLogsWithLocalCache(next, familyId, profileId);
+      });
+      return mergeMappedLogsWithLocalCache(allLogs, familyId, profileId);
+    } catch (error) {
+      console.error("Workout save interrupted; pending entry retained", error);
+      return [];
 
-      const merged = mergeMappedLogsWithLocalCache(
-        mapped,
-        familyId,
-        profileId,
-        readRevisions
-      );
 
-      setAllLogs(merged);
-      setXp(computeXpFromLogs(merged, planRef.current));
-      return merged;
     } finally {
+      logWritingKeysRef.current.delete(cacheKey);
+      updateLogSyncState();
       logSaveInFlightRef.current = Math.max(
         0,
         logSaveInFlightRef.current - 1
@@ -7176,6 +7388,8 @@ function stampLogTiming(prevLog, nextLog) {
     }
   };
 
+  logRetryWritesRef.current.set(cacheKey, persistRevision);
+  updateLogSyncState();
   // Text/number entry is intentionally debounced. The optimistic log above is
   // already authoritative in the UI and cache, while persistence waits for a
   // short pause in typing. Buttons/toggles continue to save immediately.
@@ -7203,6 +7417,35 @@ function stampLogTiming(prevLog, nextLog) {
   }
 
   return logWriteQueueRef.current(cacheKey, persistRevision);
+}
+
+async function resolveLogConflict(useLocal) {
+  const key = reviewLogConflictKey;
+  const conflict = logConflictsRef.current[key];
+  if (!conflict) return;
+  const entry = logOutboxRef.current.current(conflict.entry);
+  if (!entry || entry.ownerId !== logOwnerRef.current) return;
+  const row = conflict.row;
+  if (!useLocal && !logOutboxRef.current.acknowledge(entry)) return;
+  setReviewLogConflictKey("");
+  setLogConflict(key, null);
+  logRowVersionsRef.current.set(key, row?.row_version ?? null);
+  if (useLocal) {
+    await saveLog(entry.log, { identity: { ...entry, expectedVersion: row?.row_version ?? null } });
+    return;
+  }
+  logRetryWritesRef.current.delete(key);
+  logSaveRevisionRef.current.delete(key); logPersistedRevisionRef.current.delete(key);
+  const remoteLog = getLogRowPayload(row);
+  const cache = { ...lastLogByDateRef.current };
+  if (remoteLog) cache[key] = remoteLog; else delete cache[key];
+  lastLogByDateRef.current = cache;
+  if (sameLogView(currentLogViewRef.current, entry.familyId, entry.profileId, entry.dateKey)) setDayLogState({key,log:remoteLog});
+  if (historyIdentityIsCurrent(entry.familyId, entry.profileId)) setAllLogs(rows => {
+    const remaining = rows.filter(item => item.date_ymd !== entry.dateKey);
+    return remoteLog ? [...remaining, { ...row, log: remoteLog }] : remaining;
+  });
+  updateLogSyncState();
 }
 
 function latestLogForSelectedDay() {
@@ -9301,6 +9544,8 @@ const cardioProgress = useMemo(() => {
       ) : null}
 
 <div className="muted">Loading…</div></div><StyleTag/></div>;
+  if (nativeAuthError) return <div className="page"><div className="wrap"><p role="alert">This sign-in link could not be used. Request a new confirmation or password reset email.</p><button className="btn btn-primary" onClick={() => setNativeAuthError(false)}>Back to account</button></div><StyleTag/></div>;
+  if (passwordRecovery && authed) return <><PasswordRecovery onComplete={() => setPasswordRecovery(false)} onCancel={doSignOut}/><StyleTag/></>;
   if (!authed) return <AuthScreen onAuthed={() => setAuthed(true)} />;
 
   const accountHydrationPhase = getAccountHydrationPhase({
@@ -9372,7 +9617,7 @@ const cardioProgress = useMemo(() => {
 >
   {headerAvatarImg ? (
     <img
-      src={headerAvatarImg}
+      src={nativeArtworkSrc(headerAvatarImg)}
       alt={headerAvatarEmoji}
       className="headerAvatarImg"
       style={{
@@ -9590,10 +9835,13 @@ const cardioProgress = useMemo(() => {
       title={selectedDayTitle}
       style={{ background: selectedDayDotColor }}
     />
-    {isSavingLog && (
-      <div className="syncStatus">
+    {(isSavingLog || logSyncState.pending > 0) && (
+      <div className="syncStatus" role="status" aria-live="polite">
         <span className="syncDot" />
-        <span className="syncText">Saving…</span>
+        <span className="syncText">{logSyncState.volatile
+          ? "Not saved on this device — keep the app open"
+          : isSavingLog ? "Syncing…" : "Saved on this device · waiting to sync"}</span>
+        {!isSavingLog && !logConflicts[dayLogKey] && <button type="button" className="btn btn-secondary btnSmall" onClick={retryPendingLogWrites}>Retry sync</button>}
       </div>
     )}
     <SecondaryButton
@@ -9611,6 +9859,15 @@ const cardioProgress = useMemo(() => {
   </div>
                 </div>
 
+                {logConflicts[dayLogKey] && <div className="panel pad" role="alert">
+                  <p>This day changed on another device. Your entries are kept here until you review the changes.</p>
+                  <button className="btn btn-primary" type="button" onClick={() => setReviewLogConflictKey(dayLogKey)}>Review saved changes</button>
+                </div>}
+                {reviewLogConflictKey && logConflicts[reviewLogConflictKey] && <LogConflictDialog
+                  localLog={logConflicts[reviewLogConflictKey].entry.log}
+                  remoteLog={getLogRowPayload(logConflicts[reviewLogConflictKey].row)}
+                  onUseLocal={() => resolveLogConflict(true)} onUseRemote={() => resolveLogConflict(false)}
+                  onClose={() => setReviewLogConflictKey("")}/>}
                 <section className="logPlanPrompt" aria-labelledby="log-plan-prompt-heading">
                   <div className="h3" id="log-plan-prompt-heading">Add or change your activities</div>
                   <p>Add what you want to track for {selectedWeekday}. Quick build adds to your repeating plan; a one-off activity stays on this date.</p>
@@ -12393,7 +12650,7 @@ return null;
 >
           {headerAvatarImg ? (
             <img
-  src={headerAvatarImg}
+  src={nativeArtworkSrc(headerAvatarImg)}
   alt={headerAvatarEmoji}
   className={headerAvatarIsPrestige ? "selectedAvatarImg selectedAvatarImgPrestige" : "selectedAvatarImg"}
   style={{
@@ -12771,7 +13028,7 @@ return null;
                                         <div className="avatarPickArt">
                                           {a.imgSrc ? (
                                             <img
-                                              src={a.imgSrc}
+                                              src={nativeArtworkSrc(a.imgSrc)}
                                               alt={a.label || "Avatar"}
                                               className="avatarPickImg"
                                               loading="lazy"
@@ -12884,7 +13141,7 @@ return null;
                         >
                           <div className="sportAvatarMiniArt">
                             <img
-                              src={avatar.imgSrc}
+                              src={nativeArtworkSrc(avatar.imgSrc)}
                               alt={`${avatar.sportLabel} ${avatar.prestigeLabel}`}
                               className="sportAvatarMiniImg"
                               loading="lazy"
@@ -13479,7 +13736,7 @@ return null;
                         >
                           {headerAvatarImg ? (
                             <img
-                              src={headerAvatarImg}
+                              src={nativeArtworkSrc(headerAvatarImg)}
                               alt={headerAvatar?.label || "Current avatar"}
                               className="avatarFrameDemo__avatar selectedAvatarImg selectedAvatarImgPrestige"
                             />
@@ -13518,6 +13775,7 @@ return null;
               <AccountPrivacyPanel
                 ensureUnlocked={ensureUnlocked}
                 onDeleted={() => {
+                  logOutboxRef.current.purgeOwner(family?.owner_user_id || logOwnerRef.current);
                   setAuthed(false);
                   setFamily(null);
                   setProfiles([]);
