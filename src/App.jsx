@@ -3336,6 +3336,7 @@ useEffect(() => {
   const [profiles, setProfiles] = useState([]);
   const [tutorialStep, setTutorialStep] = useState(null);
   const [firstWorkoutSetupOpen, setFirstWorkoutSetupOpen] = useState(false);
+  const [quickPlanDate, setQuickPlanDate] = useState("");
   const firstWorkoutHydratedRef = useRef("");
   const [repeatingWorkout, setRepeatingWorkout] = useState(false);
   const [repeatWorkoutError, setRepeatWorkoutError] = useState("");
@@ -3474,7 +3475,7 @@ useEffect(() => { planRef.current = plan; }, [plan]);
   const editingDraft = programDraft.editing;
   const editingAddOn = !editingDraft && (plan?.meta?.programAddOns || []).find((row) => row.id === editingAddOnId);
   const editorSourcePlan = editingDraft ? programDraft.draft.content : editingAddOn?.content || plan;
-  useEffect(() => { setEditingAddOnId(""); setPlanCycleWeekIndex(0); }, [activeProfileId]);
+  useEffect(() => { setEditingAddOnId(""); setPlanCycleWeekIndex(0); setQuickPlanDate(""); }, [activeProfileId]);
   const planEditorPlan = useMemo(
     () => (editorSourcePlan ? getPlanEditorWeek(editorSourcePlan, planCycleWeekIndex) : null),
     [editorSourcePlan, planCycleWeekIndex]
@@ -4225,15 +4226,28 @@ function toggleLogBlockFocus(blockId) {
   }, [plan, planReady, family?.onboarding_state?.guidedRoute]);
 
   function leaveFirstWorkoutSetup(route, date) {
+    const logDate = date || quickPlanDate;
+    setQuickPlanDate("");
     setFirstWorkoutSetupOpen(false);
     setTutorialStep(null);
-    if (route === "log") { setSelectedDate(date || getTodayYMD()); setTab("log"); if (!date && !planHasBlocks(plan)) {setExtraBlockKind("duration");setShowExtraBlockForm(true);} }
+    if (route === "log") { setSelectedDate(logDate || getTodayYMD()); setTab("log"); if (!logDate && !planHasBlocks(plan)) {setExtraBlockKind("duration");setShowExtraBlockForm(true);} }
     else { setTab("plan"); setPlanWorkspaceView(route === "library" ? "library" : "build"); }
     if (route === "library") {
       setProgramLibrarySection("starters");
       if (family?.onboarding_state?.status === "complete") return;
       persistTutorialState("in_progress", 0, {guidedVersion:2,guidedRoute:"library",setupProfileId:activeProfileId});
     } else if (family?.onboarding_state?.status !== "complete") persistTutorialState(route === "later" ? "dismissed" : "complete", 0, {guidedVersion:2,guidedRoute:route,setupProfileId:activeProfileId});
+  }
+
+  function openPlanFromLog(guided = true) {
+    programDraft.close();
+    setEditingAddOnId("");
+    setPlanCycleWeekIndex(Math.max(0, selectedDatePlan?.programResolution?.weekIndex ?? 0));
+    setPlanWeekday(selectedWeekday);
+    setPlanWorkspaceView("build");
+    setQuickPlanDate(guided ? selectedDate : "");
+    setFirstWorkoutSetupOpen(guided);
+    setTab("plan");
   }
 
   async function saveFirstWorkoutActivity(draft) {
@@ -4252,7 +4266,7 @@ function toggleLogBlockFocus(blockId) {
     const next = normalisePlanForRuntime(setPlanProgramWeek(base, targetWeek, {blocksByWeekday}));
     let date = "";
     for (let offset=0;offset<366;offset++) {
-      const candidate = ymdAddDays(getTodayYMD(),offset);
+      const candidate = ymdAddDays(quickPlanDate || getTodayYMD(),offset);
       const resolved = resolvePlanForDate(next,candidate);
       if ((resolved?.blocksByWeekday?.[weekdayFromYMD(candidate)] || []).some(item => item.id === block.id)) {date=candidate;break;}
     }
@@ -9597,6 +9611,18 @@ const cardioProgress = useMemo(() => {
   </div>
                 </div>
 
+                <section className="logPlanPrompt" aria-labelledby="log-plan-prompt-heading">
+                  <div className="h3" id="log-plan-prompt-heading">Add or change your activities</div>
+                  <p>Add what you want to track for {selectedWeekday}. Quick build adds to your repeating plan; a one-off activity stays on this date.</p>
+                  <div className="logPlanPrompt__actions">
+                    {!baseProgramLocked ? <PrimaryButton disabled={!planReady || programDraft.busy || isSavingLog} onClick={() => openPlanFromLog()}>Quick build plan</PrimaryButton> : null}
+                    <SecondaryButton onClick={() => { setExtraBlockKind(profileRecoveryModeActive ? "activity" : "duration"); setShowExtraBlockForm(true); }}>Add a one-off activity</SecondaryButton>
+                    <SecondaryButton disabled={!planReady || programDraft.busy} onClick={() => openPlanFromLog(false)}>Open full plan</SecondaryButton>
+                  </div>
+                  <details><summary>Does your training change each week?</summary><p>Use the full plan to set up different weeks, or add occasional activities just for the date you do them. Scheduling every possible activity can leave a day marked incomplete when some are left undone.</p></details>
+                  {baseProgramLocked ? <p>Your assigned programme is locked. Open the full plan to switch to a personal programme.</p> : null}
+                </section>
+
                 {profileRecoveryModeActive && (
                   <div
                     className={`profileRecoveryModeBanner profileRecoveryModeBanner--${selectedProfileRecoveryMode}`}
@@ -11267,18 +11293,19 @@ return null;
 {tab === "plan" && (
   <>
   {firstWorkoutSetupOpen ? <FirstWorkoutSetup
-    key={activeProfileId}
-    draftStorageKey={`wt_first_activity_draft_v1:${activeProfileId}`}
+    key={`${activeProfileId}:${quickPlanDate}`}
+    draftStorageKey={quickPlanDate ? `wt_quick_activity_draft_v1:${activeProfileId}:${quickPlanDate}` : `wt_first_activity_draft_v1:${activeProfileId}`}
     profileName={activeProfile?.name || ""}
-    todayWeekday={weekdayFromYMD(getTodayYMD())}
+    todayWeekday={weekdayFromYMD(quickPlanDate || getTodayYMD())}
+    startInBuilder={!!quickPlanDate}
     hasPlan={!!plan && planHasBlocks(plan)}
-    initialDate={family?.onboarding_state?.status === "in_progress" ? family?.onboarding_state?.firstActivityDate || "" : ""}
+    initialDate={!quickPlanDate && family?.onboarding_state?.status === "in_progress" ? family?.onboarding_state?.firstActivityDate || "" : ""}
     onSave={saveFirstWorkoutActivity}
     onRename={renameFirstWorkoutProfile}
     onLog={(date) => leaveFirstWorkoutSetup("log",date)}
     onPrograms={() => leaveFirstWorkoutSetup("library")}
     onFullEditor={() => leaveFirstWorkoutSetup("editor")}
-    onDismiss={() => { setFirstWorkoutSetupOpen(false); setTab("dashboard"); if (family?.onboarding_state?.status !== "complete") persistTutorialState("dismissed",0,{guidedVersion:2,setupProfileId:activeProfileId}); }}
+    onDismiss={() => { if (quickPlanDate) { setSelectedDate(quickPlanDate); setQuickPlanDate(""); setFirstWorkoutSetupOpen(false); setTab("log"); return; } setFirstWorkoutSetupOpen(false); setTab("dashboard"); if (family?.onboarding_state?.status !== "complete") persistTutorialState("dismissed",0,{guidedVersion:2,setupProfileId:activeProfileId}); }}
   /> : null}
   <div hidden={firstWorkoutSetupOpen}>
   {!firstWorkoutSetupOpen && !editingDraft && !editingAddOn && activePlanIsBlank ? <div className="panel mt12"><PrimaryButton onClick={() => setFirstWorkoutSetupOpen(true)}>Set up my first activity</PrimaryButton><span className="muted"> Start with one activity, or use the full editor below.</span></div> : null}

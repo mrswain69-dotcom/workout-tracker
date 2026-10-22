@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.jsx";
 import * as db from "./db.js";
 import { isDayGreenForXp, computeXpFromLogs } from "./engine/xpEngine.js";
+import { resolvePlanForDate } from "./engine/planCycleEngine.js";
 const state=vi.hoisted(()=>({name:"Athlete",plan:null,onboarding:null,logs:[]}));
 vi.mock("./db.js",async(importOriginal)=>({
   ...await importOriginal(),
@@ -58,12 +59,48 @@ describe("new account to first recorded workout",()=>{
     expect(screen.queryByRole("heading",{name:"Let’s make this your plan"})).toBeNull();
     expect(db.renameProfile).not.toHaveBeenCalled();
   });
+  it("quick-builds from the viewed log weekday and programme week, preserving other weeks and results",async()=>{
+    state.name="Paul";state.onboarding={version:1,status:"complete"};
+    const days=()=>Object.fromEntries(["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=>[day,[]]));
+    const first=days(),second=days();
+    second.Thu=[{id:"yoga",typeId:"duration",label:"Existing yoga",plannedMinutes:10}];
+    state.plan={version:5,blocksByWeekday:first,program:{version:1,name:"Alternating weeks",startDate:"2026-09-28",completionMode:"repeat",phases:[{id:"main",name:"Main",weeks:[{id:"one",name:"Week one",blocksByWeekday:first},{id:"two",name:"Week two",blocksByWeekday:second}]}]}};
+    state.logs=[{profile_id:"test-profile",date_ymd:"2026-10-08",log_json:{blocks:[{id:"yoga",typeId:"duration",label:"Existing yoga",duration:{minutes:10}}]}}];
+    sessionStorage.setItem("wt_log_navigation_v1",JSON.stringify({tab:"log",date:"2026-10-08"}));
+    render(<App/>);
+    fireEvent.click(await screen.findByRole("button",{name:"Quick build plan"}));
+    await screen.findByRole("heading",{name:"Add an activity to your plan"});
+    expect(screen.getByLabelText("Thu").checked).toBe(true);
+    expect(screen.getByLabelText("Mon").checked).toBe(false);
+    expect(db.upsertProfilePlan).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Activity name"),{target:{value:"Evening walk"}});
+    fireEvent.change(screen.getByLabelText("Minutes"),{target:{value:"20"}});
+    fireEvent.click(screen.getByRole("button",{name:"Save activity"}));
+    await screen.findByRole("heading",{name:"Your plan is ready to use"});
+    expect(resolvePlanForDate(state.plan,"2026-10-08").blocksByWeekday.Thu.map(b=>b.label)).toEqual(["Existing yoga","Evening walk"]);
+    expect(resolvePlanForDate(state.plan,"2026-10-01").blocksByWeekday.Thu).toEqual([]);
+    fireEvent.click(screen.getByRole("button",{name:"Start logging"}));
+    await screen.findByRole("button",{name:"Quick build plan"});
+    await waitFor(()=>expect(db.getLog).toHaveBeenLastCalledWith("test-family","test-profile","2026-10-08"));
+    expect(state.logs.find(row=>row.date_ymd==="2026-10-08").log_json.blocks.find(b=>b.id==="yoga").duration.minutes).toBe(10);
+    expect((await screen.findByRole("spinbutton")).value).toBe("");
+  });
+  it("offers a one-off entry from the log without modifying the repeating plan",async()=>{
+    state.name="Paul";state.onboarding={version:1,status:"complete"};
+    sessionStorage.setItem("wt_log_navigation_v1",JSON.stringify({tab:"log",date:"2026-10-02"}));
+    render(<App/>);
+    fireEvent.click(await screen.findByRole("button",{name:"Add a one-off activity"}));
+    await screen.findByRole("button",{name:"Hide extra block form"});
+    expect(screen.getByRole("button",{name:"Quick build plan"})).toBeTruthy();
+    expect(db.upsertProfilePlan).not.toHaveBeenCalled();
+  });
   it("repeats a previous workout without copying completed sets and keeps its planned set count",async()=>{
     state.name="Paul";state.onboarding={version:1,status:"complete"};
     const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
     const previousDate=`${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,"0")}-${String(yesterday.getDate()).padStart(2,"0")}`;
     state.logs=[{profile_id:"test-profile",date_ymd:previousDate,log_json:{blocks:[{id:"old",typeId:"strength",label:"Legs",movements:[{id:"squat",name:"Squat",sets:3,reps:"10",trackWeight:true}],sets:{squat:[{reps:10,weight:20},{reps:10,weight:20},{reps:10,weight:20}]},completedAt:"old"}]}}];
     render(<App/>);
+    fireEvent.click(await screen.findByRole("button",{name:/Today’s workout/}));
     fireEvent.click(await screen.findByRole("button",{name:"Repeat a previous workout"}));
     fireEvent.click(await screen.findByRole("button",{name:"Repeat this workout"}));
     const movement=(await screen.findByText("Squat")).closest(".focusedMovement");

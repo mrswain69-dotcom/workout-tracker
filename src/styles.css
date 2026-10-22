@@ -158,6 +158,13 @@ button.btn.primary:hover{
 }
 
 /* === Authenticated account hydration === */
+.logPlanPrompt{margin:16px 0;padding:14px 16px;border:1px solid #cbdbe5;border-radius:14px;background:#f1f7fa;min-width:0;}
+.logPlanPrompt p{margin:7px 0;color:#526477;font-size:13px;line-height:1.5;}
+.logPlanPrompt__actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+.logPlanPrompt__actions .btn{min-height:44px;white-space:normal;}
+.logPlanPrompt summary{cursor:pointer;font-size:12px;font-weight:700;color:#42566a;}
+@media(max-width:480px){.logPlanPrompt__actions .btn{width:100%;}}
+
 .accountHydrationPage{
   min-height:100vh;
   display:grid;
