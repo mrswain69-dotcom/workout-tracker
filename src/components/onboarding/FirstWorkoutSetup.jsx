@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { SETUP_WEEKDAYS } from "../../engine/firstWorkoutEngine.js";
 import "./FirstWorkoutSetup.css";
 
-export default function FirstWorkoutSetup({ profileName, todayWeekday = "Mon", hasPlan = false, initialDate = "", draftStorageKey = "", onSave, onLog, onPrograms, onFullEditor, onDismiss, onRename }) {
+export default function FirstWorkoutSetup({ profileName, todayWeekday = "Mon", hasPlan = false, initialDate = "", draftStorageKey = "", startInBuilder = false, onSave, onLog, onPrograms, onFullEditor, onDismiss, onRename }) {
   const [retained] = useState(() => { try { return draftStorageKey ? JSON.parse(localStorage.getItem(draftStorageKey) || "null") : null; } catch { return null; } });
-  const [stage, setStage] = useState(retained?.version === 1 && retained.stage === "build" ? "build" : hasPlan && initialDate ? "saved" : "choice");
+  const [stage, setStage] = useState(startInBuilder || (retained?.version === 1 && retained.stage === "build") ? "build" : hasPlan && initialDate ? "saved" : "choice");
   const [draft, setDraft] = useState(() => ({ type: "duration", name: "", minutes: "", days: [todayWeekday], sets: "3", reps: "", weight: "", distance: "", sport: "run", ...(retained?.version === 1 && Array.isArray(retained.draft?.days) ? retained.draft : {}) }));
   const [name, setName] = useState(profileName === "Athlete" ? "" : profileName || "");
   const [busy, setBusy] = useState(false);
@@ -32,8 +32,8 @@ export default function FirstWorkoutSetup({ profileName, todayWeekday = "Mon", h
     finally { setBusy(false); }
   }
   return <section className="firstWorkoutSetup" aria-labelledby="first-workout-heading">
-    <div className="firstWorkoutSetup__top"><span>YOUR FIRST WORKOUT</span><button type="button" onClick={onDismiss}>Set up later</button></div>
-    <h2 id="first-workout-heading">{stage === "saved" ? "Your plan is ready to use" : stage === "build" ? "Add your first activity" : "Let’s make this your plan"}</h2>
+    <div className="firstWorkoutSetup__top"><span>{startInBuilder ? "QUICK BUILD PLAN" : "YOUR FIRST WORKOUT"}</span><button type="button" onClick={onDismiss}>{startInBuilder ? "Back to log" : "Set up later"}</button></div>
+    <h2 id="first-workout-heading">{stage === "saved" ? "Your plan is ready to use" : stage === "build" ? startInBuilder ? "Add an activity to your plan" : "Add your first activity" : "Let’s make this your plan"}</h2>
     {stage === "choice" ? <>
       <p>Start with one activity. You can build the rest of your week later.</p>
       <div className="firstWorkoutSetup__choices">
@@ -44,7 +44,7 @@ export default function FirstWorkoutSetup({ profileName, todayWeekday = "Mon", h
       <details><summary>Profile name</summary><p>Your profile is the person exercising. The plan can have its own name.</p><label>Your name or nickname<input maxLength={80} value={name} onChange={event => setName(event.target.value)} /></label></details>
     </> : stage === "build" ? <form onSubmit={save}>
       {(!profileName || profileName === "Athlete" || name !== profileName) ? <label>Your name or nickname<input required maxLength={80} value={name} onChange={event => setName(event.target.value)} autoComplete="given-name" /></label> : <p>Building a plan for <strong>{profileName}</strong>.</p>}
-      <fieldset disabled={busy}><legend>1. Choose your day</legend><div className="firstWorkoutSetup__days">{SETUP_WEEKDAYS.map(day => <label key={day}><input type="checkbox" checked={draft.days.includes(day)} onChange={() => update("days", draft.days.includes(day) ? draft.days.filter(value => value !== day) : [...draft.days, day])} /><span>{day}</span></label>)}</div><small>Choose more than one day to repeat the same activity.</small></fieldset>
+      <fieldset disabled={busy}><legend>1. Choose your day</legend><div className="firstWorkoutSetup__days">{SETUP_WEEKDAYS.map(day => <label key={day}><input type="checkbox" checked={draft.days.includes(day)} onChange={() => update("days", draft.days.includes(day) ? draft.days.filter(value => value !== day) : [...draft.days, day])} /><span>{day}</span></label>)}</div><small>{startInBuilder ? "This updates the selected week of your repeating plan. Choose more days to repeat the activity." : "Choose more than one day to repeat the same activity."}</small></fieldset>
       <fieldset disabled={busy}><legend>2. Add your activity</legend>
         <label>How do you want to record it?<select value={draft.type} onChange={event => update("type", event.target.value)}><option value="duration">Minutes — yoga, mobility, exercise</option><option value="strength">Sets and reps — strength or circuits</option><option value="cardio">Distance and time — cardio</option><option value="recovery">Recovery day</option></select></label>
         <label>Activity name<input required maxLength={100} value={draft.name} onChange={event => update("name", event.target.value)} placeholder={draft.type === "strength" ? "e.g. Squats" : draft.type === "cardio" ? "e.g. Morning walk" : "e.g. Yoga"} /></label>
@@ -54,7 +54,7 @@ export default function FirstWorkoutSetup({ profileName, todayWeekday = "Mon", h
         <div className="firstWorkoutSetup__fields">{(draft.type === "strength" ? [["sets","Sets",1,100],["reps","Reps",1,10000],["weight","Weight (kg)",0.5,2000]] : [...(draft.type === "cardio" ? [["distance","Distance (km)",0.01,10000]] : []),["minutes","Minutes",0.5,1440]]).map(([key,label,step,max]) => <label key={key}>{label}<input type="number" min={step} max={max} step={step} value={draft[key]} onChange={event => update(key,event.target.value)} /></label>)}</div>
       </fieldset>
       {error ? <p role="alert">{error}</p> : null}
-      <div className="firstWorkoutSetup__actions"><button type="button" disabled={busy} onClick={() => setStage("choice")}>Back</button><button type="submit" className="is-primary" disabled={busy}>{busy ? "Saving…" : "Save activity"}</button></div>
+      <div className="firstWorkoutSetup__actions"><button type="button" disabled={busy} onClick={() => startInBuilder ? onDismiss() : setStage("choice")}>Back</button><button type="submit" className="is-primary" disabled={busy}>{busy ? "Saving…" : "Save activity"}</button></div>
     </form> : <>
       <p>{savedDate ? `Your activity is saved. Open your log for ${savedDate}, or keep building your plan.` : "You can start logging now, add another activity or edit your full plan."}</p>
       <div className="firstWorkoutSetup__actions"><button type="button" className="is-primary" onClick={() => onLog(savedDate)}>Start logging</button><button type="button" onClick={() => { setDraft(current => ({...current,name:""})); setStage("build"); }}>Add another activity</button><button type="button" onClick={onFullEditor}>Open my full plan</button></div>

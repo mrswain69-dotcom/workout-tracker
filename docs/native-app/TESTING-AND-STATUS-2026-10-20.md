@@ -1,5 +1,11 @@
 # Workout Tracker native candidate — 20 October 2026
 
+## 22 October — Log-page plan discovery, build 4
+
+The Log page now offers Quick build plan, Add a one-off activity and Open full plan beside the selected date. Quick build opens directly on that weekday and its programme week, appends without replacing existing work/results, and returns to the selected log. Date-scoped drafts retain unfinished quick-build entries separately from first-run setup. A short disclosure explains varying weeks and avoids presenting all scheduled activities as optional. Existing versioned-save/conflict controls and native runtime remain intact.
+
+Production change: PR #157. Native integration retains both the conflict-review panel and the new prompt. Android/iOS platform versions advance to build 4. Vite remains 8.2.4; test-tool lockfile patches resolve the current audit advisories. Fresh CI and actual device acceptance are required for this build; earlier build 3 APK does not contain this feature. SMTP credential replacement and real email-link acceptance remain outstanding.
+
 ## 21 October device feedback — build 3 follow-up
 
 Android build 2 was installed on a physical Samsung device and its signed-out/signup screens were reviewed by Paul. The staging Auth log at 2026-10-21 08:32:43 UTC confirms that signup failed because SMTP returned `535 Authentication credentials invalid`, not because staging blocks email or because the native callback is invalid. Replace the staging Resend SMTP credential through secure settings entry, then repeat signup and confirmation on the device. No credential was inspected or changed, no email confirmation requirement was disabled, and delivery is not yet accepted.
