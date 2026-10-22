@@ -1,0 +1,142 @@
+{
+  "tests": 24,
+  "baseCommit": "b0b9ab9018b40df33dd39adbc1b50fb1253ff043",
+  "activationDate": "2026-10-19 (fixture only)",
+  "matrix": [
+    {
+      "name": "12 sets: one vs three blocks",
+      "current": [
+        69,
+        79
+      ],
+      "flat": [
+        69,
+        69
+      ],
+      "weighted": [
+        63,
+        63
+      ]
+    },
+    {
+      "name": "12 sets: three vs six movement labels",
+      "current": [
+        69,
+        99
+      ],
+      "flat": [
+        69,
+        69
+      ],
+      "weighted": [
+        63,
+        63
+      ]
+    },
+    {
+      "name": "20 mobility minutes: one vs twenty blocks",
+      "current": [
+        19,
+        130
+      ],
+      "flat": [
+        19,
+        19
+      ],
+      "weighted": [
+        19,
+        19
+      ]
+    },
+    {
+      "name": "3km / 30-minute run: one vs ten blocks",
+      "current": [
+        36,
+        90
+      ],
+      "flat": [
+        36,
+        36
+      ],
+      "weighted": [
+        36,
+        36
+      ]
+    },
+    {
+      "name": "12 strength sets: standard vs classified Session",
+      "current": [
+        39,
+        20
+      ],
+      "flat": [
+        39,
+        39
+      ],
+      "weighted": [
+        39,
+        39
+      ]
+    },
+    {
+      "name": "8 mobility minutes: strength format vs duration",
+      "current": [
+        31,
+        17
+      ],
+      "flat": [
+        17,
+        17
+      ],
+      "weighted": [
+        17,
+        17
+      ]
+    },
+    {
+      "name": "6 vs 24 sets, both improving 20%",
+      "current": [
+        57,
+        93
+      ],
+      "flat": [
+        57,
+        93
+      ],
+      "weighted": [
+        39,
+        111
+      ]
+    },
+    {
+      "name": "12 sets, 2% vs 20% improvement",
+      "current": [
+        69,
+        69
+      ],
+      "flat": [
+        69,
+        69
+      ],
+      "weighted": [
+        41,
+        63
+      ]
+    },
+    {
+      "name": "Only one of three required movements logged: one vs three blocks",
+      "current": [
+        23,
+        13
+      ],
+      "flat": [
+        13,
+        13
+      ],
+      "weighted": [
+        13,
+        13
+      ]
+    }
+  ]
+}

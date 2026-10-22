@@ -1,0 +1,38 @@
+{
+  "status": "candidate not production ready",
+  "exposureChecks": 6,
+  "findings": [
+    {
+      "issue": "same repetitions split into sets",
+      "strengthXp": [
+        7,
+        29
+      ]
+    },
+    {
+      "issue": "unchanged best set, weaker set omitted",
+      "improvementXp": [
+        0,
+        2
+      ]
+    },
+    {
+      "issue": "empty completed Session",
+      "earnedXp": 20
+    },
+    {
+      "issue": "one repetition against twelve-repetition target",
+      "complete": true
+    },
+    {
+      "issue": "cardio baseline older than forty-two days",
+      "improvementXp": 18
+    },
+    {
+      "issue": "180-day streak milestone",
+      "streakXp": 600,
+      "uncapped": 617,
+      "earnedXp": 150
+    }
+  ]
+}

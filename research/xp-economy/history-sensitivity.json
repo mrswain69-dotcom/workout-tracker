@@ -1,0 +1,260 @@
+{
+  "status": "exploratory inferred-protocol sensitivity; not certified scores",
+  "sensitivity": [
+    {
+      "minDates": 1,
+      "profiles": [
+        {
+          "alias": "A",
+          "probed": 19,
+          "eligible": 8,
+          "improved": 4,
+          "improvementXp": 12,
+          "earnedPreview": 602,
+          "latest": 69
+        },
+        {
+          "alias": "B",
+          "probed": 42,
+          "eligible": 14,
+          "improved": 2,
+          "improvementXp": 6,
+          "earnedPreview": 429
+        },
+        {
+          "alias": "C",
+          "probed": 145,
+          "eligible": 84,
+          "improved": 21,
+          "improvementXp": 61,
+          "earnedPreview": 1189,
+          "latest": 130
+        }
+      ],
+      "rankings": [
+        {
+          "week": "2026-09-14",
+          "rank": [
+            "A",
+            "C",
+            "B"
+          ],
+          "scores": [
+            81,
+            78,
+            0
+          ]
+        },
+        {
+          "week": "2026-09-21",
+          "rank": [
+            "C",
+            "A",
+            "B"
+          ],
+          "scores": [
+            231,
+            217,
+            207
+          ]
+        },
+        {
+          "week": "2026-09-28",
+          "rank": [
+            "C",
+            "A",
+            "B"
+          ],
+          "scores": [
+            348,
+            235,
+            212
+          ]
+        },
+        {
+          "week": "2026-10-05",
+          "rank": [
+            "C",
+            "B",
+            "A"
+          ],
+          "scores": [
+            402,
+            10,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "minDates": 2,
+      "profiles": [
+        {
+          "alias": "A",
+          "probed": 19,
+          "eligible": 2,
+          "improved": 1,
+          "improvementXp": 2,
+          "earnedPreview": 592,
+          "latest": 63
+        },
+        {
+          "alias": "B",
+          "probed": 42,
+          "eligible": 0,
+          "improved": 0,
+          "improvementXp": 0,
+          "earnedPreview": 423
+        },
+        {
+          "alias": "C",
+          "probed": 145,
+          "eligible": 39,
+          "improved": 16,
+          "improvementXp": 48,
+          "earnedPreview": 1176,
+          "latest": 126
+        }
+      ],
+      "rankings": [
+        {
+          "week": "2026-09-14",
+          "rank": [
+            "A",
+            "C",
+            "B"
+          ],
+          "scores": [
+            81,
+            78,
+            0
+          ]
+        },
+        {
+          "week": "2026-09-21",
+          "rank": [
+            "C",
+            "A",
+            "B"
+          ],
+          "scores": [
+            231,
+            213,
+            207
+          ]
+        },
+        {
+          "week": "2026-09-28",
+          "rank": [
+            "C",
+            "A",
+            "B"
+          ],
+          "scores": [
+            339,
+            235,
+            206
+          ]
+        },
+        {
+          "week": "2026-10-05",
+          "rank": [
+            "C",
+            "B",
+            "A"
+          ],
+          "scores": [
+            402,
+            10,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "minDates": 3,
+      "profiles": [
+        {
+          "alias": "A",
+          "probed": 19,
+          "eligible": 1,
+          "improved": 1,
+          "improvementXp": 2,
+          "earnedPreview": 592,
+          "latest": 63
+        },
+        {
+          "alias": "B",
+          "probed": 42,
+          "eligible": 0,
+          "improved": 0,
+          "improvementXp": 0,
+          "earnedPreview": 423
+        },
+        {
+          "alias": "C",
+          "probed": 145,
+          "eligible": 19,
+          "improved": 10,
+          "improvementXp": 26,
+          "earnedPreview": 1154,
+          "latest": 111
+        }
+      ],
+      "rankings": [
+        {
+          "week": "2026-09-14",
+          "rank": [
+            "A",
+            "C",
+            "B"
+          ],
+          "scores": [
+            81,
+            78,
+            0
+          ]
+        },
+        {
+          "week": "2026-09-21",
+          "rank": [
+            "C",
+            "A",
+            "B"
+          ],
+          "scores": [
+            231,
+            213,
+            207
+          ]
+        },
+        {
+          "week": "2026-09-28",
+          "rank": [
+            "C",
+            "A",
+            "B"
+          ],
+          "scores": [
+            339,
+            235,
+            206
+          ]
+        },
+        {
+          "week": "2026-10-05",
+          "rank": [
+            "C",
+            "B",
+            "A"
+          ],
+          "scores": [
+            395,
+            10,
+            0
+          ]
+        }
+      ]
+    }
+  ]
+}

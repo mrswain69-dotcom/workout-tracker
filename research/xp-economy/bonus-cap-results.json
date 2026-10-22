@@ -1,0 +1,188 @@
+{
+  "status": "read-only hypothetical replay; production and all existing historical awards unchanged",
+  "baseCommit": "b0b9ab9018b40df33dd39adbc1b50fb1253ff043",
+  "window": {
+    "start": "2026-09-12",
+    "end": "2026-10-12"
+  },
+  "rules": [
+    "strength/cardio/duration each receive one daily five-XP category award",
+    "base set/minute/distance XP unchanged including current per-block rounding and walking multiplier",
+    "completed Sessions remain ten each",
+    "recovery/illness/physio share one daily award: highest qualifying value five or ten",
+    "progression, task, daily claim, completion, streak and cosmetic awards unchanged"
+  ],
+  "completionInterpretation": "main comparison uses existing active-block award eligibility; strict required-work sensitivity is separately reported with missing targets flagged",
+  "checks": {
+    "componentChecks": 4336,
+    "historyChecks": 540
+  },
+  "results": [
+    {
+      "alias": "A",
+      "records": 167,
+      "currentEarned": 695,
+      "cappedEarned": 675,
+      "removed": 20,
+      "changePercent": -2.9,
+      "decomposition": {
+        "strength": 20,
+        "cardio": 0,
+        "duration": 0,
+        "recovery": 0
+      },
+      "fullHistoryRemoval": {
+        "strength": 175,
+        "cardio": 20,
+        "duration": 0,
+        "recovery": 0
+      },
+      "strictCompletionSensitivity": {
+        "earned": 637,
+        "unknownTargets": {
+          "strength": 0,
+          "cardio": 5,
+          "duration": 1
+        },
+        "notAnApprovedAward": true
+      },
+      "latest": {
+        "current": 91,
+        "capped": 91,
+        "removed": 0,
+        "strict": 86
+      },
+      "weekly": [
+        {
+          "week": "2026-09-14",
+          "current": 106,
+          "bonusCapped": 91
+        },
+        {
+          "week": "2026-09-21",
+          "current": 223,
+          "bonusCapped": 223
+        },
+        {
+          "week": "2026-09-28",
+          "current": 275,
+          "bonusCapped": 270
+        },
+        {
+          "week": "2026-10-12",
+          "current": 91,
+          "bonusCapped": 91
+        }
+      ]
+    },
+    {
+      "alias": "B",
+      "records": 167,
+      "currentEarned": 493,
+      "cappedEarned": 453,
+      "removed": 40,
+      "changePercent": -8.1,
+      "decomposition": {
+        "strength": 40,
+        "cardio": 0,
+        "duration": 0,
+        "recovery": 0
+      },
+      "fullHistoryRemoval": {
+        "strength": 45,
+        "cardio": 45,
+        "duration": 5,
+        "recovery": 0
+      },
+      "strictCompletionSensitivity": {
+        "earned": 438,
+        "unknownTargets": {
+          "strength": 0,
+          "cardio": 3,
+          "duration": 0
+        },
+        "notAnApprovedAward": true
+      },
+      "latest": null,
+      "weekly": [
+        {
+          "week": "2026-09-21",
+          "current": 227,
+          "bonusCapped": 207
+        },
+        {
+          "week": "2026-09-28",
+          "current": 256,
+          "bonusCapped": 236
+        },
+        {
+          "week": "2026-10-05",
+          "current": 10,
+          "bonusCapped": 10
+        }
+      ]
+    },
+    {
+      "alias": "C",
+      "records": 206,
+      "currentEarned": 1563,
+      "cappedEarned": 1438,
+      "removed": 125,
+      "changePercent": -8,
+      "decomposition": {
+        "strength": 115,
+        "cardio": 10,
+        "duration": 0,
+        "recovery": 0
+      },
+      "fullHistoryRemoval": {
+        "strength": 120,
+        "cardio": 120,
+        "duration": 40,
+        "recovery": 0
+      },
+      "strictCompletionSensitivity": {
+        "earned": 1393,
+        "unknownTargets": {
+          "strength": 0,
+          "cardio": 11,
+          "duration": 0
+        },
+        "notAnApprovedAward": true
+      },
+      "latest": {
+        "current": 255,
+        "capped": 235,
+        "removed": 20,
+        "strict": 235
+      },
+      "weekly": [
+        {
+          "week": "2026-09-14",
+          "current": 78,
+          "bonusCapped": 78
+        },
+        {
+          "week": "2026-09-21",
+          "current": 271,
+          "bonusCapped": 231
+        },
+        {
+          "week": "2026-09-28",
+          "current": 444,
+          "bonusCapped": 399
+        },
+        {
+          "week": "2026-10-05",
+          "current": 515,
+          "bonusCapped": 495
+        },
+        {
+          "week": "2026-10-12",
+          "current": 255,
+          "bonusCapped": 235
+        }
+      ]
+    }
+  ]
+}

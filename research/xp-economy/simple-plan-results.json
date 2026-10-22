@@ -1,0 +1,450 @@
+{
+  "status": "hypothetical policy experiment; no actual-profile awards calculated",
+  "comparisons": [
+    {
+      "name": "dog walk, run, mobility and weights on three planned days",
+      "n": 3,
+      "minutes": 140,
+      "models": {
+        "dailyPlan": {
+          "model": "dailyPlan",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": null
+        },
+        "balancedDaily": {
+          "model": "balancedDaily",
+          "planXp": 120,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 180,
+          "weeklyMaximum": null
+        },
+        "weeklyPlan": {
+          "model": "weeklyPlan",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuarded": {
+          "model": "weeklyPlanGuarded",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuardedHigher": {
+          "model": "weeklyPlanGuardedHigher",
+          "planXp": 300,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 360,
+          "weeklyMaximum": 500
+        }
+      }
+    },
+    {
+      "name": "gym on five planned days",
+      "n": 5,
+      "minutes": 90,
+      "models": {
+        "dailyPlan": {
+          "model": "dailyPlan",
+          "planXp": 300,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 360,
+          "weeklyMaximum": null
+        },
+        "balancedDaily": {
+          "model": "balancedDaily",
+          "planXp": 200,
+          "activityXp": 87.5,
+          "progressXp": 0,
+          "earnedXp": 287.5,
+          "weeklyMaximum": null
+        },
+        "weeklyPlan": {
+          "model": "weeklyPlan",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuarded": {
+          "model": "weeklyPlanGuarded",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuardedHigher": {
+          "model": "weeklyPlanGuardedHigher",
+          "planXp": 300,
+          "activityXp": 87.5,
+          "progressXp": 0,
+          "earnedXp": 387.5,
+          "weeklyMaximum": 500
+        }
+      }
+    },
+    {
+      "name": "five gym days with rugby training on one gym day and match on sixth day",
+      "n": 6,
+      "minutesByDay": [
+        150,
+        90,
+        90,
+        90,
+        90,
+        80
+      ],
+      "models": {
+        "dailyPlan": {
+          "model": "dailyPlan",
+          "planXp": 360,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 420,
+          "weeklyMaximum": null
+        },
+        "balancedDaily": {
+          "model": "balancedDaily",
+          "planXp": 240,
+          "activityXp": 90,
+          "progressXp": 0,
+          "earnedXp": 330,
+          "weeklyMaximum": null
+        },
+        "weeklyPlan": {
+          "model": "weeklyPlan",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuarded": {
+          "model": "weeklyPlanGuarded",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuardedHigher": {
+          "model": "weeklyPlanGuardedHigher",
+          "planXp": 300,
+          "activityXp": 100,
+          "progressXp": 0,
+          "earnedXp": 400,
+          "weeklyMaximum": 500
+        }
+      }
+    },
+    {
+      "name": "pool on three days and gardening on three other days",
+      "n": 6,
+      "minutes": 60,
+      "models": {
+        "dailyPlan": {
+          "model": "dailyPlan",
+          "planXp": 360,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 420,
+          "weeklyMaximum": null
+        },
+        "balancedDaily": {
+          "model": "balancedDaily",
+          "planXp": 240,
+          "activityXp": 90,
+          "progressXp": 0,
+          "earnedXp": 330,
+          "weeklyMaximum": null
+        },
+        "weeklyPlan": {
+          "model": "weeklyPlan",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuarded": {
+          "model": "weeklyPlanGuarded",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuardedHigher": {
+          "model": "weeklyPlanGuardedHigher",
+          "planXp": 300,
+          "activityXp": 90,
+          "progressXp": 0,
+          "earnedXp": 390,
+          "weeklyMaximum": 500
+        }
+      }
+    },
+    {
+      "name": "three one-hour planned workouts",
+      "n": 3,
+      "minutes": 60,
+      "models": {
+        "dailyPlan": {
+          "model": "dailyPlan",
+          "planXp": 180,
+          "activityXp": 45,
+          "progressXp": 0,
+          "earnedXp": 225,
+          "weeklyMaximum": null
+        },
+        "balancedDaily": {
+          "model": "balancedDaily",
+          "planXp": 120,
+          "activityXp": 45,
+          "progressXp": 0,
+          "earnedXp": 165,
+          "weeklyMaximum": null
+        },
+        "weeklyPlan": {
+          "model": "weeklyPlan",
+          "planXp": 180,
+          "activityXp": 45,
+          "progressXp": 0,
+          "earnedXp": 225,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuarded": {
+          "model": "weeklyPlanGuarded",
+          "planXp": 180,
+          "activityXp": 45,
+          "progressXp": 0,
+          "earnedXp": 225,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuardedHigher": {
+          "model": "weeklyPlanGuardedHigher",
+          "planXp": 300,
+          "activityXp": 45,
+          "progressXp": 0,
+          "earnedXp": 345,
+          "weeklyMaximum": 500
+        }
+      }
+    },
+    {
+      "name": "five one-hour planned workouts",
+      "n": 5,
+      "minutes": 60,
+      "models": {
+        "dailyPlan": {
+          "model": "dailyPlan",
+          "planXp": 300,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 360,
+          "weeklyMaximum": null
+        },
+        "balancedDaily": {
+          "model": "balancedDaily",
+          "planXp": 200,
+          "activityXp": 75,
+          "progressXp": 0,
+          "earnedXp": 275,
+          "weeklyMaximum": null
+        },
+        "weeklyPlan": {
+          "model": "weeklyPlan",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuarded": {
+          "model": "weeklyPlanGuarded",
+          "planXp": 180,
+          "activityXp": 60,
+          "progressXp": 0,
+          "earnedXp": 240,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuardedHigher": {
+          "model": "weeklyPlanGuardedHigher",
+          "planXp": 300,
+          "activityXp": 75,
+          "progressXp": 0,
+          "earnedXp": 375,
+          "weeklyMaximum": 500
+        }
+      }
+    },
+    {
+      "name": "one tiny deliberately easy plan",
+      "n": 1,
+      "minutes": 1,
+      "models": {
+        "dailyPlan": {
+          "model": "dailyPlan",
+          "planXp": 60,
+          "activityXp": 0.33,
+          "progressXp": 0,
+          "earnedXp": 60.33,
+          "weeklyMaximum": null
+        },
+        "balancedDaily": {
+          "model": "balancedDaily",
+          "planXp": 40,
+          "activityXp": 0.33,
+          "progressXp": 0,
+          "earnedXp": 40.33,
+          "weeklyMaximum": null
+        },
+        "weeklyPlan": {
+          "model": "weeklyPlan",
+          "planXp": 180,
+          "activityXp": 0.33,
+          "progressXp": 0,
+          "earnedXp": 180.33,
+          "weeklyMaximum": 300
+        },
+        "weeklyPlanGuarded": {
+          "model": "weeklyPlanGuarded",
+          "planXp": 6,
+          "activityXp": 0.33,
+          "progressXp": 0,
+          "earnedXp": 6.33,
+          "weeklyMaximum": 180
+        },
+        "weeklyPlanGuardedHigher": {
+          "model": "weeklyPlanGuardedHigher",
+          "planXp": 10,
+          "activityXp": 0.33,
+          "progressXp": 0,
+          "earnedXp": 10.33,
+          "weeklyMaximum": 300
+        }
+      }
+    }
+  ],
+  "userBreakdownExample": {
+    "model": "weeklyPlanGuardedHigher",
+    "planXp": 100,
+    "activityXp": 17.5,
+    "progressXp": 20,
+    "earnedXp": 137.5,
+    "weeklyMaximum": 500,
+    "rows": [
+      {
+        "date": "2026-10-19",
+        "planXp": 100,
+        "activityXp": 17.5,
+        "progressXp": 20,
+        "totalXp": 137.5,
+        "minutes": 90,
+        "activityBands": [
+          {
+            "minutes": 30,
+            "xp": 10
+          },
+          {
+            "minutes": 30,
+            "xp": 5
+          },
+          {
+            "minutes": 30,
+            "xp": 2.5
+          }
+        ],
+        "progressRaw": 20
+      }
+    ]
+  },
+  "pacing": [
+    {
+      "weeklyXp": 180,
+      "weeksToNext1000Xp": 5.555555555555555,
+      "weeksToNext2000Xp": 11.11111111111111,
+      "weeksToNext5000Xp": 27.77777777777778,
+      "weeksToNext10000Xp": 55.55555555555556,
+      "weeksFromZeroTo120000Xp": 666.6666666666666
+    },
+    {
+      "weeklyXp": 232.5,
+      "weeksToNext1000Xp": 4.301075268817204,
+      "weeksToNext2000Xp": 8.602150537634408,
+      "weeksToNext5000Xp": 21.50537634408602,
+      "weeksToNext10000Xp": 43.01075268817204,
+      "weeksFromZeroTo120000Xp": 516.1290322580645
+    },
+    {
+      "weeklyXp": 240,
+      "weeksToNext1000Xp": 4.166666666666667,
+      "weeksToNext2000Xp": 8.333333333333334,
+      "weeksToNext5000Xp": 20.833333333333332,
+      "weeksToNext10000Xp": 41.666666666666664,
+      "weeksFromZeroTo120000Xp": 500
+    },
+    {
+      "weeklyXp": 300,
+      "weeksToNext1000Xp": 3.3333333333333335,
+      "weeksToNext2000Xp": 6.666666666666667,
+      "weeksToNext5000Xp": 16.666666666666668,
+      "weeksToNext10000Xp": 33.333333333333336,
+      "weeksFromZeroTo120000Xp": 400
+    },
+    {
+      "weeklyXp": 345,
+      "weeksToNext1000Xp": 2.898550724637681,
+      "weeksToNext2000Xp": 5.797101449275362,
+      "weeksToNext5000Xp": 14.492753623188406,
+      "weeksToNext10000Xp": 28.985507246376812,
+      "weeksFromZeroTo120000Xp": 347.82608695652175
+    },
+    {
+      "weeklyXp": 360,
+      "weeksToNext1000Xp": 2.7777777777777777,
+      "weeksToNext2000Xp": 5.555555555555555,
+      "weeksToNext5000Xp": 13.88888888888889,
+      "weeksToNext10000Xp": 27.77777777777778,
+      "weeksFromZeroTo120000Xp": 333.3333333333333
+    },
+    {
+      "weeklyXp": 390,
+      "weeksToNext1000Xp": 2.5641025641025643,
+      "weeksToNext2000Xp": 5.128205128205129,
+      "weeksToNext5000Xp": 12.820512820512821,
+      "weeksToNext10000Xp": 25.641025641025642,
+      "weeksFromZeroTo120000Xp": 307.6923076923077
+    },
+    {
+      "weeklyXp": 500,
+      "weeksToNext1000Xp": 2,
+      "weeksToNext2000Xp": 4,
+      "weeksToNext5000Xp": 10,
+      "weeksToNext10000Xp": 20,
+      "weeksFromZeroTo120000Xp": 240
+    }
+  ],
+  "remainingGaps": [
+    "accepted plan quality and intentional underplanning",
+    "trusted partial completion independent of set/block layout",
+    "actual duration unavailable in many legacy logs; no mandatory timer implied",
+    "manual/wearable same-activity deduplication and overlapping time",
+    "larger workouts spreading across days can still change activity XP below weekly cap",
+    "small easy exercise progression versus substantial progression needs qualification",
+    "recovery and illness need deliberate accepted policy",
+    "rate calibration and avatar pace; existing history stays intact"
+  ]
+}
